@@ -93,6 +93,14 @@ static inline cycles_t get_cycles()
     return ret;
 }
 
+#elif defined(__s390__) || defined(__s390x__)
+typedef unsigned long cycles_t;
+static inline cycles_t get_cycles()
+{
+    unsigned long  clk;
+    asm volatile("stck %0" : "=Q" (clk) : : "cc");
+    return clk >> 2;
+}
 #else
 #warning get_cycles not implemented for this architecture: attempt asm/timex.h
 #include <asm/timex.h>
