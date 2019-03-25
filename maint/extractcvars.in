@@ -125,7 +125,7 @@ foreach my $p (@cvars) {
 print "Categories include: \n".Dumper(@categories) if $debug;
 print "Cvars include :\n".Dumper(@cvars)."\n" if $debug;
 
-my $run_timestamp = localtime();
+my $run_timestamp = "openSUSE no date";
 my $uc_ns = uc($ns);
 
 # Setup output files
@@ -594,7 +594,7 @@ sub ExpandDir {
     my @subdirs = ();
     my $DIR_HANDLE;
     opendir $DIR_HANDLE, "$dir" or die "Error: open directory $dir -- $!\n";
-    while (my $filename = readdir $DIR_HANDLE) {
+    for my $filename (sort readdir $DIR_HANDLE) {
         if ($filename =~ /^\./) {
             next;
         } elsif (-d "$dir/$filename") {
