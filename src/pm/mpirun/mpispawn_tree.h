@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2016, The Ohio State University. All rights
+/* Copyright (c) 2001-2019, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -27,7 +27,7 @@
 
 #define MT_MAX_LEVEL    4
 #define MT_MIN_DEGREE   4
-#define MT_DEFAULT_DEGREE   32
+#define MT_DEFAULT_DEGREE   8
 #define MT_MAX_DEGREE   512
 
 typedef struct {

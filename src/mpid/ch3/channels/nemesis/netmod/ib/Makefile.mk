@@ -1,7 +1,7 @@
 ## -*- Mode: Makefile; -*-
 ## vim: set ft=automake :
 ##
-## Copyright (c) 2001-2014, The Ohio State University. All rights
+## Copyright (c) 2001-2019, The Ohio State University. All rights
 ## reserved.
 ##
 ## This file is part of the MVAPICH2 software package developed by the
@@ -15,7 +15,9 @@
 
 if BUILD_NEMESIS_NETMOD_IB
 
-AM_CPPFLAGS += -DNEMESIS_BUILD -I$(top_srcdir)/src/mpid/ch3/channels/nemesis/netmod/ib
+AM_CPPFLAGS += -DNEMESIS_BUILD \
+	       -I$(top_srcdir)/src/mpid/ch3/channels/nemesis/netmod/ib \
+	       -I$(top_builddir)/src/mpid/ch3/channels/nemesis/netmod/ib
 
 mpi_core_sources +=				\
     src/mpid/ch3/channels/nemesis/netmod/ib/ib_init.c           \

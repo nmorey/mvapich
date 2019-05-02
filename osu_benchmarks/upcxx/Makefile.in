@@ -88,11 +88,15 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-upc_PROGRAMS = osu_upcxx_allgather$(EXEEXT) \
+upcxx_PROGRAMS = osu_upcxx_allgather$(EXEEXT) \
 	osu_upcxx_alltoall$(EXEEXT) osu_upcxx_bcast$(EXEEXT) \
 	osu_upcxx_gather$(EXEEXT) osu_upcxx_reduce$(EXEEXT) \
 	osu_upcxx_scatter$(EXEEXT) osu_upcxx_async_copy_get$(EXEEXT) \
 	osu_upcxx_async_copy_put$(EXEEXT)
+@EMBEDDED_BUILD_TRUE@am__append_1 = -I$(top_builddir)/../src/include \
+@EMBEDDED_BUILD_TRUE@                  -I${top_srcdir}/util \
+@EMBEDDED_BUILD_TRUE@                  -I${top_srcdir}/../src/include
+
 subdir = upcxx
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -102,10 +106,13 @@ DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__installdirs = "$(DESTDIR)$(upcdir)"
-PROGRAMS = $(upc_PROGRAMS)
+am__installdirs = "$(DESTDIR)$(upcxxdir)"
+PROGRAMS = $(upcxx_PROGRAMS)
+am__dirstamp = $(am__leading_dot)dirstamp
+am__objects_1 = ../util/osu_util.$(OBJEXT) \
+	../util/osu_util_pgas.$(OBJEXT)
 am_osu_upcxx_allgather_OBJECTS = osu_upcxx_allgather.$(OBJEXT) \
-	osu_coll.$(OBJEXT) osu_common.$(OBJEXT)
+	$(am__objects_1)
 osu_upcxx_allgather_OBJECTS = $(am_osu_upcxx_allgather_OBJECTS)
 osu_upcxx_allgather_LDADD = $(LDADD)
 AM_V_lt = $(am__v_lt_@AM_V@)
@@ -113,35 +120,33 @@ am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
 am_osu_upcxx_alltoall_OBJECTS = osu_upcxx_alltoall.$(OBJEXT) \
-	osu_coll.$(OBJEXT) osu_common.$(OBJEXT)
+	$(am__objects_1)
 osu_upcxx_alltoall_OBJECTS = $(am_osu_upcxx_alltoall_OBJECTS)
 osu_upcxx_alltoall_LDADD = $(LDADD)
 am_osu_upcxx_async_copy_get_OBJECTS =  \
-	osu_upcxx_async_copy_get.$(OBJEXT) osu_coll.$(OBJEXT) \
-	osu_common.$(OBJEXT)
+	osu_upcxx_async_copy_get.$(OBJEXT) $(am__objects_1)
 osu_upcxx_async_copy_get_OBJECTS =  \
 	$(am_osu_upcxx_async_copy_get_OBJECTS)
 osu_upcxx_async_copy_get_LDADD = $(LDADD)
 am_osu_upcxx_async_copy_put_OBJECTS =  \
-	osu_upcxx_async_copy_put.$(OBJEXT) osu_coll.$(OBJEXT) \
-	osu_common.$(OBJEXT)
+	osu_upcxx_async_copy_put.$(OBJEXT) $(am__objects_1)
 osu_upcxx_async_copy_put_OBJECTS =  \
 	$(am_osu_upcxx_async_copy_put_OBJECTS)
 osu_upcxx_async_copy_put_LDADD = $(LDADD)
 am_osu_upcxx_bcast_OBJECTS = osu_upcxx_bcast.$(OBJEXT) \
-	osu_coll.$(OBJEXT) osu_common.$(OBJEXT)
+	$(am__objects_1)
 osu_upcxx_bcast_OBJECTS = $(am_osu_upcxx_bcast_OBJECTS)
 osu_upcxx_bcast_LDADD = $(LDADD)
 am_osu_upcxx_gather_OBJECTS = osu_upcxx_gather.$(OBJEXT) \
-	osu_coll.$(OBJEXT) osu_common.$(OBJEXT)
+	$(am__objects_1)
 osu_upcxx_gather_OBJECTS = $(am_osu_upcxx_gather_OBJECTS)
 osu_upcxx_gather_LDADD = $(LDADD)
 am_osu_upcxx_reduce_OBJECTS = osu_upcxx_reduce.$(OBJEXT) \
-	osu_coll.$(OBJEXT) osu_common.$(OBJEXT)
+	$(am__objects_1)
 osu_upcxx_reduce_OBJECTS = $(am_osu_upcxx_reduce_OBJECTS)
 osu_upcxx_reduce_LDADD = $(LDADD)
 am_osu_upcxx_scatter_OBJECTS = osu_upcxx_scatter.$(OBJEXT) \
-	osu_coll.$(OBJEXT) osu_common.$(OBJEXT)
+	$(am__objects_1)
 osu_upcxx_scatter_OBJECTS = $(am_osu_upcxx_scatter_OBJECTS)
 osu_upcxx_scatter_LDADD = $(LDADD)
 AM_V_P = $(am__v_P_@AM_V@)
@@ -355,31 +360,18 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-upcdir = $(pkglibexecdir)/upcxx
-osu_upcxx_allgather_SOURCES = osu_upcxx_allgather.cpp osu_coll.h osu_coll.c  \
-			      osu_common.c osu_common.h
-
-osu_upcxx_alltoall_SOURCES = osu_upcxx_alltoall.cpp osu_coll.h osu_coll.c \
-			     osu_common.c osu_common.h
-
-osu_upcxx_bcast_SOURCES = osu_upcxx_bcast.cpp osu_coll.h osu_coll.c \
-			  osu_common.c osu_common.h
-
-osu_upcxx_gather_SOURCES = osu_upcxx_gather.cpp osu_coll.h osu_coll.c \
-			   osu_common.c osu_common.h
-
-osu_upcxx_reduce_SOURCES = osu_upcxx_reduce.cpp osu_coll.h osu_coll.c \
-			   osu_common.c osu_common.h
-
-osu_upcxx_scatter_SOURCES = osu_upcxx_scatter.cpp osu_coll.h osu_coll.c \
-			    osu_common.c osu_common.h
-
-osu_upcxx_async_copy_get_SOURCES = osu_upcxx_async_copy_get.cpp osu_coll.c \
-				   osu_common.c osu_common.h
-
-osu_upcxx_async_copy_put_SOURCES = osu_upcxx_async_copy_put.cpp osu_coll.c \
-				   osu_common.c osu_common.h
-
+AUTOMAKE_OPTIONS = subdir-objects
+upcxxdir = $(pkglibexecdir)/upcxx
+AM_CPPFLAGS = -I../util $(am__append_1)
+UTILITIES = ../util/osu_util.c ../util/osu_util.h ../util/osu_util_pgas.c ../util/osu_util_pgas.h
+osu_upcxx_allgather_SOURCES = osu_upcxx_allgather.cpp $(UTILITIES)
+osu_upcxx_alltoall_SOURCES = osu_upcxx_alltoall.cpp $(UTILITIES)
+osu_upcxx_bcast_SOURCES = osu_upcxx_bcast.cpp $(UTILITIES)
+osu_upcxx_gather_SOURCES = osu_upcxx_gather.cpp $(UTILITIES)
+osu_upcxx_reduce_SOURCES = osu_upcxx_reduce.cpp $(UTILITIES)
+osu_upcxx_scatter_SOURCES = osu_upcxx_scatter.cpp $(UTILITIES)
+osu_upcxx_async_copy_get_SOURCES = osu_upcxx_async_copy_get.cpp $(UTILITIES)
+osu_upcxx_async_copy_put_SOURCES = osu_upcxx_async_copy_put.cpp $(UTILITIES)
 all: all-am
 
 .SUFFIXES:
@@ -413,12 +405,12 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
-install-upcPROGRAMS: $(upc_PROGRAMS)
+install-upcxxPROGRAMS: $(upcxx_PROGRAMS)
 	@$(NORMAL_INSTALL)
-	@list='$(upc_PROGRAMS)'; test -n "$(upcdir)" || list=; \
+	@list='$(upcxx_PROGRAMS)'; test -n "$(upcxxdir)" || list=; \
 	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(upcdir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(upcdir)" || exit 1; \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(upcxxdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(upcxxdir)" || exit 1; \
 	fi; \
 	for p in $$list; do echo "$$p $$p"; done | \
 	sed 's/$(EXEEXT)$$//' | \
@@ -438,30 +430,40 @@ install-upcPROGRAMS: $(upc_PROGRAMS)
 	while read type dir files; do \
 	    if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
 	    test -z "$$files" || { \
-	    echo " $(INSTALL_PROGRAM_ENV) $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(upcdir)$$dir'"; \
-	    $(INSTALL_PROGRAM_ENV) $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(upcdir)$$dir" || exit $$?; \
+	    echo " $(INSTALL_PROGRAM_ENV) $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(upcxxdir)$$dir'"; \
+	    $(INSTALL_PROGRAM_ENV) $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(upcxxdir)$$dir" || exit $$?; \
 	    } \
 	; done
 
-uninstall-upcPROGRAMS:
+uninstall-upcxxPROGRAMS:
 	@$(NORMAL_UNINSTALL)
-	@list='$(upc_PROGRAMS)'; test -n "$(upcdir)" || list=; \
+	@list='$(upcxx_PROGRAMS)'; test -n "$(upcxxdir)" || list=; \
 	files=`for p in $$list; do echo "$$p"; done | \
 	  sed -e 'h;s,^.*/,,;s/$(EXEEXT)$$//;$(transform)' \
 	      -e 's/$$/$(EXEEXT)/' \
 	`; \
 	test -n "$$list" || exit 0; \
-	echo " ( cd '$(DESTDIR)$(upcdir)' && rm -f" $$files ")"; \
-	cd "$(DESTDIR)$(upcdir)" && rm -f $$files
+	echo " ( cd '$(DESTDIR)$(upcxxdir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(upcxxdir)" && rm -f $$files
 
-clean-upcPROGRAMS:
-	@list='$(upc_PROGRAMS)'; test -n "$$list" || exit 0; \
+clean-upcxxPROGRAMS:
+	@list='$(upcxx_PROGRAMS)'; test -n "$$list" || exit 0; \
 	echo " rm -f" $$list; \
 	rm -f $$list || exit $$?; \
 	test -n "$(EXEEXT)" || exit 0; \
 	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
 	echo " rm -f" $$list; \
 	rm -f $$list
+../util/$(am__dirstamp):
+	@$(MKDIR_P) ../util
+	@: > ../util/$(am__dirstamp)
+../util/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) ../util/$(DEPDIR)
+	@: > ../util/$(DEPDIR)/$(am__dirstamp)
+../util/osu_util.$(OBJEXT): ../util/$(am__dirstamp) \
+	../util/$(DEPDIR)/$(am__dirstamp)
+../util/osu_util_pgas.$(OBJEXT): ../util/$(am__dirstamp) \
+	../util/$(DEPDIR)/$(am__dirstamp)
 
 osu_upcxx_allgather$(EXEEXT): $(osu_upcxx_allgather_OBJECTS) $(osu_upcxx_allgather_DEPENDENCIES) $(EXTRA_osu_upcxx_allgather_DEPENDENCIES) 
 	@rm -f osu_upcxx_allgather$(EXEEXT)
@@ -497,12 +499,13 @@ osu_upcxx_scatter$(EXEEXT): $(osu_upcxx_scatter_OBJECTS) $(osu_upcxx_scatter_DEP
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
+	-rm -f ../util/*.$(OBJEXT)
 
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_coll.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_common.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@../util/$(DEPDIR)/osu_util.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@../util/$(DEPDIR)/osu_util_pgas.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_upcxx_allgather.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_upcxx_alltoall.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_upcxx_async_copy_get.Po@am__quote@
@@ -513,43 +516,49 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_upcxx_scatter.Po@am__quote@
 
 .c.o:
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ $<
 
 .c.obj:
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.obj$$||'`;\
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ `$(CYGPATH_W) '$<'` &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 
 .c.lo:
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LTCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.lo$$||'`;\
+@am__fastdepCC_TRUE@	$(LTCOMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
 
 .cpp.o:
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
+@am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCXX_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXXCOMPILE) -c -o $@ $<
 
 .cpp.obj:
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.obj$$||'`;\
+@am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ `$(CYGPATH_W) '$<'` &&\
+@am__fastdepCXX_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 
 .cpp.lo:
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LTCXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.lo$$||'`;\
+@am__fastdepCXX_TRUE@	$(LTCXXCOMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCXX_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Plo
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LTCXXCOMPILE) -c -o $@ $<
@@ -646,7 +655,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(PROGRAMS)
 installdirs:
-	for dir in "$(DESTDIR)$(upcdir)"; do \
+	for dir in "$(DESTDIR)$(upcxxdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -675,16 +684,19 @@ clean-generic:
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
+	-rm -f ../util/$(DEPDIR)/$(am__dirstamp)
+	-rm -f ../util/$(am__dirstamp)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-generic clean-libtool clean-upcPROGRAMS mostlyclean-am
+clean-am: clean-generic clean-libtool clean-upcxxPROGRAMS \
+	mostlyclean-am
 
 distclean: distclean-am
-	-rm -rf ./$(DEPDIR)
+	-rm -rf ../util/$(DEPDIR) ./$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -701,7 +713,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-upcPROGRAMS
+install-data-am: install-upcxxPROGRAMS
 
 install-dvi: install-dvi-am
 
@@ -730,7 +742,7 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-	-rm -rf ./$(DEPDIR)
+	-rm -rf ../util/$(DEPDIR) ./$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -747,23 +759,23 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-upcPROGRAMS
+uninstall-am: uninstall-upcxxPROGRAMS
 
 .MAKE: install-am install-strip
 
 .PHONY: CTAGS GTAGS TAGS all all-am check check-am clean clean-generic \
-	clean-libtool clean-upcPROGRAMS cscopelist-am ctags ctags-am \
+	clean-libtool clean-upcxxPROGRAMS cscopelist-am ctags ctags-am \
 	distclean distclean-compile distclean-generic \
 	distclean-libtool distclean-tags distdir dvi dvi-am html \
 	html-am info info-am install install-am install-data \
 	install-data-am install-dvi install-dvi-am install-exec \
 	install-exec-am install-html install-html-am install-info \
 	install-info-am install-man install-pdf install-pdf-am \
-	install-ps install-ps-am install-strip install-upcPROGRAMS \
+	install-ps install-ps-am install-strip install-upcxxPROGRAMS \
 	installcheck installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags tags-am uninstall uninstall-am uninstall-upcPROGRAMS
+	tags tags-am uninstall uninstall-am uninstall-upcxxPROGRAMS
 
 .PRECIOUS: Makefile
 

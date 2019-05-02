@@ -175,7 +175,13 @@ print("\n");
 my $current_ver = `git show ${branch}:maint/version.m4 | grep MVAPICH2_VERSION_m4 | \
                    sed -e 's/^.*\\[MVAPICH2_VERSION_m4\\],\\[\\(.*\\)\\].*/\\1/g'`;
 if ("$current_ver" ne "$version\n") {
-    print("\tWARNING: Version mismatch\n\n");
+    print("\tWARNING: maint/version does not match user version\n\n");
+}
+
+my $changes_ver = `git show ${branch}:CHANGES | grep "http://git.mpich.org/mpich.git/shortlog" | \
+                   sed -e '2,\$d' -e 's/.*\.\.//g'`;
+if ("$changes_ver" ne "$version\n") {
+    print("\tWARNING: CHANGES/version does not match user version\n\n");
 }
 
 if ($append_commit_id) {
@@ -193,7 +199,7 @@ system("rm -f ${root}/$logfile");
 print("===> Exporting code from git... ");
 run_cmd("rm -rf ${expdir}");
 run_cmd("mkdir -p ${expdir}");
-run_cmd("git archive ${branch} --prefix='${prefix}-${version}/' | tar -x -C $tdir");
+run_cmd("git archive --remote=${git_repo} --prefix='${prefix}-${version}/' --format=tar ${branch} | tar -x -C $tdir");
 print("done\n");
 
 print("===> Create release date and version information... ");

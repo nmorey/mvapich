@@ -45,11 +45,11 @@ int MPI_File_sync(MPI_File fh)
     HPMP_IO_START(fl_xmpi, BLKMPIFILESYNC, TRDTBLOCK, adio_fh,
 		  MPI_DATATYPE_NULL, -1);
 #endif /* MPI_hpux */
-    MPIU_THREAD_CS_ENTER(ALLFUNC,);
+    ROMIO_THREAD_CS_ENTER();
 
     adio_fh = MPIO_File_resolve(fh);
     /* --BEGIN ERROR HANDLING-- */
-    if ((adio_fh <= (MPI_File) 0) || ((adio_fh)->cookie != ADIOI_FILE_COOKIE))
+    if ((adio_fh == NULL) || ((adio_fh)->cookie != ADIOI_FILE_COOKIE))
     {
 	error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
 					  myname, __LINE__, MPI_ERR_ARG,
@@ -71,6 +71,6 @@ int MPI_File_sync(MPI_File fh)
 #endif /* MPI_hpux */
  
 fn_exit:
-    MPIU_THREAD_CS_EXIT(ALLFUNC,);
+    ROMIO_THREAD_CS_EXIT();
     return error_code;
 }

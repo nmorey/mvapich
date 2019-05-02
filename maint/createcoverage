@@ -6,7 +6,7 @@
 # The default approach is to prepare the coverage for this MPICH 
 # distribution and to place the coverage web pages into a 
 # (mpichsrc)/www/coverage
-srcdir=/tmp/Zrm50x0Zk_/mvapich2-2.2
+srcdir=/tmp/p6Xfm_1t3q/mvapich2-2.3.1
 tsuites=$srcdir/tests/mpi
 weblocbase=$srcdir/www/coverage
 weblocprefix=""

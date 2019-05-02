@@ -4,7 +4,7 @@
  *      See COPYRIGHT in top-level directory.
  */
 
-/* Copyright (c) 2001-2016, The Ohio State University. All rights
+/* Copyright (c) 2001-2019, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -24,6 +24,10 @@
 #include "smp_smpi.h"
 #include "mpiu_os_wrappers_pre.h"
 
+#if defined (_SHARP_SUPPORT_)
+#include "api/sharp_coll.h"
+#endif
+
 /*#define MPICH_DBG_OUTPUT*/
 
 #ifdef _OSU_MVAPICH_
@@ -33,8 +37,11 @@ typedef struct {
     MPI_Comm     allgather_comm;
     int*    leader_map;
     int*    leader_rank;
-    int*    node_sizes; 
+    int*    node_sizes;		 /* number of processes on each node */
+    int*    node_disps;      /* displacements into rank_list for each node */
     int*    allgather_new_ranks;
+    int*    rank_list;       /* list of ranks, ordered by node id, then shmem rank on each node */
+    int     rank_list_index; /* index of this process in the rank_list array */
     int     is_uniform;
     int     is_blocked;
     int     shmem_comm_rank;
@@ -48,6 +55,9 @@ typedef struct {
                                 with mcast and bcast */
     int     shmem_coll_count;
     int     allgather_coll_count;
+    int     allreduce_coll_count;
+    int     bcast_coll_count;
+    int     scatter_coll_count;
     void    *shmem_info; /* intra node shmem info */
 #if defined(_SMP_LIMIC_)    
     MPI_Comm     intra_sock_comm;
@@ -60,12 +70,31 @@ typedef struct {
     int     is_mcast_ok;
     void    *bcast_info;
 #endif
+
+#if defined(_SHARP_SUPPORT_)
+    int     is_sharp_ok;
+    void    *sharp_coll_info;
+#endif
+
 } MPIDI_CH3I_CH_comm_t;
 #else
 typedef struct {
     int dummy;  /* dummy variable to ensure we don't have an empty structure */
 } MPIDI_CH3I_CH_comm_t;
 #endif /* _OSU_MVAPICH_ */
+
+#if defined (_SHARP_SUPPORT_)
+#define SHARP_REQ_HANDLE void
+#define MPID_DEV_SHARP_REQUEST_DECL         \
+            SHARP_REQ_HANDLE * sharp_req;   \
+
+#define MPIDI_CH3_SHARP_REQUEST_INIT(_req)  \
+            (_req)->sharp_req = NULL;       \
+
+#define MPID_SHARP_COLL_REQ_WAIT(_req)     sharp_coll_req_wait(_req->sharp_req)
+#define MPID_SHARP_COLL_REQ_FREE(_req)     sharp_coll_req_free(_req->sharp_req)
+#define MPID_SHARP_COLL_SUCCESS            SHARP_COLL_SUCCESS 
+#endif
 
 typedef struct MPIDI_CH3I_Process_group_s
 {
@@ -124,7 +153,7 @@ typedef struct MPIDI_CH3I_Buffer_t
     unsigned int num_bytes;
     void *buffer;
     unsigned int bufflen;
-    MPID_IOV *iov;
+    MPL_IOV *iov;
     int iovlen;
     int index;
     int total;
@@ -344,6 +373,7 @@ struct MPIDI_CH3I_Request						\
     (_rreq)->mrail.d_entry = NULL;       \
     (_rreq)->mrail.remote_addr = NULL;   \
     (_rreq)->mrail.nearly_complete = 0;  \
+    (_rreq)->mrail.is_rma_last_stream_unit = 1;  \
     MPIDI_CH3_REQUEST_INIT_CUDA(_rreq)   \
     MPIDI_CH3_REQUEST_INIT_CUDA_IPC(_rreq) 
 
@@ -365,7 +395,6 @@ typedef pthread_mutex_t MPIDI_CH3I_SHM_MUTEX;
                                                                                  
 #define MPIDI_CH3_WIN_DECL                                                       \
     int  fall_back;                                                              \
-    int  shm_win_pt2pt;                                                          \
     int  enable_fast_path;                                                       \
     int  use_rdma_path;                                                          \
     int  is_active;                                                              \
@@ -386,7 +415,6 @@ typedef pthread_mutex_t MPIDI_CH3I_SHM_MUTEX;
     int ** remote_post_flags;                                                    \
                                                                                  \
     int using_start;                                                             \
-    int use_direct_shm;                                                          \
     /*for get/put queue*/                                                        \
     MPIDI_CH3I_RDMA_put_get_list * put_get_list;                                 \
     int put_get_list_size;                                                       \
@@ -399,9 +427,10 @@ typedef pthread_mutex_t MPIDI_CH3I_SHM_MUTEX;
     int    pinnedpool_1sc_index;                                                 \
     struct dreg_entry * pinnedpool_1sc_dentry;                                   \
                                                                                  \
-    int my_id;                                                                   \
-    int comm_size;                                                               \
     int16_t outstanding_rma;                                                     \
+    int *shm_l2g_rank;                                                           \
+    int node_comm_size;                                                          \
+    MPID_Comm *node_comm_ptr;                                                    \
     volatile int poll_flag; /* flag to indicate if polling for one sided completions is needed */ \
     void *shm_base_addr;        /* base address of shared memory region */              \
     int shm_coll_comm_ref;                                                              \
@@ -411,7 +440,9 @@ typedef pthread_mutex_t MPIDI_CH3I_SHM_MUTEX;
                                            accumulate/atomic operations */              \
     MPIU_SHMW_Hnd_t shm_mutex_segment_handle; /* handle to interprocess mutex memory    \
                                                  region */                              \
-    int *shm_l2g_rank;                                                                  
+    void *info_shm_base_addr; /* base address of shared memory region for window info */          \
+    MPI_Aint info_shm_segment_len; /* size of shared memory region for window info */             \
+    MPIU_SHMW_Hnd_t info_shm_segment_handle; /* handle to shared memory region for window info */ \
 
 extern int mv2_create_dummy_request();
 extern int mv2_free_dummy_request();

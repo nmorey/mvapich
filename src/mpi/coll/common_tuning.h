@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2016, The Ohio State University. All rights
+/* Copyright (c) 2001-2019, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -82,5 +82,89 @@
     MPIU_Free(table_ptrs);                                          \
     return 0;                                                       \
 }
+/* defined enum for right hand side values used in mv2 collective algorithms
+ selection. */
+enum mv2_bcast_tuning
+{
+    SHMEM_BCAST_INTRA,
+    KNOMIAL_BCAST_INTRA,
+    BCAST_BIONOMIAL_INTRA,
+    BCAST_SCATTER_DOUBLING_ALLGATHER_FLAT,
+    BCAST_SCATTER_DOUBLING_ALLGATHER,
+    BCAST_SCATTER_RING_ALLGATEHR_FLAT,
+    BCAST_SCATTER_RING_ALLGATHER,
+    BCAST_SCATTER_RING_ALLGATHER_SHM, 
+    KNOMIAL_BCAST_INTER_NODE_WRAPPER,
+    PIPELINED_BCAST,
+    PIPELINED_BCAST_ZCPY
+};
 
+enum mv2_reduce_tuning 
+{
+    REDUCE_BINOMIAL = 1,
+    REDUCE_INTER_KNOMIAL,
+    REDUCE_INTRA_KNOMIAL,
+    REDUCE_SHMEM,
+    REDUCE_RDSC_GATHER,
+    REDUCE_ZCPY
+};
+
+enum mv2_gather_tuning 
+{
+    GATHER_INTRA,
+    GATHER_INTER,
+    GATHER_MV2_DIRECT,
+    GATHER_MV2_TWO_LEVEL_DIRECT
+};
+
+enum mv2_allreduce_tuning 
+{
+    ALLREDUCE_P2P_RD = 1,
+    ALLREDUCE_P2P_RS,
+    ALLREDUCE_MCAST_2LEVEL,
+    ALLREDUCE_MCAST_RSA,
+    ALLREDUCE_SHMEM_REDUCE,
+    ALLREDUCE_P2P_REDUCE,
+    ALLREDUCE_RED_SCAT_ALLGA_COLL
+};
+
+enum mv2_scatter_tuning 
+{
+    SCATTER_BINOMIAL = 1,
+    SCATTER_DIRECT,
+    SCATTER_TWO_LEVEL_BINOMIAL,
+    SCATTER_TWO_LEVEL_DIRECT,
+    SCATTER_MCAST
+};
+
+enum mv2_allgather_tuning 
+{
+    ALLGATHER_RD_ALLGATHER_COMM = 1,
+    ALLGATHER_RD,
+    ALLGATHER_BRUCK,
+    ALLGATHER_RING,
+	ALLGATHER_DIRECT,
+	ALLGATHER_DIRECTSPREAD,
+	ALLGATHER_GATHER_BCAST,
+	ALLGATHER_2LVL_NONBLOCKED,
+	ALLGATHER_2LVL_RING_NONBLOCKED,
+	ALLGATHER_2LVL_DIRECT,
+	ALLGATHER_2LVL_RING
+};
+
+enum mv2_alltoall_tuning 
+{
+    ALLTOALL_BRUCK_MV2,
+    ALLTOALL_RD_MV2,
+    ALLTOALL_SCATTER_DEST_MV2,
+    ALLTOALL_PAIRWISE_MV2,
+    ALLTOALL_INPLACE_MV2
+};
+
+enum mv2_alltoallv_tuning
+{
+    ALLTOALLV_INTRA_SCATTER_MV2,
+    ALLTOALLV_INTRA_MV2,
+    ALLTOALLV_MV2
+};
 #endif

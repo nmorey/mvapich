@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2016, The Ohio State University. All rights
+/* Copyright (c) 2001-2019, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -83,8 +83,8 @@ int MPIDI_CH3I_MRAIL_Prepare_rndv(MPIDI_VC_t * vc, MPID_Request * req)
 #endif 
         ))
     {
-        req->mrail.rndv_buf = req->dev.iov[0].MPID_IOV_BUF;
-        req->mrail.rndv_buf_sz = req->dev.iov[0].MPID_IOV_LEN;
+        req->mrail.rndv_buf = req->dev.iov[0].MPL_IOV_BUF;
+        req->mrail.rndv_buf_sz = req->dev.iov[0].MPL_IOV_LEN;
         req->mrail.rndv_buf_alloc = 0;
     } else {
         req->mrail.rndv_buf_sz = req->dev.segment_size;
@@ -104,7 +104,7 @@ int MPIDI_CH3I_MRAIL_Prepare_rndv(MPIDI_VC_t * vc, MPID_Request * req)
     req->mrail.rndv_buf_off = 0;
 
     /* Step 1.5: If use R3 for smaller messages */
-    if (req->mrail.rndv_buf_sz <= rdma_r3_threshold
+    if (req->mrail.rndv_buf_sz <= MPIDI_CH3_R3_THRESHOLD(vc)
 #ifdef _ENABLE_CUDA_
         && !rdma_enable_cuda
 #endif
@@ -206,7 +206,10 @@ int MPIDI_CH3I_MRAIL_Prepare_rndv_transfer(MPID_Request * sreq,
         if( rdma_enable_cuda && sreq->mrail.cuda_transfer_mode != NONE) {
             sreq->mrail.cts_received = 1;
             sreq->mrail.num_send_cuda_copy = 0;
-            if (sreq->mrail.cuda_transfer_mode == DEVICE_TO_DEVICE 
+	    if (rndv->cuda_transfer_mode == NONE || rndv->cuda_transfer_mode == DEVICE_TO_HOST) {
+                sreq->mrail.cuda_transfer_mode = DEVICE_TO_HOST;
+            }
+            if (sreq->mrail.cuda_transfer_mode == DEVICE_TO_DEVICE
                 || sreq->mrail.cuda_transfer_mode == HOST_TO_DEVICE) {
                 for (i = 0; i < rndv->num_cuda_blocks; i++) {
                     sreq->mrail.cuda_remote_addr[i] = rndv->buffer_addr[i];
@@ -226,6 +229,9 @@ int MPIDI_CH3I_MRAIL_Prepare_rndv_transfer(MPID_Request * sreq,
                 sreq->mrail.remote_addr = rndv->buf_addr;
                 for (hca_index = 0; hca_index < rdma_num_hcas; hca_index ++)
                     sreq->mrail.rkey[hca_index] = rndv->rkey[hca_index];
+            } else {
+                /* Code should not enter here */
+		MPIU_Assert(0);
             }
         } else
 #endif
@@ -245,9 +251,9 @@ int MPIDI_CH3I_MRAIL_Prepare_rndv_transfer(MPID_Request * sreq,
 
             buf = (uintptr_t) sreq->mrail.rndv_buf;
             for (i = 0; i < sreq->dev.iov_count; i++) {
-                MPIU_Memcpy((void *) buf, sreq->dev.iov[i].MPID_IOV_BUF,
-                        sreq->dev.iov[i].MPID_IOV_LEN);
-                buf += sreq->dev.iov[i].MPID_IOV_LEN;
+                MPIU_Memcpy((void *) buf, sreq->dev.iov[i].MPL_IOV_BUF,
+                        sreq->dev.iov[i].MPL_IOV_LEN);
+                buf += sreq->dev.iov[i].MPL_IOV_LEN;
             }
 
             /* TODO: Following part is a workaround to deal with 
@@ -259,7 +265,7 @@ int MPIDI_CH3I_MRAIL_Prepare_rndv_transfer(MPID_Request * sreq,
 
             while (sreq->dev.OnDataAvail == 
                     MPIDI_CH3_ReqHandler_SendReloadIOV) {
-                sreq->dev.iov_count = MPID_IOV_LIMIT;
+                sreq->dev.iov_count = MPL_IOV_LIMIT;
                 mpi_errno =
                     MPIDI_CH3U_Request_load_send_iov(sreq,
                             sreq->dev.iov,
@@ -269,9 +275,9 @@ int MPIDI_CH3I_MRAIL_Prepare_rndv_transfer(MPID_Request * sreq,
                     ibv_error_abort(IBV_STATUS_ERR, "Reload iov error");
                 }
                 for (i = 0; i < sreq->dev.iov_count; i++) {
-                   MPIU_Memcpy((void *) buf, sreq->dev.iov[i].MPID_IOV_BUF,
-                            sreq->dev.iov[i].MPID_IOV_LEN);
-                    buf += sreq->dev.iov[i].MPID_IOV_LEN;
+                   MPIU_Memcpy((void *) buf, sreq->dev.iov[i].MPL_IOV_BUF,
+                            sreq->dev.iov[i].MPL_IOV_LEN);
+                    buf += sreq->dev.iov[i].MPL_IOV_LEN;
                 }
             }
         }
@@ -283,7 +289,7 @@ void MRAILI_RDMA_Put_finish(MPIDI_VC_t * vc,
         MPID_Request * sreq, int rail)
 {
     MPIDI_CH3_Pkt_rput_finish_t rput_pkt;
-    MPID_IOV iov;
+    MPL_IOV iov;
     int n_iov = 1;
     int nb;
     vbuf *buf;
@@ -299,8 +305,8 @@ void MRAILI_RDMA_Put_finish(MPIDI_VC_t * vc,
     MPIDI_VC_FAI_send_seqnum(vc, seqnum);
     MPIDI_Pkt_set_seqnum(&rput_pkt, seqnum); 
 
-    iov.MPID_IOV_BUF = &rput_pkt;
-    iov.MPID_IOV_LEN = sizeof(MPIDI_CH3_Pkt_rput_finish_t);
+    iov.MPL_IOV_BUF = &rput_pkt;
+    iov.MPL_IOV_LEN = sizeof(MPIDI_CH3_Pkt_rput_finish_t);
 
     DEBUG_PRINT("Sending RPUT FINISH\n");
 
@@ -323,7 +329,7 @@ void MRAILI_RDMA_Get_finish(MPIDI_VC_t * vc,
         MPID_Request * rreq, int rail)
 {
     MPIDI_CH3_Pkt_rget_finish_t rget_pkt;
-    MPID_IOV iov;
+    MPL_IOV iov;
     int n_iov = 1;
     int nb;
     int mpi_errno = MPI_SUCCESS;
@@ -355,8 +361,8 @@ void MRAILI_RDMA_Get_finish(MPIDI_VC_t * vc,
     } else { 
         vbuf *buf;
 
-        iov.MPID_IOV_BUF = &rget_pkt;
-        iov.MPID_IOV_LEN = sizeof(MPIDI_CH3_Pkt_rget_finish_t);
+        iov.MPL_IOV_BUF = &rget_pkt;
+        iov.MPL_IOV_LEN = sizeof(MPIDI_CH3_Pkt_rget_finish_t);
 
         mpi_errno =
             MPIDI_CH3I_MRAILI_rget_finish(vc, &iov, n_iov, &nb, &buf, rail);
@@ -376,8 +382,11 @@ void MPIDI_CH3I_MRAILI_Rendezvous_rget_push(MPIDI_VC_t * vc,
         MPID_Request * rreq)
 {
     vbuf *v;
+    int queued = 0;
+    int ext_sendq_size = 0;
     int rail, disp, s_total, inc;
-    int nbytes, rail_index;
+    int rail_index;
+    MPIDI_msg_sz_t nbytes;
 
     int count_rail;
 
@@ -386,10 +395,9 @@ void MPIDI_CH3I_MRAILI_Rendezvous_rget_push(MPIDI_VC_t * vc,
 
     double time;
 
-    if (rreq->mrail.rndv_buf_off != 0) {
-        ibv_va_error_abort(GEN_ASSERT_ERR,
-                "s->bytes_sent != 0 Rendezvous Push, %d",
-                rreq->mrail.nearly_complete);
+    if (rreq->mrail.rndv_buf_off == 0) {
+        rreq->mrail.num_rdma_read_completions = 0;
+        rreq->mrail.completion_counter = 0;
     }
 
     for(rail_index = 0; rail_index < rdma_num_rails; rail_index++) {
@@ -398,9 +406,6 @@ void MPIDI_CH3I_MRAILI_Rendezvous_rget_push(MPIDI_VC_t * vc,
         }
     }
 
-    rreq->mrail.completion_counter = 0;
-
-    rreq->mrail.num_rdma_read_completions = 0;
 
 #if defined(DEBUG)
     if (rreq->mrail.rndv_buf_sz > 0) {
@@ -451,10 +456,15 @@ void MPIDI_CH3I_MRAILI_Rendezvous_rget_push(MPIDI_VC_t * vc,
                 rreq->mrail.rndv_buf_off, rreq->mrail.remote_addr);
         
         if (nbytes <= rdma_large_msg_rail_sharing_threshold) {
+            rail = MRAILI_Send_select_rail(vc);
+            /* Get current number of pending entries */
+            GET_EXT_SENDQ_SIZE(vc, rail, ext_sendq_size);
+            if (ext_sendq_size >= rdma_rndv_ext_sendq_size) {
+                break;
+            }
+
             GET_VBUF_BY_OFFSET_WITHOUT_LOCK(v, MV2_SMALL_DATA_VBUF_POOL_OFFSET);
             v->sreq = rreq;
-
-            rail = MRAILI_Send_select_rail(vc);
 
             MRAILI_RDMA_Get(vc, v,
                     (char *) (rreq->mrail.rndv_buf) +
@@ -470,6 +480,17 @@ void MPIDI_CH3I_MRAILI_Rendezvous_rget_push(MPIDI_VC_t * vc,
 
         } else if(!mv2_MPIDI_CH3I_RDMA_Process.has_hsam) {
             inc = nbytes / rdma_num_rails;
+            for(rail = 0; rail < rdma_num_rails; rail++) {
+                /* Get current number of pending entries */
+                GET_EXT_SENDQ_SIZE(vc, rail, ext_sendq_size);
+                if (ext_sendq_size >= rdma_rndv_ext_sendq_size) {
+                    queued = 1;
+                    break;
+                }
+            }
+            if (queued) {
+                break;
+            }
             
             for(rail = 0; rail < rdma_num_rails - 1; rail++) {
                 GET_VBUF_BY_OFFSET_WITHOUT_LOCK(v, MV2_SMALL_DATA_VBUF_POOL_OFFSET);
@@ -566,8 +587,12 @@ void MPIDI_CH3I_MRAILI_Rendezvous_rget_push(MPIDI_VC_t * vc,
         rreq->mrail.rndv_buf_off += nbytes; 
     }
 
-    MPIU_Assert(rreq->mrail.rndv_buf_off == rreq->mrail.rndv_buf_sz);
-    rreq->mrail.nearly_complete = 1;
+    /* Send the finish message through the rails, when all data is sent */
+    if (rreq->mrail.rndv_buf_off == rreq->mrail.rndv_buf_sz) {
+        rreq->mrail.nearly_complete = 1;
+    } else { 
+        rreq->mrail.nearly_complete = 0;
+    }
 }
 
 
@@ -595,6 +620,7 @@ void MPIDI_CH3I_MRAILI_Rendezvous_rput_push(MPIDI_VC_t * vc,
     int mapped[MAX_NUM_SUBRAILS];
     int actual_index[MAX_NUM_SUBRAILS];
     int queued = 0;
+    int ext_sendq_size = 0;
 
     double time;
 
@@ -661,7 +687,9 @@ void MPIDI_CH3I_MRAILI_Rendezvous_rput_push(MPIDI_VC_t * vc,
         if (nbytes <= rdma_large_msg_rail_sharing_threshold) {
             rail = MRAILI_Send_select_rail(vc);
 
-            if (vc->mrail.rails[rail].ext_sendq_size >= rdma_rndv_ext_sendq_size) {
+            /* Get current number of pending entries */
+            GET_EXT_SENDQ_SIZE(vc, rail, ext_sendq_size);
+            if (ext_sendq_size >= rdma_rndv_ext_sendq_size) {
                 break;
             }
 
@@ -680,7 +708,9 @@ void MPIDI_CH3I_MRAILI_Rendezvous_rput_push(MPIDI_VC_t * vc,
            
         } else if(!mv2_MPIDI_CH3I_RDMA_Process.has_hsam) {
             for(rail = 0; rail < rdma_num_rails; rail++) {
-                if (vc->mrail.rails[rail].ext_sendq_size >= rdma_rndv_ext_sendq_size) {
+                /* Get current number of pending entries */
+                GET_EXT_SENDQ_SIZE(vc, rail, ext_sendq_size);
+                if (ext_sendq_size >= rdma_rndv_ext_sendq_size) {
                     queued = 1;
                     break;
                 }
@@ -804,7 +834,7 @@ int MPIDI_CH3I_MRAILI_Rendezvous_r3_ack_send(MPIDI_VC_t *vc)
 {
     vbuf *v;
     int mpi_errno;
-    MPID_IOV iov;
+    MPL_IOV iov;
     int total_len;
     int rail;
     MPID_Seqnum_t seqnum;
@@ -820,8 +850,8 @@ int MPIDI_CH3I_MRAILI_Rendezvous_r3_ack_send(MPIDI_VC_t *vc)
     r3_ack.ack_data = vc->ch.received_r3_data;
     vc->ch.received_r3_data = 0;
 
-    iov.MPID_IOV_BUF = &r3_ack;
-    iov.MPID_IOV_LEN = sizeof(MPIDI_CH3_Pkt_rndv_r3_ack_t);
+    iov.MPL_IOV_BUF = &r3_ack;
+    iov.MPL_IOV_LEN = sizeof(MPIDI_CH3_Pkt_rndv_r3_ack_t);
 
     total_len = MRAILI_Fill_start_buffer(v, &iov, 1);
     DEBUG_PRINT("[[eager send] len %d vbuf: %p\n",total_len, v);
@@ -896,7 +926,7 @@ void get_sorted_index(MPIDI_VC_t *vc, int *b)
 #undef FUNCNAME 
 #define FUNCNAME adjust_weights 
 #undef FCNAME       
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 
 void adjust_weights(MPIDI_VC_t *vc, double start_time,
     double *finish_time,

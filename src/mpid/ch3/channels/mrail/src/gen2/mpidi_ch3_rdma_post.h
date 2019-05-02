@@ -4,7 +4,7 @@
  *      See COPYRIGHT in top-level directory.
  */
 
-/* Copyright (c) 2001-2016, The Ohio State University. All rights
+/* Copyright (c) 2001-2019, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -21,6 +21,7 @@
 
 #include "mpichconf.h"
 #include "vbuf.h"
+#include "dreg.h"
 
 /* Use this header to add implementation specific structures
    that cannot be defined until after the mpich2 header files
@@ -32,6 +33,11 @@ void gen_crc_table();
 unsigned long update_crc(unsigned long crc_accum, char *data_blk_ptr,
 			 int data_blk_size);
 #endif
+
+typedef enum{                       
+    FREE = 2,        
+    BUSY                    
+}put_get_list_entry_stat; 
 
 /* structure MPIDI_CH3I_RDMA_put_get_list is the queue pool to record every
  * issued signaled RDMA write and RDMA read operation. The address of
@@ -53,12 +59,13 @@ struct MPIDI_CH3I_RDMA_put_get_list_t{
     int     target_rank;
     MPID_Win    *win_ptr;
     struct MPIDI_VC* vc_ptr;
+    put_get_list_entry_stat status;
 };
 
 #define Calculate_IOV_len(_iov, _n_iov, _len)                   \
 {   int _i; (_len) = 0;                                         \
     for (_i = 0; _i < (_n_iov); _i ++) {                        \
-        (_len) += (_iov)[_i].MPID_IOV_LEN;                      \
+        (_len) += (_iov)[_i].MPL_IOV_LEN;                      \
     }                                                           \
 }
 
@@ -263,7 +270,7 @@ int MPIDI_CH3I_RDMA_cq_poll(void);
 void MRAILI_Init_vc(struct MPIDI_VC* vc);
 
 int MPIDI_CH3I_MRAILI_Eager_send(   struct MPIDI_VC* vc,
-                                    MPID_IOV * iov,
+                                    MPL_IOV * iov,
                                     int n_iov,
                                     size_t len,
                                     int * num_bytes_ptr,

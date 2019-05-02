@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2016, The Ohio State University. All rights
+/* Copyright (c) 2001-2019, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -33,14 +33,6 @@
  *  INPLACE: MV2_ALLTOALL_TUNING=4
  */
 
-enum {
-    ALLTOALL_BRUCK_MV2=0,
-    ALLTOALL_RD_MV2,
-    ALLTOALL_SCATTER_DEST_MV2, 
-    ALLTOALL_PAIRWISE_MV2, 
-    ALLTOALL_INPLACE_MV2, 
-};
-
 /* Indicates number of processes per node */
 extern int *mv2_alltoall_table_ppn_conf;
 /* Indicates total number of configurations */
@@ -51,7 +43,7 @@ typedef struct {
     int max;
     int (*MV2_pt_Alltoall_function) (const void *sendbuf, int sendcount, MPI_Datatype sendtype,
                                      void *recvbuf, int recvcount, MPI_Datatype recvtype,
-                                     MPID_Comm *comm_ptr, int *errflag );
+                                     MPID_Comm *comm_ptr, MPIR_Errflag_t *errflag );
 } mv2_alltoall_tuning_element;
 
 typedef struct {
@@ -69,7 +61,7 @@ typedef struct {
     int msg_sz;
     int (*MV2_pt_Alltoall_function) (const void *sendbuf, int sendcount, MPI_Datatype sendtype,
                                      void *recvbuf, int recvcount, MPI_Datatype recvtype,
-                                     MPID_Comm *comm_ptr, int *errflag );
+                                     MPID_Comm *comm_ptr, MPIR_Errflag_t *errflag );
 } mv2_alltoall_indexed_tuning_element;
 
 typedef struct {
@@ -94,7 +86,7 @@ extern int MPIR_Alltoall_bruck_MV2(
                             int recvcount,
                             MPI_Datatype recvtype,
                             MPID_Comm *comm_ptr,
-                            int *errflag );
+                            MPIR_Errflag_t *errflag );
 
 extern int MPIR_Alltoall_ALG_MV2(
                             const void *sendbuf,
@@ -104,7 +96,7 @@ extern int MPIR_Alltoall_ALG_MV2(
                             int recvcount,
                             MPI_Datatype recvtype,
                             MPID_Comm *comm_ptr,
-                            int *errflag );
+                            MPIR_Errflag_t *errflag );
 
 extern int MPIR_Alltoall_RD_MV2(
                             const void *sendbuf,
@@ -114,7 +106,7 @@ extern int MPIR_Alltoall_RD_MV2(
                             int recvcount,
                             MPI_Datatype recvtype,
                             MPID_Comm *comm_ptr,
-                            int *errflag );
+                            MPIR_Errflag_t *errflag );
 
 
 extern int MPIR_Alltoall_Scatter_dest_MV2(
@@ -125,7 +117,7 @@ extern int MPIR_Alltoall_Scatter_dest_MV2(
                             int recvcount,
                             MPI_Datatype recvtype,
                             MPID_Comm *comm_ptr,
-                            int *errflag );
+                            MPIR_Errflag_t *errflag );
 
 
 
@@ -137,7 +129,7 @@ extern int MPIR_Alltoall_pairwise_MV2(
                             int recvcount,
                             MPI_Datatype recvtype,
                             MPID_Comm *comm_ptr,
-                            int *errflag );
+                            MPIR_Errflag_t *errflag );
 
 extern int MPIR_Alltoall_inplace_MV2(
                             const void *sendbuf,
@@ -147,11 +139,11 @@ extern int MPIR_Alltoall_inplace_MV2(
                             int recvcount,
                             MPI_Datatype recvtype,
                             MPID_Comm *comm_ptr,
-                            int *errflag ); 
+                            MPIR_Errflag_t *errflag ); 
 
 
 /* Architecture detection tuning */
-int MV2_set_alltoall_tuning_table();
+int MV2_set_alltoall_tuning_table(int heterogeneity);
 
 /* Function to clean free memory allocated by bcast tuning table*/
 void MV2_cleanup_alltoall_tuning_table();

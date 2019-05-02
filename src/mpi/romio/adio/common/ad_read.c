@@ -6,14 +6,9 @@
  */
 
 
-#ifdef _STDC_C99
-#define _XOPEN_SOURCE 600
-#else
-#define _XOPEN_SOURCE 500
-#endif
+#include "adio.h"
 #include <unistd.h>
 
-#include "adio.h"
 #ifdef AGGREGATION_PROFILE
 #include "mpe.h"
 #endif

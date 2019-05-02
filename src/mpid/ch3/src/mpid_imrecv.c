@@ -9,7 +9,7 @@
 #undef FUNCNAME
 #define FUNCNAME MPID_Imrecv
 #undef FCNAME
-#define FCNAME MPIU_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPID_Imrecv(void *buf, int count, MPI_Datatype datatype,
                 MPID_Request *message, MPID_Request **rreqp)
 {
@@ -23,6 +23,7 @@ int MPID_Imrecv(void *buf, int count, MPI_Datatype datatype,
     if (message == NULL)
     {
         MPIDI_Request_create_null_rreq(rreq, mpi_errno, goto fn_fail);
+        MV2_INC_NUM_POSTED_RECV();
         *rreqp = rreq;
         goto fn_exit;
     }
@@ -32,6 +33,7 @@ int MPID_Imrecv(void *buf, int count, MPI_Datatype datatype,
 
     /* promote the request object to be a "real" recv request */
     message->kind = MPID_REQUEST_RECV;
+    MV2_INC_NUM_POSTED_RECV();
 
     *rreqp = rreq = message;
 
@@ -42,6 +44,56 @@ int MPID_Imrecv(void *buf, int count, MPI_Datatype datatype,
     rreq->dev.user_buf = buf;
     rreq->dev.user_count = count;
     rreq->dev.datatype = datatype;
+
+#if defined (CHANNEL_PSM)
+    #if PSM_VERNO < PSM_2_1_VERSION
+    MPIR_ERR_SETANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**fail", "**fail %s",
+            "Operation not supported for QLogic PSM (CH3:PSM) channel\n");
+    #endif
+
+    MPI_Aint dt_true_lb;
+    MPID_Datatype *dt_ptr;
+    MPIDI_msg_sz_t data_sz;
+    MPIDI_msg_sz_t pksz;
+    int dt_contig;
+    void *pkbuf;
+
+    MPIDI_Datatype_get_info(count, datatype, dt_contig, data_sz, dt_ptr, dt_true_lb);
+    if (HANDLE_GET_KIND(datatype) != HANDLE_KIND_BUILTIN) {
+        MPID_Datatype_get_ptr(datatype, rreq->dev.datatype_ptr);
+        MPID_Datatype_add_ref(rreq->dev.datatype_ptr);
+        rreq->psm_flags |= PSM_NEED_DTYPE_RELEASE;
+    }
+
+    if(dt_contig) {
+        mpi_errno = MPIDI_CH3_iMrecv(
+                (char *)buf + dt_true_lb, data_sz, rreq);
+    } else {
+        PSMSG(fprintf(stderr, "non-contig I-mrecv for psm\n"));
+        MPIR_Pack_size_impl(count, datatype, &pksz);
+        pkbuf = MPIU_Malloc(pksz);
+        if(!pkbuf) {
+            MPIR_ERR_SETANDJUMP(mpi_errno,MPI_ERR_NO_MEM, "**nomem");
+        }
+        rreq->pksz = pksz;
+        rreq->pkbuf = pkbuf;
+        rreq->psm_flags |= PSM_NON_CONTIG_REQ;
+        mpi_errno = MPIDI_CH3_iMrecv(pkbuf, pksz, rreq);
+        if(mpi_errno) MPIR_ERR_POP(mpi_errno);
+    }
+
+    goto fn_exit;
+#endif
+
+#ifdef ENABLE_COMM_OVERRIDES
+    MPIDI_Comm_get_vc(comm, rreq->status.MPI_SOURCE, &vc);
+    if (vc->comm_ops && vc->comm_ops->imrecv) {
+        MPID_THREAD_CS_ENTER(POBJ, vc->pobj_mutex);
+        vc->comm_ops->imrecv(vc, rreq);
+        MPID_THREAD_CS_EXIT(POBJ, vc->pobj_mutex);
+        goto fn_exit;
+    }
+#endif
 
     if (MPIDI_Request_get_msg_type(rreq) == MPIDI_REQUEST_EAGER_MSG)
     {
@@ -56,7 +108,7 @@ int MPID_Imrecv(void *buf, int count, MPI_Datatype datatype,
         {
             MPIDI_Comm_get_vc_set_active(comm, rreq->dev.match.parts.rank, &vc);
             mpi_errno = MPIDI_CH3_EagerSyncAck(vc, rreq);
-            if (mpi_errno) MPIU_ERR_POP(mpi_errno);
+            if (mpi_errno) MPIR_ERR_POP(mpi_errno);
         }
 
         /* the request was found in the unexpected queue, so it has a
@@ -100,7 +152,7 @@ int MPID_Imrecv(void *buf, int count, MPI_Datatype datatype,
         MPIDI_Comm_get_vc_set_active(comm, rreq->dev.match.parts.rank, &vc);
 
         mpi_errno = vc->rndvRecv_fn(vc, rreq);
-        if (mpi_errno) MPIU_ERR_POP(mpi_errno);
+        if (mpi_errno) MPIR_ERR_POP(mpi_errno);
         if (HANDLE_GET_KIND(datatype) != HANDLE_KIND_BUILTIN)
         {
             MPID_Datatype_get_ptr(datatype, rreq->dev.datatype_ptr);
@@ -110,7 +162,7 @@ int MPID_Imrecv(void *buf, int count, MPI_Datatype datatype,
     else if (MPIDI_Request_get_msg_type(rreq) == MPIDI_REQUEST_SELF_MSG)
     {
         mpi_errno = MPIDI_CH3_RecvFromSelf(rreq, buf, count, datatype);
-        if (mpi_errno) MPIU_ERR_POP(mpi_errno);
+        if (mpi_errno) MPIR_ERR_POP(mpi_errno);
     }
     else
     {
@@ -120,7 +172,7 @@ int MPID_Imrecv(void *buf, int count, MPI_Datatype datatype,
 #endif
         MPID_Request_release(rreq);
         rreq = NULL;
-        MPIU_ERR_SETANDJUMP1(mpi_errno,MPI_ERR_INTERN, "**ch3|badmsgtype",
+        MPIR_ERR_SETANDJUMP1(mpi_errno,MPI_ERR_INTERN, "**ch3|badmsgtype",
                              "**ch3|badmsgtype %d", msg_type);
         /* --END ERROR HANDLING-- */
     }

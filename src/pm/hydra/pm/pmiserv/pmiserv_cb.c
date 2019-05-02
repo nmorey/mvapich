@@ -15,8 +15,9 @@
 
 static HYD_status handle_pmi_cmd(int fd, int pgid, int pid, char *buf, int pmi_version)
 {
-    char *args[MAX_PMI_ARGS], *cmd = NULL;
+    char **args = NULL, *cmd = NULL;
     struct HYD_pmcd_pmi_handle *h;
+    int i;
     HYD_status status = HYD_SUCCESS;
 
     HYDU_FUNC_ENTER();
@@ -28,6 +29,10 @@ static HYD_status handle_pmi_cmd(int fd, int pgid, int pid, char *buf, int pmi_v
 
     if (HYD_server_info.user_global.debug)
         HYDU_dump(stdout, "[pgid: %d] got PMI command: %s\n", pgid, buf);
+
+    HYDU_MALLOC(args, char **, MAX_PMI_ARGS * sizeof(char *), status);
+    for (i = 0; i < MAX_PMI_ARGS; i++)
+        args[i] = NULL;
 
     status = HYD_pmcd_pmi_parse_pmi_cmd(buf, pmi_version, &cmd, args);
     HYDU_ERR_POP(status, "unable to parse PMI command\n");
@@ -55,7 +60,10 @@ static HYD_status handle_pmi_cmd(int fd, int pgid, int pid, char *buf, int pmi_v
   fn_exit:
     if (cmd)
         HYDU_FREE(cmd);
-    HYDU_free_strlist(args);
+    if (args) {
+        HYDU_free_strlist(args);
+        HYDU_free(args);
+    }
     HYDU_FUNC_EXIT();
     return status;
 
@@ -235,12 +243,11 @@ static HYD_status control_cb(int fd, HYD_event_t events, void *userp)
         status = cleanup_proxy(proxy);
         HYDU_ERR_POP(status, "error cleaning up proxy connection\n");
 
-        /* If any of the processes was killed with a signal or if it
-         * returned with a bad exit code, cleanup the remaining
-         * processes */
+        /* If any of the processes was killed with a signal, cleanup
+         * the remaining processes */
         if (HYD_server_info.user_global.auto_cleanup) {
             for (i = 0; i < proxy->proxy_process_count; i++) {
-                if (!WIFEXITED(proxy->exit_status[i]) || WEXITSTATUS(proxy->exit_status[i])) {
+                if (!WIFEXITED(proxy->exit_status[i])) {
                     int code = proxy->exit_status[i];
                     /* show the value passed to exit(), not (val<<8) */
                     if (WIFEXITED(proxy->exit_status[i]))

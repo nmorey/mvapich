@@ -579,7 +579,7 @@ if test -z "$FC" ; then
    FC=f90
 fi
 KINDVAL=""
-if $FC -o conftest$EXEEXT conftest.$ac_f90ext >/dev/null 2>&1 ; then
+if $FC -o conftest$EXEEXT conftest.$ac_f90ext $FFLAGS >/dev/null 2>&1 ; then
     ./conftest$EXEEXT >/dev/null 2>&1
     if test -s conftest.out ; then 
         KINDVAL=`cat conftest.out`
@@ -702,7 +702,7 @@ if test -z "$FC" ; then
    FC=f90
 fi
 KINDVAL=""
-if $FC -o kind$EXEEXT kind.f >/dev/null 2>&1 ; then
+if $FC -o kind$EXEEXT kind.f $FFLAGS >/dev/null 2>&1 ; then
     ./kind >/dev/null 2>&1
     if test -s k.out ; then 
         KINDVAL=`cat k.out`
@@ -856,3 +856,17 @@ EOF
   fi
   rm -f conftest$EXEEXT mpitest.c
 ])dnl
+
+define(PAC_TEST_NEEDS_CONST,[
+   AC_MSG_CHECKING([const declarations needed in MPI routines])
+   AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+   [ #include <mpi.h>
+     int MPI_File_delete(char *filename, MPI_Info info) { return (0); }
+   ] )],
+   [
+    AC_MSG_RESULT(no)
+   ],[
+    AC_MSG_RESULT(yes)
+    AC_DEFINE(HAVE_MPIIO_CONST, const, [Define if MPI-IO routines need a const qualifier])
+   ])
+   ])

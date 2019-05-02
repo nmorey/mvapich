@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2016, The Ohio State University. All rights
+/* Copyright (c) 2001-2019, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -17,6 +17,12 @@
 #include "debug_utils.h"
 #include "mv2_arch_hca_detect.h"
 
+extern int mv2_enable_eager_threshold_reduction;
+#if defined(_SHARP_SUPPORT_)
+extern int mv2_enable_sharp_coll;
+extern int mv2_sharp_port;
+extern char * mv2_sharp_hca_name;
+#endif
 extern int mv2_is_in_finalize;
 /* Support multiple QPs/port, multiple ports, multiple HCAs and combinations */
 extern int rdma_num_hcas;
@@ -69,6 +75,8 @@ extern int rdma_rq_size;
 extern unsigned long rdma_dreg_cache_limit;
 extern int rdma_rndv_protocol;
 extern int rdma_r3_threshold;
+extern int rdma_intra_node_r3_threshold;
+extern int rdma_inter_node_r3_threshold;
 extern int rdma_r3_threshold_nocache;
 extern int rdma_max_r3_pending_data;
 extern int rdma_vbuf_total_size;
@@ -142,6 +150,9 @@ extern int using_mpirun_rsh;
 
 extern int use_hwloc_cpu_binding;
 extern int max_rdma_connect_attempts;
+#ifdef _MULTI_SUBNET_SUPPORT_
+extern int mv2_rdma_cm_multi_subnet_support;
+#endif /* _MULTI_SUBNET_SUPPORT_ */
 extern int rdma_cm_connect_retry_interval;
 extern int rdma_num_rails_per_hca;
 extern int rdma_process_binding_rail_offset;
@@ -244,6 +255,7 @@ extern int mcast_skip_loopback;
 #endif
 extern int mv2_enable_progress_affinity;
 extern int mv2_use_eager_fast_send;
+extern int mv2_rdma_fast_path_preallocate_buffers;
 
 extern int rdma_default_async_thread_stack_size;
 
@@ -291,6 +303,9 @@ extern int rdma_default_async_thread_stack_size;
 #define DEF_MV2_CM_WAIT_TIME            (5)
 #define RDMA_DEFAULT_QP_OUS_RD_ATOM     (1)
 #define DEFAULT_SHMEM_PRIORITY_FACTOR   (1)
+#define RDMA_DEFAULT_R3_THRESHOLD       (4096)
+#define RDMA_DEFAULT_INTER_NODE_R3_THRESHOLD       (4096)
+#define RDMA_DEFAULT_INTRA_NODE_R3_THRESHOLD       (1)
 
 /* This is a overprovision of resource, do not use in critical structures */
 #define MAX_NUM_SUBRAILS                (MAX_NUM_HCAS*  \
@@ -378,7 +393,7 @@ typedef enum _mv2_rail_sharing_policies {
     ADAPTIVE_STRIPING,
     FIXED_MAPPING,
     PARTIAL_ADAPTIVE,
-    BEST_ADAPTIVE,
+    BEST_ADAPTIVE
 } mv2_rail_sharing_policies;
 
 /* This is to allow users to specify rail mapping at run time */
@@ -448,6 +463,7 @@ typedef enum mv2_env_param_id {
     MV2_PATH_SL_QUERY,
     MV2_USE_QOS,
     /* collectives */
+    MV2_USE_MCAST,
     MV2_ALLGATHER_BRUCK_THRESHOLD,
     MV2_ALLGATHER_RD_THRESHOLD,
     MV2_ALLGATHER_REVERSE_RANKING,
@@ -512,6 +528,8 @@ typedef enum mv2_env_param_id {
     MV2_CKPT_SESSIONID,
     MV2_CKPT_USE_AGGREGATION,
     /*start up */
+    MV2_FORCE_HCA_TYPE,
+    MV2_FORCE_ARCH_TYPE,
     MV2_CM_MAX_SPIN_COUNT,
     MV2_CM_RECV_BUFFERS,
     MV2_CM_SEND_DEPTH,
@@ -552,6 +570,7 @@ typedef enum mv2_env_param_id {
     MV2_HOMOGENEOUS_CLUSTER,
     MV2_UNIVERSE_SIZE,
     /* pt-pt */
+    MV2_NUM_CQES_PER_POLL,
     MV2_COALESCE_THRESHOLD,
     MV2_DREG_CACHE_LIMIT,
     MV2_IBA_EAGER_THRESHOLD,
@@ -756,7 +775,7 @@ typedef struct mv2_env_param_list {
     mv2_env_param_group_t group;        /* param category */
     char *name;                 /* param name */
     void *value;                /* param value store addr */
-    int extrenal_visible;       /* 1 or 0 */
+    int external_visible;       /* 1 or 0 */
     char *descrption;           /* param descrption */
 } mv2_env_param_list_t;
 
@@ -766,9 +785,21 @@ void mv2_show_runlog_info(int level);
 void rdma_set_rdma_fast_path_params(int num_proc);
 const char *mv2_ibv_mtu_enum_to_string(enum ibv_mtu mtu);
 uint16_t mv2_ibv_mtu_enum_to_value(enum ibv_mtu mtu);
+extern int rdma_get_rail_sharing_policy(char *value);
 
 mv2_arch_hca_type MV2_get_arch_hca_type();
 
 
 extern int dreg_max_use_count;
 #endif /* _RDMA_PARAM_H */
+
+/* default values of CVARs */
+#define USE_MCAST_DEFAULT_FLAG           0
+#define DEFAULT_NUM_PORTS                1
+#define DEFAULT_NUM_QP_PER_PORT          1
+#define DEFAULT_COALESCE_THRESHOLD       6
+#define DEFAULT_USE_COALESCE             0
+#define DEFAULT_SPIN_COUNT               5000
+#define MAX_NUM_CQES_PER_POLL            96
+#define MIN_NUM_CQES_PER_POLL            1
+

@@ -29,7 +29,7 @@ int MPI_Type_get_extent_x(MPI_Datatype datatype, MPI_Count *lb, MPI_Count *exten
 #undef FUNCNAME
 #define FUNCNAME MPIR_Type_get_extent_x_impl
 #undef FCNAME
-#define FCNAME MPIU_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 void MPIR_Type_get_extent_x_impl(MPI_Datatype datatype, MPI_Count *lb, MPI_Count *extent)
 {
     MPID_Datatype *datatype_ptr = NULL;
@@ -51,9 +51,10 @@ void MPIR_Type_get_extent_x_impl(MPI_Datatype datatype, MPI_Count *lb, MPI_Count
 #undef FUNCNAME
 #define FUNCNAME MPI_Type_get_extent_x
 #undef FCNAME
-#define FCNAME MPIU_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 /*@
-MPI_Type_get_extent_x - XXX description here
+MPI_Type_get_extent_x - Get the lower bound and extent as MPI_Count values
+ for a Datatype
 
 Input Parameters:
 . datatype - datatype (handle)
@@ -73,7 +74,7 @@ int MPI_Type_get_extent_x(MPI_Datatype datatype, MPI_Count *lb, MPI_Count *exten
     int mpi_errno = MPI_SUCCESS;
     MPID_MPI_STATE_DECL(MPID_STATE_MPI_TYPE_GET_EXTENT_X);
 
-    MPIU_THREAD_CS_ENTER(ALLFUNC,);
+    MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_TYPE_GET_EXTENT_X);
 
     /* Validate parameters, especially handles needing to be converted */
@@ -118,7 +119,7 @@ int MPI_Type_get_extent_x(MPI_Datatype datatype, MPI_Count *lb, MPI_Count *exten
 
 fn_exit:
     MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_TYPE_GET_EXTENT_X);
-    MPIU_THREAD_CS_EXIT(ALLFUNC,);
+    MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 
 fn_fail:

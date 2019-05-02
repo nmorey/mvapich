@@ -99,32 +99,11 @@ collective_PROGRAMS = osu_alltoallv$(EXEEXT) osu_allgatherv$(EXEEXT) \
 	osu_igather$(EXEEXT) osu_iscatter$(EXEEXT) \
 	osu_iscatterv$(EXEEXT) osu_igatherv$(EXEEXT) \
 	osu_iallgatherv$(EXEEXT) osu_ialltoallv$(EXEEXT) \
-	osu_ialltoallw$(EXEEXT)
-@CUDA_KERNELS_TRUE@am__append_1 = kernel.cu
-@CUDA_KERNELS_TRUE@am__append_2 = kernel.cu
-@CUDA_KERNELS_TRUE@am__append_3 = kernel.cu
-@CUDA_KERNELS_TRUE@am__append_4 = kernel.cu
-@CUDA_KERNELS_TRUE@am__append_5 = kernel.cu
-@CUDA_KERNELS_TRUE@am__append_6 = kernel.cu
-@CUDA_KERNELS_TRUE@am__append_7 = kernel.cu
-@CUDA_KERNELS_TRUE@am__append_8 = kernel.cu
-@CUDA_KERNELS_TRUE@am__append_9 = kernel.cu
-@CUDA_KERNELS_TRUE@am__append_10 = kernel.cu
-@CUDA_KERNELS_TRUE@am__append_11 = kernel.cu
-@CUDA_KERNELS_TRUE@am__append_12 = kernel.cu
-@CUDA_KERNELS_TRUE@am__append_13 = kernel.cu
-@CUDA_KERNELS_TRUE@am__append_14 = kernel.cu
-@CUDA_KERNELS_TRUE@am__append_15 = kernel.cu
-@CUDA_KERNELS_TRUE@am__append_16 = kernel.cu
-@CUDA_KERNELS_TRUE@am__append_17 = kernel.cu
-@CUDA_KERNELS_TRUE@am__append_18 = kernel.cu
-@CUDA_KERNELS_TRUE@am__append_19 = kernel.cu
-@CUDA_KERNELS_TRUE@am__append_20 = kernel.cu
-@CUDA_KERNELS_TRUE@am__append_21 = kernel.cu
-@CUDA_KERNELS_TRUE@am__append_22 = kernel.cu
-@CUDA_KERNELS_TRUE@am__append_23 = kernel.cu
-@CUDA_KERNELS_TRUE@am__append_24 = kernel.cu
-@BUILD_PROFILING_LIB_TRUE@@EMBEDDED_BUILD_TRUE@am__append_25 = $(top_builddir)/../lib/lib@PMPILIBNAME@.la
+	osu_ialltoallw$(EXEEXT) osu_ireduce$(EXEEXT) \
+	osu_iallreduce$(EXEEXT)
+@CUDA_KERNELS_TRUE@am__append_1 = ../../util/kernel.cu
+@BUILD_PROFILING_LIB_TRUE@@EMBEDDED_BUILD_TRUE@am__append_2 = $(top_builddir)/../lib/lib@PMPILIBNAME@.la
+@OPENACC_TRUE@am__append_3 = -acc -ta=tesla:nordc
 subdir = mpi/collective
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -136,153 +115,177 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(collectivedir)"
 PROGRAMS = $(collective_PROGRAMS)
-am__osu_allgather_SOURCES_DIST = osu_allgather.c osu_coll.c osu_coll.h \
-	kernel.cu
-@CUDA_KERNELS_TRUE@am__objects_1 = kernel.$(OBJEXT)
-am_osu_allgather_OBJECTS = osu_allgather.$(OBJEXT) osu_coll.$(OBJEXT) \
-	$(am__objects_1)
+am__osu_allgather_SOURCES_DIST = osu_allgather.c ../../util/osu_util.c \
+	../../util/osu_util.h ../../util/osu_util_mpi.c \
+	../../util/osu_util_mpi.h ../../util/kernel.cu
+am__dirstamp = $(am__leading_dot)dirstamp
+@CUDA_KERNELS_TRUE@am__objects_1 = ../../util/kernel.$(OBJEXT)
+am__objects_2 = ../../util/osu_util.$(OBJEXT) \
+	../../util/osu_util_mpi.$(OBJEXT) $(am__objects_1)
+am_osu_allgather_OBJECTS = osu_allgather.$(OBJEXT) $(am__objects_2)
 osu_allgather_OBJECTS = $(am_osu_allgather_OBJECTS)
 osu_allgather_LDADD = $(LDADD)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
-am__osu_allgatherv_SOURCES_DIST = osu_allgatherv.c osu_coll.c \
-	osu_coll.h kernel.cu
-am_osu_allgatherv_OBJECTS = osu_allgatherv.$(OBJEXT) \
-	osu_coll.$(OBJEXT) $(am__objects_1)
+am__osu_allgatherv_SOURCES_DIST = osu_allgatherv.c \
+	../../util/osu_util.c ../../util/osu_util.h \
+	../../util/osu_util_mpi.c ../../util/osu_util_mpi.h \
+	../../util/kernel.cu
+am_osu_allgatherv_OBJECTS = osu_allgatherv.$(OBJEXT) $(am__objects_2)
 osu_allgatherv_OBJECTS = $(am_osu_allgatherv_OBJECTS)
 osu_allgatherv_LDADD = $(LDADD)
-am__osu_allreduce_SOURCES_DIST = osu_allreduce.c osu_coll.c osu_coll.h \
-	kernel.cu
-am_osu_allreduce_OBJECTS = osu_allreduce.$(OBJEXT) osu_coll.$(OBJEXT) \
-	$(am__objects_1)
+am__osu_allreduce_SOURCES_DIST = osu_allreduce.c ../../util/osu_util.c \
+	../../util/osu_util.h ../../util/osu_util_mpi.c \
+	../../util/osu_util_mpi.h ../../util/kernel.cu
+am_osu_allreduce_OBJECTS = osu_allreduce.$(OBJEXT) $(am__objects_2)
 osu_allreduce_OBJECTS = $(am_osu_allreduce_OBJECTS)
 osu_allreduce_LDADD = $(LDADD)
-am__osu_alltoall_SOURCES_DIST = osu_alltoall.c osu_coll.c osu_coll.h \
-	kernel.cu
-am_osu_alltoall_OBJECTS = osu_alltoall.$(OBJEXT) osu_coll.$(OBJEXT) \
-	$(am__objects_1)
+am__osu_alltoall_SOURCES_DIST = osu_alltoall.c ../../util/osu_util.c \
+	../../util/osu_util.h ../../util/osu_util_mpi.c \
+	../../util/osu_util_mpi.h ../../util/kernel.cu
+am_osu_alltoall_OBJECTS = osu_alltoall.$(OBJEXT) $(am__objects_2)
 osu_alltoall_OBJECTS = $(am_osu_alltoall_OBJECTS)
 osu_alltoall_LDADD = $(LDADD)
-am__osu_alltoallv_SOURCES_DIST = osu_alltoallv.c osu_coll.c osu_coll.h \
-	kernel.cu
-am_osu_alltoallv_OBJECTS = osu_alltoallv.$(OBJEXT) osu_coll.$(OBJEXT) \
-	$(am__objects_1)
+am__osu_alltoallv_SOURCES_DIST = osu_alltoallv.c ../../util/osu_util.c \
+	../../util/osu_util.h ../../util/osu_util_mpi.c \
+	../../util/osu_util_mpi.h ../../util/kernel.cu
+am_osu_alltoallv_OBJECTS = osu_alltoallv.$(OBJEXT) $(am__objects_2)
 osu_alltoallv_OBJECTS = $(am_osu_alltoallv_OBJECTS)
 osu_alltoallv_LDADD = $(LDADD)
-am__osu_barrier_SOURCES_DIST = osu_barrier.c osu_coll.c osu_coll.h \
-	kernel.cu
-am_osu_barrier_OBJECTS = osu_barrier.$(OBJEXT) osu_coll.$(OBJEXT) \
-	$(am__objects_1)
+am__osu_barrier_SOURCES_DIST = osu_barrier.c ../../util/osu_util.c \
+	../../util/osu_util.h ../../util/osu_util_mpi.c \
+	../../util/osu_util_mpi.h ../../util/kernel.cu
+am_osu_barrier_OBJECTS = osu_barrier.$(OBJEXT) $(am__objects_2)
 osu_barrier_OBJECTS = $(am_osu_barrier_OBJECTS)
 osu_barrier_LDADD = $(LDADD)
-am__osu_bcast_SOURCES_DIST = osu_bcast.c osu_coll.c osu_coll.h \
-	kernel.cu
-am_osu_bcast_OBJECTS = osu_bcast.$(OBJEXT) osu_coll.$(OBJEXT) \
-	$(am__objects_1)
+am__osu_bcast_SOURCES_DIST = osu_bcast.c ../../util/osu_util.c \
+	../../util/osu_util.h ../../util/osu_util_mpi.c \
+	../../util/osu_util_mpi.h ../../util/kernel.cu
+am_osu_bcast_OBJECTS = osu_bcast.$(OBJEXT) $(am__objects_2)
 osu_bcast_OBJECTS = $(am_osu_bcast_OBJECTS)
 osu_bcast_LDADD = $(LDADD)
-am__osu_gather_SOURCES_DIST = osu_gather.c osu_coll.c osu_coll.h \
-	kernel.cu
-am_osu_gather_OBJECTS = osu_gather.$(OBJEXT) osu_coll.$(OBJEXT) \
-	$(am__objects_1)
+am__osu_gather_SOURCES_DIST = osu_gather.c ../../util/osu_util.c \
+	../../util/osu_util.h ../../util/osu_util_mpi.c \
+	../../util/osu_util_mpi.h ../../util/kernel.cu
+am_osu_gather_OBJECTS = osu_gather.$(OBJEXT) $(am__objects_2)
 osu_gather_OBJECTS = $(am_osu_gather_OBJECTS)
 osu_gather_LDADD = $(LDADD)
-am__osu_gatherv_SOURCES_DIST = osu_gatherv.c osu_coll.c osu_coll.h \
-	kernel.cu
-am_osu_gatherv_OBJECTS = osu_gatherv.$(OBJEXT) osu_coll.$(OBJEXT) \
-	$(am__objects_1)
+am__osu_gatherv_SOURCES_DIST = osu_gatherv.c ../../util/osu_util.c \
+	../../util/osu_util.h ../../util/osu_util_mpi.c \
+	../../util/osu_util_mpi.h ../../util/kernel.cu
+am_osu_gatherv_OBJECTS = osu_gatherv.$(OBJEXT) $(am__objects_2)
 osu_gatherv_OBJECTS = $(am_osu_gatherv_OBJECTS)
 osu_gatherv_LDADD = $(LDADD)
-am__osu_iallgather_SOURCES_DIST = osu_iallgather.c osu_coll.c \
-	osu_coll.h kernel.cu
-am_osu_iallgather_OBJECTS = osu_iallgather.$(OBJEXT) \
-	osu_coll.$(OBJEXT) $(am__objects_1)
+am__osu_iallgather_SOURCES_DIST = osu_iallgather.c \
+	../../util/osu_util.c ../../util/osu_util.h \
+	../../util/osu_util_mpi.c ../../util/osu_util_mpi.h \
+	../../util/kernel.cu
+am_osu_iallgather_OBJECTS = osu_iallgather.$(OBJEXT) $(am__objects_2)
 osu_iallgather_OBJECTS = $(am_osu_iallgather_OBJECTS)
 osu_iallgather_LDADD = $(LDADD)
-am__osu_iallgatherv_SOURCES_DIST = osu_iallgatherv.c osu_coll.c \
-	osu_coll.h kernel.cu
+am__osu_iallgatherv_SOURCES_DIST = osu_iallgatherv.c \
+	../../util/osu_util.c ../../util/osu_util.h \
+	../../util/osu_util_mpi.c ../../util/osu_util_mpi.h \
+	../../util/kernel.cu
 am_osu_iallgatherv_OBJECTS = osu_iallgatherv.$(OBJEXT) \
-	osu_coll.$(OBJEXT) $(am__objects_1)
+	$(am__objects_2)
 osu_iallgatherv_OBJECTS = $(am_osu_iallgatherv_OBJECTS)
 osu_iallgatherv_LDADD = $(LDADD)
-am__osu_ialltoall_SOURCES_DIST = osu_ialltoall.c osu_coll.c osu_coll.h \
-	kernel.cu
-am_osu_ialltoall_OBJECTS = osu_ialltoall.$(OBJEXT) osu_coll.$(OBJEXT) \
-	$(am__objects_1)
+am__osu_iallreduce_SOURCES_DIST = osu_iallreduce.c \
+	../../util/osu_util.c ../../util/osu_util.h \
+	../../util/osu_util_mpi.c ../../util/osu_util_mpi.h \
+	../../util/kernel.cu
+am_osu_iallreduce_OBJECTS = osu_iallreduce.$(OBJEXT) $(am__objects_2)
+osu_iallreduce_OBJECTS = $(am_osu_iallreduce_OBJECTS)
+osu_iallreduce_LDADD = $(LDADD)
+am__osu_ialltoall_SOURCES_DIST = osu_ialltoall.c ../../util/osu_util.c \
+	../../util/osu_util.h ../../util/osu_util_mpi.c \
+	../../util/osu_util_mpi.h ../../util/kernel.cu
+am_osu_ialltoall_OBJECTS = osu_ialltoall.$(OBJEXT) $(am__objects_2)
 osu_ialltoall_OBJECTS = $(am_osu_ialltoall_OBJECTS)
 osu_ialltoall_LDADD = $(LDADD)
-am__osu_ialltoallv_SOURCES_DIST = osu_ialltoallv.c osu_coll.c \
-	osu_coll.h kernel.cu
-am_osu_ialltoallv_OBJECTS = osu_ialltoallv.$(OBJEXT) \
-	osu_coll.$(OBJEXT) $(am__objects_1)
+am__osu_ialltoallv_SOURCES_DIST = osu_ialltoallv.c \
+	../../util/osu_util.c ../../util/osu_util.h \
+	../../util/osu_util_mpi.c ../../util/osu_util_mpi.h \
+	../../util/kernel.cu
+am_osu_ialltoallv_OBJECTS = osu_ialltoallv.$(OBJEXT) $(am__objects_2)
 osu_ialltoallv_OBJECTS = $(am_osu_ialltoallv_OBJECTS)
 osu_ialltoallv_LDADD = $(LDADD)
-am__osu_ialltoallw_SOURCES_DIST = osu_ialltoallw.c osu_coll.c \
-	osu_coll.h kernel.cu
-am_osu_ialltoallw_OBJECTS = osu_ialltoallw.$(OBJEXT) \
-	osu_coll.$(OBJEXT) $(am__objects_1)
+am__osu_ialltoallw_SOURCES_DIST = osu_ialltoallw.c \
+	../../util/osu_util.c ../../util/osu_util.h \
+	../../util/osu_util_mpi.c ../../util/osu_util_mpi.h \
+	../../util/kernel.cu
+am_osu_ialltoallw_OBJECTS = osu_ialltoallw.$(OBJEXT) $(am__objects_2)
 osu_ialltoallw_OBJECTS = $(am_osu_ialltoallw_OBJECTS)
 osu_ialltoallw_LDADD = $(LDADD)
-am__osu_ibarrier_SOURCES_DIST = osu_ibarrier.c osu_coll.c osu_coll.h \
-	kernel.cu
-am_osu_ibarrier_OBJECTS = osu_ibarrier.$(OBJEXT) osu_coll.$(OBJEXT) \
-	$(am__objects_1)
+am__osu_ibarrier_SOURCES_DIST = osu_ibarrier.c ../../util/osu_util.c \
+	../../util/osu_util.h ../../util/osu_util_mpi.c \
+	../../util/osu_util_mpi.h ../../util/kernel.cu
+am_osu_ibarrier_OBJECTS = osu_ibarrier.$(OBJEXT) $(am__objects_2)
 osu_ibarrier_OBJECTS = $(am_osu_ibarrier_OBJECTS)
 osu_ibarrier_LDADD = $(LDADD)
-am__osu_ibcast_SOURCES_DIST = osu_ibcast.c osu_coll.c osu_coll.h \
-	kernel.cu
-am_osu_ibcast_OBJECTS = osu_ibcast.$(OBJEXT) osu_coll.$(OBJEXT) \
-	$(am__objects_1)
+am__osu_ibcast_SOURCES_DIST = osu_ibcast.c ../../util/osu_util.c \
+	../../util/osu_util.h ../../util/osu_util_mpi.c \
+	../../util/osu_util_mpi.h ../../util/kernel.cu
+am_osu_ibcast_OBJECTS = osu_ibcast.$(OBJEXT) $(am__objects_2)
 osu_ibcast_OBJECTS = $(am_osu_ibcast_OBJECTS)
 osu_ibcast_LDADD = $(LDADD)
-am__osu_igather_SOURCES_DIST = osu_igather.c osu_coll.c osu_coll.h \
-	kernel.cu
-am_osu_igather_OBJECTS = osu_igather.$(OBJEXT) osu_coll.$(OBJEXT) \
-	$(am__objects_1)
+am__osu_igather_SOURCES_DIST = osu_igather.c ../../util/osu_util.c \
+	../../util/osu_util.h ../../util/osu_util_mpi.c \
+	../../util/osu_util_mpi.h ../../util/kernel.cu
+am_osu_igather_OBJECTS = osu_igather.$(OBJEXT) $(am__objects_2)
 osu_igather_OBJECTS = $(am_osu_igather_OBJECTS)
 osu_igather_LDADD = $(LDADD)
-am__osu_igatherv_SOURCES_DIST = osu_igatherv.c osu_coll.c osu_coll.h \
-	kernel.cu
-am_osu_igatherv_OBJECTS = osu_igatherv.$(OBJEXT) osu_coll.$(OBJEXT) \
-	$(am__objects_1)
+am__osu_igatherv_SOURCES_DIST = osu_igatherv.c ../../util/osu_util.c \
+	../../util/osu_util.h ../../util/osu_util_mpi.c \
+	../../util/osu_util_mpi.h ../../util/kernel.cu
+am_osu_igatherv_OBJECTS = osu_igatherv.$(OBJEXT) $(am__objects_2)
 osu_igatherv_OBJECTS = $(am_osu_igatherv_OBJECTS)
 osu_igatherv_LDADD = $(LDADD)
-am__osu_iscatter_SOURCES_DIST = osu_iscatter.c osu_coll.c osu_coll.h \
-	kernel.cu
-am_osu_iscatter_OBJECTS = osu_iscatter.$(OBJEXT) osu_coll.$(OBJEXT) \
-	$(am__objects_1)
+am__osu_ireduce_SOURCES_DIST = osu_ireduce.c ../../util/osu_util.c \
+	../../util/osu_util.h ../../util/osu_util_mpi.c \
+	../../util/osu_util_mpi.h ../../util/kernel.cu
+am_osu_ireduce_OBJECTS = osu_ireduce.$(OBJEXT) $(am__objects_2)
+osu_ireduce_OBJECTS = $(am_osu_ireduce_OBJECTS)
+osu_ireduce_LDADD = $(LDADD)
+am__osu_iscatter_SOURCES_DIST = osu_iscatter.c ../../util/osu_util.c \
+	../../util/osu_util.h ../../util/osu_util_mpi.c \
+	../../util/osu_util_mpi.h ../../util/kernel.cu
+am_osu_iscatter_OBJECTS = osu_iscatter.$(OBJEXT) $(am__objects_2)
 osu_iscatter_OBJECTS = $(am_osu_iscatter_OBJECTS)
 osu_iscatter_LDADD = $(LDADD)
-am__osu_iscatterv_SOURCES_DIST = osu_iscatterv.c osu_coll.c osu_coll.h \
-	kernel.cu
-am_osu_iscatterv_OBJECTS = osu_iscatterv.$(OBJEXT) osu_coll.$(OBJEXT) \
-	$(am__objects_1)
+am__osu_iscatterv_SOURCES_DIST = osu_iscatterv.c ../../util/osu_util.c \
+	../../util/osu_util.h ../../util/osu_util_mpi.c \
+	../../util/osu_util_mpi.h ../../util/kernel.cu
+am_osu_iscatterv_OBJECTS = osu_iscatterv.$(OBJEXT) $(am__objects_2)
 osu_iscatterv_OBJECTS = $(am_osu_iscatterv_OBJECTS)
 osu_iscatterv_LDADD = $(LDADD)
-am__osu_reduce_SOURCES_DIST = osu_reduce.c osu_coll.c osu_coll.h \
-	kernel.cu
-am_osu_reduce_OBJECTS = osu_reduce.$(OBJEXT) osu_coll.$(OBJEXT) \
-	$(am__objects_1)
+am__osu_reduce_SOURCES_DIST = osu_reduce.c ../../util/osu_util.c \
+	../../util/osu_util.h ../../util/osu_util_mpi.c \
+	../../util/osu_util_mpi.h ../../util/kernel.cu
+am_osu_reduce_OBJECTS = osu_reduce.$(OBJEXT) $(am__objects_2)
 osu_reduce_OBJECTS = $(am_osu_reduce_OBJECTS)
 osu_reduce_LDADD = $(LDADD)
-am__osu_reduce_scatter_SOURCES_DIST = osu_reduce_scatter.c osu_coll.c \
-	osu_coll.h kernel.cu
+am__osu_reduce_scatter_SOURCES_DIST = osu_reduce_scatter.c \
+	../../util/osu_util.c ../../util/osu_util.h \
+	../../util/osu_util_mpi.c ../../util/osu_util_mpi.h \
+	../../util/kernel.cu
 am_osu_reduce_scatter_OBJECTS = osu_reduce_scatter.$(OBJEXT) \
-	osu_coll.$(OBJEXT) $(am__objects_1)
+	$(am__objects_2)
 osu_reduce_scatter_OBJECTS = $(am_osu_reduce_scatter_OBJECTS)
 osu_reduce_scatter_LDADD = $(LDADD)
-am__osu_scatter_SOURCES_DIST = osu_scatter.c osu_coll.c osu_coll.h \
-	kernel.cu
-am_osu_scatter_OBJECTS = osu_scatter.$(OBJEXT) osu_coll.$(OBJEXT) \
-	$(am__objects_1)
+am__osu_scatter_SOURCES_DIST = osu_scatter.c ../../util/osu_util.c \
+	../../util/osu_util.h ../../util/osu_util_mpi.c \
+	../../util/osu_util_mpi.h ../../util/kernel.cu
+am_osu_scatter_OBJECTS = osu_scatter.$(OBJEXT) $(am__objects_2)
 osu_scatter_OBJECTS = $(am_osu_scatter_OBJECTS)
 osu_scatter_LDADD = $(LDADD)
-am__osu_scatterv_SOURCES_DIST = osu_scatterv.c osu_coll.c osu_coll.h \
-	kernel.cu
-am_osu_scatterv_OBJECTS = osu_scatterv.$(OBJEXT) osu_coll.$(OBJEXT) \
-	$(am__objects_1)
+am__osu_scatterv_SOURCES_DIST = osu_scatterv.c ../../util/osu_util.c \
+	../../util/osu_util.h ../../util/osu_util_mpi.c \
+	../../util/osu_util_mpi.h ../../util/kernel.cu
+am_osu_scatterv_OBJECTS = osu_scatterv.$(OBJEXT) $(am__objects_2)
 osu_scatterv_OBJECTS = $(am_osu_scatterv_OBJECTS)
 osu_scatterv_LDADD = $(LDADD)
 AM_V_P = $(am__v_P_@AM_V@)
@@ -342,10 +345,11 @@ SOURCES = $(osu_allgather_SOURCES) $(osu_allgatherv_SOURCES) \
 	$(osu_alltoallv_SOURCES) $(osu_barrier_SOURCES) \
 	$(osu_bcast_SOURCES) $(osu_gather_SOURCES) \
 	$(osu_gatherv_SOURCES) $(osu_iallgather_SOURCES) \
-	$(osu_iallgatherv_SOURCES) $(osu_ialltoall_SOURCES) \
-	$(osu_ialltoallv_SOURCES) $(osu_ialltoallw_SOURCES) \
-	$(osu_ibarrier_SOURCES) $(osu_ibcast_SOURCES) \
-	$(osu_igather_SOURCES) $(osu_igatherv_SOURCES) \
+	$(osu_iallgatherv_SOURCES) $(osu_iallreduce_SOURCES) \
+	$(osu_ialltoall_SOURCES) $(osu_ialltoallv_SOURCES) \
+	$(osu_ialltoallw_SOURCES) $(osu_ibarrier_SOURCES) \
+	$(osu_ibcast_SOURCES) $(osu_igather_SOURCES) \
+	$(osu_igatherv_SOURCES) $(osu_ireduce_SOURCES) \
 	$(osu_iscatter_SOURCES) $(osu_iscatterv_SOURCES) \
 	$(osu_reduce_SOURCES) $(osu_reduce_scatter_SOURCES) \
 	$(osu_scatter_SOURCES) $(osu_scatterv_SOURCES)
@@ -358,12 +362,14 @@ DIST_SOURCES = $(am__osu_allgather_SOURCES_DIST) \
 	$(am__osu_gather_SOURCES_DIST) $(am__osu_gatherv_SOURCES_DIST) \
 	$(am__osu_iallgather_SOURCES_DIST) \
 	$(am__osu_iallgatherv_SOURCES_DIST) \
+	$(am__osu_iallreduce_SOURCES_DIST) \
 	$(am__osu_ialltoall_SOURCES_DIST) \
 	$(am__osu_ialltoallv_SOURCES_DIST) \
 	$(am__osu_ialltoallw_SOURCES_DIST) \
 	$(am__osu_ibarrier_SOURCES_DIST) \
 	$(am__osu_ibcast_SOURCES_DIST) $(am__osu_igather_SOURCES_DIST) \
 	$(am__osu_igatherv_SOURCES_DIST) \
+	$(am__osu_ireduce_SOURCES_DIST) \
 	$(am__osu_iscatter_SOURCES_DIST) \
 	$(am__osu_iscatterv_SOURCES_DIST) \
 	$(am__osu_reduce_SOURCES_DIST) \
@@ -518,64 +524,49 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
+AUTOMAKE_OPTIONS = subdir-objects
 NVCC = nvcc
-NVCFLAGS = -cuda -maxrregcount 32
+NVCFLAGS = -cuda -maxrregcount 32 -ccbin $(CXX)
 SUFFIXES = .cu .cpp
 collectivedir = $(pkglibexecdir)/mpi/collective
-osu_alltoallv_SOURCES = osu_alltoallv.c osu_coll.c osu_coll.h \
-	$(am__append_2)
-osu_allgatherv_SOURCES = osu_allgatherv.c osu_coll.c osu_coll.h \
-	$(am__append_4)
-osu_scatterv_SOURCES = osu_scatterv.c osu_coll.c osu_coll.h \
-	$(am__append_8)
-osu_gather_SOURCES = osu_gather.c osu_coll.c osu_coll.h \
-	$(am__append_9)
-osu_gatherv_SOURCES = osu_gatherv.c osu_coll.c osu_coll.h \
-	$(am__append_10)
-osu_reduce_scatter_SOURCES = osu_reduce_scatter.c osu_coll.c \
-	osu_coll.h $(am__append_13)
-osu_barrier_SOURCES = osu_barrier.c osu_coll.c osu_coll.h \
-	$(am__append_5)
-osu_reduce_SOURCES = osu_reduce.c osu_coll.c osu_coll.h \
-	$(am__append_12)
-osu_allreduce_SOURCES = osu_allreduce.c osu_coll.c osu_coll.h \
-	$(am__append_11)
-osu_bcast_SOURCES = osu_bcast.c osu_coll.c osu_coll.h $(am__append_6)
-osu_alltoall_SOURCES = osu_alltoall.c osu_coll.c osu_coll.h \
+AM_CFLAGS = -I../../util $(am__append_3)
+UTILITIES = ../../util/osu_util.c ../../util/osu_util.h \
+	../../util/osu_util_mpi.c ../../util/osu_util_mpi.h \
 	$(am__append_1)
-osu_ialltoall_SOURCES = osu_ialltoall.c osu_coll.c osu_coll.h \
-	$(am__append_14)
-osu_ialltoallv_SOURCES = osu_ialltoallv.c osu_coll.c osu_coll.h \
-	$(am__append_15)
-osu_ialltoallw_SOURCES = osu_ialltoallw.c osu_coll.c osu_coll.h \
-	$(am__append_16)
-osu_ibarrier_SOURCES = osu_ibarrier.c osu_coll.c osu_coll.h \
-	$(am__append_19)
-osu_ibcast_SOURCES = osu_ibcast.c osu_coll.c osu_coll.h \
-	$(am__append_20)
-osu_igather_SOURCES = osu_igather.c osu_coll.c osu_coll.h \
-	$(am__append_23)
-osu_igatherv_SOURCES = osu_igatherv.c osu_coll.c osu_coll.h \
-	$(am__append_24)
-osu_allgather_SOURCES = osu_allgather.c osu_coll.c osu_coll.h \
-	$(am__append_3)
-osu_iallgather_SOURCES = osu_iallgather.c osu_coll.c osu_coll.h \
-	$(am__append_17)
-osu_iallgatherv_SOURCES = osu_iallgatherv.c osu_coll.c osu_coll.h \
-	$(am__append_18)
-osu_scatter_SOURCES = osu_scatter.c osu_coll.c osu_coll.h \
-	$(am__append_7)
-osu_iscatter_SOURCES = osu_iscatter.c osu_coll.c osu_coll.h \
-	$(am__append_21)
-osu_iscatterv_SOURCES = osu_iscatterv.c osu_coll.c osu_coll.h \
-	$(am__append_22)
-@EMBEDDED_BUILD_TRUE@AM_LDFLAGS = $(am__append_25) \
+@BUILD_USE_PGI_TRUE@@CUDA_KERNELS_TRUE@AM_CXXFLAGS = --nvcchost --no_preincludes
+@OPENACC_TRUE@AM_CXXFLAGS = -acc -ta=tesla:nordc
+osu_allgatherv_SOURCES = osu_allgatherv.c $(UTILITIES)
+osu_scatterv_SOURCES = osu_scatterv.c $(UTILITIES)
+osu_gather_SOURCES = osu_gather.c $(UTILITIES)
+osu_gatherv_SOURCES = osu_gatherv.c $(UTILITIES)
+osu_reduce_scatter_SOURCES = osu_reduce_scatter.c $(UTILITIES)
+osu_barrier_SOURCES = osu_barrier.c $(UTILITIES)
+osu_reduce_SOURCES = osu_reduce.c $(UTILITIES)
+osu_allreduce_SOURCES = osu_allreduce.c $(UTILITIES)
+osu_bcast_SOURCES = osu_bcast.c $(UTILITIES)
+osu_alltoall_SOURCES = osu_alltoall.c $(UTILITIES)
+osu_alltoallv_SOURCES = osu_alltoallv.c $(UTILITIES)
+osu_ialltoall_SOURCES = osu_ialltoall.c $(UTILITIES)
+osu_ialltoallv_SOURCES = osu_ialltoallv.c $(UTILITIES)
+osu_ialltoallw_SOURCES = osu_ialltoallw.c $(UTILITIES)
+osu_ibarrier_SOURCES = osu_ibarrier.c $(UTILITIES)
+osu_ibcast_SOURCES = osu_ibcast.c $(UTILITIES)
+osu_igather_SOURCES = osu_igather.c $(UTILITIES)
+osu_igatherv_SOURCES = osu_igatherv.c $(UTILITIES)
+osu_allgather_SOURCES = osu_allgather.c $(UTILITIES)
+osu_iallgather_SOURCES = osu_iallgather.c $(UTILITIES)
+osu_iallgatherv_SOURCES = osu_iallgatherv.c $(UTILITIES)
+osu_scatter_SOURCES = osu_scatter.c $(UTILITIES)
+osu_iscatter_SOURCES = osu_iscatter.c $(UTILITIES)
+osu_iscatterv_SOURCES = osu_iscatterv.c $(UTILITIES)
+osu_ireduce_SOURCES = osu_ireduce.c $(UTILITIES)
+osu_iallreduce_SOURCES = osu_iallreduce.c $(UTILITIES)
+@EMBEDDED_BUILD_TRUE@AM_LDFLAGS = $(am__append_2) \
 @EMBEDDED_BUILD_TRUE@	$(top_builddir)/../lib/lib@MPILIBNAME@.la
 @EMBEDDED_BUILD_TRUE@AM_CPPFLAGS = -I$(top_builddir)/../src/include \
+@EMBEDDED_BUILD_TRUE@          -I${top_srcdir}/util \
 @EMBEDDED_BUILD_TRUE@		  -I${top_srcdir}/../src/include
 
-@OPENACC_TRUE@AM_CFLAGS = -acc
-@OPENACC_TRUE@AM_CXXFLAGS = -acc
 all: all-am
 
 .SUFFIXES:
@@ -658,6 +649,18 @@ clean-collectivePROGRAMS:
 	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
 	echo " rm -f" $$list; \
 	rm -f $$list
+../../util/$(am__dirstamp):
+	@$(MKDIR_P) ../../util
+	@: > ../../util/$(am__dirstamp)
+../../util/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) ../../util/$(DEPDIR)
+	@: > ../../util/$(DEPDIR)/$(am__dirstamp)
+../../util/osu_util.$(OBJEXT): ../../util/$(am__dirstamp) \
+	../../util/$(DEPDIR)/$(am__dirstamp)
+../../util/osu_util_mpi.$(OBJEXT): ../../util/$(am__dirstamp) \
+	../../util/$(DEPDIR)/$(am__dirstamp)
+../../util/kernel.$(OBJEXT): ../../util/$(am__dirstamp) \
+	../../util/$(DEPDIR)/$(am__dirstamp)
 
 osu_allgather$(EXEEXT): $(osu_allgather_OBJECTS) $(osu_allgather_DEPENDENCIES) $(EXTRA_osu_allgather_DEPENDENCIES) 
 	@rm -f osu_allgather$(EXEEXT)
@@ -703,6 +706,10 @@ osu_iallgatherv$(EXEEXT): $(osu_iallgatherv_OBJECTS) $(osu_iallgatherv_DEPENDENC
 	@rm -f osu_iallgatherv$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(osu_iallgatherv_OBJECTS) $(osu_iallgatherv_LDADD) $(LIBS)
 
+osu_iallreduce$(EXEEXT): $(osu_iallreduce_OBJECTS) $(osu_iallreduce_DEPENDENCIES) $(EXTRA_osu_iallreduce_DEPENDENCIES) 
+	@rm -f osu_iallreduce$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(osu_iallreduce_OBJECTS) $(osu_iallreduce_LDADD) $(LIBS)
+
 osu_ialltoall$(EXEEXT): $(osu_ialltoall_OBJECTS) $(osu_ialltoall_DEPENDENCIES) $(EXTRA_osu_ialltoall_DEPENDENCIES) 
 	@rm -f osu_ialltoall$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(osu_ialltoall_OBJECTS) $(osu_ialltoall_LDADD) $(LIBS)
@@ -731,6 +738,10 @@ osu_igatherv$(EXEEXT): $(osu_igatherv_OBJECTS) $(osu_igatherv_DEPENDENCIES) $(EX
 	@rm -f osu_igatherv$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(osu_igatherv_OBJECTS) $(osu_igatherv_LDADD) $(LIBS)
 
+osu_ireduce$(EXEEXT): $(osu_ireduce_OBJECTS) $(osu_ireduce_DEPENDENCIES) $(EXTRA_osu_ireduce_DEPENDENCIES) 
+	@rm -f osu_ireduce$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(osu_ireduce_OBJECTS) $(osu_ireduce_LDADD) $(LIBS)
+
 osu_iscatter$(EXEEXT): $(osu_iscatter_OBJECTS) $(osu_iscatter_DEPENDENCIES) $(EXTRA_osu_iscatter_DEPENDENCIES) 
 	@rm -f osu_iscatter$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(osu_iscatter_OBJECTS) $(osu_iscatter_LDADD) $(LIBS)
@@ -757,11 +768,14 @@ osu_scatterv$(EXEEXT): $(osu_scatterv_OBJECTS) $(osu_scatterv_DEPENDENCIES) $(EX
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
+	-rm -f ../../util/*.$(OBJEXT)
 
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/kernel.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@../../util/$(DEPDIR)/kernel.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@../../util/$(DEPDIR)/osu_util.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@../../util/$(DEPDIR)/osu_util_mpi.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_allgather.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_allgatherv.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_allreduce.Po@am__quote@
@@ -769,11 +783,11 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_alltoallv.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_barrier.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_bcast.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_coll.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_gather.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_gatherv.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_iallgather.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_iallgatherv.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_iallreduce.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_ialltoall.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_ialltoallv.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_ialltoallw.Po@am__quote@
@@ -781,6 +795,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_ibcast.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_igather.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_igatherv.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_ireduce.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_iscatter.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_iscatterv.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_reduce.Po@am__quote@
@@ -789,43 +804,49 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_scatterv.Po@am__quote@
 
 .c.o:
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ $<
 
 .c.obj:
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.obj$$||'`;\
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ `$(CYGPATH_W) '$<'` &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 
 .c.lo:
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LTCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.lo$$||'`;\
+@am__fastdepCC_TRUE@	$(LTCOMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
 
 .cpp.o:
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
+@am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCXX_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXXCOMPILE) -c -o $@ $<
 
 .cpp.obj:
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.obj$$||'`;\
+@am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ `$(CYGPATH_W) '$<'` &&\
+@am__fastdepCXX_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 
 .cpp.lo:
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LTCXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.lo$$||'`;\
+@am__fastdepCXX_TRUE@	$(LTCXXCOMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCXX_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Plo
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LTCXXCOMPILE) -c -o $@ $<
@@ -951,6 +972,8 @@ clean-generic:
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
+	-rm -f ../../util/$(DEPDIR)/$(am__dirstamp)
+	-rm -f ../../util/$(am__dirstamp)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
@@ -961,7 +984,7 @@ clean-am: clean-collectivePROGRAMS clean-generic clean-libtool \
 	mostlyclean-am
 
 distclean: distclean-am
-	-rm -rf ./$(DEPDIR)
+	-rm -rf ../../util/$(DEPDIR) ./$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -1007,7 +1030,7 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-	-rm -rf ./$(DEPDIR)
+	-rm -rf ../../util/$(DEPDIR) ./$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

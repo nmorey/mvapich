@@ -62,6 +62,8 @@ mpi_fc_sources += \
 	src/binding/fortran/use_mpi_f08/wrappers_f/add_error_class_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/add_error_code_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/add_error_string_f08ts.f90 \
+	src/binding/fortran/use_mpi_f08/wrappers_f/aint_add_f08ts.f90 \
+	src/binding/fortran/use_mpi_f08/wrappers_f/aint_diff_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/allgather_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/allgatherv_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/alloc_mem_f08ts.f90 \
@@ -147,9 +149,13 @@ mpi_fc_sources += \
 	src/binding/fortran/use_mpi_f08/wrappers_f/file_get_size_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/file_get_type_extent_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/file_get_view_f08ts.f90 \
+	src/binding/fortran/use_mpi_f08/wrappers_f/file_iread_all_f08ts.f90 \
+	src/binding/fortran/use_mpi_f08/wrappers_f/file_iread_at_all_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/file_iread_at_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/file_iread_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/file_iread_shared_f08ts.f90 \
+	src/binding/fortran/use_mpi_f08/wrappers_f/file_iwrite_all_f08ts.f90 \
+	src/binding/fortran/use_mpi_f08/wrappers_f/file_iwrite_at_all_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/file_iwrite_at_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/file_iwrite_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/file_iwrite_shared_f08ts.f90 \
@@ -406,6 +412,8 @@ mpi_fc_sources += \
 	src/binding/fortran/use_mpi_f08/wrappers_f/profiling/padd_error_class_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/profiling/padd_error_code_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/profiling/padd_error_string_f08ts.f90 \
+	src/binding/fortran/use_mpi_f08/wrappers_f/profiling/paint_add_f08ts.f90 \
+	src/binding/fortran/use_mpi_f08/wrappers_f/profiling/paint_diff_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/profiling/pallgather_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/profiling/pallgatherv_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/profiling/palloc_mem_f08ts.f90 \
@@ -491,9 +499,13 @@ mpi_fc_sources += \
 	src/binding/fortran/use_mpi_f08/wrappers_f/profiling/pfile_get_size_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/profiling/pfile_get_type_extent_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/profiling/pfile_get_view_f08ts.f90 \
+	src/binding/fortran/use_mpi_f08/wrappers_f/profiling/pfile_iread_all_f08ts.f90 \
+	src/binding/fortran/use_mpi_f08/wrappers_f/profiling/pfile_iread_at_all_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/profiling/pfile_iread_at_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/profiling/pfile_iread_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/profiling/pfile_iread_shared_f08ts.f90 \
+	src/binding/fortran/use_mpi_f08/wrappers_f/profiling/pfile_iwrite_all_f08ts.f90 \
+	src/binding/fortran/use_mpi_f08/wrappers_f/profiling/pfile_iwrite_at_all_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/profiling/pfile_iwrite_at_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/profiling/pfile_iwrite_f08ts.f90 \
 	src/binding/fortran/use_mpi_f08/wrappers_f/profiling/pfile_iwrite_shared_f08ts.f90 \
@@ -1012,6 +1024,11 @@ CLEANFILES += src/binding/fortran/use_mpi_f08/$(MPI_C_INTERFACE_CDESC_NAME).$(MO
     src/binding/fortran/use_mpi_f08/mpi_c_interface_cdesc.lo \
     src/binding/fortran/use_mpi_f08/mpi_c_interface_cdesc.stamp \
     src/binding/fortran/use_mpi_f08/mpi_c_interface_cdesc.tmp
+
+
+
+BUILT_SOURCES += $(f08_module_files)
+CLEANFILES += $(f08_module_files)
 
 include $(top_srcdir)/src/binding/fortran/use_mpi_f08/wrappers_c/Makefile.mk
 

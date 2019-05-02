@@ -1,13 +1,13 @@
 <dir>
-<file name="sock_misc.i" info="1473273118"/>
-<file name="socki_util.i" info="1473273118"/>
-<file name="sock_immed.i" info="1473273118"/>
-<file name="sock_wait.i" info="1473273118"/>
-<file name="sock_set.i" info="1473273118"/>
-<file name="sock.c" info="1473273118"/>
-<file name="sock_init.i" info="1473273118"/>
-<file name="mpidu_socki.h" info="1473273118"/>
-<file name="sock_post.i" info="1473273118"/>
+<file name="sock_misc.i" info="1551311848"/>
+<file name="socki_util.i" info="1551311848"/>
+<file name="sock_immed.i" info="1551311848"/>
+<file name="sock_wait.i" info="1551311848"/>
+<file name="sock_set.i" info="1551311848"/>
+<file name="sock.c" info="1551311848"/>
+<file name="sock_init.i" info="1551311848"/>
+<file name="mpidu_socki.h" info="1551311848"/>
+<file name="sock_post.i" info="1551311848"/>
 </dir>
 <data>
 <fileinfo name="sock_misc.i">
@@ -53,6 +53,7 @@ MPID_STATE_MPIDU_SOCKI_HANDLE_CONNECT MPIDU_Socki_handle_connect
 </fileinfo>
 <fileinfo name="sock_set.i">
 MPID_STATE_MPIDU_SOCK_CREATE_SET MPIDU_Sock_create_set
+MPID_STATE_MPIDU_SOCK_CLOSE_OPEN_SOCKETS MPIDU_Sock_close_open_sockets
 MPID_STATE_MPIDU_SOCK_DESTROY_SET MPIDU_Sock_destroy_set
 </fileinfo>
 <fileinfo name="sock.c">

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2016, The Ohio State University. All rights
+ * Copyright (c) 2001-2019, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -12,24 +12,40 @@
 #ifndef SHMEM_BAR_H
 #define SHMEM_BAR_H 1
 
-#if defined(MAC_OSX) || defined(__powerpc__) || defined(__ppc__) || defined(__PPC__) || defined(__powerpc64__) || defined(__ppc64__)
+#if defined(MAC_OSX) || defined(__powerpc__) || defined(__ppc__) || defined(__PPC__) || defined(__powerpc64__) || defined(__ppc64__) || defined(__PPC64__)
+
 #if defined(__GNUC__)
 /* can't use -ansi for vxworks ccppc or this will fail with a syntax error
  * */
 #define STBAR()  asm volatile ("dcs": : :"memory")     /* ": : :" for C++ */
 #define READBAR() asm volatile ("dcs": : :"memory")
 #define WRITEBAR() asm volatile ("dcs": : :"memory")
-#else /* defined(__GNUC__) */
-#if  defined(__IBMC__) || defined(__IBMCPP__)
+
+#elif  defined(__IBMC__) || defined(__IBMCPP__) /* !defined(__GNUC__) */
 extern void __iospace_eieio(void);
 extern void __iospace_sync(void);
 #define STBAR()   __iospace_sync ()
 #define READBAR() __iospace_sync ()
 #define WRITEBAR() __iospace_eieio ()
+
+#elif defined(__PGIC__) /* PGI */
+#define STBAR()  asm volatile ("lwsync": : :"memory")     /* ": : :" for C++ */
+#define READBAR() asm volatile ("lwsync": : :"memory")
+#define WRITEBAR() asm volatile ("lwsync": : :"memory")
+
 #else /* defined(__IBMC__) || defined(__IBMCPP__) */
 #error Do not know how to make a store barrier for this system
 #endif /* defined(__IBMC__) || defined(__IBMCPP__) */
-#endif /* defined(__GNUC__) */
+//#endif /* defined(__GNUC__) */
+
+#elif defined(__aarch64__)
+#if defined(__GNUC__)
+#define STBAR() asm volatile("dmb ish": : :"memory")
+#define READBAR() asm volatile("dmb ishld": : :"memory")
+#define WRITEBAR() asm volatile("dmb ishst": : :"memory")
+#else /* defined(__GNUC__) */
+#error Do not know how to make a store barrier for this system
+#endif /* defined(__aarch64__) */
 
 #if !defined(WRITEBAR)
 #define WRITEBAR() STBAR()
@@ -38,9 +54,9 @@ extern void __iospace_sync(void);
 #define READBAR() STBAR()
 #endif /* !defined(READBAR) */
 
-#else /* defined(MAC_OSX) || defined(__powerpc__) || defined(__ppc__) || defined(__PPC__) || defined(__powerpc64__) || defined(__ppc64__) */
+#else /* defined(MAC_OSX) || defined(__powerpc__) || defined(__ppc__) || defined(__PPC__) || defined(__powerpc64__) || defined(__ppc64__) || defined (__PPC64__) */
 #define WRITEBAR()
 #define READBAR()
-#endif /* defined(MAC_OSX) || defined(__powerpc__) || defined(__ppc__) || defined(__PPC__) || defined(__powerpc64__) || defined(__ppc64__) */
+#endif /* defined(MAC_OSX) || defined(__powerpc__) || defined(__ppc__) || defined(__PPC__) || defined(__powerpc64__) || defined(__ppc64__) || defined (__PPC64__) */
 
 #endif /* #ifndef SHMEM_BAR_H */

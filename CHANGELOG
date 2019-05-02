@@ -3,6 +3,222 @@ MVAPICH2 Changelog
 This file briefly describes the changes to the MVAPICH2 software
 package.  The logs are arranged in the "most recent first" order.
 
+MVAPICH2 2.3.1 (03/01/2019)
+
+* Features and Enhancements (since 2.3):
+    - Add support for JSM and Flux resource managers
+    - Architecture detection, enhanced point-to-point and collective tuning for
+      AMD Epyc system
+    - Enhanced point-to-point and collective tuning for IBM POWER9 and ARM
+      systems
+    - Add support of DDN Infinite Memory Engine (IME) to ROMIO
+        - Thanks to Sylvain Didelot @DDN for the patch
+    - Optimize performance of MPI_Wait operation
+    - Update to hwloc 1.11.11
+
+* Bug Fixes (since 2.3):
+    - Fix autogen error with Flang compiler on ARM systems
+        - Thanks to Nathan Sircombe @ARM for the patch
+    - Fix issues with shmem collectives on ARM architecture
+        - Thanks to Pavel Shamis @ARM for the patch
+    - Fix issues with MPI-3 shared memory windows for PSM-CH3 and PSM2-CH3
+      channel
+        - Thanks to Adam Moody @LLNL for the report
+    - Fix segfault in MPI_Reduce
+        - Thanks to Samuel Khuvis @OSC for the report
+    - Fix compilation issues with IBM XLC compiler
+        - Thanks to Ken Raffenetti and Yanfei Guo @ANL for the patch
+    - Fix issues with MPI_Mprobe/Improbe and MPI_Mrecv/Imrecv for PSM-CH3 and
+      PSM2-CH3 channel
+        - Thanks to Adam Moody @LLNL for the report
+    - Fix compilation issues with PGI compilers for CUDA-enabled builds
+    - Fix potential hangs in MPI_Finalize
+    - Fix issues in handling very large messages with RGET protocol
+    - Fix issues with handling GPU buffers
+    - Fix issue with hardware multicast based Allreduce
+    - Fix build issue with TCP/IP-CH3 channel
+    - Fix memory leaks exposed by TotalView
+        - Thanks to Adam Moody @LLNL for the report
+    - Fix issues with cleaning up temporary files generated in CUDA builds
+    - Fix compilation warnings
+
+MVAPICH2 2.3 (07/23/2018)
+
+* Features and Enhancements (since 2.3rc2):
+    - Add point-to-point and collective tuning for IBM POWER9 CPUs
+    - Enhanced collective tuning for IBM POWER8, Intel Skylake, Intel KNL, Intel
+      Broadwell architectures
+
+* Bug Fixes (since 2.3rc2):
+    - Fix issues in CH3-TCP/IP channel
+    - Fix build and runtime issues with CUDA support
+    - Fix error when XRC and RoCE were enabled at the same time
+    - Fix issue with XRC connection establishment
+    - Fix for failure at finalize seen on iWARP enabled devices
+    - Fix issue with MPI_IN_PLACE-based communcation in MPI_Reduce and
+      MPI_Reduce_scatter
+    - Fix issue with allocating large number of shared memory based MPI3-RMA
+      windows
+    - Fix failure in mpirun_rsh with large number of nodes
+    - Fix singleton initialization issue with SLURM/PMI2 and PSM/Omni-Path
+        - Thanks to Adam Moody @LLNL for the report
+    - Fix build failure with when enabling GPFS support in ROMIO
+        - Thanks to Doug Johnson @OHTech for the report
+    - Fix issues with architecture detection in PSM-CH3 and PSM2-CH3 channels
+    - Fix failures with CMA read at very large message sizes
+    - Fix faiures with MV2_SHOW_HCA_BINDING on single-node jobs
+    - Fix compilation warnings and memory leaks
+
+MVAPICH2 2.3rc2 (04/30/2018)
+ 
+* Features and Enhancements (since 2.3rc1):
+    - Based on MPICH v3.2.1
+    - Enhanced small message performance for MPI_Alltoallv
+    - Improve performance for host-based transfers when CUDA is enabled
+    - Add architecture detection for IBM POWER9 CPUs
+    - Enhance architecture detection for Intel Skylake CPUs
+    - Enhance MPI initialization to gracefully handle RDMA_CM failures
+    - Improve algorithm selection of several collectives
+    - Enhance detection of number and IP addresses of IB devices
+    - Tested with CLANG v5.0.0
+  
+* Bug Fixes (since 2.3rc1):
+    - Fix issue in autogen step with duplicate error messages
+    - Fix issue with XRC connection establishment
+    - Fix build issue with SLES 15 and Perl 5.26.1
+        - Thanks to Matias A Cabral @Intel for the report and patch
+    - Fix segfault when manually selecting collective algorithms
+    - Fix cleanup of preallocated RDMA_FP regions at RDMA_CM finalize
+    - Fix compilation warnings and memory leaks
+
+MVAPICH2 2.3rc1 (02/19/2018)
+ 
+* Features and Enhancements (since 2.3b):
+    - Enhanced performance for Allreduce, Reduce_scatter_block, Allgather,
+      Allgatherv through new algorithms
+        - Thanks to Danielle Sikich and Adam Moody @ LLNL for the patch
+    - Enhance support for MPI_T PVARs and CVARs
+    - Improved job startup time for OFA-IB-CH3, PSM-CH3, and PSM2-CH3
+    - Support to automatically detect IP address of IB/RoCE interfaces when
+      RDMA_CM is enabled without relying on mv2.conf file
+    - Enhance HCA detection to handle cases where node has both IB and RoCE HCAs
+    - Automatically detect and use maximum supported MTU by the HCA
+    - Added logic to detect heterogeneous CPU/HFI configurations in PSM-CH3 and
+      PSM2-CH3 channels
+        - Thanks to Matias Cabral@Intel for the report
+    - Enhanced intra-node and inter-node tuning for PSM-CH3 and PSM2-CH3
+      channels
+    - Enhanced HFI selection logic for systems with multiple Omni-Path HFIs
+    - Enhanced tuning and architecture detection for OpenPOWER, Intel Skylake
+      and Cavium ARM (ThunderX) systems
+    - Added 'SPREAD', 'BUNCH', and 'SCATTER' binding options for hybrid CPU
+      binding policy
+    - Rename MV2_THREADS_BINDING_POLICY to MV2_HYBRID_BINDING_POLICY
+    - Added support for MV2_SHOW_CPU_BINDING to display number of OMP threads
+    - Update to hwloc version 1.11.9
+ 
+* Bug Fixes (since 2.3b):
+    - Fix issue with RDMA_CM in multi-rail scenario
+    - Fix issues in nullpscw RMA test.
+    - Fix issue with reduce and allreduce algorithms for large message sizes
+    - Fix hang issue in hydra when no SLURM environment is present
+        - Thanks to Vaibhav Sundriyal for the report 
+    - Fix issue to test Fortran KIND with FFLAGS
+        - Thanks to Rob Latham@mcs.anl.gov for the patch
+    - Fix issue in parsing environment variables
+    - Fix issue in displaying process to HCA binding
+    - Enhance CPU binding logic to handle vendor specific core mappings
+    - Fix compilation warnings and memory leaks
+
+MVAPICH2 2.3b (08/10/2017)
+
+* Features and Enhancements (since 2.3a):
+    - Enhance performance of point-to-point operations for CH3-Gen2 (InfiniBand),
+      CH3-PSM, and CH3-PSM2 (Omni-Path) channels
+    - Improve performance for MPI-3 RMA operations
+    - Introduce support for Cavium ARM (ThunderX) systems
+    - Improve support for process to core mapping on many-core systems
+        - New environment variable MV2_THREADS_BINDING_POLICY for
+          multi-threaded MPI and MPI+OpenMP applications
+        - Support `linear' and `compact' placement of threads
+        - Warn user if oversubcription of core is detected
+    - Improve launch time for large-scale jobs with mpirun_rsh
+    - Add support for non-blocking Allreduce using Mellanox SHARP
+    - Efficient support for different Intel Knight's Landing (KNL) models
+    - Improve performance for Intra- and Inter-node communication for OpenPOWER
+      architecture
+    - Improve support for large processes per node and hugepages on SMP systems
+    - Enhance collective tuning for Intel Knight's Landing and Intel Omni-Path
+      based systems
+    - Enhance collective tuning for Bebop@ANL, Bridges@PSC, and Stampede2@TACC
+      systems
+    - Enhance large message intra-node performance with CH3-IB-Gen2 channel on
+      Intel Knight's Landing
+    - Enhance support for MPI_T PVARs and CVARs
+* Bug Fixes (since 2.3a):
+    - Fix issue with bcast algorithm selection
+    - Fix issue with large message transfers using CMA
+    - Fix issue in Scatter and Gather with large messages
+    - Fix tuning tables for various collectives
+    - Fix issue with launching single-process MPI jobs
+    - Fix compilation error in the CH3-TCP/IP channel
+        - Thanks to Isaac Carroll@Lightfleet for the patch
+    - Fix issue with memory barrier instructions on ARM
+        - Thanks to Pavel (Pasha) Shamis@ARM for reporting the issue
+    - Fix compilation warnings and memory leaks
+
+MVAPICH2 2.3a (03/29/2017)
+
+* Features and Enhancements (since 2.2):
+    - Based on and ABI compatible with MPICH 3.2
+    - Support collective offload using Mellanox's SHArP for Allreduce
+        - Enhance tuning framework for Allreduce using SHArP
+    - Introduce capability to run MPI jobs across multiple InfiniBand subnets
+    - Introduce basic support for executing MPI jobs in Singularity
+    - Enhance collective tuning for Intel Knight's Landing and Intel Omni-path
+    - Enhance process mapping support for multi-threaded MPI applications
+        - Introduce MV2_CPU_BINDING_POLICY=hybrid
+        - Introduce MV2_THREADS_PER_PROCESS
+    - On-demand connection management for PSM-CH3 and PSM2-CH3 channels
+    - Enhance PSM-CH3 and PSM2-CH3 job startup to use non-blocking PMI calls
+    - Enhance debugging support for PSM-CH3 and PSM2-CH3 channels
+    - Improve performance of architecture detection
+    - Introduce run time parameter MV2_SHOW_HCA_BINDING to show process to HCA
+      bindings
+    - Enhance MV2_SHOW_CPU_BINDING to enable display of CPU bindings on all
+      nodes
+    - Deprecate OFA-IB-Nemesis channel
+    - Update to hwloc version 1.11.6
+* Bug Fixes (since 2.2):
+    - Fix issue with ring startup in multi-rail systems
+    - Fix startup issue with SLURM and PMI-1
+        - Thanks to Manuel Rodriguez for the report
+    - Fix startup issue caused by fix for bash `shellshock' bug
+    - Fix issue with very large messages in PSM
+    - Fix issue with singleton jobs and PMI-2
+        - Thanks to Adam T. Moody@LLNL for the report
+    - Fix incorrect reporting of non-existing files with Luster ADIO
+        - Thanks to Wei Kang@NWU for the report
+    - Fix hang in MPI_Probe
+        - Thanks to John Westlund@Intel for the report
+    - Fix issue while setting affinity with Torque Cgroups
+        - Thanks to Doug Johnson@OSC for the report
+    - Fix runtime errors observed when running MVAPICH2 on aarch64 platforms
+        - Thanks to Sreenidhi Bharathkar Ramesh@Broadcom for posting
+          the original patch
+        - Thanks to Michal Schmidt@RedHat for reposting it
+    - Fix failure in mv2_show_cpu_affinity with affinity disabled
+        - Thanks to Carlos Rosales-Fernandez@TACC for the report
+    - Fix mpirun_rsh error when running short-lived non-MPI jobs
+        - Thanks to Kevin Manalo@OSC for the report
+    - Fix comment and spelling mistake
+        - Thanks to Maksym Planeta for the report
+    - Ignore cpusets and cgroups that may have been set by resource manager
+        - Thanks to Adam T. Moody@LLNL for the report and the patch
+    - Fix reduce tuning table entry for 2ppn 2node
+    - Fix compilation issues due to inline keyword with GCC 5 and newer
+    - Fix compilation warnings and memory leaks
+
 MVAPICH2 2.2 (09/07/2016)
 
 * Features and Enhancements (since 2.2rc2):

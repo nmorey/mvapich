@@ -1,3 +1,99 @@
+OSU Micro Benchmarks v5.6 (03/01/2019)
+
+* New Features & Enhancements
+    - Add support for benchmarking GPU-Aware multi-pair point-to-point
+      operations
+        * osu_mbw_mr
+        * osu_multi_lat
+    - Add support to specify different number of sender and receiver threads for
+      osu_latency_mt benchmark
+        
+* Bug Fixes
+    - Remove -t option for blocking collectives
+    - Fix issue when only building OpenSHMEM benchmarks
+    - Improve error reporting for one-sided benchmarks
+    - Fix compilation issues with PGI compilers for GPU-Aware benchmarks
+    - Fix incorrect handling of configure options
+        - Thanks to Tony Curtis @StonyBrook for the report
+    - Fix compilation warnings
+
+OSU Micro Benchmarks v5.5 (11/10/18)
+* New Features & Enhancements
+    - Introduce new MPI non-blocking collective benchmarks with support to
+      measure overlap of computation and communication for CPUs and GPUs
+        - osu_ireduce
+        - osu_iallreduce
+
+OSU Micro Benchmarks v5.4.4 (09/21/18)
+* Bug Fixes
+    - Deprecate the need to specify get_local_rank when running GPU-based
+      benchmarks built with MVAPICH2 and launched with mpirun_rsh
+    - Enhance error checking for GPU-based benchmarks
+    - Fix issues in GPU-based OpenACC benchmarks
+    - Fix race condition with OpenSHMEM non-blocking and overlap benchmarks
+
+OSU Micro Benchmarks v5.4.3 (07/23/18)
+* Bug Fixes
+    - Fix buffer overflow in osu_reduce_scatter
+        - Thanks to Matias A Cabral @Intel for reporting the issue and patch
+        - Thanks to Gilles Gouaillardet for creating the patch
+    - Fix buffer overflow in one sided tests
+        - Thanks to John Byrne @HPE for reporting this issue
+    - Fix buffer overflow in multi threaded latency test
+    - Fix issues with freeing buffers for one-sided tests
+    - Fix issues with freeing buffers for CUDA-enabled tests
+    - Fix warning messages for benchmarks that do not support CUDA and/or
+      Managed memory
+        - Thanks to Carl Ponder@NVIDIA for reporting this issue
+    - Fix compilation warnings
+
+OSU Micro Benchmarks v5.4.2 (04/30/18)
+* New Features & Enhancements
+    - Add "-W --window-size" option to osu_bw and osu_bibw
+
+* Bug Fixes
+    - Fix issues with out of tree builds
+        - Thanks to Adam Moody @LLNL for reporting the issue
+    - Fix PGI and XLC builds by using the correct generated cpp files
+    - Fix crash with osu_mbw_mr for large messages
+    - Fix minor error in Makefile
+    - Fix compilation warnings
+
+OSU Micro Benchmarks v5.4.1 (02/19/18)
+* New Features & Enhancements
+    - Enhanced help messages and runtime parameters
+
+* Bug Fixes
+    - Fix compile and runtime issues in PGAS benchmarks (OpenSHMEM, UPC, and
+      UPC++) exposed by PGI compiler
+    - Added warning message to display memory limitation when running benchmarks
+      with very large messages
+    - Fix memory leaks for device buffers
+    - Fix issues with type overflows
+    - Fix an issue with pWork symmetric heap allocation in oshm_reduce benchmark
+        - Thanks to Naveen Ravichandrasekaran@Cray for the report
+
+OSU Micro Benchmarks v5.4.0 (10/30/17)
+* New Features & Enhancements
+    - Introduce new OpenSHMEM Non-blocking Benchmarks
+        * osu_oshm_get_mr_nb
+        * osu_oshm_get_nb  
+        * osu_oshm_put_mr_nb
+        * osu_oshm_put_nb
+        * osu_oshm_put_overlap
+    - Automatically build OpenSHMEM 1.3 benchmarks when library support
+      is detected
+    - Add ability to specify min and max message size for point-to-point 
+      and one-sided benchmarks
+    - Enhanced error handling for MPI benchmarks
+    - Code clean-ups and unification of utility functions across benchmarks
+    - Enhanced help messages and runtime parameters
+
+* Bug Fixes
+    - Fix compile-time warnings 
+    - Fix peer calculation formula in UPC/UPC++ benchmarks
+    - Fix correct number of warmup iterations in osu_barrier benchmark
+
 OSU Micro Benchmarks v5.3.2 (09/08/16)
 * New Features & Enhancements
     - Allow specifying very large message sizes (>2GB) for collective benchmarks

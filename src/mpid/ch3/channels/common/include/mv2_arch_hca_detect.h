@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2016, The Ohio State University. All rights
+/* Copyright (c) 2001-2019, The Ohio State University. All rights
  * reserved.
  * Copyright (c) 2016, Intel, Inc. All rights reserved.
  *
@@ -144,8 +144,17 @@ typedef enum {
         MV2_ARCH_INTEL_XEON_E5_2670_V3_2S_24,
         MV2_ARCH_INTEL_XEON_E5_2695_V3_2S_28,
         MV2_ARCH_INTEL_XEON_E5_2680_V4_2S_28,
-        MV2_ARCH_INTEL_XEON_PHI_7250,
         MV2_ARCH_INTEL_XEON_E5_2695_V4_2S_36,
+        MV2_ARCH_INTEL_PLATINUM_8160_2S_48,
+        MV2_ARCH_INTEL_PLATINUM_8170_2S_52,
+        MV2_ARCH_INTEL_PLATINUM_GENERIC,
+        MV2_ARCH_INTEL_GOLD_6132_2S_28,
+        MV2_ARCH_INTEL_GOLD_GENERIC,
+        MV2_ARCH_INTEL_KNL_GENERIC,
+        MV2_ARCH_INTEL_XEON_PHI_7210,
+        MV2_ARCH_INTEL_XEON_PHI_7230,
+        MV2_ARCH_INTEL_XEON_PHI_7250,
+        MV2_ARCH_INTEL_XEON_PHI_7290,
         MV2_ARCH_INTEL_END,
 /* AMD Architectures */
         MV2_ARCH_AMD_START,
@@ -156,12 +165,18 @@ typedef enum {
         MV2_ARCH_AMD_OPTERON_6136_32,
         MV2_ARCH_AMD_OPTERON_6276_64,
         MV2_ARCH_AMD_BULLDOZER_4274HE_16,
+	MV2_ARCH_AMD_EPYC_7551_64,
         MV2_ARCH_AMD_END,
 /* IBM Architectures */
         MV2_ARCH_IBM_START,
         MV2_ARCH_IBM_PPC,
         MV2_ARCH_IBM_POWER8,
+        MV2_ARCH_IBM_POWER9,
         MV2_ARCH_IBM_END,
+/* ARM Architectures */
+        MV2_ARCH_ARM_START,
+        MV2_ARCH_ARM_CAVIUM_V8,
+        MV2_ARCH_ARM_END,
         MV2_ARCH_LIST_END, 
 } mv2_proc_arch_list;
 
@@ -181,6 +196,7 @@ typedef enum{
     MV2_CPU_FAMILY_INTEL,
     MV2_CPU_FAMILY_AMD,
     MV2_CPU_FAMILY_POWER,
+    MV2_CPU_FAMILY_ARM,
 }mv2_cpu_family_type;
 
 /* Multi-rail info */
@@ -223,6 +239,9 @@ mv2_hca_type mv2_new_get_hca_type(struct ibv_context *ctx, struct ibv_device *de
 #else
 mv2_hca_type mv2_get_hca_type(void *dev);
 #endif
+
+/* Get combined architecture + hca type */
+mv2_arch_hca_type MV2_get_arch_hca_type(void);
 
 /* Get number of cpus */
 int mv2_get_num_cpus(void);

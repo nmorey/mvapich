@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2016, The Ohio State University. All rights
+/* Copyright (c) 2001-2019, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -46,7 +46,7 @@ typedef struct {
                                  MPI_Datatype datatype,
                                  MPI_Op op,
                                  int root,
-                                 MPID_Comm * comm_ptr, int *errflag);
+                                 MPID_Comm * comm_ptr, MPIR_Errflag_t *errflag);
 } mv2_reduce_tuning_element;
 
 typedef struct {
@@ -73,7 +73,7 @@ typedef struct {
                                  MPI_Datatype datatype,
                                  MPI_Op op,
                                  int root,
-                                 MPID_Comm * comm_ptr, int *errflag);
+                                 MPID_Comm * comm_ptr, MPIR_Errflag_t *errflag);
 } mv2_reduce_indexed_tuning_element;
 
 typedef struct {
@@ -100,7 +100,7 @@ extern int MPIR_Reduce_binomial_MV2(const void *sendbuf,
                                           MPI_Datatype datatype,
                                           MPI_Op op,
                                           int root,
-                                          MPID_Comm * comm_ptr, int *errflag);
+                                          MPID_Comm * comm_ptr, MPIR_Errflag_t *errflag);
 
 extern int MPIR_Reduce_intra_knomial_wrapper_MV2(const void *sendbuf,
                                    void *recvbuf,
@@ -108,7 +108,7 @@ extern int MPIR_Reduce_intra_knomial_wrapper_MV2(const void *sendbuf,
                                    MPI_Datatype datatype,
                                    MPI_Op op,
                                    int root,
-                                   MPID_Comm * comm_ptr, int *errflag);
+                                   MPID_Comm * comm_ptr, MPIR_Errflag_t *errflag);
 
 extern int MPIR_Reduce_inter_knomial_wrapper_MV2(const void *sendbuf,
                                    void *recvbuf,
@@ -116,7 +116,7 @@ extern int MPIR_Reduce_inter_knomial_wrapper_MV2(const void *sendbuf,
                                    MPI_Datatype datatype,
                                    MPI_Op op,
                                    int root,
-                                   MPID_Comm * comm_ptr, int *errflag);
+                                   MPID_Comm * comm_ptr, MPIR_Errflag_t *errflag);
 
 extern int MPIR_Reduce_shmem_MV2(const void *sendbuf,
                                  void *recvbuf,
@@ -124,7 +124,7 @@ extern int MPIR_Reduce_shmem_MV2(const void *sendbuf,
                                  MPI_Datatype datatype,
                                  MPI_Op op,
                                  int root,
-                                 MPID_Comm * comm_ptr, int *errflag);
+                                 MPID_Comm * comm_ptr, MPIR_Errflag_t *errflag);
 
 extern int MPIR_Reduce_redscat_gather_MV2(const void *sendbuf,
                                           void *recvbuf,
@@ -132,7 +132,7 @@ extern int MPIR_Reduce_redscat_gather_MV2(const void *sendbuf,
                                           MPI_Datatype datatype,
                                           MPI_Op op,
                                           int root,
-                                          MPID_Comm * comm_ptr, int *errflag);
+                                          MPID_Comm * comm_ptr, MPIR_Errflag_t *errflag);
   
 extern int MPIR_Reduce_two_level_helper_MV2(const void *sendbuf,
                                             void *recvbuf,
@@ -140,7 +140,7 @@ extern int MPIR_Reduce_two_level_helper_MV2(const void *sendbuf,
                                             MPI_Datatype datatype,
                                             MPI_Op op,
                                             int root,
-                                            MPID_Comm * comm_ptr, int *errflag);
+                                            MPID_Comm * comm_ptr, MPIR_Errflag_t *errflag);
 
 extern int MPIR_Reduce_Zcpy_MV2(const void *sendbuf,
 				void *recvbuf,
@@ -148,10 +148,10 @@ extern int MPIR_Reduce_Zcpy_MV2(const void *sendbuf,
 				MPI_Datatype datatype,
 				MPI_Op op,
 				int root,
-				MPID_Comm * comm_ptr, int *errflag);
+				MPID_Comm * comm_ptr, MPIR_Errflag_t *errflag);
 
 /* Architecture detection tuning */
-int MV2_set_reduce_tuning_table();
+int MV2_set_reduce_tuning_table(int heterogeneity);
 
 /* Function to clean free memory allocated by reduce tuning table*/
 void MV2_cleanup_reduce_tuning_table();

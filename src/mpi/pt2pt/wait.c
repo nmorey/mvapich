@@ -27,7 +27,7 @@ int MPI_Wait(MPI_Request *request, MPI_Status *status) __attribute__((weak,alias
 #undef FUNCNAME
 #define FUNCNAME MPIR_Wait_impl
 #undef FCNAME
-#define FCNAME MPIU_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIR_Wait_impl(MPI_Request *request, MPI_Status *status)
 {
     int mpi_errno = MPI_SUCCESS;
@@ -43,40 +43,84 @@ int MPIR_Wait_impl(MPI_Request *request, MPI_Status *status)
 
     MPID_Request_get_ptr(*request, request_ptr);
 
+#if defined (_SHARP_SUPPORT_)
+    if (request_ptr->sharp_req != NULL) {
+        mpi_errno = MPID_SHARP_COLL_REQ_WAIT(request_ptr);
+        if (mpi_errno != MPID_SHARP_COLL_SUCCESS) {
+            PRINT_ERROR("SHArP non-blocking collective failed \n ");
+            MPID_SHARP_COLL_REQ_FREE(request_ptr);
+            mpi_errno = MPI_ERR_INTERN;
+            MPIR_ERR_POP(mpi_errno);
+        }
+        mpi_errno = MPI_SUCCESS;
+        goto fn_exit;
+    }
+#endif
+
+
     if (!MPID_Request_is_complete(request_ptr))
     {
 	MPID_Progress_state progress_state;
-	    
+
+        /* If this is an anysource request including a communicator with
+         * anysource disabled, convert the call to an MPI_Test instead so we
+         * don't get stuck in the progress engine. */
+        if (unlikely(MPIR_CVAR_ENABLE_FT &&
+                    MPID_Request_is_anysource(request_ptr) &&
+                    !MPID_Comm_AS_enabled(request_ptr->comm))) {
+            mpi_errno = MPIR_Test_impl(request, &active_flag, status);
+            goto fn_exit;
+        }
+
 	MPID_Progress_start(&progress_state);
-        while (!MPID_Request_is_complete(request_ptr))
-	{
-	    mpi_errno = MPIR_Grequest_progress_poke(1, &request_ptr, status);
-	    if (request_ptr->kind == MPID_UREQUEST &&
-                request_ptr->greq_fns->wait_fn != NULL)
-	    {
-		if (mpi_errno) {
-		    /* --BEGIN ERROR HANDLING-- */
-		    MPID_Progress_end(&progress_state);
-                    MPIU_ERR_POP(mpi_errno);
-                    /* --END ERROR HANDLING-- */
-		}
-		continue; /* treating UREQUEST like normal request means we'll
-			     poll indefinitely. skip over progress_wait */
-	    }
+    while (!MPID_Request_is_complete(request_ptr))
+    {
+	    if (request_ptr->kind == MPID_UREQUEST)
+        {
+            mpi_errno = MPIR_Grequest_progress_poke(1, &request_ptr, status);
+            if (mpi_errno && request_ptr->greq_fns->wait_fn != NULL) {
+                /* --BEGIN ERROR HANDLING-- */
+                MPID_Progress_end(&progress_state);
+                MPIR_ERR_POP(mpi_errno);
+                /* --END ERROR HANDLING-- */
+            }
+            continue; /* treating UREQUEST like normal request means we'll
+                         poll indefinitely. skip over progress_wait */
+        }
+
+        /* In a multi-threaded scenario, with tests like
+         * test/mpi/threads/comm/comm_idup, we see a corner case where the
+         * previous call to MPIR_Grequest_progress_poke is completing the
+         * request causing the blocking call 'MPID_Progress_wait' below to get
+         * stuck. This check is to catch this scenario. */
+        if (MPID_Request_is_complete(request_ptr)) {
+            break;
+        }
 
 	    mpi_errno = MPID_Progress_wait(&progress_state);
 	    if (mpi_errno) {
 		/* --BEGIN ERROR HANDLING-- */
 		MPID_Progress_end(&progress_state);
-                MPIU_ERR_POP(mpi_errno);
+                MPIR_ERR_POP(mpi_errno);
 		/* --END ERROR HANDLING-- */
 	    }
+
+            if (unlikely(
+                        MPIR_CVAR_ENABLE_FT &&
+                        MPID_Request_is_anysource(request_ptr) &&
+                        !MPID_Request_is_complete(request_ptr) &&
+                        !MPID_Comm_AS_enabled(request_ptr->comm))) {
+                MPID_Progress_end(&progress_state);
+                MPIR_ERR_SET(mpi_errno, MPIX_ERR_PROC_FAILED_PENDING, "**failure_pending");
+                if (status != MPI_STATUS_IGNORE) status->MPI_ERROR = mpi_errno;
+                goto fn_fail;
+            }
 	}
 	MPID_Progress_end(&progress_state);
     }
 
     mpi_errno = MPIR_Request_complete(request, request_ptr, status, &active_flag);
-    if (mpi_errno) MPIU_ERR_POP(mpi_errno);
+    if (mpi_errno) MPIR_ERR_POP(mpi_errno);
     
  fn_exit:
     return mpi_errno;
@@ -89,7 +133,7 @@ int MPIR_Wait_impl(MPI_Request *request, MPI_Status *status)
 #undef FUNCNAME
 #define FUNCNAME MPI_Wait
 #undef FCNAME
-#define FCNAME MPIU_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 /*@
     MPI_Wait - Waits for an MPI request to complete
 
@@ -121,7 +165,7 @@ int MPI_Wait(MPI_Request *request, MPI_Status *status)
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
     
-    MPIU_THREAD_CS_ENTER(ALLFUNC,);
+    MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     MPID_MPI_PT2PT_FUNC_ENTER(MPID_STATE_MPI_WAIT);
 
     /* Check the arguments */
@@ -172,7 +216,7 @@ int MPI_Wait(MPI_Request *request, MPI_Status *status)
     
   fn_exit:
     MPID_MPI_PT2PT_FUNC_EXIT(MPID_STATE_MPI_WAIT);
-    MPIU_THREAD_CS_EXIT(ALLFUNC,);
+    MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 	
   fn_fail:

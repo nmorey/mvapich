@@ -94,7 +94,7 @@ int ADIOI_Type_create_hindexed_x(int count,
 	ret = MPI_Type_create_struct(count, blocklens, array_of_displacements,
 		types, newtype);
     } else {
-	ret = MPI_Type_hindexed(count, blocklens,
+	ret = MPI_Type_create_hindexed(count, blocklens,
 		array_of_displacements, oldtype, newtype);
     }
     for (i=0; i< count; i++)
@@ -104,6 +104,55 @@ int ADIOI_Type_create_hindexed_x(int count,
 
     return ret;
 }
+
+/* some systems do not have pread/pwrite, or requrie XOPEN_SOURCE set higher
+ * than we would like.  see #1973 */
+#if (HAVE_DECL_PWRITE == 0)
+
+#include <sys/types.h>
+#include <unistd.h>
+
+ssize_t pread(int fd, void *buf, size_t count, off_t offset);
+ssize_t pwrite(int fd, const void *buf, size_t count, off_t offset);
+
+ssize_t pread(int fd, void *buf, size_t count, off_t offset) {
+    off_t lseek_ret;
+    off_t old_offset;
+    ssize_t read_ret;
+
+    old_offset = lseek(fd, 0, SEEK_CUR);
+    lseek_ret = lseek(fd, offset, SEEK_SET);
+    if (lseek_ret == -1)
+	return lseek_ret;
+    read_ret = read(fd, buf, count);
+    if (read_ret < 0)
+	return read_ret;
+    /* man page says "file offset is not changed" */
+    if ( (lseek_ret = lseek(fd, old_offset, SEEK_SET)) < 0)
+	return lseek_ret;
+
+    return read_ret;
+}
+
+ssize_t pwrite(int fd, const void *buf, size_t count, off_t offset) {
+    off_t lseek_ret;
+    off_t old_offset;
+    ssize_t write_ret;
+
+    old_offset = lseek(fd, 0, SEEK_CUR);
+    lseek_ret = lseek(fd, offset, SEEK_SET);
+    if (lseek_ret == -1)
+	return lseek_ret;
+    write_ret = write(fd, buf, count);
+    if (write_ret < 0)
+	return write_ret;
+    /* man page says "file offset is not changed" */
+    if ( (lseek_ret = lseek(fd, old_offset, SEEK_SET)) < 0)
+	return lseek_ret;
+
+    return write_ret;
+}
+#endif
 
 /*
  * vim: ts=8 sts=4 sw=4 noexpandtab

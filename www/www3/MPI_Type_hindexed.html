@@ -10,8 +10,8 @@ Creates an indexed datatype with offsets in bytes
 <H2>Synopsis</H2>
 <PRE>
 int MPI_Type_hindexed(int count,
-                     const int *array_of_blocklengths,
-                     const MPI_Aint *array_of_displacements,
+                     int *array_of_blocklengths,
+                     MPI_Aint *array_of_displacements,
                      MPI_Datatype oldtype,
                      MPI_Datatype *newtype)
 </PRE>

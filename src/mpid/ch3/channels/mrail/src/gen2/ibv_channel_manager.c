@@ -4,7 +4,7 @@
  *      See COPYRIGHT in top-level directory.
  */
 
-/* Copyright (c) 2001-2016, The Ohio State University. All rights
+/* Copyright (c) 2001-2019, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -74,7 +74,7 @@ void init_apm_lock()
 #undef FUNCNAME
 #define FUNCNAME lock_apm
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 static void lock_apm()
 {
     pthread_spin_lock(&g_apm_lock);
@@ -84,7 +84,7 @@ static void lock_apm()
 #undef FUNCNAME
 #define FUNCNAME unlock_apm 
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 static void unlock_apm()
 {
     pthread_spin_unlock(&g_apm_lock);
@@ -166,7 +166,7 @@ static inline int PKT_IS_NOOP(void* v)
 #undef FUNCNAME
 #define FUNCNAME GetSeqNumVbuf
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 /*FIXME: Ideally this functionality should be provided by higher levels*/
 static inline int GetSeqNumVbuf(vbuf * buf)
 {
@@ -255,7 +255,7 @@ int MPIDI_CH3I_MRAILI_Register_channels(MPIDI_VC_t *vc, int num, vbuf *(*func[])
 #undef FUNCNAME
 #define FUNCNAME MPIDI_CH3I_MRAILI_Get_next_vbuf
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3I_MRAILI_Get_next_vbuf(MPIDI_VC_t** vc_ptr, vbuf** vbuf_ptr) 
 {
     *vc_ptr = NULL;
@@ -285,6 +285,7 @@ int MPIDI_CH3I_MRAILI_Get_next_vbuf(MPIDI_VC_t** vc_ptr, vbuf** vbuf_ptr)
             tail = (VBUF_FLAG_TYPE *) (v->buffer + size);
             /* If the tail has not received yet, than go ahead and
             ** poll next connection */
+            READBAR();
             if (*head != *tail) {
                 continue;
             }
@@ -386,7 +387,7 @@ fn_exit:
 #undef FUNCNAME
 #define FUNCNAME MPIDI_CH3I_MRAILI_Waiting_msg
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3I_MRAILI_Waiting_msg(MPIDI_VC_t * vc, vbuf ** vbuf_handle, int blocking) 
 {
     MRAILI_Channel_manager * cmanager = &vc->mrail.cmanager;
@@ -617,7 +618,7 @@ static inline int handle_cqe(vbuf **vbuf_handle, MPIDI_VC_t * vc_req,
             v->seqnum =  seqnum;
             p = v->pheader;
             PRINT_DEBUG(DEBUG_CHM_verbose>1,"Received from rank:%d seqnum :%d "
-                    "ack:%d size:%d type:%d trasport :%d \n",vc->pg_rank,
+                    "ack:%d size:%zu type:%d trasport:%d \n",vc->pg_rank,
                     v->seqnum, p->acknum, v->content_size, p->type, v->transport);
 #ifdef _MCST_SUPPORT_
             if (IS_MCAST_MSG(p)) {
@@ -765,7 +766,7 @@ fn_exit:
 
 inline int perform_blocking_progress_for_ib(int hca_num, int num_cqs)
 {
-    int ret = 0;
+    int ret = 0, err = 0;
     void *ev_ctx = NULL;
     struct ibv_cq *ev_cq = NULL;
 
@@ -773,7 +774,7 @@ inline int perform_blocking_progress_for_ib(int hca_num, int num_cqs)
 
 #if (MPICH_THREAD_LEVEL == MPI_THREAD_MULTIPLE)
     MPIU_THREAD_CHECK_BEGIN
-    MPID_Thread_mutex_unlock(&MPIR_ThreadInfo.global_mutex);
+    MPID_Thread_mutex_unlock(&MPIR_ThreadInfo.global_mutex, &err);
     MPIU_THREAD_CHECK_END
 #endif
     do {    
@@ -792,7 +793,7 @@ inline int perform_blocking_progress_for_ib(int hca_num, int num_cqs)
     } while (ret && errno == EINTR); 
 #if (MPICH_THREAD_LEVEL == MPI_THREAD_MULTIPLE)
     MPIU_THREAD_CHECK_BEGIN
-    MPID_Thread_mutex_lock(&MPIR_ThreadInfo.global_mutex);
+    MPID_Thread_mutex_lock(&MPIR_ThreadInfo.global_mutex, &err);
     MPIU_THREAD_CHECK_END
 #endif
 
@@ -808,7 +809,7 @@ inline int perform_blocking_progress_for_ib(int hca_num, int num_cqs)
 
 inline int perform_blocking_progress_for_iwarp(int hca_num, int num_cqs)
 {
-    int ret = 0;
+    int ret = 0, err = 0;
     void *ev_ctx = NULL;
     struct ibv_cq *ev_cq = NULL;
 
@@ -816,7 +817,7 @@ inline int perform_blocking_progress_for_iwarp(int hca_num, int num_cqs)
 
 #if (MPICH_THREAD_LEVEL == MPI_THREAD_MULTIPLE)
     MPIU_THREAD_CHECK_BEGIN
-    MPID_Thread_mutex_unlock(&MPIR_ThreadInfo.global_mutex);
+    MPID_Thread_mutex_unlock(&MPIR_ThreadInfo.global_mutex, &err);
     MPIU_THREAD_CHECK_END
 #endif
     do {    
@@ -848,7 +849,7 @@ inline int perform_blocking_progress_for_iwarp(int hca_num, int num_cqs)
     } while (ret && errno == EINTR); 
 #if (MPICH_THREAD_LEVEL == MPI_THREAD_MULTIPLE)
     MPIU_THREAD_CHECK_BEGIN
-    MPID_Thread_mutex_lock(&MPIR_ThreadInfo.global_mutex);
+    MPID_Thread_mutex_lock(&MPIR_ThreadInfo.global_mutex, &err);
     MPIU_THREAD_CHECK_END
 #endif
 
@@ -877,7 +878,7 @@ inline int perform_blocking_progress_for_iwarp(int hca_num, int num_cqs)
 #undef FUNCNAME
 #define FUNCNAME MPIDI_CH3I_RDMA_cq_poll_iwarp
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3I_MRAILI_Cq_poll_iwarp(vbuf **vbuf_handle, 
         MPIDI_VC_t * vc_req, int receiving, int is_blocking)
 {
@@ -888,8 +889,8 @@ int MPIDI_CH3I_MRAILI_Cq_poll_iwarp(vbuf **vbuf_handle,
     int type = T_CHANNEL_NO_ARRIVE;
     struct ibv_cq *chosen_cq = NULL;
 
-    MPIDI_STATE_DECL(MPID_GEN2_MRAILI_CQ_POLL);
-    MPIDI_FUNC_ENTER(MPID_GEN2_MRAILI_CQ_POLL);
+    MPIDI_STATE_DECL(MPID_GEN2_MRAILI_CQ_POLL_IWARP);
+    MPIDI_FUNC_ENTER(MPID_GEN2_MRAILI_CQ_POLL_IWARP);
 
     *vbuf_handle = NULL;
 
@@ -972,14 +973,14 @@ int MPIDI_CH3I_MRAILI_Cq_poll_iwarp(vbuf **vbuf_handle,
         }
     }
 fn_exit:
-    MPIDI_FUNC_EXIT(MPID_GEN2_MRAILI_CQ_POLL);
+    MPIDI_FUNC_EXIT(MPID_GEN2_MRAILI_CQ_POLL_IWARP);
     return type;
 }
 
 #undef FUNCNAME
 #define FUNCNAME MPIDI_CH3I_RDMA_cq_poll_ib
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3I_MRAILI_Cq_poll_ib(vbuf **vbuf_handle, 
         MPIDI_VC_t * vc_req, int receiving, int is_blocking)
 {
@@ -990,8 +991,8 @@ int MPIDI_CH3I_MRAILI_Cq_poll_ib(vbuf **vbuf_handle,
     int type = T_CHANNEL_NO_ARRIVE;
     struct ibv_cq *chosen_cq = NULL;
 
-    MPIDI_STATE_DECL(MPID_GEN2_MRAILI_CQ_POLL);
-    MPIDI_FUNC_ENTER(MPID_GEN2_MRAILI_CQ_POLL);
+    MPIDI_STATE_DECL(MPID_GEN2_MRAILI_CQ_POLL_IB);
+    MPIDI_FUNC_ENTER(MPID_GEN2_MRAILI_CQ_POLL_IB);
 
     *vbuf_handle = NULL;
 
@@ -1066,7 +1067,7 @@ get_blocking_message:
     }
 fn_exit:
 
-    MPIDI_FUNC_EXIT(MPID_GEN2_MRAILI_CQ_POLL);
+    MPIDI_FUNC_EXIT(MPID_GEN2_MRAILI_CQ_POLL_IB);
     return type;
 }
 
@@ -1184,7 +1185,7 @@ void async_thread(void *context)
                     ++mv2_MPIDI_CH3I_RDMA_Process.srq_zero_post_counter[hca_num];
 
                     while(mv2_MPIDI_CH3I_RDMA_Process.srq_zero_post_counter[hca_num] >= 1 
-                            && !(*(volatile int*)&mv2_MPIDI_CH3I_RDMA_Process.is_finalizing)) {
+                            && !mv2_MPIDI_CH3I_RDMA_Process.is_finalizing) {
                         /* Cannot post to SRQ, since all WQEs
                          * might be waiting in CQ to be pulled out */
                         pthread_cond_wait(

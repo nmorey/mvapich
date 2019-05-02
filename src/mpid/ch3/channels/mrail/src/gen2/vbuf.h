@@ -12,7 +12,7 @@
  *          Michael Welcome  <mlwelcome@lbl.gov>
  */
 
-/* Copyright (c) 2001-2016, The Ohio State University. All rights
+/* Copyright (c) 2001-2019, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -168,8 +168,8 @@ typedef struct vbuf
     VBUF_FLAG_TYPE* head_flag;
     unsigned char* buffer;
 
-    int content_size;
-    int content_consumed;
+    size_t content_size;
+    size_t content_consumed;
 
     /* used to keep track of eager sends */
     uint8_t eager;
@@ -231,6 +231,8 @@ void dump_vbuf(char* msg, vbuf* v);
 #endif /* defined(DEBUG) */
 
 void mv2_print_vbuf_usage_usage();
+int mv2_preallocate_rdma_fp_bufs();
+int mv2_free_prealloc_rdma_fp_bufs();
 int init_vbuf_lock(void);
 void release_vbuf(vbuf* v);
 /*

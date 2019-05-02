@@ -4,7 +4,7 @@
  *      See COPYRIGHT in top-level directory.
  */
 
-/* Copyright (c) 2001-2016, The Ohio State University. All rights
+/* Copyright (c) 2001-2019, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -42,7 +42,7 @@ do {                                                          \
 #undef FUNCNAME
 #define FUNCNAME create_request
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 MPID_Request * create_request(void * hdr, MPIDI_msg_sz_t hdr_sz,
 					    MPIU_Size_t nb)
 {
@@ -59,16 +59,17 @@ MPID_Request * create_request(void * hdr, MPIDI_msg_sz_t hdr_sz,
     /* --END ERROR HANDLING-- */
     MPIU_Object_set_ref(sreq, 2);
     sreq->kind = MPID_REQUEST_SEND;
+    MV2_INC_NUM_POSTED_SEND();
 #ifdef _ENABLE_CUDA_
     sreq->dev.pending_pkt = MPIU_Malloc(hdr_sz - nb);
     MPIU_Memcpy(sreq->dev.pending_pkt, (char *)hdr + nb, hdr_sz - nb);
-    sreq->dev.iov[0].MPID_IOV_BUF = (MPID_IOV_BUF_CAST)((char *)sreq->dev.pending_pkt);
+    sreq->dev.iov[0].MPL_IOV_BUF = (MPL_IOV_BUF_CAST)((char *)sreq->dev.pending_pkt);
 #else
-    sreq->dev.pending_pkt = *(MPIDI_CH3_Pkt_t *) hdr;
-    sreq->dev.iov[0].MPID_IOV_BUF = (MPID_IOV_BUF_CAST)((char *) &sreq->dev.pending_pkt + nb);
+    MPIU_Memcpy(&sreq->dev.pending_pkt, hdr, sizeof(MPIDI_CH3_Pkt_t));
+    sreq->dev.iov[0].MPL_IOV_BUF = (MPL_IOV_BUF_CAST)((char *) &sreq->dev.pending_pkt + nb);
 #endif
     sreq->ch.reqtype = REQUEST_NORMAL;
-    sreq->dev.iov[0].MPID_IOV_LEN = hdr_sz - nb;
+    sreq->dev.iov[0].MPL_IOV_LEN = hdr_sz - nb;
     sreq->dev.iov_count = 1;
     sreq->dev.OnDataAvail = 0;
 
@@ -90,13 +91,13 @@ int MPIDI_CH3_SMP_iStartMsg(MPIDI_VC_t * vc, void *pkt,
 #undef FUNCNAME
 #define FUNCNAME MPIDI_CH3_iStartMsg
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_iStartMsg(MPIDI_VC_t * vc, void *pkt, MPIDI_msg_sz_t pkt_sz,
                         MPID_Request ** sreq_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
     MPID_Request *sreq = NULL;
-    MPID_IOV iov[1];
+    MPL_IOV iov[1];
     MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3_ISTARTMSG);
 
     MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_ISTARTMSG);
@@ -160,8 +161,8 @@ int MPIDI_CH3_iStartMsg(MPIDI_VC_t * vc, void *pkt, MPIDI_msg_sz_t pkt_sz,
            channel, thus insuring that the progress engine does also try to
            write */
 
-        iov[0].MPID_IOV_BUF = pkt;
-        iov[0].MPID_IOV_LEN = pkt_sz;
+        iov[0].MPL_IOV_BUF = pkt;
+        iov[0].MPL_IOV_LEN = pkt_sz;
         pkt_len = pkt_sz;
 
         /* TODO: Codes to send pkt through send/recv path */
@@ -188,6 +189,7 @@ int MPIDI_CH3_iStartMsg(MPIDI_VC_t * vc, void *pkt, MPIDI_msg_sz_t pkt_sz,
                 goto fn_exit;
             }
             sreq->kind = MPID_REQUEST_SEND;
+            MV2_INC_NUM_POSTED_SEND();
             MPID_cc_set(&sreq->cc, 0);
             /* TODO: Create an appropriate error message based on the value of errno
              * */
@@ -215,7 +217,7 @@ int MPIDI_CH3_iStartMsg(MPIDI_VC_t * vc, void *pkt, MPIDI_msg_sz_t pkt_sz,
 #undef FUNCNAME
 #define FUNCNAME MPIDI_CH3_SMP_iStartMsg
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_SMP_iStartMsg(MPIDI_VC_t * vc, void *pkt,
                                           MPIDI_msg_sz_t pkt_sz,
                                           MPID_Request ** sreq_ptr)
@@ -224,7 +226,7 @@ int MPIDI_CH3_SMP_iStartMsg(MPIDI_VC_t * vc, void *pkt,
     MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_SMP_ISTARTMSG);
     int mpi_errno = MPI_SUCCESS;
     MPID_Request *sreq = NULL;
-    MPID_IOV iov[1];
+    MPL_IOV iov[1];
     MPIDI_CH3_Pkt_send_t *pkt_header;
 
     DEBUG_PRINT("entering ch3_istartmsg\n");
@@ -240,8 +242,8 @@ int MPIDI_CH3_SMP_iStartMsg(MPIDI_VC_t * vc, void *pkt,
            channel, thus insuring that the progress engine does also try to
            write */
 
-        iov[0].MPID_IOV_BUF = pkt;
-        iov[0].MPID_IOV_LEN = pkt_sz;
+        iov[0].MPL_IOV_BUF = pkt;
+        iov[0].MPL_IOV_LEN = pkt_sz;
 
         if (pkt_header->type == MPIDI_CH3_PKT_RNDV_R3_DATA)
         {

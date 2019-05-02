@@ -8414,6 +8414,13 @@ lt_prog_compiler_static=
 	lt_prog_compiler_pic='-KPIC'
 	lt_prog_compiler_static='-static'
         ;;
+      *flang)
+      # Flang compiler
+   lt_prog_compiler_wl='-Wl,'
+   lt_prog_compiler_pic='-fPIC -DPIC'
+   lt_prog_compiler_static='-static'
+       ;;
+
       # icc used to be incompatible with GCC.
       # ICC 10 doesn't accept -KPIC any more.
       icc* | ifort*)
@@ -9127,16 +9134,27 @@ _LT_EOF
 	  export_dynamic_flag_spec='-rdynamic'
 	  ;;
 	xlf* | bgf* | bgxlf* | mpixlf*)
-	  # IBM XL Fortran 10.1 on PPC cannot create shared libs itself
-	  whole_archive_flag_spec='--whole-archive$convenience --no-whole-archive'
-	  hardcode_libdir_flag_spec='$wl-rpath $wl$libdir'
-	  archive_cmds='$LD -shared $libobjs $deplibs $linker_flags -soname $soname -o $lib'
-	  if test yes = "$supports_anon_versioning"; then
-	    archive_expsym_cmds='echo "{ global:" > $output_objdir/$libname.ver~
-              cat $export_symbols | sed -e "s/\(.*\)/\1;/" >> $output_objdir/$libname.ver~
-              echo "local: *; };" >> $output_objdir/$libname.ver~
-              $LD -shared $libobjs $deplibs $linker_flags -soname $soname -version-script $output_objdir/$libname.ver -o $lib'
-	  fi
+          XLF_VERSION=$($CC -qversion 2>/dev/null | sed 1q | sed -e "s+^.*V++" | sed -e "s+\..*++")
+          if test $XLF_VERSION -ge 13; then
+              archive_cmds='$CC -qmkshrobj $libobjs $deplibs $compiler_flags $wl-soname $wl$soname -o $lib'
+              if test yes = "$supports_anon_versioning"; then
+                archive_expsym_cmds='echo "{ global:" > $output_objdir/$libname.ver~
+                  cat $export_symbols | sed -e "s/\(.*\)/\1;/" >> $output_objdir/$libname.ver~
+                  echo "local: *; };" >> $output_objdir/$libname.ver~
+                  $CC -qmkshrobj $libobjs $deplibs $compiler_flags $wl-soname $wl$soname $wl-version-script $wl$output_objdir/$libname.ver -o $lib'
+              fi
+          else
+              # IBM XL Fortran 10.1 on PPC cannot create shared libs itself
+              whole_archive_flag_spec='--whole-archive$convenience --no-whole-archive'
+              hardcode_libdir_flag_spec='$wl-rpath $wl$libdir'
+              archive_cmds='$LD -shared $libobjs $deplibs $linker_flags -soname $soname -o $lib'
+              if test yes = "$supports_anon_versioning"; then
+                archive_expsym_cmds='echo "{ global:" > $output_objdir/$libname.ver~
+                  cat $export_symbols | sed -e "s/\(.*\)/\1;/" >> $output_objdir/$libname.ver~
+                  echo "local: *; };" >> $output_objdir/$libname.ver~
+                  $LD -shared $libobjs $deplibs $linker_flags -soname $soname -version-script $output_objdir/$libname.ver -o $lib'
+              fi
+          fi
 	  ;;
 	esac
       else
@@ -12473,7 +12491,7 @@ if test "$with_valgrind" != "no" ; then
         # (TODO: a pkg-config file would help with this)
 
 
-	if echo "$CPPFLAGS" | $FGREP -e '-I${with_valgrind}' >/dev/null 2>&1; then :
+	if echo "$CPPFLAGS" | $FGREP -e "\<-I${with_valgrind}\>" >/dev/null 2>&1; then :
   echo "CPPFLAGS(='$CPPFLAGS') contains '-I${with_valgrind}', not appending" >&5
 else
   echo "CPPFLAGS(='$CPPFLAGS') does not contain '-I${with_valgrind}', appending" >&5
@@ -12821,6 +12839,58 @@ if test "$pac_cv_func_decl_putenv" = "yes" ; then
 
 cat >>confdefs.h <<_ACEOF
 #define NEEDS_PUTENV_DECL 1
+_ACEOF
+
+
+fi
+
+fi
+
+# Check for strerror
+for ac_func in strerror
+do :
+  ac_fn_c_check_func "$LINENO" "strerror" "ac_cv_func_strerror"
+if test "x$ac_cv_func_strerror" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_STRERROR 1
+_ACEOF
+
+fi
+done
+
+if test "$ac_cv_func_strerror" = "yes" ; then
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether strerror needs a declaration" >&5
+$as_echo_n "checking whether strerror needs a declaration... " >&6; }
+if ${pac_cv_func_decl_strerror+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <string.h>
+void (*fptr)(void) = (void(*)(void))strerror;
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  pac_cv_func_decl_strerror=no
+else
+  pac_cv_func_decl_strerror=yes
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $pac_cv_func_decl_strerror" >&5
+$as_echo "$pac_cv_func_decl_strerror" >&6; }
+if test "$pac_cv_func_decl_strerror" = "yes" ; then
+
+cat >>confdefs.h <<_ACEOF
+#define NEEDS_STRERROR_DECL 1
 _ACEOF
 
 

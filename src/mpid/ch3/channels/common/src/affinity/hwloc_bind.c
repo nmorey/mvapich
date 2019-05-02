@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2016, The Ohio State University. All rights
+/* Copyright (c) 2001-2019, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -10,6 +10,7 @@
  *
  */
 #include "mpichconf.h"
+#include "mpidimpl.h"
 #include "mpidi_ch3_impl.h"
 #include <mpimem.h>
 #include <limits.h>
@@ -43,6 +44,27 @@
 #define CONFIG_FILE "/proc/cpuinfo"
 #define MAX_LINE_LENGTH 512
 #define MAX_NAME_LENGTH 64
+#define HOSTNAME_LENGTH 255
+#define FILENAME_LENGTH 512
+
+/* Hybrid mapping related definitions */
+#define BASE_THREAD_SIBLING_FILE \
+    "/sys/devices/system/cpu/cpu0/topology/thread_siblings_list"
+
+#define HYBRID_LINEAR  0x001
+#define HYBRID_COMPACT 0x010
+#define HYBRID_SPREAD  0x011
+#define HYBRID_BUNCH   0x100
+#define HYBRID_SCATTER 0x101
+
+int mv2_hybrid_binding_policy = HYBRID_LINEAR; /* default as linear */
+int mv2_pivot_core_id = 0;     /* specify pivot core to start binding MPI ranks */
+int mv2_threads_per_proc = 1;  /* there is atleast one thread which is MPI rank */
+int num_sockets = 1; /* default */
+int num_physical_cores = 0;
+int num_pu = 0;
+int hw_threads_per_core = 0;
+int *mv2_core_map; /* list of core ids achieved after hwloc tree scanning */
 
 int mv2_my_cpu_id = -1;
 int mv2_my_sock_id = -1;
@@ -50,8 +72,11 @@ int mv2_my_async_cpu_id = -1;
 int *local_core_ids = NULL;
 int mv2_user_defined_mapping = FALSE;
 
-
+#ifdef ENABLE_LLNL_SITE_SPECIFIC_OPTIONS
+unsigned int mv2_enable_affinity = 0;
+#else
 unsigned int mv2_enable_affinity = 1;
+#endif /*ENABLE_LLNL_SITE_SPECIFIC_OPTIONS*/
 unsigned int mv2_enable_leastload = 0;
 unsigned int mv2_hca_aware_process_mapping = 1;
 
@@ -71,7 +96,7 @@ int *obj_tree = NULL;
 
 policy_type_t mv2_binding_policy;
 level_type_t mv2_binding_level;
-hwloc_topology_t topology;
+hwloc_topology_t topology = NULL;
 
 static int INTEL_XEON_DUAL_MAPPING[] = { 0, 1, 0, 1 };
 
@@ -102,30 +127,31 @@ static char *custom_cpu_mapping = NULL;
 int s_cpu_mapping_line_max = _POSIX2_LINE_MAX;
 static int custom_cpu_mapping_line_max = _POSIX2_LINE_MAX;
 char *cpu_mapping = NULL;
+char *xmlpath = NULL;
 
 int ib_socket_bind = 0;
 
 #if defined(CHANNEL_MRAIL)
 int get_ib_socket(struct ibv_device * ibdev)
 {
-    hwloc_cpuset_t set = hwloc_bitmap_alloc();
+    hwloc_cpuset_t set = NULL;
     hwloc_obj_t osdev = NULL;
     char string[256];
-    int socket_id = 0;
+    int retval = 0;
 
-    if (NULL == set) {
-        goto free_and_return;
+    if (!(set = hwloc_bitmap_alloc())) {
+        goto fn_exit;
     }
 
     if (hwloc_ibv_get_device_cpuset(topology, ibdev, set)) {
-        goto free_and_return;
+        goto fn_exit;
     }
 
     osdev = hwloc_get_obj_inside_cpuset_by_type(topology, set,
             HWLOC_OBJ_SOCKET, 0);
 
     if (NULL == osdev) {
-        goto free_and_return;
+        goto fn_exit;
     }
 
     /*
@@ -133,11 +159,13 @@ int get_ib_socket(struct ibv_device * ibdev)
      * looking at the 8th char to detect which socket is.
      */
     hwloc_obj_type_snprintf(string, sizeof(string), osdev, 1);
-    return osdev->os_index;
+    retval = osdev->os_index;
 
-free_and_return:
-    hwloc_bitmap_free(set);
-    return socket_id;
+fn_exit:
+    if (set) {
+        hwloc_bitmap_free(set);
+    }
+    return retval;
 }
 #endif /* defined(CHANNEL_MRAIL) */
 
@@ -1503,12 +1531,7 @@ int get_cpu_mapping_hwloc(long N_CPUs_online, hwloc_topology_t tp)
         /* Assemble custom_cpu_mapping string */
         s = custom_cpu_mapping;
         for (i = 0; i < num_cpus; i++) {
-            sprintf(s, "%lu:", core_mapping[i]);
-            s = custom_cpu_mapping + strlen(custom_cpu_mapping);
-        }
-        i = strlen(custom_cpu_mapping);
-        if (i) {
-            custom_cpu_mapping[i - 1] = '\0';
+            s += sprintf(s, "%lu:", core_mapping[i]);
         }
     }
 
@@ -1526,10 +1549,9 @@ int get_cpu_mapping_hwloc(long N_CPUs_online, hwloc_topology_t tp)
         MPIU_Free(obj_tree);
     }
 
-    MPIU_DBG_MSG_FMT(OTHER, TYPICAL,
-                     (MPIU_DBG_FDEST,
-                      "num_cpus=%d, num_sockets=%d, custom_cpu_mapping=\"%s\"", num_cpus,
-                      num_sockets, custom_cpu_mapping));
+    PRINT_DEBUG(DEBUG_INIT_verbose>0,
+            "num_cpus: %d, num_sockets: %d, custom_cpu_mapping: %s\n",
+            num_cpus, num_sockets, custom_cpu_mapping);
 
     return rc;
 }
@@ -1702,7 +1724,7 @@ int get_socket_id (int ib_socket, int cpu_socket, int num_sockets,
 #undef FUNCNAME
 #define FUNCNAME mv2_get_cpu_core_closest_to_hca
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int mv2_get_cpu_core_closest_to_hca(int my_local_id, int total_num_cores,
                                     int num_sockets, int depth_sockets)
 {
@@ -1782,10 +1804,10 @@ int mv2_get_cpu_core_closest_to_hca(int my_local_id, int total_num_cores,
 #undef FUNCNAME
 #define FUNCNAME mv2_get_assigned_cpu_core
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int mv2_get_assigned_cpu_core(int my_local_id, char *cpu_mapping, int max_cpu_map_len, char *tp_str)
 {
-    int i = 0, j = 0;
+    int i=0, j=0, c=0;
     char *cp = NULL;
     char *tp = cpu_mapping;
     long N_CPUs_online = sysconf(_SC_NPROCESSORS_ONLN);
@@ -1801,11 +1823,9 @@ int mv2_get_assigned_cpu_core(int my_local_id, char *cpu_mapping, int max_cpu_ma
 
         if (j == my_local_id) {
             strncpy(tp_str, tp, i);
-            if (atoi(tp) < 0 ||
-                ((mv2_binding_level == LEVEL_CORE) && (atoi(tp) >= N_CPUs_online))) {
-                fprintf(stderr,
-                        "Warning! : Core id %d does not exist on this architecture! \n",
-                        atoi(tp));
+            c = atoi(tp);
+            if ((mv2_binding_level == LEVEL_CORE) && (c < 0 || c >= N_CPUs_online)) {
+                fprintf(stderr, "Warning! : Core id %d does not exist on this architecture! \n", c);
                 fprintf(stderr, "CPU Affinity is undefined \n");
                 mv2_enable_affinity = 0;
                 return -1;
@@ -1830,7 +1850,7 @@ int mv2_get_assigned_cpu_core(int my_local_id, char *cpu_mapping, int max_cpu_ma
 #undef FUNCNAME
 #define FUNCNAME smpi_set_progress_thread_affinity
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int smpi_set_progress_thread_affinity()
 {
     int mpi_errno = MPI_SUCCESS;
@@ -1851,27 +1871,25 @@ int smpi_set_progress_thread_affinity()
 #undef FUNCNAME
 #define FUNCNAME smpi_identify_allgather_local_core_ids
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int smpi_identify_allgather_local_core_ids(MPIDI_PG_t * pg)
 {
     int mpi_errno = MPI_SUCCESS;
     int p = 0;
     MPIDI_VC_t *vc = NULL;
-    MPI_Request *request = NULL;
+    MPID_Request **request = NULL;
     MPI_Status *status= NULL;
-    int errflag = 0;
-    MPI_Comm comm;
+    MPIR_Errflag_t errflag = MPIR_ERR_NONE;
     MPID_Comm *comm_ptr=NULL;
 
     MPID_Comm_get_ptr(MPI_COMM_WORLD, comm_ptr );
-    comm = comm_ptr->handle;
 
     /* Allocate memory */
     local_core_ids = MPIU_Malloc(g_smpi.num_local_nodes * sizeof(int));
     if (local_core_ids== NULL) {
         ibv_error_abort(GEN_EXIT_ERR, "Failed to allocate memory for local_core_ids\n");
     }
-    request = MPIU_Malloc(g_smpi.num_local_nodes * 2 * sizeof(MPI_Request));
+    request = MPIU_Malloc(g_smpi.num_local_nodes * 2 * sizeof(MPID_Request*));
     if (request == NULL) {
         ibv_error_abort(GEN_EXIT_ERR, "Failed to allocate memory for requests\n");
     }
@@ -1885,21 +1903,21 @@ int smpi_identify_allgather_local_core_ids(MPIDI_PG_t * pg)
         if (vc->smp.local_nodes >= 0) {
             mpi_errno = MPIC_Irecv((void*)&local_core_ids[vc->smp.local_nodes],
                                     1, MPI_INT, vc->pg_rank, MPIR_ALLGATHER_TAG,
-                                    comm, &request[g_smpi.num_local_nodes+p]);
+                                    comm_ptr, &request[g_smpi.num_local_nodes+p]);
             if (mpi_errno) {
-                MPIU_ERR_POP(mpi_errno);
+                MPIR_ERR_POP(mpi_errno);
             }
             mpi_errno = MPIC_Isend((void*)&mv2_my_cpu_id, 1, MPI_INT, vc->pg_rank,
-                                    MPIR_ALLGATHER_TAG, comm, &request[p], &errflag);
+                                    MPIR_ALLGATHER_TAG, comm_ptr, &request[p], &errflag);
             if (mpi_errno) {
-                MPIU_ERR_POP(mpi_errno);
+                MPIR_ERR_POP(mpi_errno);
             }
         }
     }
     /* Wait for intra-node allgather to finish */
-    mpi_errno = PMPI_Waitall(g_smpi.num_local_nodes*2, request, status);
+    mpi_errno = MPIC_Waitall(g_smpi.num_local_nodes*2, request, status, &errflag);
     if (mpi_errno) {
-        MPIU_ERR_POP(mpi_errno);
+        MPIR_ERR_POP(mpi_errno);
     }
 
 fn_exit:
@@ -1917,7 +1935,7 @@ fn_fail:
 #undef FUNCNAME
 #define FUNCNAME smpi_identify_free_cores
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int smpi_identify_free_cores(hwloc_cpuset_t *sock_cpuset, hwloc_cpuset_t *free_sock_cpuset)
 {
     int i = 0;
@@ -1955,7 +1973,7 @@ int smpi_identify_free_cores(hwloc_cpuset_t *sock_cpuset, hwloc_cpuset_t *free_s
     }
     if (i == num_sockets) {
         mpi_errno = MPI_ERR_OTHER;
-        MPIU_ERR_POP(mpi_errno);
+        MPIR_ERR_POP(mpi_errno);
     } else {
         /* Remove cores used by processes from list of available cores */
         for (i = 0; i < g_smpi.num_local_nodes; ++i) {
@@ -1975,7 +1993,7 @@ fn_fail:
 #undef FUNCNAME
 #define FUNCNAME smpi_identify_core_for_async_thread
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int smpi_identify_core_for_async_thread(MPIDI_PG_t * pg)
 {
     int i = 0;
@@ -1986,12 +2004,12 @@ int smpi_identify_core_for_async_thread(MPIDI_PG_t * pg)
     /* Gather IDs of cores local processes are bound to */
     mpi_errno = smpi_identify_allgather_local_core_ids(pg);
     if (mpi_errno) {
-        MPIU_ERR_POP(mpi_errno);
+        MPIR_ERR_POP(mpi_errno);
     }
     /* Identify my socket and cores available in my socket */
     mpi_errno = smpi_identify_free_cores(&sock_cpuset, &free_sock_cpuset);
     if (mpi_errno) {
-        MPIU_ERR_POP(mpi_errno);
+        MPIR_ERR_POP(mpi_errno);
     }
     /* Identify core to be used for async thread */
     if (!hwloc_bitmap_iszero(free_sock_cpuset)) {
@@ -2032,9 +2050,149 @@ fn_fail:
 #endif /*defined(CHANNEL_MRAIL)*/
 
 #undef FUNCNAME
+#define FUNCNAME SMPI_LOAD_HWLOC_TOPOLOGY
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+int smpi_load_hwloc_topology(void)
+{
+    int bcast_topology = 1;
+    int mpi_errno = MPI_SUCCESS;
+    char *kvsname, *value;
+    char *hostname = NULL;
+    char *tmppath = NULL;
+    int uid, my_local_id;
+
+    MPIDI_STATE_DECL(SMPI_LOAD_HWLOC_TOPOLOGY);
+    MPIDI_FUNC_ENTER(SMPI_LOAD_HWLOC_TOPOLOGY);
+
+    if (topology != NULL) {
+        goto fn_exit;
+    }
+
+    mpi_errno = hwloc_topology_init(&topology);
+    hwloc_topology_set_flags(topology,
+            HWLOC_TOPOLOGY_FLAG_IO_DEVICES   |
+            HWLOC_TOPOLOGY_FLAG_WHOLE_SYSTEM |
+            HWLOC_TOPOLOGY_FLAG_IS_THISSYSTEM);
+
+    uid = getuid();
+    my_local_id = MPIDI_Process.my_pg->ch.local_process_id;
+    MPIDI_PG_GetConnKVSname(&kvsname);
+ 
+    if ((value = getenv("MV2_BCAST_HWLOC_TOPOLOGY")) != NULL) {
+        bcast_topology = !!atoi(value);
+    }
+
+    if (my_local_id < 0) {
+        if (MPIDI_Process.my_pg_rank == 0) {
+            PRINT_ERROR("WARNING! Invalid my_local_id: %d, Disabling hwloc topology broadcast\n", my_local_id);
+        }
+        bcast_topology = 0;
+    }
+
+    if (!bcast_topology) {
+        /* Each process loads topology individually */
+        mpi_errno = hwloc_topology_load(topology);
+        goto fn_exit;
+    }
+
+    hostname = (char *) MPIU_Malloc(sizeof(char) * HOSTNAME_LENGTH);
+    tmppath = (char *) MPIU_Malloc(sizeof(char) * FILENAME_LENGTH);
+    xmlpath = (char *) MPIU_Malloc(sizeof(char) * FILENAME_LENGTH);
+    if (hostname == NULL || tmppath == NULL || xmlpath == NULL) {
+        MPIR_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**nomem",
+                                  "**nomem %s", "mv2_hwloc_topology_file");
+    }
+
+    if (gethostname(hostname, sizeof (char) * HOSTNAME_LENGTH) < 0) {
+        MPIR_ERR_SETFATALANDJUMP2(mpi_errno, MPI_ERR_OTHER, "**fail", "%s: %s",
+                                  "gethostname", strerror(errno));
+    }
+    sprintf(tmppath, "/tmp/mv2-hwloc-%s-%s-%d.tmp", kvsname, hostname, uid);
+    sprintf(xmlpath, "/tmp/mv2-hwloc-%s-%s-%d.xml", kvsname, hostname, uid);
+
+    /* Local Rank 0 broadcasts topology using xml */
+    if (0 == my_local_id) {
+        mpi_errno = hwloc_topology_load(topology);
+        if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+
+        mpi_errno = hwloc_topology_export_xml(topology, tmppath);
+        if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+
+        if(rename(tmppath, xmlpath) < 0) {
+            MPIR_ERR_SETFATALANDJUMP2(mpi_errno, MPI_ERR_OTHER, "**fail", "%s: %s",
+                                  "rename", strerror(errno));
+        }
+    } else {
+        while(access(xmlpath, F_OK) == -1) {
+            usleep(1000);
+        }
+        mpi_errno = hwloc_topology_set_xml(topology, xmlpath);
+        if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+
+        mpi_errno = hwloc_topology_load(topology);
+        if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+    }
+
+  fn_exit:
+    if (hostname) {
+        MPIU_Free(hostname);
+    }
+    if (tmppath) {
+        MPIU_Free(tmppath);
+    }
+    MPIDI_FUNC_EXIT(SMPI_LOAD_HWLOC_TOPOLOGY);
+    return mpi_errno;
+
+  fn_fail:
+    goto fn_exit;
+}
+
+#undef FUNCNAME
+#define FUNCNAME SMPI_UNLINK_HWLOC_TOPOLOGY_FILE
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+int smpi_unlink_hwloc_topology_file(void)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIDI_STATE_DECL(SMPI_UNLINK_HWLOC_TOPOLOGY_FILE);
+    MPIDI_FUNC_ENTER(SMPI_UNLINK_HWLOC_TOPOLOGY_FILE);
+
+    if (xmlpath) {
+        unlink(xmlpath);
+    }
+
+    MPIDI_FUNC_EXIT(SMPI_UNLINK_HWLOC_TOPOLOGY_FILE);
+    return mpi_errno;
+}
+
+#undef FUNCNAME
+#define FUNCNAME SMPI_DESTROY_HWLOC_TOPOLOGY
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+int smpi_destroy_hwloc_topology(void)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIDI_STATE_DECL(SMPI_DESTROY_HWLOC_TOPOLOGY);
+    MPIDI_FUNC_ENTER(SMPI_DESTROY_HWLOC_TOPOLOGY);
+
+    if (topology) {
+        hwloc_topology_destroy(topology);
+        topology = NULL;
+    }
+
+    if (xmlpath) {
+        MPIU_Free(xmlpath);
+    }
+
+    MPIDI_FUNC_EXIT(SMPI_DESTROY_HWLOC_TOPOLOGY);
+    return mpi_errno;
+}
+
+#undef FUNCNAME
 #define FUNCNAME smpi_setaffinity
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int smpi_setaffinity(int my_local_id)
 {
     int selected_socket = 0;
@@ -2047,23 +2205,25 @@ int smpi_setaffinity(int my_local_id)
 #if !defined(CHANNEL_MRAIL)
     mv2_hca_aware_process_mapping = 0;
 #endif
-    mpi_errno = hwloc_topology_init(&topology);
-    hwloc_topology_set_flags(topology, HWLOC_TOPOLOGY_FLAG_IO_DEVICES);
-    if (mpi_errno != 0) {
-        mv2_enable_affinity = 0;
-    }
+
+    PRINT_DEBUG(DEBUG_INIT_verbose>0, 
+            "my_local_id: %d, mv2_enable_affinity: %d, mv2_binding_level: %d, mv2_binding_policy: %d\n",
+            my_local_id, mv2_enable_affinity, mv2_binding_level, mv2_binding_policy);
 
     if (mv2_enable_affinity > 0) {
         long N_CPUs_online = sysconf(_SC_NPROCESSORS_ONLN);
 
         if (N_CPUs_online < 1) {
-            MPIU_ERR_SETFATALANDJUMP2(mpi_errno,
+            MPIR_ERR_SETFATALANDJUMP2(mpi_errno,
                                       MPI_ERR_OTHER,
                                       "**fail", "%s: %s", "sysconf",
                                       strerror(errno));
         }
 
-        hwloc_topology_load(topology);
+        mpi_errno = smpi_load_hwloc_topology();
+        if (mpi_errno != MPI_SUCCESS) {
+            MPIR_ERR_POP(mpi_errno);
+        }
         cpuset = hwloc_bitmap_alloc();
 
         /* Call the cpu_mapping function to find out about how the
@@ -2110,7 +2270,7 @@ int smpi_setaffinity(int my_local_id)
                     }
                     hwloc_bitmap_set(cpuset, cpunum);
                     mv2_my_cpu_id = cpunum;
-                    PRINT_DEBUG(DEBUG_SHM_verbose>0, "Set mv2_my_cpu_id = %d\n", mv2_my_cpu_id);
+                    PRINT_DEBUG(DEBUG_INIT_verbose>0, "Set mv2_my_cpu_id = %d\n", mv2_my_cpu_id);
                 } else if (*token == ',') {
                     token++;
                 } else if (*token == '-') {
@@ -2164,7 +2324,7 @@ int smpi_setaffinity(int my_local_id)
                  */
                 hwloc_bitmap_only(cpuset, my_local_id % N_CPUs_online);
                 mv2_my_cpu_id = (my_local_id % N_CPUs_online);
-                PRINT_DEBUG(DEBUG_SHM_verbose>0, "Set mv2_my_cpu_id = %d\n", mv2_my_cpu_id);
+                PRINT_DEBUG(DEBUG_INIT_verbose>0, "Set mv2_my_cpu_id = %d\n", mv2_my_cpu_id);
                 hwloc_set_cpubind(topology, cpuset, 0);
             } else {
                 /*
@@ -2215,14 +2375,14 @@ int smpi_setaffinity(int my_local_id)
                     {
                         hwloc_bitmap_only(cpuset, atol(tp_str));
                         mv2_my_cpu_id = atol(tp_str);
-                        PRINT_DEBUG(DEBUG_SHM_verbose>0, "Set mv2_my_cpu_id = %d\n", mv2_my_cpu_id);
+                        PRINT_DEBUG(DEBUG_INIT_verbose>0, "Set mv2_my_cpu_id = %d\n", mv2_my_cpu_id);
                     } else {
                         hwloc_bitmap_only(cpuset,
                                 (atol(tp_str) % cores_per_socket)
                                 + (selected_socket * cores_per_socket));
                         mv2_my_cpu_id = ((atol(tp_str) % cores_per_socket)
                                         + (selected_socket * cores_per_socket));
-                        PRINT_DEBUG(DEBUG_SHM_verbose>0, "Set mv2_my_cpu_id = %d\n", mv2_my_cpu_id);
+                        PRINT_DEBUG(DEBUG_INIT_verbose>0, "Set mv2_my_cpu_id = %d\n", mv2_my_cpu_id);
                     }
                 } else {
                     if (
@@ -2255,12 +2415,14 @@ int smpi_setaffinity(int my_local_id)
     goto fn_exit;
 }
 
-void mv2_show_cpu_affinity(MPIDI_PG_t * pg)
+#if defined(CHANNEL_MRAIL) || defined(CHANNEL_PSM)
+void mv2_show_cpu_affinity(int verbosity)
 {
-    int i, j, num_cpus, my_rank, pg_size;
-    int mpi_errno = MPI_SUCCESS, errflag = 0;
-    char buf[512];
-    cpu_set_t *allproc_cpu_set;
+    int i = 0, j = 0, num_cpus = 0, my_rank = 0, pg_size = 0;
+    int mpi_errno = MPI_SUCCESS;
+    MPIR_Errflag_t errflag = MPIR_ERR_NONE;
+    char *buf = NULL;
+    cpu_set_t *allproc_cpu_set = NULL;
     MPID_Comm *comm_world = NULL;
     MPIDI_VC_t *vc = NULL;
 
@@ -2279,41 +2441,313 @@ void mv2_show_cpu_affinity(MPIDI_PG_t * pg)
         return;
     }
     if (my_rank == 0) {
+        char *value;
         num_cpus = sysconf(_SC_NPROCESSORS_CONF);
         fprintf(stderr, "-------------CPU AFFINITY-------------\n");
+        fprintf(stderr, "OMP_NUM_THREADS: %9d\n",
+                        ( (value = getenv("OMP_NUM_THREADS")) != NULL) ? atoi(value) : 0);
+        fprintf(stderr, "MV2_THREADS_PER_PROCESS: %d\n", mv2_threads_per_proc);        
+        buf = (char *) MPIU_Malloc(sizeof(char) * 6 * num_cpus);
         for (i = 0; i < pg_size; i++) {
             MPIDI_Comm_get_vc(comm_world, i, &vc);
-            if (vc->smp.local_rank != -1) {
+            if (vc->smp.local_rank != -1 || verbosity > 1) {
                 MPIU_Memset(buf, 0, sizeof(buf));
                 for (j = 0; j < num_cpus; j++) {
                     if (CPU_ISSET(j, &allproc_cpu_set[vc->pg_rank])) {
-                        sprintf((char *) (buf + strlen(buf)), "%3d", j);
+                        sprintf((char *) (buf + strlen(buf)), "%4d", j);
                     }
                 }
-                fprintf(stderr, "RANK:%d  CPU_SET: %s\n", i, buf);
+                fprintf(stderr, "RANK:%2d  CPU_SET: %s\n", i, buf);
             }
         }
         fprintf(stderr, "-------------------------------------\n");
+        MPIU_Free(buf);
     }
     MPIU_Free(allproc_cpu_set);
+}
+#endif /* defined(CHANNEL_MRAIL) || defined(CHANNEL_PSM) */
+
+#if defined(CHANNEL_MRAIL)
+int mv2_show_hca_affinity(int verbosity)
+{
+    int pg_size = 0;
+    int my_rank = 0;
+    int i = 0, j = 0, k = 0;
+    int mpi_errno = MPI_SUCCESS;
+    MPIR_Errflag_t errflag = MPIR_ERR_NONE;
+
+    struct ibv_device **hcas = NULL;
+
+    char *hca_names = NULL; 
+    char *all_hca_names = NULL;
+    
+    MPIDI_VC_t *vc = NULL;
+    MPID_Comm *comm_world = NULL;
+
+    comm_world = MPIR_Process.comm_world;
+    pg_size = comm_world->local_size;
+    my_rank = comm_world->rank;
+
+    hcas = mv2_MPIDI_CH3I_RDMA_Process.ib_dev;
+    
+    hca_names = (char *) MPIU_Malloc(MAX_NUM_HCAS * (IBV_SYSFS_NAME_MAX+1) 
+                                    * sizeof(char));
+    k = 0; 
+    for(i=0; i < rdma_num_hcas; i++) {
+        if (i > 0) {
+            strcat(hca_names, " ");
+            strcat(hca_names, hcas[i]->name);
+        } else {
+            strcpy(hca_names, hcas[i]->name);
+        }
+        PRINT_DEBUG(DEBUG_INIT_verbose>0, "Adding hcas[%d]->name = %s\n", i, hcas[i]->name);
+    }
+    strcat(hca_names, ";");
+
+    if(my_rank == 0) {
+        all_hca_names = (char *) MPIU_Malloc(strlen(hca_names) * pg_size);
+    }
+
+    PRINT_DEBUG(DEBUG_INIT_verbose>0, "hca_names = %s, strlen(hca_names) = %ld\n", hca_names, strlen(hca_names));
+    mpi_errno = MPIR_Gather_impl(hca_names, strlen(hca_names), MPI_CHAR, 
+                    all_hca_names, strlen(hca_names), MPI_CHAR, 0, 
+                    comm_world, &errflag);
+
+    if (mpi_errno != MPI_SUCCESS) {
+        fprintf(stderr, "MPIR_Allgather_impl returned error: %d", mpi_errno);
+        return mpi_errno;
+    }
+    if(my_rank == 0 && all_hca_names != NULL) {
+        fprintf(stderr, "-------------HCA AFFINITY-------------\n");
+        j = 0;
+    
+        char *buffer = MPIU_Malloc(MAX_NUM_HCAS * (IBV_SYSFS_NAME_MAX+1) * sizeof(char));
+        for(i = 0; i < pg_size; i++) {
+            MPIDI_Comm_get_vc(comm_world, i, &vc);
+            if (vc->smp.local_rank != -1 || verbosity > 1) {
+                k = 0;
+                MPIU_Memset(buffer, 0, sizeof(buffer)); 
+                fprintf(stderr, "Process: %d HCAs: ", i);
+                while(all_hca_names[j] != ';') {
+                    buffer[k] = all_hca_names[j];
+                    j++;
+                    k++;
+                }
+                buffer[k] = '\0';
+                j++;
+                fprintf(stderr, "%s\n", buffer);
+            }
+        }
+        MPIU_Free(buffer);
+        
+        fprintf(stderr, "-------------------------------------\n");
+        MPIU_Free(all_hca_names);
+    }
+    MPIU_Free(hca_names);
+    return mpi_errno;
+}
+#endif /* defined(CHANNEL_MRAIL) */
+
+
+/* helper function to get PU ids of a given socket */
+void mv2_get_pu_list_on_socket (hwloc_topology_t topology, hwloc_obj_t obj, 
+                    int depth, int *pu_ids, int *idx) {
+    int i;
+    if (obj->type == HWLOC_OBJ_PU) {
+        pu_ids[*idx] = obj->os_index;
+       *idx = *idx + 1;
+        return;
+    }
+
+    for (i = 0; i < obj->arity; i++) {
+        mv2_get_pu_list_on_socket (topology, obj->children[i], depth+1, pu_ids, idx);
+    }
+
+    return;
+}
+
+#undef FUNCNAME
+#define FUNCNAME mv2_generate_implicit_cpu_mapping
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+static int mv2_generate_implicit_cpu_mapping (int local_procs, int num_app_threads) {
+    
+    hwloc_obj_t obj;
+
+    int i, j, k, curr, count, chunk, size, step;
+    int topodepth, num_physical_cores_per_socket, num_pu_per_socket;
+    char mapping [s_cpu_mapping_line_max];
+    
+    i = j = k = curr = count = chunk = size = step = 0;
+    count = mv2_pivot_core_id;
+    
+    /* call optimized topology load */
+    smpi_load_hwloc_topology ();
+
+    num_sockets = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_SOCKET);
+    num_physical_cores = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_CORE);
+    num_pu = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_PU);
+
+    num_physical_cores_per_socket = num_physical_cores / num_sockets;
+    num_pu_per_socket = num_pu / num_sockets;
+
+    topodepth = hwloc_get_type_depth (topology, HWLOC_OBJ_CORE);
+    obj = hwloc_get_obj_by_depth (topology, topodepth, 0); /* check on core 0*/
+
+    hw_threads_per_core = hwloc_bitmap_weight (obj->allowed_cpuset);
+    
+    mv2_core_map = MPIU_Malloc(sizeof(int) * num_sockets * num_pu_per_socket);
+
+    /* generate core map of the system by scanning the hwloc tree and save it 
+     *  in mv2_core_map array. All the policies below are core_map aware now */
+    topodepth = hwloc_get_type_depth (topology, HWLOC_OBJ_SOCKET);
+    for (i = 0; i < num_sockets; i++) {
+        obj = hwloc_get_obj_by_depth (topology, topodepth, i);
+        mv2_get_pu_list_on_socket (topology, obj, topodepth, mv2_core_map, &size);
+    } 
+
+    if (mv2_hybrid_binding_policy == HYBRID_COMPACT) {
+        /* Compact mapping: Bind each MPI rank to a single phyical core, and bind
+         * its associated threads to the hardware threads of the same physical core.
+         * Use first socket followed by the second socket */
+        if (num_app_threads > hw_threads_per_core) {
+            PRINT_INFO((MPIDI_Process.my_pg_rank == 0), "WARNING: COMPACT mapping is "
+               "only meant for hardware multi-threaded (hyper-threaded) processors. "
+               "We have detected that your processor does not have hyper-threading "
+               "enabled. Note that proceeding with this option on current system will cause "
+               "over-subscription, hence leading to severe performance degradation. "
+               "We recommend using LINEAR or SPREAD policy for this run.\n");
+        }
+        
+        for (i = 0; i < local_procs; i++) {
+            curr = count;
+            for (k = 0; k < num_app_threads; k++) {
+                j += snprintf (mapping+j, _POSIX2_LINE_MAX, "%d,", mv2_core_map[curr]);
+                curr = (curr + 1) % num_pu;
+            }
+            mapping [--j] = '\0'; 
+            j += snprintf (mapping+j, _POSIX2_LINE_MAX, ":");
+            count = (count + hw_threads_per_core) % num_pu;
+        }
+    } else if (mv2_hybrid_binding_policy == HYBRID_LINEAR) {
+        /* Linear mapping: Bind each MPI rank as well as its associated threads to
+         * phyical cores. Only use hardware threads when you run out of physical
+         * resources  */
+        for (i = 0; i < local_procs; i++) {
+            for (k = 0; k < num_app_threads; k++) {
+                j += snprintf (mapping+j, _POSIX2_LINE_MAX, "%d,", mv2_core_map[curr]);
+
+                curr = ((curr + hw_threads_per_core) >= num_pu) ?
+                            ((curr + hw_threads_per_core+ ++step) % num_pu) :
+                            (curr + hw_threads_per_core) % num_pu;
+            }
+            mapping [--j] = '\0';
+            j += snprintf (mapping+j, _POSIX2_LINE_MAX, ":");
+        }    
+    } else if (mv2_hybrid_binding_policy == HYBRID_SPREAD) {
+        /* Spread mapping: Evenly distributes all the PUs among MPI ranks and
+         * ensures that no two MPI ranks get bound to the same phyiscal core. */
+        if (num_physical_cores < local_procs) {
+            PRINT_INFO((MPIDI_Process.my_pg_rank == 0), "WARNING: This configuration "
+                        "might lead to oversubscription of cores !!!\n");
+            /* limit the mapping to max available PUs */
+            num_physical_cores = num_pu;
+        }
+        chunk = size / local_procs;
+        for (i = 0; i < local_procs; i++) {
+             for (k = curr; k < curr+chunk; k++) {
+                 j += snprintf (mapping+j, _POSIX2_LINE_MAX, "%d,", mv2_core_map[k]);
+             }
+             mapping [--j] = '\0';
+             j += snprintf (mapping+j, _POSIX2_LINE_MAX, ":");
+             curr = (curr + chunk) % size;
+        } 
+    } else if (mv2_hybrid_binding_policy == HYBRID_BUNCH) {
+        /* Bunch mapping: Bind each MPI rank to a single phyical core of first
+         * socket followed by second secket */
+        for (i = 0; i < local_procs; i++) {
+            j += snprintf (mapping+j, _POSIX2_LINE_MAX, "%d:", mv2_core_map[k]);
+            k = (k + hw_threads_per_core) % size;
+        } 
+    } else if (mv2_hybrid_binding_policy == HYBRID_SCATTER) {
+        /* scatter mapping: Bind consecutive MPI ranks to different sockets in
+         * round-robin fashion */
+        if (num_sockets < 2) {
+            PRINT_INFO((MPIDI_Process.my_pg_rank == 0), "WARNING: Scatter is not a valid policy "
+                    "for single-socket systems. Please re-run with Bunch or any other "
+                    "applicable policy\n");
+            return MPI_ERR_OTHER;
+        }
+        for (i = 0; i < local_procs; i++) {
+            j += snprintf (mapping+j, _POSIX2_LINE_MAX, "%d:", mv2_core_map[k]);
+            k = (i % num_sockets == 0) ?
+                    (k + num_pu_per_socket) % size :
+                    (k + num_pu_per_socket + hw_threads_per_core) % size;
+        }
+    }
+
+    /* copy the generated mapping string to final mapping*/
+    s_cpu_mapping = (char *) MPIU_Malloc (sizeof (char) * j);
+    strncpy (s_cpu_mapping, mapping, j);
+    s_cpu_mapping[j-1] = '\0';
+
+    if (MPIDI_Process.my_pg_rank == 0) {
+        PRINT_DEBUG(DEBUG_INIT_verbose>0, "num_physical_cores_per_socket %d, mapping: %s", 
+                num_physical_cores_per_socket, s_cpu_mapping);
+    }
+    
+    /* cleanup */
+    MPIU_Free(mv2_core_map);
+     
+    return MPI_SUCCESS;
 }
 
 #undef FUNCNAME
 #define FUNCNAME MPIDI_CH3I_set_affinity
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3I_set_affinity(MPIDI_PG_t * pg, int pg_rank)
 {
     char *value;
     int mpi_errno = MPI_SUCCESS;
     int my_local_id;
-    MPIDI_VC_t *vc;
+    int num_local_procs;
+    long N_CPUs_online;
+    mv2_arch_type arch_type;
 
     MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_SET_AFFINITY);
     MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_SET_AFFINITY);
 
+    num_local_procs = MPIDI_Num_local_processes (pg);
+    
+    N_CPUs_online = sysconf(_SC_NPROCESSORS_ONLN);
+
     if ((value = getenv("MV2_ENABLE_AFFINITY")) != NULL) {
         mv2_enable_affinity = atoi(value);
+    }
+
+    arch_type = mv2_get_arch_type ();
+    /* set CPU_BINDING_POLICY=hybrid for Skylake and KNL */
+    if (arch_type == MV2_ARCH_IBM_POWER8 ||
+             arch_type == MV2_ARCH_INTEL_XEON_PHI_7250 ||
+             arch_type == MV2_ARCH_INTEL_PLATINUM_8170_2S_52 ||
+             arch_type == MV2_ARCH_INTEL_PLATINUM_8160_2S_48) {
+        setenv ("MV2_CPU_BINDING_POLICY", "hybrid", 0);
+    }
+
+    if (mv2_enable_affinity && (num_local_procs > N_CPUs_online)) {
+        if (MPIDI_Process.my_pg_rank == 0) {
+            PRINT_ERROR ("WARNING: You are running %d MPI processes on a processor "
+                            "that supports up to %ld cores. If you still wish to run "
+                            "in oversubscribed mode, please set MV2_ENABLE_AFFINITY=0 "
+                            "and re-run the program.\n\n", 
+                            num_local_procs, N_CPUs_online);
+
+            MPIR_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_OTHER,
+                    "**fail", "**fail %s",
+                    "MV2_ENABLE_AFFINITY: oversubscribed cores.");
+        }
+        goto fn_fail;
     }
 
     if (mv2_enable_affinity && (value = getenv("MV2_CPU_MAPPING")) != NULL) {
@@ -2337,16 +2771,103 @@ int MPIDI_CH3I_set_affinity(MPIDI_PG_t * pg, int pg_rank)
                 mv2_binding_policy = POLICY_BUNCH;
             } else if (!strcmp(value, "scatter") || !strcmp(value, "SCATTER")) {
                 mv2_binding_policy = POLICY_SCATTER;
+            } else if (!strcmp(value, "hybrid") || !strcmp(value, "HYBRID")) {
+                mv2_binding_policy = POLICY_HYBRID;
+               /* check if the OMP_NUM_THREADS is exported or user has
+                * explicitly set MV2_THREADS_PER_PROCESS variable*/
+               if ((value = getenv("OMP_NUM_THREADS")) != NULL) {
+                   mv2_threads_per_proc = atoi (value);
+                   if (mv2_threads_per_proc < 0) {
+                       if (MPIDI_Process.my_pg_rank == 0) {
+                           PRINT_ERROR ("OMP_NUM_THREADS: value can not be set to negative.\n");
+                           MPIR_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_OTHER,
+                                   "**fail", "**fail %s",
+                                   "OMP_NUM_THREADS: negative value.");
+                       }
+                   }
+               }
+
+               if ((value = getenv("MV2_THREADS_PER_PROCESS")) != NULL) {
+                   mv2_threads_per_proc = atoi (value);
+                   if (mv2_threads_per_proc < 0) {
+                       if (MPIDI_Process.my_pg_rank == 0) {
+                           PRINT_ERROR ("MV2_THREADS_PER_PROCESS: "
+                                   "value can not be set to negative.\n");
+                           MPIR_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_OTHER,
+                                   "**fail", "**fail %s",
+                                   "MV2_THREADS_PER_PROCESS: negative value.");
+                       }
+                   }
+               }
+
+               if (mv2_threads_per_proc > 0) {
+                   if ( (mv2_threads_per_proc * num_local_procs) > N_CPUs_online) {
+                       if (MPIDI_Process.my_pg_rank == 0) {
+                           PRINT_ERROR ("User defined values for MV2_CPU_BINDING_POLICY and "
+                                   "MV2_THREADS_PER_PROCESS will lead to oversubscription of "
+                                   "the available CPUs. If this was intentional, please "
+                                   "re-run the application after setting MV2_ENABLE_AFFINITY=0 or "
+                                   "with explicit CPU mapping using MV2_CPU_MAPPING.\n"); 
+                           MPIR_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_OTHER,
+                                   "**fail", "**fail %s",
+                                   "CPU_BINDING_PRIMITIVE: over-subscribed hybrid configuration.");
+                       }
+                   } 
+                    
+                   /* Check to see if any pivot core is designated */
+                   if ((value = getenv("MV2_PIVOT_CORE_ID")) != NULL) {
+                       mv2_pivot_core_id = atoi(value);
+                   }
+                   
+                   /* since mv2_threads_per_proc > 0, check if any threads
+                    * binding policy have been explicitly specified */
+                   if ((value = getenv("MV2_HYBRID_BINDING_POLICY")) != NULL) {
+                       if (!strcmp(value, "linear") || !strcmp(value, "LINEAR")) {
+                           mv2_hybrid_binding_policy = HYBRID_LINEAR;
+                       } else if (!strcmp(value, "compact") || !strcmp(value, "COMPACT")) {
+                           mv2_hybrid_binding_policy = HYBRID_COMPACT;
+                       } else if (!strcmp(value, "spread") || !strcmp(value, "SPREAD")) {
+                           mv2_hybrid_binding_policy = HYBRID_SPREAD;
+                       } else if (!strcmp(value, "bunch") || !strcmp(value, "BUNCH")) {
+                           mv2_hybrid_binding_policy = HYBRID_BUNCH;
+                       } else if (!strcmp(value, "scatter") || !strcmp(value, "SCATTER")) {
+                           mv2_hybrid_binding_policy = HYBRID_SCATTER;
+                       }
+                   }
+
+                   mv2_binding_level = LEVEL_MULTIPLE_CORES;
+               
+               } else {
+                       PRINT_INFO((MPIDI_Process.my_pg_rank == 0), "WARNING: Process mapping "
+                               "mode has been set to 'hybrid' "
+                               "indicating an attempt to run a multi-threaded program. However, "
+                               "neither the MV2_THREADS_PER_PROCESS nor OMP_NUM_THREADS have been "
+                               "set. Please set either one of these variable to the number threads "
+                               "desired per process for optimal performance\n");
+                               
+               }
             } else {
-                MPIU_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_OTHER,
-                                          "**fail", "**fail %s",
-                                          "CPU_BINDING_PRIMITIVE: Policy should be bunch or scatter.");
+                PRINT_INFO((MPIDI_Process.my_pg_rank == 0),
+                            "MV2_CPU_BINDING_POLICY should be "
+                            "bunch, scatter or hybrid (upper or lower case).\n");
+                MPIR_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_OTHER,
+                            "**fail", "**fail %s",
+                            "CPU_BINDING_PRIMITIVE: Policy should be bunch, scatter or hybrid.");
             }
             mv2_user_defined_mapping = TRUE;
         } else {
             /* User has not specified a binding policy.
-             * We are going to do "bunch" binding, by default  */
-            mv2_binding_policy = POLICY_BUNCH;
+             * We are going to do "hybrid-bunch" binding, by default  */
+            mv2_binding_policy = POLICY_HYBRID;
+        }
+    }
+
+    /* generate implicit mapping string based on hybrid binding policy */
+    if (mv2_binding_policy == POLICY_HYBRID) {
+        mpi_errno = mv2_generate_implicit_cpu_mapping (num_local_procs, 
+               mv2_threads_per_proc);
+        if (mpi_errno != MPI_SUCCESS) {
+           goto fn_fail;
         }
     }
 
@@ -2361,11 +2882,11 @@ int MPIDI_CH3I_set_affinity(MPIDI_PG_t * pg, int pg_rank)
             } else if (!strcmp(value, "numanode") || !strcmp(value, "NUMANODE")) {
                 mv2_binding_level = LEVEL_NUMANODE;
             } else {
-                MPIU_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_OTHER,
-                                          "**fail", "**fail %s",
-                                          "CPU_BINDING_PRIMITIVE: Level should be core, socket, or numanode.");
+                MPIR_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_OTHER,
+                    "**fail", "**fail %s",
+                    "CPU_BINDING_PRIMITIVE: Level should be core, socket, or numanode.");
             }
-            if (MV2_ARCH_INTEL_XEON_PHI_7250 == mv2_get_arch_type() &&
+            if (MV2_ARCH_INTEL_XEON_PHI_7250 == arch_type &&
                     mv2_binding_level != LEVEL_CORE) {
                 if (MPIDI_Process.my_pg_rank == 0) {
                     fprintf(stderr, "CPU_BINDING_PRIMITIVE: Only core level binding supported for this architecture.\n");
@@ -2375,20 +2896,20 @@ int MPIDI_CH3I_set_affinity(MPIDI_PG_t * pg, int pg_rank)
             }
             mv2_user_defined_mapping = TRUE;
         } else {
-            /* User has not specified a binding level.
-             * We are going to do "core" binding, by default  */
-            mv2_binding_level = LEVEL_CORE;
+            /* User has not specified a binding level and we've not
+             * assigned LEVEL_MULTIPLE_CORES earlier. We are going to
+             * do "core" binding, by default  */
+            if (mv2_binding_level != LEVEL_MULTIPLE_CORES) {
+                mv2_binding_level = LEVEL_CORE;
+            }
         }
     }
 
-    /* Get my VC */
-    MPIDI_PG_Get_vc(pg, pg_rank, &vc);
-    my_local_id = vc->smp.local_rank;
-
     if (mv2_enable_affinity) {
+        my_local_id = pg->ch.local_process_id;
         mpi_errno = smpi_setaffinity(my_local_id);
         if (mpi_errno != MPI_SUCCESS) {
-            MPIU_ERR_POP(mpi_errno);
+            MPIR_ERR_POP(mpi_errno);
         }
     }
   fn_exit:

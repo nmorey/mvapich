@@ -12470,7 +12470,7 @@ if test "$with_valgrind" != "no" ; then
         # (TODO: a pkg-config file would help with this)
 
 
-	if echo "$CPPFLAGS" | $FGREP -e '-I${with_valgrind}' >/dev/null 2>&1; then :
+	if echo "$CPPFLAGS" | $FGREP -e "\<-I${with_valgrind}\>" >/dev/null 2>&1; then :
   echo "CPPFLAGS(='$CPPFLAGS') contains '-I${with_valgrind}', not appending" >&5
 else
   echo "CPPFLAGS(='$CPPFLAGS') does not contain '-I${with_valgrind}', appending" >&5
@@ -12818,6 +12818,58 @@ if test "$pac_cv_func_decl_putenv" = "yes" ; then
 
 cat >>confdefs.h <<_ACEOF
 #define NEEDS_PUTENV_DECL 1
+_ACEOF
+
+
+fi
+
+fi
+
+# Check for strerror
+for ac_func in strerror
+do :
+  ac_fn_c_check_func "$LINENO" "strerror" "ac_cv_func_strerror"
+if test "x$ac_cv_func_strerror" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_STRERROR 1
+_ACEOF
+
+fi
+done
+
+if test "$ac_cv_func_strerror" = "yes" ; then
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether strerror needs a declaration" >&5
+$as_echo_n "checking whether strerror needs a declaration... " >&6; }
+if ${pac_cv_func_decl_strerror+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <string.h>
+void (*fptr)(void) = (void(*)(void))strerror;
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  pac_cv_func_decl_strerror=no
+else
+  pac_cv_func_decl_strerror=yes
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $pac_cv_func_decl_strerror" >&5
+$as_echo "$pac_cv_func_decl_strerror" >&6; }
+if test "$pac_cv_func_decl_strerror" = "yes" ; then
+
+cat >>confdefs.h <<_ACEOF
+#define NEEDS_STRERROR_DECL 1
 _ACEOF
 
 

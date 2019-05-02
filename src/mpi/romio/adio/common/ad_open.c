@@ -10,7 +10,6 @@
 #include "adio_cb_config_list.h"
 
 #include "mpio.h"
-
 static int is_aggregator(int rank, ADIO_File fd);
 static int uses_generic_read(ADIO_File fd);
 static int uses_generic_write(ADIO_File fd);
@@ -39,6 +38,15 @@ MPI_File ADIO_Open(MPI_Comm orig_comm,
     /* obtain MPI_File handle */
     mpi_fh = MPIO_File_create(sizeof(struct ADIOI_FileD));
     if (mpi_fh == MPI_FILE_NULL) {
+	fd = MPI_FILE_NULL;
+	*error_code = MPIO_Err_create_code(*error_code,
+					   MPIR_ERR_RECOVERABLE,
+					   myname,
+					   __LINE__,
+					   MPI_ERR_OTHER,
+					   "**nomem2",0);
+	goto fn_exit;
+
     }
     fd = MPIO_File_resolve(mpi_fh);
 
@@ -70,6 +78,9 @@ MPI_File ADIO_Open(MPI_Comm orig_comm,
     fd->fortran_handle = -1;
 
     fd->err_handler = ADIOI_DFLT_ERR_HANDLER;
+
+    fd->io_buf_window = MPI_WIN_NULL;
+    fd->io_buf_put_amounts_window = MPI_WIN_NULL;
 
     MPI_Comm_rank(comm, &rank);
     MPI_Comm_size(comm, &procs);
@@ -124,8 +135,8 @@ MPI_File ADIO_Open(MPI_Comm orig_comm,
     /* Instead of repeatedly allocating this buffer in collective read/write,
      * allocating up-front might make memory management on small platforms
      * (e.g. Blue Gene) more efficent */
-    fd->io_buf = ADIOI_Malloc(fd->hints->cb_buffer_size);
 
+    fd->io_buf = ADIOI_Malloc(fd->hints->cb_buffer_size);
      /* deferred open: 
      * we can only do this optimization if 'fd->hints->deferred_open' is set
      * (which means the user hinted 'no_indep_rw' and collective buffering).
@@ -150,12 +161,6 @@ MPI_File ADIO_Open(MPI_Comm orig_comm,
 	if (*error_code != MPI_SUCCESS) 
 	    goto fn_exit;
     }
-    /* for debugging, it can be helpful to see the hints selected */
-    p = getenv("ROMIO_PRINT_HINTS");
-    if (rank == 0 && p != NULL ) {
-	ADIOI_Info_print_keyvals(fd->info);
-    }
-
     fd->is_open = 0;
     fd->my_cb_nodes_index = -2;
     fd->is_agg = is_aggregator(rank, fd);
@@ -170,6 +175,23 @@ MPI_File ADIO_Open(MPI_Comm orig_comm,
     /* scalable open: one process opens and broadcasts results to everyone */
 
     ADIOI_OpenColl(fd, rank, access_mode, error_code);
+
+    /* deferred open consideration: if an independent process lied about
+     * "no_indep_rw" and opens the file later (example: HDF5 uses independent
+     * i/o for metadata), that deferred open will use the access_mode provided
+     * by the user.  CREATE|EXCL only makes sense here -- exclusive access in
+     * the deferred open case is going to fail and surprise the user.  Turn off
+     * the excl amode bit. Save user's ammode for MPI_FILE_GET_AMODE */
+    fd->orig_access_mode = access_mode;
+    if (fd->access_mode & ADIO_EXCL) fd->access_mode ^= ADIO_EXCL;
+
+
+    /* for debugging, it can be helpful to see the hints selected. Some file
+     * systes set up the hints in the open call (e.g. lustre) */
+    p = getenv("ROMIO_PRINT_HINTS");
+    if (rank == 0 && p != NULL ) {
+	ADIOI_Info_print_keyvals(fd->info);
+    }
 
  fn_exit:
     MPI_Allreduce(error_code, &max_error_code, 1, MPI_INT, MPI_MAX, comm);
@@ -189,12 +211,12 @@ MPI_File ADIO_Open(MPI_Comm orig_comm,
                 (*(fd->fns->ADIOI_xxx_Close))(fd, error_code);
             }
         }
-	if (fd->filename) ADIOI_Free(fd->filename);
-	if (fd->hints->ranklist) ADIOI_Free(fd->hints->ranklist);
-	if (fd->hints->cb_config_list) ADIOI_Free(fd->hints->cb_config_list);
-	if (fd->hints) ADIOI_Free(fd->hints);
+	ADIOI_Free(fd->filename);
+	ADIOI_Free(fd->hints->ranklist);
+	if ( fd->hints->cb_config_list != NULL ) ADIOI_Free(fd->hints->cb_config_list);
+	ADIOI_Free(fd->hints);
 	if (fd->info != MPI_INFO_NULL) MPI_Info_free(&(fd->info));
-	if (fd->io_buf) ADIOI_Free(fd->io_buf);
+	ADIOI_Free(fd->io_buf);
 	ADIOI_Free(fd);
         fd = ADIO_FILE_NULL;
 	if (*error_code == MPI_SUCCESS)

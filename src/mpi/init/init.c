@@ -4,7 +4,7 @@
  *      See COPYRIGHT in top-level directory.
  */
 
-/* Copyright (c) 2001-2016, The Ohio State University. All rights
+/* Copyright (c) 2001-2019, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -15,6 +15,7 @@
  * copyright file COPYRIGHT in the top level MVAPICH2 directory.
  *
  */
+#include <strings.h>
 
 #include "mpiimpl.h"
 #include "mpi_init.h"
@@ -60,7 +61,8 @@ cvars:
       verbosity   : MPI_T_VERBOSITY_USER_BASIC
       scope       : MPI_T_SCOPE_ALL_EQ
       description : >-
-        Sets the default thread level to use when using MPI_INIT.
+        Sets the default thread level to use when using MPI_INIT. This variable
+        is case-insensitive.
 
 === END_MPI_T_CVAR_INFO_BLOCK ===
 */
@@ -138,8 +140,9 @@ int MPI_Init( int *argc, char ***argv )
     int threadLevel, provided;
     MPID_MPI_INIT_STATE_DECL(MPID_STATE_MPI_INIT);
 
-    if (MPIR_Process.initialized == MPICH_POST_FINALIZED) {
-        MPIR_Process.initialized = MPICH_PRE_INIT;
+    /* Handle mpich_state in case of Re-init */
+    if (OPA_load_int(&MPIR_Process.mpich_state) == MPICH_POST_FINALIZED) {
+        OPA_store_int(&MPIR_Process.mpich_state, MPICH_PRE_INIT);
     }
     rc = MPID_Wtime_init();
 #ifdef USE_DBG_LOGGING
@@ -155,7 +158,7 @@ int MPI_Init( int *argc, char ***argv )
     {
         MPID_BEGIN_ERROR_CHECKS;
         {
-            if (MPIR_Process.initialized != MPICH_PRE_INIT) {
+            if (OPA_load_int(&MPIR_Process.mpich_state) != MPICH_PRE_INIT) {
                 mpi_errno = MPIR_Err_create_code( MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPI_ERR_OTHER,
 						  "**inittwice", NULL );
 	    }
@@ -177,16 +180,16 @@ int MPI_Init( int *argc, char ***argv )
 
     MPIR_T_env_init();
 
-    if (!strcmp(MPIR_CVAR_DEFAULT_THREAD_LEVEL, "MPI_THREAD_MULTIPLE"))
+    if (!strcasecmp(MPIR_CVAR_DEFAULT_THREAD_LEVEL, "MPI_THREAD_MULTIPLE"))
         threadLevel = MPI_THREAD_MULTIPLE;
-    else if (!strcmp(MPIR_CVAR_DEFAULT_THREAD_LEVEL, "MPI_THREAD_SERIALIZED"))
+    else if (!strcasecmp(MPIR_CVAR_DEFAULT_THREAD_LEVEL, "MPI_THREAD_SERIALIZED"))
         threadLevel = MPI_THREAD_SERIALIZED;
-    else if (!strcmp(MPIR_CVAR_DEFAULT_THREAD_LEVEL, "MPI_THREAD_FUNNELED"))
+    else if (!strcasecmp(MPIR_CVAR_DEFAULT_THREAD_LEVEL, "MPI_THREAD_FUNNELED"))
         threadLevel = MPI_THREAD_FUNNELED;
-    else if (!strcmp(MPIR_CVAR_DEFAULT_THREAD_LEVEL, "MPI_THREAD_SINGLE"))
+    else if (!strcasecmp(MPIR_CVAR_DEFAULT_THREAD_LEVEL, "MPI_THREAD_SINGLE"))
         threadLevel = MPI_THREAD_SINGLE;
     else {
-        MPIU_Error_printf("Unrecognized thread level %s\n", MPIR_CVAR_DEFAULT_THREAD_LEVEL);
+        MPL_error_printf("Unrecognized thread level %s\n", MPIR_CVAR_DEFAULT_THREAD_LEVEL);
         exit(1);
     }
 

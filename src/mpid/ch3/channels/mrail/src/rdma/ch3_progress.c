@@ -4,7 +4,7 @@
  *      See COPYRIGHT in top-level directory.
  */
 
-/* Copyright (c) 2001-2016, The Ohio State University. All rights
+/* Copyright (c) 2001-2019, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -53,11 +53,26 @@ do {                                                          \
     }                                                   \
 }
 
+#define MAX_PROGRESS_HOOKS 4
+long int mv2_num_posted_send = 0;
+long int mv2_unexp_msg_recv  = 0;
+
+typedef int (*progress_func_ptr_t) (int* made_progress);
+
+typedef struct progress_hook_slot {
+    progress_func_ptr_t func_ptr;
+    int active;
+} progress_hook_slot_t;
+
+static progress_hook_slot_t progress_hooks[MAX_PROGRESS_HOOKS];
+
 
 static int handle_read_individual(MPIDI_VC_t * vc, 
         vbuf * buffer, int *header_type);
 
 static int cm_handle_pending_send();
+
+extern int MPIDI_CH3_PktHandler_Init_MV2();
 
 extern volatile int *rdma_cm_iwarp_msg_count;
 extern volatile int *rdma_cm_connect_count;
@@ -98,19 +113,19 @@ inline static int MPIDI_CH3I_Seq(int type)
         case MPIDI_CH3_PKT_CANCEL_SEND_REQ:
         case MPIDI_CH3_PKT_CANCEL_SEND_RESP:
         case MPIDI_CH3_PKT_PUT:
+        case MPIDI_CH3_PKT_PUT_IMMED:
         case MPIDI_CH3_PKT_GET:
         case MPIDI_CH3_PKT_GET_RESP:
         case MPIDI_CH3_PKT_ACCUMULATE:
+        case MPIDI_CH3_PKT_ACCUMULATE_IMMED:
         case MPIDI_CH3_PKT_LOCK:
-        case MPIDI_CH3_PKT_LOCK_GRANTED:
-        case MPIDI_CH3_PKT_LOCK_PUT_UNLOCK:
-        case MPIDI_CH3_PKT_LOCK_GET_UNLOCK:
-        case MPIDI_CH3_PKT_LOCK_ACCUM_UNLOCK:
-        case MPIDI_CH3_PKT_ACCUM_IMMED:
-        case MPIDI_CH3_PKT_PT_RMA_DONE:
+        case MPIDI_CH3_PKT_LOCK_ACK:
+        case MPIDI_CH3_PKT_LOCK_OP_ACK:
+        case MPIDI_CH3_PKT_ACK:
+        case MPIDI_CH3_PKT_DECR_AT_COUNTER:
         case MPIDI_CH3_PKT_PUT_RNDV:
         case MPIDI_CH3_PKT_ACCUMULATE_RNDV:
-        case MPIDI_CH3_PKT_GET_ACCUMULATE_RNDV:
+        case MPIDI_CH3_PKT_GET_ACCUM_RNDV:
         case MPIDI_CH3_PKT_GET_RNDV:
         case MPIDI_CH3_PKT_RMA_RNDV_CLR_TO_SEND:
             return 1;
@@ -124,7 +139,7 @@ inline static int MPIDI_CH3I_Seq(int type)
 #undef FUNCNAME
 #define FUNCNAME MPIDI_CH3I_Progress_wakeup
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 void MPIDI_CH3I_Progress_wakeup(void)
 {
 }
@@ -133,7 +148,7 @@ void MPIDI_CH3I_Progress_wakeup(void)
 #undef FUNCNAME
 #define FUNCNAME MPIDI_CH3_Connection_terminate
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_Connection_terminate(MPIDI_VC_t * vc)
 {
     MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3_MRAIL_CONNECTION_TERMINATE);
@@ -144,7 +159,7 @@ int MPIDI_CH3_Connection_terminate(MPIDI_VC_t * vc)
 
     if (mpi_errno != MPI_SUCCESS)
     {
-        MPIU_ERR_POP(mpi_errno);
+        MPIR_ERR_POP(mpi_errno);
     }
 
 fn_fail:
@@ -165,13 +180,13 @@ void MPIDI_CH3_Progress_start(MPID_Progress_state * state)
 #undef FUNCNAME
 #define FUNCNAME MPIDI_CH3I_Progress
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 
 int MPIDI_CH3I_Progress(int is_blocking, MPID_Progress_state * state)
 {
     MPIDI_VC_t *vc_ptr = NULL;
     int mpi_errno = MPI_SUCCESS;
-    int spin_count = 0;
+    int spin_count = 0, err = 0, i = 0;
     unsigned completions = MPIDI_CH3I_progress_completion_count;
     vbuf *buffer = NULL;
     int rdmafp_found = 0;
@@ -204,15 +219,19 @@ start_polling:
         smp_found = 0;
         /*needed if early send complete does not occur */
         if (SMP_INIT) {
-            mpi_errno = MPIDI_CH3I_SMP_read_progress(MPIDI_Process.my_pg);
-            if (mpi_errno != MPI_SUCCESS) {
-                MPIU_ERR_POP(mpi_errno);
+            if (mv2_posted_recvq_length || mv2_unexp_msg_recv) {
+                mpi_errno = MPIDI_CH3I_SMP_read_progress(MPIDI_Process.my_pg);
+                if (mpi_errno != MPI_SUCCESS) {
+                    MPIR_ERR_POP(mpi_errno);
+                }
             }
-            if ((mpi_errno = MPIDI_CH3I_SMP_write_progress(MPIDI_Process.my_pg)) != MPI_SUCCESS) {
-                MPIU_ERR_POP(mpi_errno);
+            if (mv2_num_posted_send) {
+                if ((mpi_errno = MPIDI_CH3I_SMP_write_progress(MPIDI_Process.my_pg)) != MPI_SUCCESS) {
+                    MPIR_ERR_POP(mpi_errno);
+                }
             }
             if (smp_completions != MPIDI_CH3I_progress_completion_count) {
-                smp_found = 1;
+                break;
             }
         }
 
@@ -229,7 +248,7 @@ start_polling:
             rdmafp_found = 0;
             mpi_errno = MPIDI_CH3I_read_progress(&vc_ptr, &buffer, &rdmafp_found, is_blocking);
             if (mpi_errno != MPI_SUCCESS) {
-                MPIU_ERR_POP(mpi_errno);
+                MPIR_ERR_POP(mpi_errno);
             }
 
             if (vc_ptr != NULL) {
@@ -260,7 +279,7 @@ handle_recv_pkt:
                     {
                         mpi_errno = handle_read(vc_ptr, buffer);
                         if (mpi_errno != MPI_SUCCESS) {
-                            MPIU_ERR_POP(mpi_errno);
+                            MPIR_ERR_POP(mpi_errno);
                         }
                     }
                 } else
@@ -305,15 +324,25 @@ handle_recv_pkt:
                         (vc_ptr->ch.state == MPIDI_CH3I_VC_STATE_CONNECTING_SRV)) {
                     mpi_errno = handle_read(vc_ptr, buffer);
                     if (mpi_errno != MPI_SUCCESS) {
-                        MPIU_ERR_POP(mpi_errno);
+                        MPIR_ERR_POP(mpi_errno);
                     }
                 }
 #endif /* defined(RDMA_CM) */
                 else {
-                    /* Control should not reach here */
-                    PRINT_ERROR("vc_ptr->state = %s, vc_ptr->ch.state = %d\n",
+                    /* The RDMA_CM or the on_demand_cm thread can potentially
+                     * change the state in parallel */
+                    if ((MPIDI_CH3I_Process.cm_type == MPIDI_CH3I_CM_ON_DEMAND)
+#if defined(RDMA_CM)
+                        || (MPIDI_CH3I_Process.cm_type == MPIDI_CH3I_CM_RDMA_CM)
+#endif /* defined(RDMA_CM) */
+                       ) {
+                        goto handle_recv_pkt;
+                    } else {
+                        /* Control should not reach here */
+                        PRINT_ERROR("vc_ptr->state = %s, vc_ptr->ch.state = %d\n",
                                 MPIDI_VC_GetStateString(vc_ptr->state), vc_ptr->ch.state);
-                    MPIU_Assert(0);
+                        MPIU_Assert(0);
+                    }
                 }
             }
 #ifdef _ENABLE_UD_
@@ -352,12 +381,15 @@ handle_recv_pkt:
         MV2_CUDA_PROGRESS();
 #endif
         
-        /* make progress on NBC schedules */
         int made_progress = FALSE;
-        mpi_errno = MPIDU_Sched_progress(&made_progress);
-        if (mpi_errno) MPIU_ERR_POP(mpi_errno);
-        if (made_progress) {
-            MPIDI_CH3_Progress_signal_completion();
+        for (i = 0; i < MAX_PROGRESS_HOOKS; i++) {
+            if (progress_hooks[i].active == TRUE) {
+                MPIU_Assert(progress_hooks[i].func_ptr != NULL);
+                mpi_errno = progress_hooks[i].func_ptr(&made_progress);
+                if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+                if (made_progress)
+                    MPIDI_CH3_Progress_signal_completion();
+            }
         }
  
 #ifdef CKPT
@@ -375,7 +407,7 @@ handle_recv_pkt:
                 /* We have reached the polling_spin_count_threshold. So, we
                  * are now going to release the lock. */ 
                 spin_count = 0;
-                MPID_Thread_mutex_unlock(&MPIR_ThreadInfo.global_mutex);
+                MPID_Thread_mutex_unlock(&MPIR_ThreadInfo.global_mutex, &err);
                 if( mv2_use_thread_yield == 1) { 
                     /* User has requested this thread to yield the CPU */
                     MPIU_PW_Sched_yield();
@@ -387,7 +419,7 @@ handle_recv_pkt:
                 do {
                     spins++;
                 } while(spins < mv2_spins_before_lock); 
-                MPID_Thread_mutex_lock(&MPIR_ThreadInfo.global_mutex);
+                MPID_Thread_mutex_lock(&MPIR_ThreadInfo.global_mutex, &err);
             }
             MPIU_THREAD_CHECK_END
         } 
@@ -452,12 +484,119 @@ fn_fail:
 }
 
 #undef FUNCNAME
+#define FUNCNAME MPIDI_CH3I_Progress_register_hook
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+int MPIDI_CH3I_Progress_register_hook(int (*progress_fn)(int*), int *id)
+{
+    int mpi_errno = MPI_SUCCESS;
+    int i;
+    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_PROGRESS_REGISTER_HOOK);
+
+    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_PROGRESS_REGISTER_HOOK);
+    MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+
+    for (i = 0; i < MAX_PROGRESS_HOOKS; i++) {
+        if (progress_hooks[i].func_ptr == NULL) {
+            progress_hooks[i].func_ptr = progress_fn;
+            progress_hooks[i].active = FALSE;
+            break;
+        }
+    }
+
+    if (i >= MAX_PROGRESS_HOOKS) {
+        return MPIR_Err_create_code( MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
+				     "MPIDI_CH3I_Progress_register_hook", __LINE__,
+				     MPI_ERR_INTERN, "**progresshookstoomany", 0 );
+    }
+
+    (*id) = i;
+
+    MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_PROGRESS_REGISTER_HOOK);
+    return mpi_errno;
+
+}
+
+#undef FUNCNAME
+#define FUNCNAME MPIDI_CH3I_Progress_deregister_hook
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+int MPIDI_CH3I_Progress_deregister_hook(int id)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_PROGRESS_DEREGISTER_HOOK);
+
+    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_PROGRESS_DEREGISTER_HOOK);
+    MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+
+    MPIU_Assert(id >= 0 && id < MAX_PROGRESS_HOOKS);
+    MPIU_Assert(progress_hooks[id].active == FALSE);
+    MPIU_Assert(progress_hooks[id].func_ptr != NULL);
+    progress_hooks[id].func_ptr = NULL;
+
+    MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_PROGRESS_DEREGISTER_HOOK);
+    return mpi_errno;
+
+}
+
+
+#undef FUNCNAME
+#define FUNCNAME MPIDI_CH3I_Progress_activate_hook
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+int MPIDI_CH3I_Progress_activate_hook(int id)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_PROGRESS_ACTIVATE_HOOK);
+
+    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_PROGRESS_ACTIVATE_HOOK);
+    MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+
+    MPIU_Assert(id >= 0 && id < MAX_PROGRESS_HOOKS);
+    MPIU_Assert(progress_hooks[id].active == FALSE);
+    MPIU_Assert(progress_hooks[id].func_ptr != NULL);
+    progress_hooks[id].active = TRUE;
+
+    MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_PROGRESS_ACTIVATE_HOOK);
+    return mpi_errno;
+
+}
+
+
+#undef FUNCNAME
+#define FUNCNAME MPIDI_CH3I_Progress_deactivate_hook
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+int MPIDI_CH3I_Progress_deactivate_hook(int id)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_PROGRESS_DEACTIVATE_HOOK);
+
+    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_PROGRESS_DEACTIVATE_HOOK);
+    MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+
+    MPIU_Assert(id >= 0 && id < MAX_PROGRESS_HOOKS);
+    MPIU_Assert(progress_hooks[id].active == TRUE);
+    MPIU_Assert(progress_hooks[id].func_ptr != NULL);
+    progress_hooks[id].active = FALSE;
+
+    MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_PROGRESS_DEACTIVATE_HOOK);
+    return mpi_errno;
+
+}
+
+#undef FUNCNAME
 #define FUNCNAME MPIDI_CH3I_Progress_test
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3I_Progress_test()
 {
     int mpi_errno = MPI_SUCCESS;
+    int made_progress;
 
     MPIDI_STATE_DECL(MPID_CH3I_PROGRESS_TEST);
     MPIDI_STATE_DECL(MPID_STATE_MPIDU_YIELD);
@@ -477,24 +616,23 @@ int MPIDI_CH3I_Progress_test()
 #endif /* (MPICH_THREAD_LEVEL == MPI_THREAD_MULTIPLE) */
 
     /*needed if early send complete doesnot occur */
-    if (SMP_INIT)
-    {
-        int completion_count = MPIDI_CH3I_progress_completion_count;
+    if (SMP_INIT) {
+        int smp_completions = MPIDI_CH3I_progress_completion_count;
 
-	    mpi_errno = MPIDI_CH3I_SMP_read_progress(MPIDI_Process.my_pg);
-        if (mpi_errno != MPI_SUCCESS)
-        {
-            MPIU_ERR_POP(mpi_errno);
+        if (mv2_posted_recvq_length || mv2_unexp_msg_recv) {
+            mpi_errno = MPIDI_CH3I_SMP_read_progress(MPIDI_Process.my_pg);
+            if (mpi_errno != MPI_SUCCESS) {
+                MPIR_ERR_POP(mpi_errno);
+            }
         }
-    	mpi_errno = MPIDI_CH3I_SMP_write_progress(MPIDI_Process.my_pg);
-	    if (mpi_errno != MPI_SUCCESS)
-        {
-            MPIU_ERR_POP(mpi_errno);
-	    }
+        if (mv2_num_posted_send) {
+            if ((mpi_errno = MPIDI_CH3I_SMP_write_progress(MPIDI_Process.my_pg)) != MPI_SUCCESS) {
+                MPIR_ERR_POP(mpi_errno);
+            }
+        }
 	    /* check if we made any progress */
-	    if (completion_count != MPIDI_CH3I_progress_completion_count)
-        {
-	       goto fn_exit;
+        if (smp_completions != MPIDI_CH3I_progress_completion_count) {
+            goto fn_exit;
 	    }
     }
 
@@ -515,7 +653,7 @@ int MPIDI_CH3I_Progress_test()
         /* SS: Progress test should not be blocking */
         if ((mpi_errno = MPIDI_CH3I_read_progress(&vc_ptr, &buffer, NULL, 0)) != MPI_SUCCESS)
         {
-            MPIU_ERR_POP(mpi_errno);
+            MPIR_ERR_POP(mpi_errno);
         }
 
 
@@ -545,7 +683,7 @@ test_handle_recv_pkt:
                 {
                     mpi_errno = handle_read(vc_ptr, buffer);
                     if (mpi_errno != MPI_SUCCESS) {
-                        MPIU_ERR_POP(mpi_errno);
+                        MPIR_ERR_POP(mpi_errno);
                     }
                 }
             } else
@@ -600,7 +738,7 @@ test_handle_recv_pkt:
                     (vc_ptr->ch.state == MPIDI_CH3I_VC_STATE_CONNECTING_SRV)) {
                 mpi_errno = handle_read(vc_ptr, buffer);
                 if (mpi_errno != MPI_SUCCESS) {
-                    MPIU_ERR_POP(mpi_errno);
+                    MPIR_ERR_POP(mpi_errno);
                 }
             }
 #endif /* defined(RDMA_CM) */
@@ -637,9 +775,9 @@ test_handle_recv_pkt:
 #endif
 
     /* make progress on NBC schedules */
-    int made_progress = FALSE;
+    made_progress = FALSE;
     mpi_errno = MPIDU_Sched_progress(&made_progress);
-    if (mpi_errno) MPIU_ERR_POP(mpi_errno);
+    if (mpi_errno) MPIR_ERR_POP(mpi_errno);
     if (made_progress) {
         MPIDI_CH3_Progress_signal_completion();
     }
@@ -667,7 +805,7 @@ fn_exit:
 #undef FUNCNAME
 #define FUNCNAME MPIDI_CH3_Progress_end
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 #if !defined(MPIDI_CH3_Progress_end)
 void MPIDI_CH3_Progress_end(MPID_Progress_state * state)
 {
@@ -678,10 +816,11 @@ void MPIDI_CH3_Progress_end(MPID_Progress_state * state)
 #undef FUNCNAME
 #define FUNCNAME MPIDI_CH3I_Progress_init
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3I_Progress_init()
 {
     MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3_PROGRESS_INIT);
+    int i;
 
 #if (MPICH_THREAD_LEVEL == MPI_THREAD_MULTIPLE)
     MPIU_THREAD_CHECK_BEGIN
@@ -693,6 +832,14 @@ int MPIDI_CH3I_Progress_init()
     MPIU_THREAD_CHECK_END
 #endif /* (MPICH_THREAD_LEVEL == MPI_THREAD_MULTIPLE) */
 
+    /* Initialize progress hook slots */
+    for (i = 0; i < MAX_PROGRESS_HOOKS; i++) {
+        progress_hooks[i].func_ptr = NULL;
+        progress_hooks[i].active = FALSE;
+    }
+
+    MPIDI_CH3_PktHandler_Init_MV2();
+
     MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_PROGRESS_INIT);
     MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3_PROGRESS_INIT);
     return MPI_SUCCESS;
@@ -701,13 +848,17 @@ int MPIDI_CH3I_Progress_init()
 #undef FUNCNAME
 #define FUNCNAME MPIDI_CH3I_Progress_finalize
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3I_Progress_finalize()
 {
     MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3_PROGRESS_FINALIZE);
 
     MPIDI_CH3I_progress_completion_count = 0;
     mv2_read_progress_pending_vc = NULL;
+
+    PRINT_DEBUG(DEBUG_SHM_verbose>1, 
+            "mv2_num_posted_send: %ld, mv2_posted_recvq_length: %ld, mv2_unexp_msg_recv: %ld\n",
+            mv2_num_posted_send, mv2_posted_recvq_length, mv2_unexp_msg_recv);
 
     MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_PROGRESS_FINALIZE);
     MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3_PROGRESS_FINALIZE);
@@ -723,7 +874,7 @@ int MPIDI_CH3I_Progress_finalize()
 #undef FUNCNAME
 #define FUNCNAME MPIDI_CH3U_Request_adjust_iov
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3I_Request_adjust_iov(MPID_Request * req, MPIDI_msg_sz_t nb)
 {
     int offset = req->dev.iov_offset;
@@ -733,16 +884,16 @@ int MPIDI_CH3I_Request_adjust_iov(MPID_Request * req, MPIDI_msg_sz_t nb)
     MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_REQUEST_ADJUST_IOV);
 
     while (offset < count) {
-        if (req->dev.iov[offset].MPID_IOV_LEN <= (MPIDI_msg_sz_t) nb) {
-            nb -= req->dev.iov[offset].MPID_IOV_LEN;
+        if (req->dev.iov[offset].MPL_IOV_LEN <= (MPIDI_msg_sz_t) nb) {
+            nb -= req->dev.iov[offset].MPL_IOV_LEN;
             ++offset;
         } else {
-            req->dev.iov[offset].MPID_IOV_BUF =
-                ((char *) req->dev.iov[offset].MPID_IOV_BUF) + nb;
-            req->dev.iov[offset].MPID_IOV_LEN -= nb;
+            req->dev.iov[offset].MPL_IOV_BUF =
+                ((char *) req->dev.iov[offset].MPL_IOV_BUF) + nb;
+            req->dev.iov[offset].MPL_IOV_LEN -= nb;
             req->dev.iov_offset = offset;
             DEBUG_PRINT("offset after adjust %d, count %d, remaining %d\n", 
-                offset, req->dev.iov_count, req->dev.iov[offset].MPID_IOV_LEN);
+                offset, req->dev.iov_count, req->dev.iov[offset].MPL_IOV_LEN);
             MPIDI_DBG_PRINTF((60, FCNAME, "adjust_iov returning FALSE"));
             MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_REQUEST_ADJUST_IOV);
             return FALSE;
@@ -761,7 +912,7 @@ int MPIDI_CH3I_Request_adjust_iov(MPID_Request * req, MPIDI_msg_sz_t nb)
 #undef FUNCNAME
 #define FUNCNAME cm_handle_reactivation_complete
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 static int cm_handle_reactivation_complete()
 {
     int i = 0;
@@ -811,7 +962,7 @@ static int cm_handle_reactivation_complete()
 #undef FUNCNAME
 #define FUNCNAME cm_send_pending_msg
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FCNAME)
+#define FCNAME MPL_QUOTE(FCNAME)
 int cm_send_pending_msg(MPIDI_VC_t * vc)
 {
     MPIDI_STATE_DECL(MPID_STATE_CM_SENDING_PENDING_MSG);
@@ -829,7 +980,7 @@ int cm_send_pending_msg(MPIDI_VC_t * vc)
 
     while (!MPIDI_CH3I_CM_SendQ_empty(vc)) {
         struct MPID_Request * sreq;
-        MPID_IOV * iov;
+        MPL_IOV * iov;
         int n_iov;
 
         sreq = MPIDI_CH3I_CM_SendQ_head(vc);
@@ -851,7 +1002,7 @@ int cm_send_pending_msg(MPIDI_VC_t * vc)
 
             if (pkt_len > MRAIL_MAX_EAGER_SIZE)
             {
-              MPIU_Memcpy(sreq->dev.iov, iov, n_iov * sizeof(MPID_IOV));
+              MPIU_Memcpy(sreq->dev.iov, iov, n_iov * sizeof(MPL_IOV));
                 sreq->dev.iov_count = n_iov;
 
                 switch ((mpi_errno = MPIDI_CH3_Packetized_send(vc, sreq)))
@@ -862,7 +1013,7 @@ int cm_send_pending_msg(MPIDI_VC_t * vc)
                     case MPI_SUCCESS:
                         break;
                     default:
-                        MPIU_ERR_POP(mpi_errno);
+                        MPIR_ERR_POP(mpi_errno);
                 }
                 
                 goto loop_exit;
@@ -885,18 +1036,18 @@ int cm_send_pending_msg(MPIDI_VC_t * vc)
                 /* First copy whatever has already been in iov set */
                 for (; iter_iov < n_iov; ++iter_iov)
                 {
-                  MPIU_Memcpy(tmpbuf, iov[iter_iov].MPID_IOV_BUF,
-                            iov[iter_iov].MPID_IOV_LEN);
+                  MPIU_Memcpy(tmpbuf, iov[iter_iov].MPL_IOV_BUF,
+                            iov[iter_iov].MPL_IOV_LEN);
                     tmpbuf = (void *) ((unsigned long) tmpbuf +
-                            iov[iter_iov].MPID_IOV_LEN);
-                    pkt_len += iov[iter_iov].MPID_IOV_LEN;
+                            iov[iter_iov].MPL_IOV_LEN);
+                    pkt_len += iov[iter_iov].MPL_IOV_LEN;
                 }
 
                 DEBUG_PRINT("Pkt len after first stage %d\n", pkt_len);
                 /* Second reload iov and copy */
                 do
                 {
-                    sreq->dev.iov_count = MPID_IOV_LIMIT;
+                    sreq->dev.iov_count = MPL_IOV_LIMIT;
 
                     if ((mpi_errno = MPIDI_CH3U_Request_load_send_iov(
                         sreq,
@@ -904,29 +1055,29 @@ int cm_send_pending_msg(MPIDI_VC_t * vc)
                         &sreq->dev.
                         iov_count)) != MPI_SUCCESS)
                     {
-                        MPIU_ERR_POP(mpi_errno);
+                        MPIR_ERR_POP(mpi_errno);
                     }
 
                     for (iter_iov = 0; iter_iov < sreq->dev.iov_count; ++iter_iov)
                     {
-                      MPIU_Memcpy(tmpbuf, sreq->dev.iov[iter_iov].MPID_IOV_BUF,
-                                sreq->dev.iov[iter_iov].MPID_IOV_LEN);
+                      MPIU_Memcpy(tmpbuf, sreq->dev.iov[iter_iov].MPL_IOV_BUF,
+                                sreq->dev.iov[iter_iov].MPL_IOV_LEN);
                         tmpbuf =
                             (void *) ((unsigned long) tmpbuf +
-                                      sreq->dev.iov[iter_iov].MPID_IOV_LEN);
-                        pkt_len += sreq->dev.iov[iter_iov].MPID_IOV_LEN;
+                                      sreq->dev.iov[iter_iov].MPL_IOV_LEN);
+                        pkt_len += sreq->dev.iov[iter_iov].MPL_IOV_LEN;
                     }
                 }
                 while (sreq->dev.OnDataAvail == MPIDI_CH3_ReqHandler_SendReloadIOV);
                 
-                iov[0].MPID_IOV_BUF = databuf;
-                iov[0].MPID_IOV_LEN = pkt_len;
+                iov[0].MPL_IOV_BUF = databuf;
+                iov[0].MPL_IOV_LEN = pkt_len;
                 n_iov = 1;
             }
 
             if (pkt_len > MRAIL_MAX_EAGER_SIZE)
             {
-              MPIU_Memcpy(sreq->dev.iov, iov, n_iov * sizeof(MPID_IOV));
+              MPIU_Memcpy(sreq->dev.iov, iov, n_iov * sizeof(MPL_IOV));
                 sreq->dev.iov_count = n_iov;
 
                 switch ((mpi_errno = MPIDI_CH3_Packetized_send(vc, sreq)))
@@ -937,7 +1088,7 @@ int cm_send_pending_msg(MPIDI_VC_t * vc)
                     case MPI_SUCCESS:
                         break;
                     default:
-                        MPIU_ERR_POP(mpi_errno);
+                        MPIR_ERR_POP(mpi_errno);
                 }
 
                 goto loop_exit;
@@ -989,8 +1140,8 @@ int cm_send_pending_msg(MPIDI_VC_t * vc)
                         /* TODO: Create an appropriate error message based on the value of errno */
                         sreq->status.MPI_ERROR = MPI_ERR_INTERN;
                         /* MT - CH3U_Request_complete performs write barrier */
-                        MPIDI_CH3U_Request_complete(sreq);
-                        MPIU_ERR_POP(mpi_errno);
+                        MPID_Request_complete(sreq);
+                        MPIR_ERR_POP(mpi_errno);
                     break;
                 }
 
@@ -1016,7 +1167,7 @@ fn_fail:
 #undef FUNCNAME
 #define FUNCNAME cm_send_pending_1sc_msg
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FCNAME)
+#define FCNAME MPL_QUOTE(FCNAME)
 
 int cm_send_pending_1sc_msg(MPIDI_VC_t * vc)
 {
@@ -1071,7 +1222,7 @@ int cm_send_pending_1sc_msg(MPIDI_VC_t * vc)
 #undef FUNCNAME
 #define FUNCNAME cm_handle_pending_send
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 static int cm_handle_pending_send()
 {
     int mpi_errno = MPI_SUCCESS;
@@ -1097,7 +1248,7 @@ static int cm_handle_pending_send()
 #endif
                 ) && !MPIDI_CH3I_CM_SendQ_empty(vc)) {
                 if ((mpi_errno = cm_send_pending_msg(vc)) != MPI_SUCCESS) {
-                    MPIU_ERR_POP(mpi_errno);
+                    MPIR_ERR_POP(mpi_errno);
                 }
             }
             /* Handle pending one-sided sends */
@@ -1107,7 +1258,7 @@ static int cm_handle_pending_send()
 #endif
                 ) && !MPIDI_CH3I_CM_One_Sided_SendQ_empty(vc)) {
                 if ((mpi_errno = cm_send_pending_1sc_msg(vc)) != MPI_SUCCESS) {
-                    MPIU_ERR_POP(mpi_errno);
+                    MPIR_ERR_POP(mpi_errno);
                 }
             }
 
@@ -1142,7 +1293,7 @@ fn_fail:
 #undef FUNCNAME
 #define FUNCNAME cm_accept_new_vc
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 static int cm_accept_new_vc(MPIDI_VC_t *vc, MPIDI_CH3_Pkt_cm_establish_t *header)
 {
     MPIDI_STATE_DECL(MPID_STATE_CM_ACCEPT_NEW_VC);
@@ -1162,7 +1313,7 @@ static int cm_accept_new_vc(MPIDI_VC_t *vc, MPIDI_CH3_Pkt_cm_establish_t *header
 #undef FUNCNAME
 #define FUNCNAME handle_read
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int handle_read(MPIDI_VC_t * vc, vbuf * buffer)
 {
     int mpi_errno = MPI_SUCCESS;
@@ -1181,7 +1332,7 @@ int handle_read(MPIDI_VC_t * vc, vbuf * buffer)
 
     DEBUG_PRINT("[handle read] buffer %p\n", buffer);
 
-    int total_consumed = 0;
+    MPIDI_msg_sz_t total_consumed = 0;
 
     /* TODO: Refactor this algorithm so the first flag is not used. */
     int first = 1;
@@ -1193,7 +1344,7 @@ int handle_read(MPIDI_VC_t * vc, vbuf * buffer)
 
         if ((mpi_errno = handle_read_individual(vc, buffer, &header_type)) != MPI_SUCCESS)
         {
-            MPIU_ERR_POP(mpi_errno);
+            MPIR_ERR_POP(mpi_errno);
         }
 
         buffer->pheader = (void *) ((uintptr_t) buffer->pheader + buffer->content_consumed);
@@ -1218,7 +1369,7 @@ int handle_read(MPIDI_VC_t * vc, vbuf * buffer)
 #else /* defined(MPIDI_MRAILI_COALESCE_ENABLED) */
     if ((mpi_errno = handle_read_individual(vc, buffer, &header_type)) != MPI_SUCCESS)
     {
-        MPIU_ERR_POP(mpi_errno);
+        MPIR_ERR_POP(mpi_errno);
     }
 #endif /* defined(MPIDI_MRAILI_COALESCE_ENABLED) */
 
@@ -1233,7 +1384,7 @@ fn_fail:
 #undef FUNCNAME
 #define FUNCNAME handle_read_individual
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 static int handle_read_individual(MPIDI_VC_t* vc, vbuf* buffer, int* header_type)
 {
     int mpi_errno = MPI_SUCCESS;
@@ -1251,7 +1402,7 @@ static int handle_read_individual(MPIDI_VC_t* vc, vbuf* buffer, int* header_type
 
     mpi_errno = MPIDI_CH3I_MRAIL_Parse_header(vc, buffer, (void *)(&header), &header_size);
     if(mpi_errno) {
-        MPIU_ERR_POP(mpi_errno);
+        MPIR_ERR_POP(mpi_errno);
     }
 #if defined(MPIDI_MRAILI_COALESCE_ENABLED)
     buffer->content_consumed = header_size;
@@ -1289,6 +1440,10 @@ static int handle_read_individual(MPIDI_VC_t* vc, vbuf* buffer, int* header_type
                 }
                 MPIDI_CH3I_Process.new_conn_complete = 1;
                 PRINT_DEBUG(DEBUG_CM_verbose>0, "NOOP Received, RDMA CM is setting the proper status on the client side for multirail.\n");
+                if (mv2_use_eager_fast_send &&
+                    !(SMP_INIT && (vc->smp.local_nodes >= 0))) {
+                    vc->eager_fast_fn = mv2_eager_fast_send;
+                }
             }
 
             if ((vc->ch.state == MPIDI_CH3I_VC_STATE_IWARP_SRV_WAITING)
@@ -1363,7 +1518,7 @@ static int handle_read_individual(MPIDI_VC_t* vc, vbuf* buffer, int* header_type
     case MPIDI_CH3_PKT_CM_ESTABLISH:
         mpi_errno = cm_accept_new_vc(vc, (void *)header);
         if (mpi_errno)
-            MPIU_ERR_POP(mpi_errno);
+            MPIR_ERR_POP(mpi_errno);
         goto fn_exit;
     case MPIDI_CH3_PKT_PACKETIZED_SEND_START:
             packetized_recv = 1;
@@ -1382,11 +1537,11 @@ static int handle_read_individual(MPIDI_VC_t* vc, vbuf* buffer, int* header_type
     /* Step two, load request according to the header content */
     if ((mpi_errno = MPIDI_CH3U_Handle_recv_pkt(
         vc,
-        (void*) header,
+        (void*) header, ((char *)header + MPIDI_CH3U_PKT_SIZE(header)),
         &buflen,
         &vc->ch.recv_active)) != MPI_SUCCESS)
     {
-        MPIU_ERR_POP(mpi_errno);
+        MPIR_ERR_POP(mpi_errno);
     }
 
     DEBUG_PRINT("[recv: progress] about to fill request, recv_active %p\n", vc->ch.recv_active);
@@ -1402,7 +1557,7 @@ static int handle_read_individual(MPIDI_VC_t* vc, vbuf* buffer, int* header_type
                     vc,
                     vc->ch.recv_active)) != MPI_SUCCESS)
             {
-                MPIU_ERR_POP(mpi_errno);
+                MPIR_ERR_POP(mpi_errno);
             }
         }
 
@@ -1414,7 +1569,7 @@ static int handle_read_individual(MPIDI_VC_t* vc, vbuf* buffer, int* header_type
                 header_size,
                 &nb)) != MPI_SUCCESS)
         {
-            MPIU_ERR_POP(mpi_errno);
+            MPIR_ERR_POP(mpi_errno);
         }
 
         req = vc->ch.recv_active;
@@ -1422,7 +1577,7 @@ static int handle_read_individual(MPIDI_VC_t* vc, vbuf* buffer, int* header_type
             "recv: handle read] nb %d, iov n %d, len %d, VBUFSIZE %d\n", 
             nb,
             req->dev.iov_count,
-            req->dev.iov[0].MPID_IOV_LEN,
+            req->dev.iov[0].MPL_IOV_LEN,
             VBUF_BUFFER_SIZE
         );
 
@@ -1437,7 +1592,7 @@ static int handle_read_individual(MPIDI_VC_t* vc, vbuf* buffer, int* header_type
                     req, 
                     &complete)) != MPI_SUCCESS)
             {
-                MPIU_ERR_POP(mpi_errno);
+                MPIR_ERR_POP(mpi_errno);
             }
 
             DEBUG_PRINT("[recv: handle read] adjust req fine, complete %d\n", complete);
@@ -1453,14 +1608,14 @@ static int handle_read_individual(MPIDI_VC_t* vc, vbuf* buffer, int* header_type
                         header_size,
                         &nb)) != MPI_SUCCESS)
                 {
-                    MPIU_ERR_POP(mpi_errno);
+                    MPIR_ERR_POP(mpi_errno);
                 }
 
                 if (!MPIDI_CH3I_Request_adjust_iov(req, nb))
                 {
                     if (!packetized_recv)
                     {
-                        MPIU_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
+                        MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
                     }
 
                     goto fn_exit;
@@ -1472,7 +1627,7 @@ static int handle_read_individual(MPIDI_VC_t* vc, vbuf* buffer, int* header_type
                         &complete)
                     ) != MPI_SUCCESS)
                 {
-                    MPIU_ERR_POP(mpi_errno);
+                    MPIR_ERR_POP(mpi_errno);
                 }
             }
 
@@ -1480,12 +1635,12 @@ static int handle_read_individual(MPIDI_VC_t* vc, vbuf* buffer, int* header_type
              * request. We encounter an error if the request finishes at this stage */
             if (packetized_recv)
             {
-                MPIU_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
+                MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
             }
         }
         else if (!packetized_recv)
         {
-            MPIU_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
+            MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
         }
 #if defined(DEBUG)
         else

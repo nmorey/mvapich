@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #
 # Copyright © 2010-2014 Cisco Systems, Inc.  All rights reserved.
-# Copyright © 2011-2014 Inria.  All rights reserved.
+# Copyright © 2011-2018 Inria.  All rights reserved.
 # $COPYRIGHT$
 #
 
@@ -47,6 +47,8 @@
 use strict;
 use Cwd;
 use Getopt::Long;
+use File::stat;
+use Fcntl ':mode';
 
 # Set to true if the script should merely check for up-to-date copyrights.
 # Will exit with status 111 if there are out of date copyrights which this
@@ -89,7 +91,9 @@ GetOptions(
 
 if ($HELP) {
     print <<EOT;
-$0 [options]
+$0 [options] [directory]
+
+[directory] is "." unless specified.
 
 --help | -h          This help message
 --quiet | -q         Only output critical messages to stdout
@@ -119,7 +123,7 @@ $year += 1900;
 quiet_print "==> This year: $year\n";
 
 # Find the top-level HWLOC source tree dir
-my $start = cwd();
+my $start = defined $ARGV[0] ? $ARGV[0] : cwd();
 my $top = $start;
 while (! -d "$top/src") {
     chdir("..");
@@ -172,6 +176,13 @@ foreach my $f (@files) {
     # If there was not copyright token, don't do anything
     if (!defined($token_line_index)) {
         quiet_print "==> WARNING: Did not find any end-of-copyright tokens!\n";
+        quiet_print "    File left unchanged\n";
+        next;
+    }
+
+    # don't modify ourself while running
+    if ($f =~ m/update-my-copyright\.pl$/) {
+        quiet_print "==> WARNING: Cannot modify myself while running!\n";
         quiet_print "    File left unchanged\n";
         next;
     }
@@ -236,7 +247,9 @@ foreach my $f (@files) {
         ++$would_replace;
     }
     else {
-        # Now replace the old one
+        # Now replace the old one, keeping its mode
+        my $mode = (stat($f))->mode;
+        chmod $mode, $newf;
         unlink($f);
         rename($newf, $f);
     }

@@ -5,7 +5,7 @@
  *      See COPYRIGHT in top-level directory.
  */
 
-/* Copyright (c) 2001-2016, The Ohio State University. All rights
+/* Copyright (c) 2001-2019, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -23,13 +23,26 @@
 #include <cr.h>
 #endif
 
-static int MPIR_Pairwise_Barrier_MV2(MPID_Comm * comm_ptr, int *errflag)
+MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_barrier_pairwise);
+MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_barrier_shmem);
+
+MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_barrier_pairwise_bytes_send);
+MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_barrier_pairwise_bytes_recv);
+MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_barrier_pairwise_count_send);
+MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_barrier_pairwise_count_recv);
+MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_barrier_bytes_send);
+MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_barrier_bytes_recv);
+MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_barrier_count_send);
+MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_barrier_count_recv);
+
+static int MPIR_Pairwise_Barrier_MV2(MPID_Comm * comm_ptr, MPIR_Errflag_t *errflag)
 {
 
     int size, rank;
     int d, dst, src;
     int mpi_errno = MPI_SUCCESS;
-    MPI_Comm comm;
+
+    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_barrier_pairwise, 1);
 
     size = comm_ptr->local_size;
     /* Trivial barriers return immediately */
@@ -37,7 +50,6 @@ static int MPIR_Pairwise_Barrier_MV2(MPID_Comm * comm_ptr, int *errflag)
         return MPI_SUCCESS;
 
     rank = comm_ptr->rank;
-    comm = comm_ptr->handle;
 
     /*  N2_prev = greatest power of two < size of Comm  */
     int N2_prev = comm_ptr->dev.ch.gpof2;
@@ -48,38 +60,44 @@ static int MPIR_Pairwise_Barrier_MV2(MPID_Comm * comm_ptr, int *errflag)
         if (rank < surfeit) {
             /* get the fanin letter from the upper "half" process: */
             dst = N2_prev + rank;
+            MPIR_PVAR_INC(barrier, pairwise, recv, 0, MPI_BYTE);
             mpi_errno = MPIC_Recv(NULL, 0, MPI_BYTE, dst, MPIR_BARRIER_TAG,
-                                     comm, MPI_STATUS_IGNORE, errflag);
+                                     comm_ptr, MPI_STATUS_IGNORE, errflag);
         }
 
         /* combine on embedded N2_prev power-of-two processes */
         for (d = 1; d < N2_prev; d <<= 1) {
             dst = (rank ^ d);
+            MPIR_PVAR_INC(barrier, pairwise, send, 0, MPI_BYTE);
+            MPIR_PVAR_INC(barrier, pairwise, recv, 0, MPI_BYTE);
             mpi_errno =
                 MPIC_Sendrecv(NULL, 0, MPI_BYTE, dst, MPIR_BARRIER_TAG, NULL,
-                                 0, MPI_BYTE, dst, MPIR_BARRIER_TAG, comm,
+                                 0, MPI_BYTE, dst, MPIR_BARRIER_TAG, comm_ptr,
                                  MPI_STATUS_IGNORE, errflag);
         }
 
         /* fanout data to nodes above N2_prev... */
         if (rank < surfeit) {
             dst = N2_prev + rank;
+            MPIR_PVAR_INC(barrier, pairwise, send, 0, MPI_BYTE);
             mpi_errno = MPIC_Send(NULL, 0, MPI_BYTE, dst, MPIR_BARRIER_TAG,
-                                     comm, errflag);
+                                     comm_ptr, errflag);
         }
     } else {
         /* fanin data to power of 2 subset */
         src = rank - N2_prev;
+        MPIR_PVAR_INC(barrier, pairwise, send, 0, MPI_BYTE);
+        MPIR_PVAR_INC(barrier, pairwise, recv, 0, MPI_BYTE);
         mpi_errno = MPIC_Sendrecv(NULL, 0, MPI_BYTE, src, MPIR_BARRIER_TAG,
                                      NULL, 0, MPI_BYTE, src, MPIR_BARRIER_TAG,
-                                     comm, MPI_STATUS_IGNORE, errflag);
+                                     comm_ptr, MPI_STATUS_IGNORE, errflag);
     }
 
     return mpi_errno;
 
 }
 
-static int MPIR_shmem_barrier_MV2(MPID_Comm * comm_ptr, int *errflag)
+static int MPIR_shmem_barrier_MV2(MPID_Comm * comm_ptr, MPIR_Errflag_t *errflag)
 {
 
     int mpi_errno = MPI_SUCCESS;
@@ -89,6 +107,7 @@ static int MPIR_shmem_barrier_MV2(MPID_Comm * comm_ptr, int *errflag)
     int local_rank = -1, local_size = 0;
     int total_size, shmem_comm_rank;
 
+    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_barrier_shmem, 1);
     MPIR_T_PVAR_COUNTER_INC(MV2, mv2_num_shmem_coll_calls, 1);
     shmem_comm = comm_ptr->dev.ch.shmem_comm;
     leader_comm = comm_ptr->dev.ch.leader_comm;
@@ -143,8 +162,8 @@ static int MPIR_shmem_barrier_MV2(MPID_Comm * comm_ptr, int *errflag)
 #undef FUNCNAME
 #define FUNCNAME MPIR_Barrier_intra_MV2
 #undef FCNAME
-#define FCNAME MPIU_QUOTE(FUNCNAME)
-int MPIR_Barrier_intra_MV2(MPID_Comm * comm_ptr, int *errflag)
+#define FCNAME MPL_QUOTE(FUNCNAME)
+int MPIR_Barrier_intra_MV2(MPID_Comm * comm_ptr, MPIR_Errflag_t *errflag)
 {
     int size;
     int mpi_errno = MPI_SUCCESS;
@@ -171,9 +190,9 @@ int MPIR_Barrier_intra_MV2(MPID_Comm * comm_ptr, int *errflag)
 
     if (mpi_errno) {
         /* for communication errors, just record the error but continue */
-        *errflag = TRUE;
-        MPIU_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
-        MPIU_ERR_ADD(mpi_errno_ret, mpi_errno);
+        *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
+        MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
+        MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
     }
 
     MPIDU_ERR_CHECK_MULTIPLE_THREADS_EXIT(comm_ptr);
@@ -184,13 +203,13 @@ int MPIR_Barrier_intra_MV2(MPID_Comm * comm_ptr, int *errflag)
 #undef FUNCNAME
 #define FUNCNAME MPIR_Barrier_MV2
 #undef FCNAME
-#define FCNAME MPIU_QUOTE(FUNCNAME)
-int MPIR_Barrier_MV2(MPID_Comm * comm_ptr, int *errflag)
+#define FCNAME MPL_QUOTE(FUNCNAME)
+int MPIR_Barrier_MV2(MPID_Comm * comm_ptr, MPIR_Errflag_t *errflag)
 {
     int mpi_errno = MPI_SUCCESS;
     mpi_errno = MPIR_Barrier_intra_MV2(comm_ptr, errflag);
     if (mpi_errno)
-        MPIU_ERR_POP(mpi_errno);
+        MPIR_ERR_POP(mpi_errno);
 
   fn_exit:
     return mpi_errno;

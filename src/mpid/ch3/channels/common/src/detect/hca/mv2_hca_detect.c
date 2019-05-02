@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2016, The Ohio State University. All rights
+/* Copyright (c) 2001-2019, The Ohio State University. All rights
  * reserved.
  * Copyright (c) 2016, Intel, Inc. All rights reserved.
  *
@@ -22,8 +22,32 @@
 #endif
 
 #include "mv2_arch_hca_detect.h"
-
+#include "upmi.h"
 #include "debug_utils.h"
+
+#include "upmi.h"
+#include "mpi.h"
+#if ENABLE_PVAR_MV2 && CHANNEL_MRAIL
+#include "rdma_impl.h"
+#include "mv2_mpit_cvars.h"
+#endif
+
+/*
+=== BEGIN_MPI_T_CVAR_INFO_BLOCK ===
+
+cvars:
+    - name        : FORCE_HCA_TYPE
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This parameter forces the HCA type.
+
+=== END_MPI_T_CVAR_INFO_BLOCK ===
+*/
 
 static mv2_multirail_info_type g_mv2_multirail_info = mv2_num_rail_unknown;
 
@@ -38,6 +62,18 @@ static mv2_multirail_info_type g_mv2_multirail_info = mv2_num_rail_unknown;
 #define MV2_STR_CXGB3        "cxgb3"
 #define MV2_STR_CXGB4        "cxgb4"
 #define MV2_STR_NES0         "nes0"
+
+#if ENABLE_PVAR_MV2 && CHANNEL_MRAIL
+MPI_T_cvar_handle mv2_force_hca_type_handle = NULL;
+extern int mv2_set_force_hca_type();
+extern void mv2_free_hca_handle ();
+void mv2_free_hca_handle () {
+    if (mv2_force_hca_type_handle) {
+        MPIU_Free(mv2_force_hca_type_handle);
+        mv2_force_hca_type_handle = NULL;
+    }
+}
+#endif
 
 typedef struct _mv2_hca_types_log_t{
     mv2_hca_type hca_type;
@@ -142,20 +178,77 @@ static const float get_link_speed(uint8_t speed)
     }   
 }
 
+int mv2_check_hca_type(mv2_hca_type type, int rank)
+{
+    if (type <= MV2_HCA_LIST_START        || type >= MV2_HCA_LIST_END        ||
+        type == MV2_HCA_IB_TYPE_START     || type == MV2_HCA_IB_TYPE_END     ||
+        type == MV2_HCA_MLX_START         || type == MV2_HCA_MLX_END         ||
+        type == MV2_HCA_IWARP_TYPE_START  || type == MV2_HCA_IWARP_TYPE_END  ||
+        type == MV2_HCA_CHLSIO_START      || type == MV2_HCA_CHLSIO_END      ||
+        type == MV2_HCA_INTEL_IWARP_START || type == MV2_HCA_INTEL_IWARP_END ||
+        type == MV2_HCA_QLGIC_START       || type == MV2_HCA_QLGIC_END       ||
+        type == MV2_HCA_INTEL_START       || type == MV2_HCA_INTEL_END) {
+
+        PRINT_INFO((rank==0), "Wrong value specified for MV2_FORCE_HCA_TYPE\n");
+        PRINT_INFO((rank==0), "Value must be greater than %d and less than %d \n",
+                    MV2_HCA_LIST_START, MV2_HCA_LIST_END);
+        PRINT_INFO((rank==0), "For IB Cards: Please enter value greater than %d and less than %d\n",
+                    MV2_HCA_MLX_START, MV2_HCA_MLX_END);
+        PRINT_INFO((rank==0), "For IBM Cards: Please enter value greater than %d and less than %d\n",
+                    MV2_HCA_IBM_START, MV2_HCA_IBM_END);
+        PRINT_INFO((rank==0), "For Intel IWARP Cards: Please enter value greater than %d and less than %d\n",
+                    MV2_HCA_INTEL_IWARP_START, MV2_HCA_INTEL_IWARP_END);
+        PRINT_INFO((rank==0), "For Chelsio IWARP Cards: Please enter value greater than %d and less than %d\n",
+                    MV2_HCA_CHLSIO_START, MV2_HCA_CHLSIO_END);
+        PRINT_INFO((rank==0), "For QLogic Cards: Please enter value greater than %d and less than %d\n",
+                    MV2_HCA_QLGIC_START, MV2_HCA_QLGIC_END);
+        PRINT_INFO((rank==0), "For Intel Cards: Please enter value greater than %d and less than %d\n",
+                    MV2_HCA_INTEL_START, MV2_HCA_INTEL_END);
+        return 1;
+    }
+    return 0;
+}
+
 #if defined(HAVE_LIBIBVERBS)
 mv2_hca_type mv2_new_get_hca_type(struct ibv_context *ctx,
                                     struct ibv_device *ib_dev,
                                     uint64_t *guid)
 {
     int rate=0;
+    int my_rank = -1;
+    char *value = NULL;
     char *dev_name = NULL;
     struct ibv_device_attr device_attr;
     int max_ports = 0;
     mv2_hca_type hca_type = MV2_HCA_UNKWN;
 
+    UPMI_GET_RANK(&my_rank);
+
+#if ENABLE_PVAR_MV2 && CHANNEL_MRAIL
+    int cvar_forced = mv2_set_force_hca_type();
+    if (cvar_forced) {
+        return mv2_MPIDI_CH3I_RDMA_Process.arch_hca_type;
+    }
+#endif /*ENABLE_PVAR_MV2 && CHANNEL_MRAIL*/
+
+    if ((value = getenv("MV2_FORCE_HCA_TYPE")) != NULL) {
+        hca_type = atoi(value);
+        int retval = mv2_check_hca_type(hca_type, my_rank);
+        if (retval) {
+            PRINT_INFO((my_rank==0), "Falling back to Automatic HCA detection\n");
+            hca_type = MV2_HCA_UNKWN;
+        } else {
+            return hca_type;
+        }
+    }
+
     dev_name = (char*) ibv_get_device_name( ib_dev );
 
     if (!dev_name) {
+        PRINT_INFO((my_rank==0), "**********************WARNING***********************\n");
+        PRINT_INFO((my_rank==0), "Failed to automatically detect the HCA architecture.\n");
+        PRINT_INFO((my_rank==0), "This may lead to subpar communication performance.\n");
+        PRINT_INFO((my_rank==0), "****************************************************\n");
         return MV2_HCA_UNKWN;
     }
 
@@ -171,7 +264,6 @@ mv2_hca_type mv2_new_get_hca_type(struct ibv_context *ctx,
         hca_type = MV2_HCA_MLX_PCI_X;
 
         int query_port = 1;
-        char *value;
         struct ibv_port_attr port_attr;
 
         /* honor MV2_DEFAULT_PORT, if set */
@@ -239,18 +331,51 @@ mv2_hca_type mv2_new_get_hca_type(struct ibv_context *ctx,
         hca_type = MV2_HCA_UNKWN;
     }    
 
+    if (hca_type == MV2_HCA_UNKWN) {
+        PRINT_INFO((my_rank==0), "**********************WARNING***********************\n");
+        PRINT_INFO((my_rank==0), "Failed to automatically detect the HCA architecture.\n");
+        PRINT_INFO((my_rank==0), "This may lead to subpar communication performance.\n");
+        PRINT_INFO((my_rank==0), "****************************************************\n");
+    }
+
     return hca_type;
 }
 
 mv2_hca_type mv2_get_hca_type( struct ibv_device *dev )
 {
     int rate=0;
+    char *value = NULL;
     char *dev_name;
+    int my_rank = -1;
     mv2_hca_type hca_type = MV2_HCA_UNKWN;
+
+    UPMI_GET_RANK(&my_rank);
+    
+#if ENABLE_PVAR_MV2 && CHANNEL_MRAIL
+    int cvar_forced = mv2_set_force_hca_type();
+    if (cvar_forced) {
+        return mv2_MPIDI_CH3I_RDMA_Process.arch_hca_type;
+    }
+#endif /*ENABLE_PVAR_MV2 && CHANNEL_MRAIL*/
+
+    if ((value = getenv("MV2_FORCE_HCA_TYPE")) != NULL) {
+        hca_type = atoi(value);
+        int retval = mv2_check_hca_type(hca_type, my_rank);
+        if (retval) {
+            PRINT_INFO((my_rank==0), "Falling back to Automatic HCA detection\n");
+            hca_type = MV2_HCA_UNKWN;
+        } else {
+            return hca_type;
+        }
+    }
 
     dev_name = (char*) ibv_get_device_name( dev );
 
     if (!dev_name) {
+        PRINT_INFO((my_rank==0), "**********************WARNING***********************\n");
+        PRINT_INFO((my_rank==0), "Failed to automatically detect the HCA architecture.\n");
+        PRINT_INFO((my_rank==0), "This may lead to subpar communication performance.\n");
+        PRINT_INFO((my_rank==0), "****************************************************\n");
         return MV2_HCA_UNKWN;
     }
 
@@ -271,7 +396,6 @@ mv2_hca_type mv2_get_hca_type( struct ibv_device *dev )
         hca_type = MV2_HCA_MLX_PCI_X;
 #if !defined(HAVE_LIBIBUMAD)
         int query_port = 1;
-        char *value;
         struct ibv_context *ctx= NULL;
         struct ibv_port_attr port_attr;
 
@@ -411,12 +535,40 @@ mv2_hca_type mv2_get_hca_type( struct ibv_device *dev )
 #ifdef HAVE_LIBIBUMAD
     last_type = hca_type;
 #endif /* #ifdef HAVE_LIBIBUMAD */
+    if (hca_type == MV2_HCA_UNKWN) {
+        PRINT_INFO((my_rank==0), "**********************WARNING***********************\n");
+        PRINT_INFO((my_rank==0), "Failed to automatically detect the HCA architecture.\n");
+        PRINT_INFO((my_rank==0), "This may lead to subpar communication performance.\n");
+        PRINT_INFO((my_rank==0), "****************************************************\n");
+    }
     return hca_type;
 }
 #else
 mv2_hca_type mv2_get_hca_type(void *dev)
 {
+    int my_rank = -1;
+    char *value = NULL;
     mv2_hca_type hca_type = MV2_HCA_UNKWN;
+
+    UPMI_GET_RANK(&my_rank);
+
+#if ENABLE_PVAR_MV2 && CHANNEL_MRAIL
+    int cvar_forced = mv2_set_force_hca_type();
+    if (cvar_forced) {
+        return mv2_MPIDI_CH3I_RDMA_Process.arch_hca_type;
+    }
+#endif /*ENABLE_PVAR_MV2 && CHANNEL_MRAIL*/
+
+    if ((value = getenv("MV2_FORCE_HCA_TYPE")) != NULL) {
+        hca_type = atoi(value);
+        int retval = mv2_check_hca_type(hca_type, my_rank);
+        if (retval) {
+            PRINT_INFO((my_rank==0), "Falling back to Automatic HCA detection\n");
+            hca_type = MV2_HCA_UNKWN;
+        } else {
+            return hca_type;
+        }
+    }
 
 #ifdef HAVE_LIBPSM2
     hca_type = MV2_HCA_INTEL_HFI1;
@@ -492,3 +644,62 @@ mv2_multirail_info_type mv2_get_multirail_info()
 
 #endif
 
+#if ENABLE_PVAR_MV2 && CHANNEL_MRAIL
+int mv2_set_force_hca_type()
+{
+    int mpi_errno = MPI_SUCCESS;
+    int cvar_index = 0;
+    int skip_setting = 0;
+    int read_value = 0;
+
+    /* Get CVAR index by name */
+    MPIR_CVAR_GET_INDEX_impl(MPIR_CVAR_FORCE_HCA_TYPE, cvar_index);
+    if (cvar_index < 0) {
+        mpi_errno = MPI_ERR_INTERN;
+        goto fn_fail;
+    }
+    mv2_mpit_cvar_access_t wrapper;
+    wrapper.cvar_name = "MPIR_CVAR_FORCE_HCA_TYPE";
+    wrapper.cvar_index = cvar_index;
+    wrapper.cvar_handle = mv2_force_hca_type_handle;
+    wrapper.default_cvar_value = MV2_HCA_UNKWN;
+    wrapper.skip_if_default_has_set = 1;
+    wrapper.error_type = MV2_CVAR_FATAL_ERR;
+    wrapper.check4_associate_env_conflict = 1;
+    wrapper.env_name = "MV2_FORCE_HCA_TYPE";
+    wrapper.env_conflict_error_msg = "the CVAR will set up to default";
+    wrapper.check_max = 1;
+    wrapper.max_value = MV2_HCA_LIST_END-1;
+    wrapper.check_min = 1;
+    wrapper.min_value = MV2_HCA_LIST_START+1;
+    wrapper.boundary_error_msg = "Wrong value specified for MPIR_CVAR_FORCE_HCA_TYPE";
+    wrapper.skip = &skip_setting;
+    wrapper.value = &read_value;
+    mpi_errno = mv2_read_and_check_cvar(wrapper);
+    if (mpi_errno != MPI_SUCCESS){
+        goto fn_fail;
+    }
+    /* Choose algorithm based on CVAR */
+    if (!skip_setting) {
+        mv2_hca_type hca_type = read_value;
+        int retval = mv2_check_hca_type(hca_type,  MPIDI_Process.my_pg_rank);
+        if (retval) {
+            PRINT_INFO( (MPIDI_Process.my_pg_rank==0), 
+                "### cvar func### Falling back to Automatic HCA detection\n");
+            hca_type = MV2_HCA_UNKWN;
+        } 
+        else {
+            mv2_MPIDI_CH3I_RDMA_Process.hca_type = hca_type;
+            mv2_arch_hca_type arch_hca = mv2_get_arch_type();
+            mv2_MPIDI_CH3I_RDMA_Process.arch_hca_type = arch_hca << 32 | hca_type;
+            goto fn_change;
+        }
+    }
+
+    fn_fail:
+    fn_exit:
+        return mpi_errno;
+    fn_change:
+        return 1;
+}
+#endif

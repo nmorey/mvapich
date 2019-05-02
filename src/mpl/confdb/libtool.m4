@@ -4695,6 +4695,13 @@ m4_if([$1], [CXX], [
 	_LT_TAGVAR(lt_prog_compiler_pic, $1)='-KPIC'
 	_LT_TAGVAR(lt_prog_compiler_static, $1)='-static'
         ;;
+      *flang)
+      # Flang compiler
+   _LT_TAGVAR(lt_prog_compiler_wl, $1)='-Wl,'
+   _LT_TAGVAR(lt_prog_compiler_pic, $1)='-fPIC -DPIC'
+   _LT_TAGVAR(lt_prog_compiler_static, $1)='-static'
+       ;;
+  
       # icc used to be incompatible with GCC.
       # ICC 10 doesn't accept -KPIC any more.
       icc* | ifort*)
@@ -5238,16 +5245,27 @@ _LT_EOF
 	  _LT_TAGVAR(export_dynamic_flag_spec, $1)='-rdynamic'
 	  ;;
 	xlf* | bgf* | bgxlf* | mpixlf*)
-	  # IBM XL Fortran 10.1 on PPC cannot create shared libs itself
-	  _LT_TAGVAR(whole_archive_flag_spec, $1)='--whole-archive$convenience --no-whole-archive'
-	  _LT_TAGVAR(hardcode_libdir_flag_spec, $1)='$wl-rpath $wl$libdir'
-	  _LT_TAGVAR(archive_cmds, $1)='$LD -shared $libobjs $deplibs $linker_flags -soname $soname -o $lib'
-	  if test yes = "$supports_anon_versioning"; then
-	    _LT_TAGVAR(archive_expsym_cmds, $1)='echo "{ global:" > $output_objdir/$libname.ver~
-              cat $export_symbols | sed -e "s/\(.*\)/\1;/" >> $output_objdir/$libname.ver~
-              echo "local: *; };" >> $output_objdir/$libname.ver~
-              $LD -shared $libobjs $deplibs $linker_flags -soname $soname -version-script $output_objdir/$libname.ver -o $lib'
-	  fi
+          XLF_VERSION=$($CC -qversion 2>/dev/null | sed 1q | sed -e "s+^.*V++" | sed -e "s+\..*++")
+          if test $XLF_VERSION -ge 13; then
+              _LT_TAGVAR(archive_cmds, $1)='$CC -qmkshrobj $libobjs $deplibs $compiler_flags $wl-soname $wl$soname -o $lib'
+              if test yes = "$supports_anon_versioning"; then
+                _LT_TAGVAR(archive_expsym_cmds, $1)='echo "{ global:" > $output_objdir/$libname.ver~
+                  cat $export_symbols | sed -e "s/\(.*\)/\1;/" >> $output_objdir/$libname.ver~
+                  echo "local: *; };" >> $output_objdir/$libname.ver~
+                  $CC -qmkshrobj $libobjs $deplibs $compiler_flags $wl-soname $wl$soname $wl-version-script $wl$output_objdir/$libname.ver -o $lib'
+              fi
+          else
+              # IBM XL Fortran 10.1 on PPC cannot create shared libs itself
+              _LT_TAGVAR(whole_archive_flag_spec, $1)='--whole-archive$convenience --no-whole-archive'
+              _LT_TAGVAR(hardcode_libdir_flag_spec, $1)='$wl-rpath $wl$libdir'
+              _LT_TAGVAR(archive_cmds, $1)='$LD -shared $libobjs $deplibs $linker_flags -soname $soname -o $lib'
+              if test yes = "$supports_anon_versioning"; then
+                _LT_TAGVAR(archive_expsym_cmds, $1)='echo "{ global:" > $output_objdir/$libname.ver~
+                  cat $export_symbols | sed -e "s/\(.*\)/\1;/" >> $output_objdir/$libname.ver~
+                  echo "local: *; };" >> $output_objdir/$libname.ver~
+                  $LD -shared $libobjs $deplibs $linker_flags -soname $soname -version-script $output_objdir/$libname.ver -o $lib'
+              fi
+          fi
 	  ;;
 	esac
       else

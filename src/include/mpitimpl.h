@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (c) 2001-2016, The Ohio State University. All rights
+ * Copyright (c) 2001-2019, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -23,9 +23,9 @@
 #define MPITIMPL_H_INCLUDED
 
 #include "mpi.h"
+#include "mpiutil.h"
 #include "mpiu_utarray.h"
 #include "mpiu_uthash.h"
-#include "mpiimplthread.h" /* For MPICH_IS_THREADED */
 
 #ifdef HAVE_ERROR_CHECKING
 typedef enum {
@@ -65,7 +65,7 @@ typedef struct {
 /* Hash names to indices in a table */
 typedef struct {
     const char *name;
-    int idx;
+    unsigned idx;
     UT_hash_handle hh;  /* Makes this structure hashable */
 } name2index_hash_t;
 
@@ -1393,6 +1393,25 @@ static inline int MPIR_T_is_initialized() {
     return MPIR_T_init_balance > 0;
 }
 
+/* Helper function to update count and volume of send and recv messages for PVARS */
+#if ENABLE_PVAR_MV2
+    #define MPIR_PVAR_INC(_mpicoll, _algo, _operation, _count, _datatype)                        \
+    do {                                                                                         \
+        int _pSize = 0;                                                                          \
+        MPID_Datatype_get_size_macro(_datatype, _pSize);                                         \
+        int _size = _count * _pSize;                                                             \
+        if (_size < 0) {                                                                         \
+            _size = 0;                                                                           \
+        }                                                                                        \
+        MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_##_mpicoll##_##_algo##_bytes_##_operation, _size); \
+        MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_##_mpicoll##_##_algo##_count_##_operation, 1);     \
+        MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_##_mpicoll##_bytes_##_operation, _size);           \
+        MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_##_mpicoll##_count_##_operation, 1);               \
+    } while (0)
+#else /*ENABLE_PVAR_MV2*/
+    #define MPIR_PVAR_INC(_mpicoll, _algo, _operation, _count, _datatype)
+#endif /*ENABLE_PVAR_MV2*/
+
 /* A special strncpy to return strings in behavior defined by MPI_T */
 extern void MPIR_T_strncpy(char *dst, const char *src, int *len);
 
@@ -1423,15 +1442,17 @@ extern MPIU_Thread_mutex_t mpi_t_mutex;
 
 #define MPIR_T_THREAD_CS_ENTER() \
     do { \
-        MPIR_T_THREAD_CHECK_BEGIN \
-        MPID_Thread_mutex_lock(&mpi_t_mutex); \
+        int err;                              \
+        MPIR_T_THREAD_CHECK_BEGIN             \
+            MPID_Thread_mutex_lock(&mpi_t_mutex,&err);  \
         MPIR_T_THREAD_CHECK_END \
     } while (0)
 
 #define MPIR_T_THREAD_CS_EXIT() \
     do { \
+        int err;                  \
         MPIR_T_THREAD_CHECK_BEGIN \
-        MPID_Thread_mutex_unlock(&mpi_t_mutex); \
+            MPID_Thread_mutex_unlock(&mpi_t_mutex,&err);  \
         MPIR_T_THREAD_CHECK_END \
     } while (0)
 #else /* !MPICH_IS_THREADED */
@@ -1440,6 +1461,27 @@ extern MPIU_Thread_mutex_t mpi_t_mutex;
 #define MPIR_T_THREAD_CS_ENTER()    do { /* nothing */ } while (0)
 #define MPIR_T_THREAD_CS_EXIT()     do { /* nothing */ } while (0)
 #endif
+
+/* Hash tables to quick locate category, cvar, pvar indices by their names */
+extern name2index_hash_t *cvar_hash;
+
+static inline int LOOKUP_CVAR_INDEX_BY_NAME_impl(const char* cvar_name)
+{
+    int cvar_idx = -1;
+    name2index_hash_t *hash_entry = NULL;
+
+    /* Do hash lookup by the name */
+    HASH_FIND_STR(cvar_hash, cvar_name, hash_entry);
+    if (hash_entry != NULL) {
+        cvar_idx = hash_entry->idx;
+    }
+    return cvar_idx;
+}
+
+#define MPIR_CVAR_GET_INDEX_impl(name_, out_val_)           \
+    do {                                                    \
+        (out_val_) = LOOKUP_CVAR_INDEX_BY_NAME_impl(#name_);\
+    } while (0)
 
 /* Init and finalize routines */
 extern void MPIR_T_env_init(void);

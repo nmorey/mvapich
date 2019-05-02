@@ -6,7 +6,7 @@
  * All rights reserved.
  */
 
-/* Copyright (c) 2001-2016, The Ohio State University. All rights
+/* Copyright (c) 2001-2019, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -30,7 +30,7 @@
 /* SMP user parameters*/
 
 extern int                  g_smp_eagersize;
-extern int                  s_smpi_length_queue;
+extern size_t               s_smpi_length_queue;
 extern int                  s_smp_num_send_buffer;
 extern int                  s_smp_batch_size;
 extern int                  s_smp_block_size;
@@ -84,7 +84,7 @@ typedef struct polling_set_element {
  ((a & 0xFFFFFFF8) - SMPI_CACHE_LINE_SIZE)
 
                                                                                                                                                
-#elif defined(_IA64_) || defined(__powerpc__) || defined(__ppc__) || defined(__PPC__) || defined(__powerpc64__) || defined(__ppc64__)
+#elif defined(_IA64_) || defined(__powerpc__) || defined(__ppc__) || defined(__PPC__) || defined(__powerpc64__) || defined(__ppc64__) || defined(__PPC64__)
 
 #define SMPI_CACHE_LINE_SIZE 128
 #define SMPI_ALIGN(a)                                               \
@@ -157,13 +157,13 @@ typedef struct {
 #endif  
 
 typedef struct {
-    volatile unsigned int ptr;
+    volatile size_t ptr;
     char pad[SMPI_CACHE_LINE_SIZE - sizeof(unsigned int)];
 } smpi_shared_tails;
 
 typedef struct {
-    volatile unsigned int first;
-    volatile unsigned int last;
+    volatile size_t first;
+    volatile size_t last;
 } smpi_rq_limit;
 
 /* the shared area itself */

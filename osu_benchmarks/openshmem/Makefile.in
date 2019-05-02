@@ -91,8 +91,10 @@ host_triplet = @host@
 openshmem_PROGRAMS = osu_oshm_get$(EXEEXT) osu_oshm_put$(EXEEXT) \
 	osu_oshm_put_mr$(EXEEXT) osu_oshm_atomics$(EXEEXT) \
 	osu_oshm_barrier$(EXEEXT) osu_oshm_broadcast$(EXEEXT) \
-	osu_oshm_fcollect$(EXEEXT) osu_oshm_collect$(EXEEXT) \
-	osu_oshm_reduce$(EXEEXT)
+	osu_oshm_collect$(EXEEXT) osu_oshm_fcollect$(EXEEXT) \
+	osu_oshm_reduce$(EXEEXT) osu_oshm_get_nb$(EXEEXT) \
+	osu_oshm_put_nb$(EXEEXT) osu_oshm_put_overlap$(EXEEXT) \
+	osu_oshm_get_mr_nb$(EXEEXT) osu_oshm_put_mr_nb$(EXEEXT)
 subdir = openshmem
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -104,8 +106,11 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(openshmemdir)"
 PROGRAMS = $(openshmem_PROGRAMS)
+am__dirstamp = $(am__leading_dot)dirstamp
+am__objects_1 = ../util/osu_util.$(OBJEXT) \
+	../util/osu_util_pgas.$(OBJEXT)
 am_osu_oshm_atomics_OBJECTS = osu_oshm_atomics.$(OBJEXT) \
-	osu_common.$(OBJEXT) osu_coll.$(OBJEXT)
+	$(am__objects_1)
 osu_oshm_atomics_OBJECTS = $(am_osu_oshm_atomics_OBJECTS)
 osu_oshm_atomics_LDADD = $(LDADD)
 AM_V_lt = $(am__v_lt_@AM_V@)
@@ -113,35 +118,53 @@ am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
 am_osu_oshm_barrier_OBJECTS = osu_oshm_barrier.$(OBJEXT) \
-	osu_common.$(OBJEXT) osu_coll.$(OBJEXT)
+	$(am__objects_1)
 osu_oshm_barrier_OBJECTS = $(am_osu_oshm_barrier_OBJECTS)
 osu_oshm_barrier_LDADD = $(LDADD)
 am_osu_oshm_broadcast_OBJECTS = osu_oshm_broadcast.$(OBJEXT) \
-	osu_common.$(OBJEXT) osu_coll.$(OBJEXT)
+	$(am__objects_1)
 osu_oshm_broadcast_OBJECTS = $(am_osu_oshm_broadcast_OBJECTS)
 osu_oshm_broadcast_LDADD = $(LDADD)
 am_osu_oshm_collect_OBJECTS = osu_oshm_collect.$(OBJEXT) \
-	osu_common.$(OBJEXT) osu_coll.$(OBJEXT)
+	$(am__objects_1)
 osu_oshm_collect_OBJECTS = $(am_osu_oshm_collect_OBJECTS)
 osu_oshm_collect_LDADD = $(LDADD)
 am_osu_oshm_fcollect_OBJECTS = osu_oshm_fcollect.$(OBJEXT) \
-	osu_common.$(OBJEXT) osu_coll.$(OBJEXT)
+	$(am__objects_1)
 osu_oshm_fcollect_OBJECTS = $(am_osu_oshm_fcollect_OBJECTS)
 osu_oshm_fcollect_LDADD = $(LDADD)
-am_osu_oshm_get_OBJECTS = osu_oshm_get.$(OBJEXT) osu_common.$(OBJEXT) \
-	osu_coll.$(OBJEXT)
+am_osu_oshm_get_OBJECTS = osu_oshm_get.$(OBJEXT) $(am__objects_1)
 osu_oshm_get_OBJECTS = $(am_osu_oshm_get_OBJECTS)
 osu_oshm_get_LDADD = $(LDADD)
-am_osu_oshm_put_OBJECTS = osu_oshm_put.$(OBJEXT) osu_common.$(OBJEXT) \
-	osu_coll.$(OBJEXT)
+am_osu_oshm_get_mr_nb_OBJECTS = osu_oshm_get_mr_nb.$(OBJEXT) \
+	$(am__objects_1)
+osu_oshm_get_mr_nb_OBJECTS = $(am_osu_oshm_get_mr_nb_OBJECTS)
+osu_oshm_get_mr_nb_LDADD = $(LDADD)
+am_osu_oshm_get_nb_OBJECTS = osu_oshm_get_nb.$(OBJEXT) \
+	$(am__objects_1)
+osu_oshm_get_nb_OBJECTS = $(am_osu_oshm_get_nb_OBJECTS)
+osu_oshm_get_nb_LDADD = $(LDADD)
+am_osu_oshm_put_OBJECTS = osu_oshm_put.$(OBJEXT) $(am__objects_1)
 osu_oshm_put_OBJECTS = $(am_osu_oshm_put_OBJECTS)
 osu_oshm_put_LDADD = $(LDADD)
 am_osu_oshm_put_mr_OBJECTS = osu_oshm_put_mr.$(OBJEXT) \
-	osu_common.$(OBJEXT) osu_coll.$(OBJEXT)
+	$(am__objects_1)
 osu_oshm_put_mr_OBJECTS = $(am_osu_oshm_put_mr_OBJECTS)
 osu_oshm_put_mr_LDADD = $(LDADD)
+am_osu_oshm_put_mr_nb_OBJECTS = osu_oshm_put_mr_nb.$(OBJEXT) \
+	$(am__objects_1)
+osu_oshm_put_mr_nb_OBJECTS = $(am_osu_oshm_put_mr_nb_OBJECTS)
+osu_oshm_put_mr_nb_LDADD = $(LDADD)
+am_osu_oshm_put_nb_OBJECTS = osu_oshm_put_nb.$(OBJEXT) \
+	$(am__objects_1)
+osu_oshm_put_nb_OBJECTS = $(am_osu_oshm_put_nb_OBJECTS)
+osu_oshm_put_nb_LDADD = $(LDADD)
+am_osu_oshm_put_overlap_OBJECTS = osu_oshm_put_overlap.$(OBJEXT) \
+	$(am__objects_1)
+osu_oshm_put_overlap_OBJECTS = $(am_osu_oshm_put_overlap_OBJECTS)
+osu_oshm_put_overlap_LDADD = $(LDADD)
 am_osu_oshm_reduce_OBJECTS = osu_oshm_reduce.$(OBJEXT) \
-	osu_common.$(OBJEXT) osu_coll.$(OBJEXT)
+	$(am__objects_1)
 osu_oshm_reduce_OBJECTS = $(am_osu_oshm_reduce_OBJECTS)
 osu_oshm_reduce_LDADD = $(LDADD)
 AM_V_P = $(am__v_P_@AM_V@)
@@ -181,13 +204,17 @@ am__v_CCLD_1 =
 SOURCES = $(osu_oshm_atomics_SOURCES) $(osu_oshm_barrier_SOURCES) \
 	$(osu_oshm_broadcast_SOURCES) $(osu_oshm_collect_SOURCES) \
 	$(osu_oshm_fcollect_SOURCES) $(osu_oshm_get_SOURCES) \
+	$(osu_oshm_get_mr_nb_SOURCES) $(osu_oshm_get_nb_SOURCES) \
 	$(osu_oshm_put_SOURCES) $(osu_oshm_put_mr_SOURCES) \
-	$(osu_oshm_reduce_SOURCES)
+	$(osu_oshm_put_mr_nb_SOURCES) $(osu_oshm_put_nb_SOURCES) \
+	$(osu_oshm_put_overlap_SOURCES) $(osu_oshm_reduce_SOURCES)
 DIST_SOURCES = $(osu_oshm_atomics_SOURCES) $(osu_oshm_barrier_SOURCES) \
 	$(osu_oshm_broadcast_SOURCES) $(osu_oshm_collect_SOURCES) \
 	$(osu_oshm_fcollect_SOURCES) $(osu_oshm_get_SOURCES) \
+	$(osu_oshm_get_mr_nb_SOURCES) $(osu_oshm_get_nb_SOURCES) \
 	$(osu_oshm_put_SOURCES) $(osu_oshm_put_mr_SOURCES) \
-	$(osu_oshm_reduce_SOURCES)
+	$(osu_oshm_put_mr_nb_SOURCES) $(osu_oshm_put_nb_SOURCES) \
+	$(osu_oshm_put_overlap_SOURCES) $(osu_oshm_reduce_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -336,16 +363,28 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
+AUTOMAKE_OPTIONS = subdir-objects
 openshmemdir = $(pkglibexecdir)/openshmem
-osu_oshm_get_SOURCES = osu_oshm_get.c osu_common.c osu_common.h osu_coll.c
-osu_oshm_put_SOURCES = osu_oshm_put.c osu_common.c osu_common.h osu_coll.c
-osu_oshm_put_mr_SOURCES = osu_oshm_put_mr.c osu_common.c osu_common.h osu_coll.c
-osu_oshm_atomics_SOURCES = osu_oshm_atomics.c osu_common.c osu_common.h osu_coll.c
-osu_oshm_barrier_SOURCES = osu_oshm_barrier.c osu_common.c osu_common.h osu_coll.h osu_coll.c
-osu_oshm_broadcast_SOURCES = osu_oshm_broadcast.c osu_common.c osu_common.h osu_coll.h osu_coll.c
-osu_oshm_collect_SOURCES = osu_oshm_collect.c osu_common.c osu_common.h osu_coll.h osu_coll.c
-osu_oshm_fcollect_SOURCES = osu_oshm_fcollect.c osu_common.c osu_common.h osu_coll.h osu_coll.c
-osu_oshm_reduce_SOURCES = osu_oshm_reduce.c osu_common.c osu_common.h osu_coll.h osu_coll.c
+AM_CFLAGS = -I../util
+UTILITIES = ../util/osu_util.c ../util/osu_util.h ../util/osu_util_pgas.c ../util/osu_util_pgas.h
+@EMBEDDED_BUILD_TRUE@AM_CPPFLAGS = -I$(top_builddir)/../src/include \
+@EMBEDDED_BUILD_TRUE@                  -I${top_srcdir}/util \
+@EMBEDDED_BUILD_TRUE@                  -I${top_srcdir}/../src/include
+
+osu_oshm_get_SOURCES = osu_oshm_get.c $(UTILITIES)
+osu_oshm_put_SOURCES = osu_oshm_put.c $(UTILITIES)
+osu_oshm_put_mr_SOURCES = osu_oshm_put_mr.c $(UTILITIES)
+osu_oshm_atomics_SOURCES = osu_oshm_atomics.c $(UTILITIES)
+osu_oshm_barrier_SOURCES = osu_oshm_barrier.c $(UTILITIES)
+osu_oshm_broadcast_SOURCES = osu_oshm_broadcast.c $(UTILITIES)
+osu_oshm_collect_SOURCES = osu_oshm_collect.c $(UTILITIES)
+osu_oshm_fcollect_SOURCES = osu_oshm_fcollect.c $(UTILITIES)
+osu_oshm_reduce_SOURCES = osu_oshm_reduce.c $(UTILITIES)
+osu_oshm_get_nb_SOURCES = osu_oshm_get_nb.c $(UTILITIES)
+osu_oshm_put_nb_SOURCES = osu_oshm_put_nb.c $(UTILITIES)
+osu_oshm_put_overlap_SOURCES = osu_oshm_put_overlap.c $(UTILITIES)
+osu_oshm_get_mr_nb_SOURCES = osu_oshm_get_mr_nb.c $(UTILITIES)
+osu_oshm_put_mr_nb_SOURCES = osu_oshm_put_mr_nb.c $(UTILITIES)
 all: all-am
 
 .SUFFIXES:
@@ -428,6 +467,16 @@ clean-openshmemPROGRAMS:
 	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
 	echo " rm -f" $$list; \
 	rm -f $$list
+../util/$(am__dirstamp):
+	@$(MKDIR_P) ../util
+	@: > ../util/$(am__dirstamp)
+../util/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) ../util/$(DEPDIR)
+	@: > ../util/$(DEPDIR)/$(am__dirstamp)
+../util/osu_util.$(OBJEXT): ../util/$(am__dirstamp) \
+	../util/$(DEPDIR)/$(am__dirstamp)
+../util/osu_util_pgas.$(OBJEXT): ../util/$(am__dirstamp) \
+	../util/$(DEPDIR)/$(am__dirstamp)
 
 osu_oshm_atomics$(EXEEXT): $(osu_oshm_atomics_OBJECTS) $(osu_oshm_atomics_DEPENDENCIES) $(EXTRA_osu_oshm_atomics_DEPENDENCIES) 
 	@rm -f osu_oshm_atomics$(EXEEXT)
@@ -453,6 +502,14 @@ osu_oshm_get$(EXEEXT): $(osu_oshm_get_OBJECTS) $(osu_oshm_get_DEPENDENCIES) $(EX
 	@rm -f osu_oshm_get$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(osu_oshm_get_OBJECTS) $(osu_oshm_get_LDADD) $(LIBS)
 
+osu_oshm_get_mr_nb$(EXEEXT): $(osu_oshm_get_mr_nb_OBJECTS) $(osu_oshm_get_mr_nb_DEPENDENCIES) $(EXTRA_osu_oshm_get_mr_nb_DEPENDENCIES) 
+	@rm -f osu_oshm_get_mr_nb$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(osu_oshm_get_mr_nb_OBJECTS) $(osu_oshm_get_mr_nb_LDADD) $(LIBS)
+
+osu_oshm_get_nb$(EXEEXT): $(osu_oshm_get_nb_OBJECTS) $(osu_oshm_get_nb_DEPENDENCIES) $(EXTRA_osu_oshm_get_nb_DEPENDENCIES) 
+	@rm -f osu_oshm_get_nb$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(osu_oshm_get_nb_OBJECTS) $(osu_oshm_get_nb_LDADD) $(LIBS)
+
 osu_oshm_put$(EXEEXT): $(osu_oshm_put_OBJECTS) $(osu_oshm_put_DEPENDENCIES) $(EXTRA_osu_oshm_put_DEPENDENCIES) 
 	@rm -f osu_oshm_put$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(osu_oshm_put_OBJECTS) $(osu_oshm_put_LDADD) $(LIBS)
@@ -461,45 +518,66 @@ osu_oshm_put_mr$(EXEEXT): $(osu_oshm_put_mr_OBJECTS) $(osu_oshm_put_mr_DEPENDENC
 	@rm -f osu_oshm_put_mr$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(osu_oshm_put_mr_OBJECTS) $(osu_oshm_put_mr_LDADD) $(LIBS)
 
+osu_oshm_put_mr_nb$(EXEEXT): $(osu_oshm_put_mr_nb_OBJECTS) $(osu_oshm_put_mr_nb_DEPENDENCIES) $(EXTRA_osu_oshm_put_mr_nb_DEPENDENCIES) 
+	@rm -f osu_oshm_put_mr_nb$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(osu_oshm_put_mr_nb_OBJECTS) $(osu_oshm_put_mr_nb_LDADD) $(LIBS)
+
+osu_oshm_put_nb$(EXEEXT): $(osu_oshm_put_nb_OBJECTS) $(osu_oshm_put_nb_DEPENDENCIES) $(EXTRA_osu_oshm_put_nb_DEPENDENCIES) 
+	@rm -f osu_oshm_put_nb$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(osu_oshm_put_nb_OBJECTS) $(osu_oshm_put_nb_LDADD) $(LIBS)
+
+osu_oshm_put_overlap$(EXEEXT): $(osu_oshm_put_overlap_OBJECTS) $(osu_oshm_put_overlap_DEPENDENCIES) $(EXTRA_osu_oshm_put_overlap_DEPENDENCIES) 
+	@rm -f osu_oshm_put_overlap$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(osu_oshm_put_overlap_OBJECTS) $(osu_oshm_put_overlap_LDADD) $(LIBS)
+
 osu_oshm_reduce$(EXEEXT): $(osu_oshm_reduce_OBJECTS) $(osu_oshm_reduce_DEPENDENCIES) $(EXTRA_osu_oshm_reduce_DEPENDENCIES) 
 	@rm -f osu_oshm_reduce$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(osu_oshm_reduce_OBJECTS) $(osu_oshm_reduce_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
+	-rm -f ../util/*.$(OBJEXT)
 
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_coll.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_common.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@../util/$(DEPDIR)/osu_util.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@../util/$(DEPDIR)/osu_util_pgas.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_oshm_atomics.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_oshm_barrier.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_oshm_broadcast.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_oshm_collect.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_oshm_fcollect.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_oshm_get.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_oshm_get_mr_nb.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_oshm_get_nb.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_oshm_put.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_oshm_put_mr.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_oshm_put_mr_nb.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_oshm_put_nb.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_oshm_put_overlap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osu_oshm_reduce.Po@am__quote@
 
 .c.o:
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ $<
 
 .c.obj:
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.obj$$||'`;\
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ `$(CYGPATH_W) '$<'` &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 
 .c.lo:
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LTCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.lo$$||'`;\
+@am__fastdepCC_TRUE@	$(LTCOMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
@@ -625,6 +703,8 @@ clean-generic:
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
+	-rm -f ../util/$(DEPDIR)/$(am__dirstamp)
+	-rm -f ../util/$(am__dirstamp)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
@@ -635,7 +715,7 @@ clean-am: clean-generic clean-libtool clean-openshmemPROGRAMS \
 	mostlyclean-am
 
 distclean: distclean-am
-	-rm -rf ./$(DEPDIR)
+	-rm -rf ../util/$(DEPDIR) ./$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -681,7 +761,7 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-	-rm -rf ./$(DEPDIR)
+	-rm -rf ../util/$(DEPDIR) ./$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

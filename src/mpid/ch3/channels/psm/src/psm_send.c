@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2016, The Ohio State University. All rights
+/* Copyright (c) 2001-2019, The Ohio State University. All rights
  * reserved.
  * Copyright (c) 2016, Intel, Inc. All rights reserved.
  *
@@ -11,7 +11,9 @@
  *
  */
 
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 
 #include "psmpriv.h"
 #include "mpidpre.h"
@@ -24,7 +26,7 @@
 #undef FUNCNAME
 #define FUNCNAME psm_large_msg_isend_pkt
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 #if PSM_VERNO >= PSM_2_1_VERSION
     PSM_ERROR_T psm_large_msg_isend_pkt(MPID_Request **rptr, int dest, void *buf, MPIDI_msg_sz_t buflen, psm2_mq_tag_t *stag, uint32_t flags)
 #else
@@ -40,8 +42,13 @@
     steps = buflen / ipath_max_transfer_size;
     balance = buflen % ipath_max_transfer_size;
 
+    PRINT_DEBUG(DEBUG_CHM_verbose>1,
+            "PSM large send, buflen: %llu, max_size: %llu, steps: %d, balance: %d\n",
+           (long long unsigned int)buflen, (long long unsigned int)ipath_max_transfer_size, steps, balance);
+
     /* Sanity check */
     MPIU_Assert(steps > 0);
+    MPIU_Assert(balance >= 0);
 
     /* Get current object reference count and completion count */
     cc_cnt  = *(req->cc_ptr);
@@ -71,7 +78,7 @@
 #undef FUNCNAME
 #define FUNCNAME psm_send_pkt
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 PSM_ERROR_T psm_send_pkt(MPID_Request **rptr, MPIDI_Message_match m,
                  int dest, void *buf, MPIDI_msg_sz_t buflen)
 {
@@ -87,24 +94,24 @@ PSM_ERROR_T psm_send_pkt(MPID_Request **rptr, MPIDI_Message_match m,
 
     MAKE_PSM_SELECTOR(stag, m.parts.context_id, m.parts.tag, m.parts.rank);
     if(req && req->psm_flags & PSM_SYNC_SEND) {
-        DBG("sync send psm\n");
+        PRINT_DEBUG(DEBUG_CHM_verbose>1, "sync send psm\n");
         flags = PSM_MQ_FLAG_SENDSYNC;
         blocking = 0;
     }
 
     #if PSM_VERNO >= PSM_2_1_VERSION
-        DBG("psm2_mq_send: ctx = %d tag = %d\n", m.parts.context_id, m.parts.tag);
-        DBG("psm2_mq_send: dst = %d src = %d\n", dest, m.partsrank);
+        PRINT_DEBUG(DEBUG_CHM_verbose>1, "psm2_mq_send: ctx = %d tag = %d\n", m.parts.context_id, m.parts.tag);
+        PRINT_DEBUG(DEBUG_CHM_verbose>1, "psm2_mq_send: dst = %d src = %d\n", dest, m.parts.rank);
     #else
-        DBG("psm_mq_send: ctx = %d tag = %d\n", m.parts.context_id, m.parts.tag);
-        DBG("psm_mq_send: dst = %d src = %d\n", dest, m.partsrank);
+        PRINT_DEBUG(DEBUG_CHM_verbose>1, "psm_mq_send: ctx = %d tag = %d\n", m.parts.context_id, m.parts.tag);
+        PRINT_DEBUG(DEBUG_CHM_verbose>1, "psm_mq_send: dst = %d src = %d\n", dest, m.parts.rank);
     #endif
 
     if(blocking && !CAN_BLK_PSM(buflen))
         blocking = 0;
 
-    if(blocking) {
-        DBG("blocking send\n");
+    if((blocking) && (likely(buflen <= ipath_max_transfer_size))){
+        PRINT_DEBUG(DEBUG_CHM_verbose>1, "blocking send\n");
         _psm_enter_;
         psmerr = PSM_SEND(psmdev_cw.mq, psmdev_cw.epaddrs[dest],
                 flags, stag, buf, buflen);
@@ -114,14 +121,14 @@ PSM_ERROR_T psm_send_pkt(MPID_Request **rptr, MPIDI_Message_match m,
         }
     } else {
         if(!req) {
-            DBG("psm_send_pkt created new req\n");
+            PRINT_DEBUG(DEBUG_CHM_verbose>1, "psm_send_pkt created new req\n");
             req = psm_create_req();
             req->kind = MPID_REQUEST_SEND;
             *rptr = req;
         }
 
         req->psm_flags |= PSM_NON_BLOCKING_SEND;
-        DBG("nb send posted for blocking mpi_send\n");
+        PRINT_DEBUG(DEBUG_CHM_verbose>1, "nb send posted for blocking mpi_send\n");
         _psm_enter_;
         if ((unlikely(buflen > ipath_max_transfer_size))) {
             psmerr = PSM_LARGE_ISEND(rptr, dest, buf, buflen, stag, flags);
@@ -155,17 +162,17 @@ PSM_ERROR_T psm_isend_pkt(MPID_Request *req, MPIDI_Message_match m,
     MAKE_PSM_SELECTOR(stag, m.parts.context_id, m.parts.tag, m.parts.rank);
     assert(req);
     if(req->psm_flags & PSM_SYNC_SEND) {
-        DBG("sync Isend psm\n");
+        PRINT_DEBUG(DEBUG_CHM_verbose>1, "sync Isend psm\n");
         flags = PSM_MQ_FLAG_SENDSYNC;
     }
 
     assert(dest < psmdev_cw.pg_size);
     #if PSM_VERNO >= PSM_2_1_VERSION
-        DBG("psm2_mq_isend: ctx = %d tag = %d\n", m.context_id, m.tag);
-        DBG("psm2_mq_isend: dst = %d src = %d\n", dest, m.rank);
+        PRINT_DEBUG(DEBUG_CHM_verbose>1, "psm2_mq_isend: ctx = %d tag = %d\n", m.parts.context_id, m.parts.tag);
+        PRINT_DEBUG(DEBUG_CHM_verbose>1, "psm2_mq_isend: dst = %d src = %d\n", dest, m.parts.rank);
     #else
-        DBG("psm_mq_isend: ctx = %d tag = %d\n", m.context_id, m.tag);
-        DBG("psm_mq_isend: dst = %d src = %d\n", dest, m.rank);
+        PRINT_DEBUG(DEBUG_CHM_verbose>1, "psm_mq_isend: ctx = %d tag = %d\n", m.parts.context_id, m.parts.tag);
+        PRINT_DEBUG(DEBUG_CHM_verbose>1, "psm_mq_isend: dst = %d src = %d\n", dest, m.parts.rank);
     #endif
 
     _psm_enter_;

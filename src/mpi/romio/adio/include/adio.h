@@ -207,7 +207,10 @@ typedef struct ADIOI_FileD {
     int is_agg;              /* bool: if I am an aggregator */
     char *filename;          
     int file_system;         /* type of file system */
-    int access_mode;         /* Access mode (sequential, append, etc.) */
+    int access_mode;         /* Access mode (sequential, append, etc.),
+				possibly modified to deal with
+				data sieving or deferred open*/
+    int orig_access_mode;    /* Access mode provided by user: unmodified */
     ADIO_Offset disp;        /* reqd. for MPI-IO */
     MPI_Datatype etype;      /* reqd. for MPI-IO */
     MPI_Datatype filetype;   /* reqd. for MPI-IO */
@@ -236,6 +239,10 @@ typedef struct ADIOI_FileD {
     MPI_Datatype *file_realm_types;  /* file realm datatypes */
     int my_cb_nodes_index; /* my index into cb_config_list. -1 if N/A */
     char *io_buf;          /* two-phase buffer allocated out of i/o path */
+    MPI_Win io_buf_window; /* Window over the io_buf to support one-sided aggregation */
+    int *io_buf_put_amounts; /* array tracking the amount of data mpi_put into the io_buf
+                                during the same round of one-sided write aggregation */
+    MPI_Win io_buf_put_amounts_window; /* Window over the io_buf_put_amounts */
     /* External32 */
     int is_external32;      /* bool:  0 means native view */
 
@@ -298,6 +305,7 @@ typedef struct {
 #define ADIO_ZOIDFS              167   /* ZoidFS: the I/O forwarding fs */
 /* #define ADIO_BG               168 */
 #define ADIO_GPFS                  168
+#define ADIO_IME                 169   /* IME burst buffer */
 
 #define ADIO_SEEK_SET            SEEK_SET
 #define ADIO_SEEK_CUR            SEEK_CUR
@@ -398,6 +406,14 @@ void ADIO_IwriteStrided(ADIO_File fd, void *buf, int count,
 		       MPI_Datatype datatype, int file_ptr_type,
 		       ADIO_Offset offset, ADIO_Request *request, int
 		       *error_code);
+void ADIO_IreadStridedColl(ADIO_File fd, void *buf, int count,
+               MPI_Datatype datatype, int file_ptr_type,
+               ADIO_Offset offset, ADIO_Request *request,
+               int *error_code);
+void ADIO_IwriteStridedColl(ADIO_File fd, void *buf, int count,
+               MPI_Datatype datatype, int file_ptr_type,
+               ADIO_Offset offset, ADIO_Request *request,
+               int *error_code);
 ADIO_Offset ADIO_SeekIndividual(ADIO_File fd, ADIO_Offset offset, 
                        int whence, int *error_code);
 void ADIO_Delete(char *filename, int *error_code);

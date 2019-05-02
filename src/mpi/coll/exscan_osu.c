@@ -1,5 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
-/* Copyright (c) 2001-2016, The Ohio State University. All rights
+/* Copyright (c) 2001-2019, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -20,10 +20,12 @@
 #include "coll_shmem.h"
 #include <unistd.h>
 
+MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_exscan_algo);
+
 #undef FUNCNAME
 #define FUNCNAME MPIR_Exscan_MV2
 #undef FCNAME
-#define FCNAME MPIU_QUOTE(FUNCNAME)
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIR_Exscan_MV2( 
     const void *sendbuf,
     void *recvbuf,
@@ -31,9 +33,12 @@ int MPIR_Exscan_MV2(
     MPI_Datatype datatype,
     MPI_Op op,
     MPID_Comm *comm_ptr,
-    int *errflag )
+    MPIR_Errflag_t *errflag )
 {
     int mpi_errno = MPI_SUCCESS;
+
+    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_exscan_algo, 1);
+
 #ifdef _ENABLE_CUDA_
     int recv_mem_type = 0;
     int send_mem_type = 0;
@@ -74,7 +79,7 @@ int MPIR_Exscan_MV2(
 #endif
     
     mpi_errno = MPIR_Exscan(sendbuf, recvbuf, count, datatype, op, comm_ptr, errflag);
-    if (mpi_errno) MPIU_ERR_POP(mpi_errno);
+    if (mpi_errno) MPIR_ERR_POP(mpi_errno);
 #ifdef _ENABLE_CUDA_
     if(rdma_enable_cuda && recv_mem_type){
         recvbuf = temp_recvbuf;
@@ -98,7 +103,7 @@ int MPIR_Exscan_MV2(
     }
 #endif
     if (mpi_errno)
-        MPIU_ERR_POP(mpi_errno);
+        MPIR_ERR_POP(mpi_errno);
     
   fn_exit:
     return mpi_errno;

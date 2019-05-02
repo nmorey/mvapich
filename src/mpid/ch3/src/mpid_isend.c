@@ -3,7 +3,7 @@
  *  (C) 2001 by Argonne National Laboratory.
  *      See COPYRIGHT in top-level directory.
  */
-/* Copyright (c) 2001-2016, The Ohio State University. All rights
+/* Copyright (c) 2001-2019, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -41,8 +41,8 @@ extern MPID_Request *mv2_dummy_request;
 #undef FUNCNAME
 #define FUNCNAME MPID_Isend
 #undef FCNAME
-#define FCNAME MPIDI_QUOTE(FUNCNAME)
-int MPID_Isend(const void * buf, int count, MPI_Datatype datatype, int rank, 
+#define FCNAME MPL_QUOTE(FUNCNAME)
+int MPID_Isend(const void * buf, MPI_Aint count, MPI_Datatype datatype, int rank,
 	       int tag, MPID_Comm * comm, int context_offset,
                MPID_Request ** request)
 {
@@ -58,6 +58,9 @@ int MPID_Isend(const void * buf, int count, MPI_Datatype datatype, int rank,
 #if !defined(CHANNEL_MRAIL)
     int eager_threshold = -1;
 #endif
+#ifdef _ENABLE_CUDA_
+    int cuda_transfer_mode = NONE;
+#endif 
     int mpi_errno = MPI_SUCCESS;
     MPIDI_STATE_DECL(MPID_STATE_MPID_ISEND);
 
@@ -69,10 +72,10 @@ int MPID_Isend(const void * buf, int count, MPI_Datatype datatype, int rank,
 
     /* Check to make sure the communicator hasn't already been revoked */
     if (comm->revoked &&
-            MPIR_AGREE_TAG != MPIR_TAG_MASK_ERROR_BIT(tag & ~MPIR_Process.tagged_coll_mask) &&
-            MPIR_SHRINK_TAG != MPIR_TAG_MASK_ERROR_BIT(tag & ~MPIR_Process.tagged_coll_mask)) {
+            MPIR_AGREE_TAG != MPIR_TAG_MASK_ERROR_BITS(tag & ~MPIR_Process.tagged_coll_mask) &&
+            MPIR_SHRINK_TAG != MPIR_TAG_MASK_ERROR_BITS(tag & ~MPIR_Process.tagged_coll_mask)) {
         MPIU_DBG_MSG(CH3_OTHER,VERBOSE,"Communicator revoked. MPID_ISEND returning");
-        MPIU_ERR_SETANDJUMP(mpi_errno,MPIX_ERR_REVOKED,"**revoked");
+        MPIR_ERR_SETANDJUMP(mpi_errno,MPIX_ERR_REVOKED,"**revoked");
     }
     
     if (rank == comm->rank && comm->comm_kind != MPID_INTERCOMM)
@@ -120,9 +123,24 @@ skip_self_send:
 
     MPIDI_Datatype_get_info(count, datatype, dt_contig, data_sz, dt_ptr, 
 			                dt_true_lb);
+#ifdef _ENABLE_CUDA_
+    if (rdma_enable_cuda) { 
+        if (is_device_buffer((void *)buf)) {
+            /* buf is in the GPU device memory */
+            cuda_transfer_mode = DEVICE_TO_DEVICE;
+        } else {
+            /* buf is in the main memory */
+            cuda_transfer_mode = NONE;
+        }
+    }
+#endif
+
 #ifdef USE_EAGER_SHORT
     if ((data_sz + sizeof(MPIDI_CH3_Pkt_eager_send_t) <= vc->eager_fast_max_msg_sz) &&
         vc->eager_fast_fn && dt_contig
+#ifdef _ENABLE_CUDA_
+        && cuda_transfer_mode == NONE
+#endif
 #ifdef CKPT
         && vc->ch.state == MPIDI_CH3I_VC_STATE_IDLE
 #endif /* CKPT */
@@ -169,15 +187,15 @@ skip_self_send:
 	MPIDI_Pkt_set_seqnum(eager_pkt, seqnum);
 	MPIDI_Request_set_seqnum(sreq, seqnum);
 	
-	MPIU_THREAD_CS_ENTER(CH3COMM,vc);
+	MPID_THREAD_CS_ENTER(POBJ, vc->pobj_mutex);
 	mpi_errno = MPIDI_CH3_iSend(vc, sreq, eager_pkt, sizeof(*eager_pkt));
-	MPIU_THREAD_CS_EXIT(CH3COMM,vc);
+	MPID_THREAD_CS_EXIT(POBJ, vc->pobj_mutex);
 	/* --BEGIN ERROR HANDLING-- */
 	if (mpi_errno != MPI_SUCCESS)
 	{
             MPID_Request_release(sreq);
 	    sreq = NULL;
-            MPIU_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**ch3|eagermsg");
+            MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**ch3|eagermsg");
 	    goto fn_exit;
 	}
 	/* --END ERROR HANDLING-- */
@@ -212,13 +230,7 @@ skip_self_send:
             sreq->dev.datatype_ptr = dt_ptr;
             MPID_Datatype_add_ref(dt_ptr);
         }
-        if (is_device_buffer((void *)buf)) {
-            /* buf is in the GPU device memory */
-            sreq->mrail.cuda_transfer_mode = DEVICE_TO_DEVICE;
-        } else {
-            /* buf is in the host memory*/
-            sreq->mrail.cuda_transfer_mode = NONE;
-        }
+        sreq->mrail.cuda_transfer_mode = cuda_transfer_mode;
 
         /*forces rndv for some IPC based CUDA transfers*/
 #ifdef HAVE_CUDA_IPC

@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2016, The Ohio State University. All rights
+/* Copyright (c) 2001-2019, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -19,7 +19,7 @@
 int MPID_MRAIL_RndvSend (
     MPID_Request** sreq_p,
     const void* buf,
-    int count,
+    MPI_Aint count,
     MPI_Datatype datatype,
     int dt_contig,
     MPIDI_msg_sz_t data_sz,

@@ -1,4 +1,4 @@
-## Copyright (c) 2001-2014, The Ohio State University. All rights
+## Copyright (c) 2001-2019, The Ohio State University. All rights
 ## reserved.
 ##
 ## This file is part of the MVAPICH2 software package developed by the
@@ -13,12 +13,23 @@
 ## 	-maxrregcount values
 
 NVCC = nvcc
-NVCFLAGS = -cuda -arch sm_20 -maxrregcount 32
+NVCFLAGS = -cuda -ccbin $(CXX)
+
 SUFFIXES += .cu .cpp
 .cu.cpp:
 	$(NVCC) $(NVCFLAGS) $(INCLUDES) $(CPPFLAGS) --output-file $@ $<
 
-mpi_core_sources += \
-    src/mpid/ch3/channels/mrail/src/cuda/pack_unpack.cu
+noinst_LTLIBRARIES += lib/lib@MPILIBNAME@_cuda_osu.la
+lib_lib@MPILIBNAME@_cuda_osu_la_SOURCES =                   \
+	    src/mpid/ch3/channels/mrail/src/cuda/pack_unpack.cu
 
-lib_lib@MPILIBNAME@_la_LIBADD += -lstdc++
+lib_lib@MPILIBNAME@_cuda_osu_la_CXXFLAGS = $(AM_CXXFLAGS)
+### use extra flags if host compiler is PGI
+if BUILD_USE_PGI
+lib_lib@MPILIBNAME@_cuda_osu_la_CXXFLAGS += --nvcchost --no_preincludes
+endif
+lib_lib@MPILIBNAME@_cuda_osu_la_LIBADD = -lstdc++
+
+lib_lib@MPILIBNAME@_la_LIBADD += lib/lib@MPILIBNAME@_cuda_osu.la
+
+CLEANFILES += src/mpid/ch3/channels/mrail/src/cuda/*.cpp
