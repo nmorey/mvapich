@@ -707,8 +707,6 @@ int rdma_open_hca(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
     return mpi_errno;
 
   fn_fail:
-    /* Clean up before exit */
-    ibv_free_device_list(dev_list);
     goto fn_exit;
 }
 
