@@ -25358,7 +25358,7 @@ fi
 if test "${with_hydra_ckpointlib+set}" = set; then :
   withval=$with_hydra_ckpointlib;  hydra_ckpointlib_list=$withval
 else
-   hydra_ckpointlib_list=blcr
+   hydra_ckpointlib_list=none
 fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking checkpointing library" >&5

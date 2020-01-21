@@ -3,7 +3,7 @@
 
 Automatically generated
   by:   ./maint/extractcvars
-  at:   Fri Aug  9 11:38:39 2019
+  at:   Mon Jan  6 15:48:01 2020
 DO NOT EDIT!!!
 
 This file lists the various environment variables available to change the
@@ -749,7 +749,7 @@ MPIR_CVAR_USE_MCAST
              MV2_USE_MCAST
     Description: Set this to 1, to enable hardware multicast support in
         collective communication.
-    Default: 0
+    Default: 1
 
 MPIR_CVAR_COALESCE_THRESHOLD
     Aliases: MPIR_PARAM_COALESCE_THRESHOLD

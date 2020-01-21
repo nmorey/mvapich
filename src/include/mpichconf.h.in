@@ -171,6 +171,9 @@
 /* Directory to use in namepub */
 #undef FILE_NAMEPUB_BASEDIR
 
+/* Define if using flux pmi client */
+#undef FLUX_PMI_CLIENT
+
 /* Define if addresses are a different size than Fortran integers */
 #undef HAVE_AINT_DIFFERENT_THAN_FINT
 
@@ -829,6 +832,9 @@
 /* Define if we have __va_copy */
 #undef HAVE___VA_COPY
 
+/* Define if using jsm pmi client */
+#undef JSM_PMI_CLIENT
+
 /* Define which x86 cycle counter to use */
 #undef LINUX86_CYCLE_CPUID_RDTSC32
 
@@ -1266,6 +1272,9 @@
 
 /* Define if PMI2 API must be used */
 #undef USE_PMI2_API
+
+/* Define if PMIx client supports PMIx */
+#undef USE_PMIX_API
 
 /* Define if access to PMI information through a port rather than just an fd
    is allowed */
