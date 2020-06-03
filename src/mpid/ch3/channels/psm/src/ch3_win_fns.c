@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /*
- * Copyright (c) 2001-2019, The Ohio State University. All rights
+ * Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -785,6 +785,13 @@ static int MPIDI_CH3I_Win_allocate_shm(MPI_Aint size, int disp_unit, MPID_Info *
             mpi_errno =
                 MPIDI_CH3U_Win_allocate_no_shm(size, disp_unit, info, comm_ptr, base_ptr, win_ptr);
             (*win_ptr)->shm_allocated = FALSE;
+
+            static uint8_t shown_warning = 0;
+            PRINT_INFO(( !shown_warning && (*win_ptr)->comm_ptr->rank == 0),
+                        "\n\t[WARNING] Shared memory window cannot be created, "
+                        "for better performance, please consider increasing the value of MV2_SHMEM_COLL_NUM_COMM (current value %d)\n\n", mv2_g_shmem_coll_blocks);
+            shown_warning = 1;
+
             goto fn_exit;
         }
 

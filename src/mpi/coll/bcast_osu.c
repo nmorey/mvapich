@@ -1,5 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -44,6 +44,8 @@ MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_bcast_knomial_internode);
 MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_bcast_knomial_intranode);
 MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_bcast_mcast_internode);
 MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_bcast_pipelined);
+MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_bcast_pipelined_zcpy);
+MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_bcast_shmem_zcpy);
 MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_bcast_subcomm);
 
 MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_bcast_binomial_bytes_send);
@@ -1804,6 +1806,8 @@ int MPIR_Shmem_Bcast_Zcpy_MV2(void *buffer,
     MPI_Comm shmem_comm; 
     MPID_Comm *shmem_commptr=NULL;
 
+    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_bcast_shmem_zcpy, 1);
+
     MPID_Datatype_get_size_macro(datatype, type_size);
     nbytes = (MPIDI_msg_sz_t) (count) * (type_size);
     shmem_comm = comm_ptr->dev.ch.shmem_comm; 
@@ -1879,6 +1883,8 @@ int MPIR_Pipelined_Bcast_Zcpy_MV2(void *buffer,
      * the datatype might have some holes in the beginning. Therefore, true_lb
      * might be non zero */
     tmp_buf = buffer + true_lb;
+
+    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_bcast_pipelined_zcpy, 1);
 
     rank       = comm_ptr->rank; 
     shmem_comm = comm_ptr->dev.ch.shmem_comm;

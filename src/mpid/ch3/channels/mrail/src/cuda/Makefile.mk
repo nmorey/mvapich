@@ -1,4 +1,4 @@
-## Copyright (c) 2001-2019, The Ohio State University. All rights
+## Copyright (c) 2001-2020, The Ohio State University. All rights
 ## reserved.
 ##
 ## This file is part of the MVAPICH2 software package developed by the
@@ -12,12 +12,15 @@
 ## todo: provide configure args for path to nvcc and specification of -arch or
 ## 	-maxrregcount values
 
+AM_NVCCFLAGS = $(NVCCFLAGS)
+
 NVCC = nvcc
-NVCFLAGS = -cuda -ccbin $(CXX)
+NVCFLAGS = -cuda -ccbin $(CXX) $(AM_NVCCFLAGS)
 
 SUFFIXES += .cu .cpp
 .cu.cpp:
-	$(NVCC) $(NVCFLAGS) $(INCLUDES) $(CPPFLAGS) --output-file $@ $<
+	$(NVCC) $(NVCFLAGS) $(INCLUDES) $(CPPFLAGS) --output-file $@.ii $<
+	mv $@.ii $@
 
 noinst_LTLIBRARIES += lib/lib@MPILIBNAME@_cuda_osu.la
 lib_lib@MPILIBNAME@_cuda_osu_la_SOURCES =                   \

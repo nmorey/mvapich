@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  * Copyright (c) 2016, Intel, Inc. All rights reserved.
  *
@@ -83,6 +83,11 @@ typedef struct _mv2_hca_types_log_t{
     char *hca_name;
 }mv2_hca_types_log_t;
 
+typedef struct _mv2_network_types_log_t{
+    mv2_iba_network_classes network_type;
+    char *network_name;
+}mv2_network_types_log_t;
+
 #define MV2_HCA_LAST_ENTRY MV2_HCA_LIST_END
 static mv2_hca_types_log_t mv2_hca_types_log[] = 
 {
@@ -124,6 +129,27 @@ static mv2_hca_types_log_t mv2_hca_types_log[] =
     /* Last Entry */
     {MV2_HCA_LAST_ENTRY,    "MV2_HCA_LAST_ENTRY"},
 };
+
+static mv2_network_types_log_t mv2_network_types_log[] =
+{
+    {MV2_NETWORK_CLASS_UNKNOWN, "MV2_NETWORK_CLASS_UNKNOWN"},
+    {MV2_NETWORK_CLASS_IB,      "MV2_NETWORK_CLASS_IB"},
+    {MV2_NETWORK_CLASS_IWARP,   "MV2_NETWORK_CLASS_IWARP"}
+};
+
+
+char* mv2_get_network_name(mv2_iba_network_classes network_type)
+{
+    int i=0;
+    while(mv2_network_types_log[i].network_type != MV2_NETWORK_LAST_ENTRY){
+
+        if(mv2_network_types_log[i].network_type == network_type){
+            return(mv2_network_types_log[i].network_name);
+        }
+        i++;
+    }
+    return("MV2_NETWORK_CLASS_UNKNOWN");
+}
 
 char* mv2_get_hca_name(mv2_hca_type hca_type)
 {
@@ -419,7 +445,7 @@ mv2_hca_type mv2_get_hca_type( struct ibv_device *dev )
     }
 
 #ifdef HAVE_LIBIBUMAD
-    static char last_name[UMAD_CA_NAME_LEN] = { '\0' };
+    static char last_name[UMAD_CA_NAME_LEN+1] = { '\0' };
     static mv2_hca_type last_type = MV2_HCA_UNKWN;
     if (!strncmp(dev_name, last_name, UMAD_CA_NAME_LEN)) {
         return last_type;

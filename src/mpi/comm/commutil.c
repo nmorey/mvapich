@@ -4,7 +4,7 @@
  *      See COPYRIGHT in top-level directory.
  */
 
- /* Copyright (c) 2001-2019, The Ohio State University. All rights
+ /* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -137,6 +137,7 @@ int MPIR_Comm_init(MPID_Comm * comm_p)
     comm_p->dev.ch.leader_rank = NULL;
     comm_p->dev.ch.node_disps  = NULL;
     comm_p->dev.ch.rank_list   = NULL;
+    comm_p->dev.ch.coll_tmp_buf = NULL;
 
     comm_p->dev.ch.socket_size=0;
     comm_p->dev.ch.use_intra_sock_comm=0;

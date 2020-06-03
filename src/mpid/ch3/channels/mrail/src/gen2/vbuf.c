@@ -12,7 +12,7 @@
  *          Michael Welcome  <mlwelcome@lbl.gov>
  */
 
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -78,21 +78,21 @@ void dump_vbuf(char* msg, vbuf* v)
     int i = 0;
     int len = 100;
     MPIDI_CH3I_MRAILI_Pkt_comm_header* header = v->pheader;
-    DEBUG_PRINT("%s: dump of vbuf %p, type = %d\n", msg, v, header->type);
+    PRINT_DEBUG(DEBUG_VBUF_verbose, "%s: dump of vbuf %p, type = %d\n", msg, v, header->type);
     len = 100;
 
     for (; i < len; ++i)
     {
         if (0 == i % 16)
         {
-            DEBUG_PRINT("\n  ");
+            PRINT_DEBUG(DEBUG_VBUF_verbose, "\n  ");
         }
 
-        DEBUG_PRINT("%2x  ", (unsigned int) v->buffer[i]);
+        PRINT_DEBUG(DEBUG_VBUF_verbose, "%2x  ", (unsigned int) v->buffer[i]);
     }
 
-    DEBUG_PRINT("\n");
-    DEBUG_PRINT("  END OF VBUF DUMP\n");
+    PRINT_DEBUG(DEBUG_VBUF_verbose, "\n");
+    PRINT_DEBUG(DEBUG_VBUF_verbose, "  END OF VBUF DUMP\n");
 }
 #endif /* defined(DEBUG) */
 
@@ -112,7 +112,7 @@ void mv2_print_vbuf_usage_usage()
         vbuf_n_allocated += rdma_vbuf_pools[i].num_allocated;
         tot_mem += size;
 
-        PRINT_INFO(DEBUG_MEM_verbose > 0, "[Pool: %d, Size:%lu] num_bufs:%u, tot_mem:%ld kB,"
+        PRINT_INFO(DEBUG_VBUF_verbose > 0, "[Pool: %d, Size:%lu] num_bufs:%u, tot_mem:%ld kB,"
                     " num_get = %ld, num_freed = %ld\n", i,
                     (long unsigned int)rdma_vbuf_pools[i].buf_size, rdma_vbuf_pools[i].num_allocated,
                     (size/1024),
@@ -120,13 +120,13 @@ void mv2_print_vbuf_usage_usage()
     }
 
 #if defined(_ENABLE_UD_) || defined(_MCST_SUPPORT_)
-    PRINT_INFO(DEBUG_MEM_verbose, "RC VBUFs:%d  UD VBUFs:%d TOT MEM:%lu kB\n",
+    PRINT_INFO(DEBUG_VBUF_verbose, "RC VBUFs:%d  UD VBUFs:%d TOT MEM:%lu kB\n",
                     vbuf_n_allocated, ud_vbuf_n_allocated, (tot_mem / 1024));
 #else
-    PRINT_INFO(DEBUG_MEM_verbose, "RC VBUFs:%d, TOT MEM:%lu kB\n",
+    PRINT_INFO(DEBUG_VBUF_verbose, "RC VBUFs:%d, TOT MEM:%lu kB\n",
                     vbuf_n_allocated, (tot_mem / 1024));
 #endif
-    PRINT_INFO(DEBUG_MEM_verbose, "Reposted VBUF stats: num_freed = %ld, num_get = %ld\n",
+    PRINT_INFO(DEBUG_VBUF_verbose, "Reposted VBUF stats: num_freed = %ld, num_get = %ld\n",
                 mv2_srq_repost_pool.num_freed, mv2_srq_repost_pool.num_get);
 }
 
@@ -174,7 +174,7 @@ void deallocate_vbufs(int hca_num)
             ibv_error_abort(IBV_RETURN_ERR, "could not deregister MR");
         }
 
-        DEBUG_PRINT("deregister vbufs\n");
+        PRINT_DEBUG(DEBUG_VBUF_verbose, "deregister vbufs\n");
         r = r->next;
     }
 
@@ -187,7 +187,7 @@ void deallocate_vbufs(int hca_num)
                 ibv_error_abort(IBV_RETURN_ERR, "could not deregister MR");
             }
 
-            DEBUG_PRINT("deregister vbufs\n");
+            PRINT_DEBUG(DEBUG_VBUF_verbose, "deregister vbufs\n");
             r = r->next;
         } 
     }
@@ -375,7 +375,8 @@ int allocate_vbuf_pool(vbuf_pool_t *rdma_vbuf_pool, int nvbufs)
         return 0;
     }
 
-    DEBUG_PRINT("Allocating a new vbuf region.\n");
+    PRINT_DEBUG(DEBUG_VBUF_verbose, "Allocating a new vbuf region with %d VBUFs of size %d. Current VBUFs in pool: %d, Max VBUFs allowed for pool: %d\n",
+                nvbufs, rdma_vbuf_pool->buf_size, rdma_vbuf_pool->num_allocated, rdma_vbuf_pool->max_num_buf);
 
     if (rdma_vbuf_pool->free_head != NULL) {
         ibv_error_abort(GEN_ASSERT_ERR, "vbuf_head = NULL");
@@ -390,7 +391,7 @@ int allocate_vbuf_pool(vbuf_pool_t *rdma_vbuf_pool, int nvbufs)
         nvbufs = MIN(nvbufs, rdma_vbuf_pool->max_num_buf  
                 - rdma_vbuf_pool->num_allocated);
         if (nvbufs <= 0) {
-            DEBUG_PRINT("max vbuf pool size reached for size : %d \n", buf_size); 
+            PRINT_DEBUG(DEBUG_VBUF_verbose, "max vbuf pool size reached for size : %d \n", buf_size); 
             mpi_errno=-1; 
             return mpi_errno;
         }
@@ -439,8 +440,8 @@ int allocate_vbuf_pool(vbuf_pool_t *rdma_vbuf_pool, int nvbufs)
     region->vbuf_head = vbuf_struct;
     region->shmid = -1;
 
-    DEBUG_PRINT(
-            "VBUF REGION ALLOCATION SZ %d TOT %d FREE %ld NF %ld NG %ld\n",
+    PRINT_DEBUG(DEBUG_VBUF_verbose, 
+            "VBUF region with %d VBUFs, Total: %d, Free: %d, Cumulative Freed: %ld, Cumulative Got: %ld\n",
             nvbufs,
             rdma_vbuf_pool->num_allocated,
             rdma_vbuf_pool->num_free,
@@ -652,7 +653,7 @@ void release_vbuf(vbuf* v)
     } else 
 #endif /* _ENABLE_UD_ */
     {
-        DEBUG_PRINT("release_vbuf: releasing %p padding %d\n", v, rdma_vbuf_pool->free_head, v->padding);
+        PRINT_DEBUG(DEBUG_VBUF_verbose>1, "release_vbuf: %p releasing free_head %p padding %d\n", v, rdma_vbuf_pool->free_head, v->padding);
         MV2_RELEASE_RC_VBUF(v, rdma_vbuf_pool);
     }
 

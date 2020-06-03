@@ -3,7 +3,7 @@
  *  (C) 2001 by Argonne National Laboratory.
  *      See COPYRIGHT in top-level directory.
  */
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -1185,6 +1185,32 @@ int MPIDI_Get_local_host(MPIDI_PG_t *pg, int our_pg_rank)
     pg->ch.local_process_id = 0;
     pg->ch.num_local_processes = 0;
 
+#ifdef USE_PMIX_API
+    pmi_errno = UPMI_GET_LOCAL_SIZE(&pg->ch.num_local_processes);
+    MPIR_ERR_CHKANDJUMP1(pmi_errno != UPMI_SUCCESS, mpi_errno, MPI_ERR_OTHER, "**pmi_kvs_get", "**pmi_kvs_get %d", pmi_errno);
+
+    pmi_errno = UPMI_GET_LOCAL_RANK(our_pg_rank, &pg->ch.local_process_id);
+    MPIR_ERR_CHKANDJUMP1(pmi_errno != UPMI_SUCCESS, mpi_errno, MPI_ERR_OTHER, "**pmi_kvs_get", "**pmi_kvs_get %d", pmi_errno);
+
+    int lowest_rank;
+    pmi_errno = UPMI_GET_LOWEST_RANK(&lowest_rank);
+    MPIR_ERR_CHKANDJUMP1(pmi_errno != UPMI_SUCCESS, mpi_errno, MPI_ERR_OTHER, "**pmi_kvs_get", "**pmi_kvs_get %d", pmi_errno);
+
+    int largest_rank=pg->ch.num_local_processes + lowest_rank;
+
+    j=0;
+    for (i = 0; i < pg->size; ++i) {
+        MPIDI_PG_Get_vc(pg, i, &vc);
+        if((i >= lowest_rank) && (i<largest_rank)) {
+            vc->smp.local_rank=j;
+            j++;
+        } else {
+            vc->smp.local_rank = -1;
+        }
+    }
+
+#else
+
     mpi_errno = publish_host_id(pg, our_pg_rank);
     if (mpi_errno) {
         MPIR_ERR_POP(mpi_errno);
@@ -1249,6 +1275,7 @@ int MPIDI_Get_local_host(MPIDI_PG_t *pg, int our_pg_rank)
         host_ids[i] = -1;
         pg->vct[i].node_id = g_max_node_id - 1;
     }
+#endif
 
 fn_fail:
     MPIU_Free(key);

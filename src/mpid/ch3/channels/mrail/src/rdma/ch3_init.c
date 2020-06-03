@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -126,6 +126,12 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
         threshold = MPIDI_CH3I_CM_DEFAULT_ON_DEMAND_THRESHOLD;
     }
 
+    if ((value = getenv("MV2_IOV_DENSITY_MIN")) != NULL) {
+        mv2_iov_density_min = atoi(value);
+        if (mv2_iov_density_min < 0) {
+            mv2_iov_density_min = MPIDI_IOV_DENSITY_MIN;
+        }
+    }
     /*check ON_DEMAND_THRESHOLD */
     value = getenv("MV2_ON_DEMAND_THRESHOLD");
     if (value) {
@@ -217,7 +223,7 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
         rdma_enable_only_ud = 0;
         rdma_enable_hybrid = 0;
     }
-    if(rdma_enable_hybrid == 1) { 
+    if (rdma_enable_hybrid) { 
         /* The zero-copy bcast design is disabled when 
          * hybrid is used */ 
         mv2_enable_zcpy_bcast = 0; 
@@ -390,6 +396,17 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
         rdma_polling_level = atoi(value);
     }
     if (!SMP_ONLY) {
+        /* ibv_fork_init() initializes libibverbs's data structures to handle
+         * fork() function calls correctly and avoid data corruption, whether
+         * fork() is called explicitly or implicitly (such as in system()).
+         * If the user requested support for fork safety, call ibv_fork_init */
+        if (((value = getenv("MV2_SUPPORT_FORK_SAFETY")) != NULL) && !!atoi(value)) {
+            mpi_errno = ibv_fork_init();
+            if (mpi_errno) {
+                MPIR_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**fail",
+                        "**fail %s", "ibv_fork_init");
+            }
+        }
         /*
          * Identify local rank and number of local processes
          */

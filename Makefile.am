@@ -212,7 +212,7 @@ DIST_SUBDIRS += . examples test
 
 if BUILD_OSU_MVAPICH
 AM_CPPFLAGS += -Icontrib/hwloc/include/ -I$(top_srcdir)/contrib/hwloc/include
-lib_lib@MPILIBNAME@_la_LIBADD += contrib/hwloc/src/libhwloc_embedded.la
+lib_lib@MPILIBNAME@_la_LIBADD += contrib/hwloc/hwloc/libhwloc_embedded.la
 endif
 
 EXTRA_DIST += README CHANGES COPYRIGHT README.envvar

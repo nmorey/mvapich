@@ -3,7 +3,7 @@
  *  (C) 2001 by Argonne National Laboratory.
  *      See COPYRIGHT in top-level directory.
  */
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -16,6 +16,9 @@
  */
 
 #include "mpidimpl.h"
+#if ENABLE_PVAR_MV2 && CHANNEL_MRAIL
+#include "mv2_mpit_cvars.h"
+#endif
 #ifdef CHANNEL_MRAIL
 #include "upmi.h"
 #endif
@@ -32,6 +35,8 @@
 extern void free_cvar_handles();
 #endif
 
+void mv2_free_hca_handle();
+void mv2_free_arch_handle();
 /* FIXME: This routine needs to be factored into finalize actions per module,
    In addition, we should consider registering callbacks for those actions
    rather than direct routine calls.

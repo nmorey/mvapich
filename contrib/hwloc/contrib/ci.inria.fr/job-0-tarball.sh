@@ -60,4 +60,7 @@ if ! make distcheck; then
   false
 fi
 
+# this test requires bash and grep -P, only run it in the main job
+make check -C contrib/windows
+
 exit 0

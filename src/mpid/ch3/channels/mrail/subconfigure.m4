@@ -1,5 +1,9 @@
 [#] start of __file__
 dnl
+dnl Add NVCCFLAGS for additional flags
+AC_ARG_VAR(NVCCFLAGS,
+	[extra NVCCFLAGS used in building MVAPICH libraries with CUDA kernel support])
+dnl
 dnl _PREREQ handles the former role of mpich2prereq, setup_device, etc
 AC_DEFUN([PAC_SUBCFG_PREREQ_]PAC_SUBCFG_AUTO_SUFFIX, [
     AS_IF([test "X$device_name" = "Xch3" -a "X$channel_name" = "Xmrail"],
@@ -227,7 +231,12 @@ AC_ARG_WITH([ftb],
             [AS_HELP_STRING([--with-ftb@[:@=path@:]@],
                             [provide path to ftb package])
             ],
-            [],
+            [AS_CASE([$with_ftb],
+                     [yes|no], [AC_MSG_ERROR([arg to --with-ftb must be a path])],
+                    [CPPFLAGS="$CPPFLAGS -I$with_ftb/include"]
+                     [LDFLAGS="$LDFLAGS -L$with_ftb/lib"]
+                    [with_ftb=yes])
+            ],
             [with_ftb=check])
 
 AC_ARG_WITH([ftb-include],
@@ -235,7 +244,9 @@ AC_ARG_WITH([ftb-include],
                             [specify the path to the ftb header files])
             ],
             [AS_CASE([$with_ftb_include],
-                     [yes|no], [AC_MSG_ERROR([arg to --with-ftb-include must be a path])])
+                     [yes|no], [AC_MSG_ERROR([arg to --with-ftb-include must be a path])],
+                    [CPPFLAGS="$CPPFLAGS -I$with_ftb_include"]
+                    [with_ftb=yes])
             ],
             [])
 
@@ -244,7 +255,9 @@ AC_ARG_WITH([ftb-libpath],
                             [specify the path to the ftb library])
             ],
             [AS_CASE([$with_ftb_libpath],
-                     [yes|no], [AC_MSG_ERROR([arg to --with-ftb-libpath must be a path])])
+                     [yes|no], [AC_MSG_ERROR([arg to --with-ftb-libpath must be a path])],
+                     [LDFLAGS="$LDFLAGS -L$with_ftb_libpath"]
+                    [with_ftb=yes])
             ],
             [])
 
@@ -252,7 +265,12 @@ AC_ARG_WITH([blcr],
             [AS_HELP_STRING([--with-blcr@[:@=path@:]@],
                             [provide path to blcr package])
             ],
-            [],
+            [AS_CASE([$with_blcr],
+                     [yes|no], [AC_MSG_ERROR([arg to --with-blcr must be a path])],
+                    [CPPFLAGS="$CPPFLAGS -I$with_blcr/include"]
+                     [LDFLAGS="$LDFLAGS -L$with_blcr/lib"]
+                    [with_blcr=yes])
+            ],
             [with_blcr=check])
 
 AC_ARG_WITH([blcr-include],
@@ -260,7 +278,9 @@ AC_ARG_WITH([blcr-include],
                             [specify the path to the blcr header files])
             ],
             [AS_CASE([$with_blcr_include],
-                     [yes|no], [AC_MSG_ERROR([arg to --with-blcr-include must be a path])])
+                     [yes|no], [AC_MSG_ERROR([arg to --with-blcr-include must be a path])],
+                    [CPPFLAGS="$CPPFLAGS -I$with_blcr_include"]
+                    [with_blcr=yes])
             ],
             [])
 
@@ -269,7 +289,43 @@ AC_ARG_WITH([blcr-libpath],
                             [specify the path to the blcr library])
             ],
             [AS_CASE([$with_blcr_libpath],
-                     [yes|no], [AC_MSG_ERROR([arg to --with-blcr-libpath must be a path])])
+                     [yes|no], [AC_MSG_ERROR([arg to --with-blcr-libpath must be a path])],
+                     [LDFLAGS="$LDFLAGS -L$with_blcr_libpath"]
+                    [with_blcr=yes])
+            ],
+            [])
+
+AC_ARG_WITH([fuse],
+            [AS_HELP_STRING([--with-fuse@[:@=path@:]@],
+                            [provide path to fuse package])
+            ],
+            [AS_CASE([$with_fuse],
+                     [yes|no], [AC_MSG_ERROR([arg to --with-fuse must be a path])],
+                    [CPPFLAGS="$CPPFLAGS -I$with_fuse/include"]
+                     [LDFLAGS="$LDFLAGS -L$with_fuse/lib"]
+                    [with_fuse=yes])
+            ],
+            [with_fuse=check])
+
+AC_ARG_WITH([fuse-include],
+            [AS_HELP_STRING([--with-fuse-include=@<:@path@:>@],
+                            [specify the path to the fuse header files])
+            ],
+            [AS_CASE([$with_fuse_include],
+                     [yes|no], [AC_MSG_ERROR([arg to --with-fuse-include must be a path])],
+                    [CPPFLAGS="$CPPFLAGS -I$with_fuse_include"]
+                    [with_fuse=yes])
+            ],
+            [])
+
+AC_ARG_WITH([fuse-libpath],
+            [AS_HELP_STRING([--with-fuse-libpath=@<:@path@:>@],
+                            [specify the path to the fuse library])
+            ],
+            [AS_CASE([$with_fuse_libpath],
+                     [yes|no], [AC_MSG_ERROR([arg to --with-fuse-libpath must be a path])],
+                     [LDFLAGS="$LDFLAGS -L$with_fuse_libpath"]
+                    [with_fuse=yes])
             ],
             [])
 
@@ -331,60 +387,22 @@ AS_CASE([$enable_cuda],
         [basic], [build_mrail_cuda=yes])
 
 AS_IF([test x$build_mrail_cuda_kernels = xyes],
-        [AC_DEFINE([USE_GPU_KERNEL], [1], [Define to enable cuda kernel functions])])
+        [AC_DEFINE([USE_GPU_KERNEL], [1], [Define to enable cuda kernel functions])]
+        NVCCFLAGS = "$NVCCFLAGS"
+        export NVCCFLAGS
+     )
 
 AS_IF([test "x$enable_3dtorus_support" != xno],
       [AC_DEFINE([ENABLE_3DTORUS_SUPPORT], [1],
                  [Define to enable 3D Torus support])])
 
-AS_CASE([$with_ftb],
-        [yes|no|check], [],
-        [with_ftb_include="$with_ftb/include"
-         with_ftb_libpath="$with_ftb/lib"
-         with_ftb=yes])
-
-AS_IF([test -n "$with_ftb_include"],
-      [CPPFLAGS="$CPPFLAGS -I$with_ftb_include"
-       with_ftb=yes])
-
-AS_IF([test -n "$with_ftb_libpath"],
-      [LDFLAGS="$LDFLAGS -L$with_ftb_libpath"
-       mrail_ld_library_path="$with_ftb_libpath:$mrail_ld_library_path"
-       FFLAGS="-L$with_ftb_libpath $FFLAGS"
-       LDFLAGS="-L$with_ftb_libpath $LDFLAGS"
-       with_ftb=yes])
-
-AS_CASE([$with_blcr],
-        [yes|no|check], [],
-        [with_blcr_include="$with_blcr/include"
-         with_blcr_libpath="$with_blcr/lib"
-         with_blcr=yes])
-
-AS_IF([test -n "$with_blcr_include"],
-      [CPPFLAGS="$CPPFLAGS -I$with_blcr_include"
-       with_blcr=yes])
-
-AS_IF([test -n "$with_blcr_libpath"],
-      [LDFLAGS="$LDFLAGS -L$with_blcr_libpath"
-       mrail_ld_library_path="$with_blcr_libpath:$mrail_ld_library_path"
-       FFLAGS="-L$with_blcr_libpath $FFLAGS"
-       LDFLAGS="-L$with_blcr_libpath $LDFLAGS"
-       with_blcr=yes])
-
 AS_IF([test "x$enable_ckpt" = xdefault], [
-       AS_IF([test "x$enable_ckpt_aggregation" = xyes || test "x$enable_ckpt_migration" = xyes], [enable_ckpt=yes], [enable_ckpt=no])
-       ])
+       AS_IF([test "x$enable_ckpt_aggregation" = xyes || test "x$enable_ckpt_migration" = xyes],
+             [enable_ckpt=yes],
+             [enable_ckpt=no])
+     ])
 
 
-AS_IF([test "x$with_blcr" = "xno"], [
-       AS_IF([test "x$enable_ckpt" = "xyes"], [AC_MSG_ERROR([BLCR is required if Checkpoint/Restart is enabled])])
-       AS_IF([test "x$enable_ckpt_migration" = "xyes"], [AC_MSG_ERROR([BLCR is required if Checkpoint/Restart Migration is enabled])])
-       ])
-
-AS_IF([test "x$with_ftb" = "xno"], [
-       AS_IF([test "x$enable_ckpt_migration" = "xyes"], [AC_MSG_ERROR([FTB is required if Checkpoint/Restart Migration is enabled])])
-       ])
-        
 AS_IF([test "x$enable_ckpt_migration" = "xyes"], [
        AS_IF([test "x$with_ftb" = "xcheck"], [with_ftb=yes])
        ])
@@ -397,10 +415,49 @@ AS_IF([test "x$enable_ckpt" = xyes], [
        AC_SEARCH_LIBS([cr_init],
                       [cr],
                       [],
-                      [AC_MSG_ERROR([libcr not found.])],
+                      [AC_MSG_ERROR(['libcr not found. Please specify --with-blcr-libpath'])],
                       [])
 
        AC_DEFINE(CKPT, 1, [Define to enable Checkpoint/Restart support.])
+
+       AS_IF([test "x$with_fuse" = xcheck || test "x$with_fuse" = xyes], [
+              AC_MSG_NOTICE([checking checkpoint aggregation components])
+              SAVE_LIBS="$LIBS"
+              ckpt_aggregation=yes
+              AC_SEARCH_LIBS([fuse_new],
+                             [fuse],
+                             [],
+                             [AS_IF([test "x$with_fuse" = xyes], [AC_MSG_ERROR([fuse library not found])], [AC_MSG_WARN([fuse library not found])])
+                              ckpt_aggregation=no])
+              AC_SEARCH_LIBS([dlopen],
+                             [dl],
+                             [],
+                             [AS_IF([test "x$with_fuse" = xyes], [AC_MSG_ERROR([dl library not found])], [AC_MSG_WARN([dl library not found])])
+                              ckpt_aggregation=no])
+              AC_SEARCH_LIBS([pthread_create],
+                             [pthread],
+                             [],
+                             [AS_IF([test "x$with_fuse" = xyes], [AC_MSG_ERROR([pthread library not found])], [AC_MSG_WARN([pthread library not found])])
+                              ckpt_aggregation=no])
+              AC_SEARCH_LIBS([aio_read],
+                             [rt],
+                             [],
+                             [AS_IF([test "x$with_fuse" = xyes], [AC_MSG_ERROR([rt library not found])], [AC_MSG_WARN([rt library not found])])
+                              ckpt_aggregation=no])
+              AS_IF([test "$ckpt_aggregation" = no], [
+                     LIBS="$SAVE_LIBS"
+                    ], [
+                     with_fuse=yes
+                    ])
+             ])
+
+       AS_IF([test "x$with_fuse" = xyes], [
+              AC_DEFINE([CR_AGGRE], [1], [Define when using checkpoint aggregation])
+              AC_DEFINE([_FILE_OFFSET_BITS], [64], [Define to set the number of file offset bits])
+              AC_MSG_NOTICE([checkpoint aggregation enabled])
+             ], [
+              AC_MSG_WARN([checkpoint aggregation disabled])
+             ])
 
        AC_MSG_CHECKING([whether to enable support for FTB-CR])
        AC_MSG_RESULT($enable_ftb_cr)
@@ -636,6 +693,7 @@ if test "$with_rdma" = "gen2"; then
                                   [enable MVAPICH-GPU design])
                   ])
 
+    found_cuda=0
     AS_IF([test "$build_mrail_cuda" == "yes"], [
         AC_CHECK_HEADER([cuda.h],
                            [],
@@ -658,12 +716,22 @@ if test "$with_rdma" = "gen2"; then
 
 
            AC_DEFINE(_ENABLE_CUDA_,1,[Define to enable MVAPICH2-GPU design.])
+           found_cuda=1
            found_cudaipc_funcs=yes
         AC_CHECK_FUNCS([cudaIpcGetMemHandle], , found_cudaipc_funcs=no)
         if test "$found_cudaipc_funcs" = yes ; then
                AC_DEFINE(HAVE_CUDA_IPC,1,[Define to enable CUDA IPC features])
         fi
         ])
+
+dnl
+dnl create headers to expose MPIX_CUDA_AWARE_SUPPORT
+dnl
+    AC_CONFIG_HEADER([src/include/mpi-ext.h])
+    AC_CONFIG_HEADER([src/include/mpiext_cuda.h])
+
+    AC_DEFINE_UNQUOTED([MPIX_CUDA_AWARE_SUPPORT], [$found_cuda],
+                       [Macro that is set to 1 when CUDA-aware support is configured in and 0 when it is not])
 
 elif test "$with_rdma" = "udapl"; then
     :

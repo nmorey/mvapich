@@ -161,7 +161,9 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
-CONFIG_HEADER = $(top_builddir)/src/include/mpichconf.h
+CONFIG_HEADER = $(top_builddir)/src/include/mpichconf.h \
+	$(top_builddir)/src/include/mpi-ext.h \
+	$(top_builddir)/src/include/mpiext_cuda.h
 CONFIG_CLEAN_FILES = cmdtests
 CONFIG_CLEAN_VPATH_FILES =
 PROGRAMS = $(noinst_PROGRAMS)
@@ -668,6 +670,7 @@ MVAPICH2_RELEASE_DATE = @MVAPICH2_RELEASE_DATE@
 MVAPICH2_VERSION = @MVAPICH2_VERSION@
 NM = @NM@
 NMEDIT = @NMEDIT@
+NVCCFLAGS = @NVCCFLAGS@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
 OFFSET_KIND = @OFFSET_KIND@

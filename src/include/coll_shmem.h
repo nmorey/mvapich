@@ -6,7 +6,7 @@
  * All rights reserved.
  */
 
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -24,6 +24,7 @@
 #include <pthread.h>
 #include <math.h>
 #include "mpidimpl.h"
+#include "helper_fns.h"
 
 #include "mv2_arch_hca_detect.h"
 
@@ -161,6 +162,9 @@ struct allgatherv_tuning{
 #define SHMEM_BCAST_METADATA	(sizeof(addrint_t) + 2*sizeof(int))       
   /* METADATA: buffer address, offset, num_bytes */ 
 
+#define MV2_DEFAULT_IOV_DENSITY_MIN 1024
+
+extern int mv2_iov_density_min;
 extern int shmem_coll_count_threshold;
 extern int mv2_g_shmem_coll_max_msg_size;
 extern int mv2_g_shmem_coll_blocks;
@@ -173,6 +177,8 @@ extern int mv2_two_level_comm_early_init_threshold;
 extern struct coll_runtime mv2_coll_param;
 void MPIDI_CH3I_SHMEM_COLL_GetShmemBuf(int, int, int, void**);
 void MPIDI_CH3I_SHMEM_COLL_SetGatherComplete(int, int, int);
+void MPIDI_CH3I_SHMEM_COLL_GetShmemBuf_optrels(int, int, int, int, void**);
+void MPIDI_CH3I_SHMEM_COLL_SetGatherComplete_optrels(int, int, int, int);
 int create_allgather_comm(MPID_Comm * comm_ptr, MPIR_Errflag_t *errflag);
 
 #define MV2_DEFAULT_COLL_SKIP_TABLE_THRESHOLD 1024
@@ -181,6 +187,8 @@ extern int mv2_allred_use_ring;
 
 extern int mv2_coll_skip_table_threshold;
 extern int mv2_enable_skip_tuning_table_search;
+extern int mv2_enable_allreduce_skip_small_message_tuning_table_search;
+extern int mv2_enable_allreduce_skip_large_message_tuning_table_search;
 extern int mv2_tune_parameter;
 extern int mv2_use_indexed_bcast_tuning;
 extern int mv2_use_indexed_scatter_tuning;
@@ -263,9 +271,12 @@ extern void MPIDI_CH3I_SHMEM_COLL_Barrier_bcast(int, int, int);
 extern int mv2_enable_socket_aware_collectives;
 extern int mv2_use_socket_aware_barrier;
 extern int mv2_use_socket_aware_allreduce;
+extern int mv2_use_optimized_release_allreduce;
+extern int mv2_coll_tmp_buf_size;
 extern int mv2_use_socket_aware_sharp_allreduce;
 extern int mv2_socket_aware_allreduce_max_msg;
 extern int mv2_socket_aware_allreduce_min_msg;
+extern int mv2_socket_aware_allreduce_ppn_threshold;
 /* Use inside bcast_osu.c */
 typedef struct bcast_ring_allgather_shm_packet
 {
@@ -399,7 +410,7 @@ int create_sharp_comm(MPI_Comm, int, int);
 
 
 /*Fn pointers for collectives */
-int (*reduce_fn)(const void *sendbuf,
+extern int (*reduce_fn)(const void *sendbuf,
                              void *recvbuf,
                              int count,
                              MPI_Datatype datatype,

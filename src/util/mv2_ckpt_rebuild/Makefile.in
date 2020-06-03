@@ -14,7 +14,7 @@
 
 @SET_MAKE@
 
-# Copyright (c) 2001-2019, The Ohio State University. All rights
+# Copyright (c) 2001-2020, The Ohio State University. All rights
 # reserved.
 #
 # This file is part of the MVAPICH2 software package developed by the
@@ -163,7 +163,9 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
-CONFIG_HEADER = $(top_builddir)/src/include/mpichconf.h
+CONFIG_HEADER = $(top_builddir)/src/include/mpichconf.h \
+	$(top_builddir)/src/include/mpi-ext.h \
+	$(top_builddir)/src/include/mpiext_cuda.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(pkglibexecdir)"
@@ -611,6 +613,7 @@ MVAPICH2_RELEASE_DATE = @MVAPICH2_RELEASE_DATE@
 MVAPICH2_VERSION = @MVAPICH2_VERSION@
 NM = @NM@
 NMEDIT = @NMEDIT@
+NVCCFLAGS = @NVCCFLAGS@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
 OFFSET_KIND = @OFFSET_KIND@

@@ -4,7 +4,7 @@
  *      See COPYRIGHT in top-level directory.
  */
 
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -107,13 +107,6 @@ int MPIDI_CH3_iStartRndvMsg(MPIDI_VC_t * vc,
         PRINT_DEBUG(DEBUG_RNDV_verbose>1,
                 "Sending RTS to: %d, sreq: %p, protocol: %d, buf: %p, rndv_buf_alloc: %d\n",
                 vc->pg_rank, sreq, sreq->mrail.protocol, sreq->mrail.rndv_buf, sreq->mrail.rndv_buf_alloc);
-
-        if(1 == sreq->mrail.rndv_buf_alloc) {
-            MPIDI_CH3I_MRAIL_REVERT_RPUT(sreq);
-            if (MV2_RNDV_PROTOCOL_RGET == rndv_pkt->rndv.protocol) {
-                rndv_pkt->rndv.protocol = MV2_RNDV_PROTOCOL_RPUT;
-            }
-        }
 
         if ((mpi_errno = MPIDI_CH3_iStartMsg(
             vc,
@@ -322,7 +315,12 @@ int MPIDI_CH3_iStartGetRndv(MPIDI_VC_t * vc,
     if (IS_VC_SMP(vc)) {
         sreq->mrail.protocol = MV2_RNDV_PROTOCOL_R3;
     } else {
-        sreq->mrail.protocol = MV2_RNDV_PROTOCOL_RPUT;
+#ifdef _ENABLE_UD_
+        if (vc->mrail.state & MRAILI_RC_CONNECTED)
+#endif /*ifdef _ENABLE_UD_*/
+        {
+            sreq->mrail.protocol = MV2_RNDV_PROTOCOL_RPUT;
+        }
     }
 
 #ifdef _ENABLE_UD_

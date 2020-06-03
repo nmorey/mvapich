@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  * Copyright (c) 2016, Intel, Inc. All rights reserved.
  *
@@ -896,6 +896,13 @@ static void psm_other_init(MPIDI_PG_t *pg)
         vc->eager_max_msg_sz = PSM_VBUFSZ;
         vc->rndvSend_fn = NULL;
         vc->rndvRecv_fn = NULL;
+    }
+
+    if ((flag = getenv("MV2_IOV_DENSITY_MIN")) != NULL) {
+        mv2_iov_density_min = atoi(flag);
+        if (mv2_iov_density_min < 0) {
+            mv2_iov_density_min = MPIDI_IOV_DENSITY_MIN;
+        }
     }
 
     if ((flag = getenv("MV2_IBA_EAGER_THRESHOLD")) != NULL) {

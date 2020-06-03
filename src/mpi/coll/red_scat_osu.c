@@ -4,7 +4,7 @@
  *  (C) 2001 by Argonne National Laboratory.
  *      See COPYRIGHT in top-level directory.
  */
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -31,6 +31,8 @@ MPIR_T_PVAR_DOUBLE_TIMER_DECL_EXTERN(MV2, mv2_coll_timer_reduce_scatter_ring);
 MPIR_T_PVAR_DOUBLE_TIMER_DECL_EXTERN(MV2, mv2_coll_timer_reduce_scatter_ring_2lvl);
 
 
+MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_reduce_scatter_ring);
+MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_reduce_scatter_ring_2lvl);
 MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_reduce_scatter_noncomm);
 MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_reduce_scatter_basic);
 MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_reduce_scatter_rec_halving);
@@ -61,6 +63,14 @@ MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_reduce_scatter_bytes_send);
 MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_reduce_scatter_bytes_recv);
 MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_reduce_scatter_count_send);
 MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_reduce_scatter_count_recv);
+MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_reduce_scatter_ring_count_recv);
+MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_reduce_scatter_ring_count_send);
+MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_reduce_scatter_ring_bytes_recv);
+MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_reduce_scatter_ring_bytes_send);
+MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_reduce_scatter_ring_2lvl_count_recv);
+MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_reduce_scatter_ring_2lvl_count_send);
+MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_reduce_scatter_ring_2lvl_bytes_recv);
+MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MV2, mv2_coll_reduce_scatter_ring_2lvl_bytes_send);
                                
 int (*MV2_Red_scat_function)(const void *sendbuf,
                              void *recvbuf,
@@ -1026,6 +1036,8 @@ int MPIR_Reduce_scatter_ring(const void* sendbuf, void* recvbuf,
 
     MPIU_CHKLMEM_DECL(3);
 
+    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_reduce_scatter_ring, 1);
+
     /* get extent */
     MPI_Aint extent;
     MPID_Datatype_get_extent_macro(datatype, extent);
@@ -1130,6 +1142,8 @@ int MPIR_Reduce_scatter_ring(const void* sendbuf, void* recvbuf,
             }
 
             if (dist > 0) {
+                MPIR_PVAR_INC(reduce_scatter, ring, send, send_count, datatype);
+                MPIR_PVAR_INC(reduce_scatter, ring, recv, recv_count, datatype);                
                 /* exchange data with neighbors */
                 MPIC_Irecv(tmp_recvbuf, recv_count, datatype, rank_left,  0, comm_ptr,
                         &request[0]);
@@ -1192,6 +1206,8 @@ int MPIR_Reduce_scatter_ring_2lvl(const void* sendbuf, void* recvbuf,
 
     MPIU_CHKLMEM_DECL(3);
 
+    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_reduce_scatter_ring_2lvl, 1);
+    
     /* get extent */
     MPI_Aint extent;
     MPID_Datatype_get_extent_macro(datatype, extent);
@@ -1303,6 +1319,8 @@ int MPIR_Reduce_scatter_ring_2lvl(const void* sendbuf, void* recvbuf,
             }
 
             if (dist > 0) {
+                MPIR_PVAR_INC(reduce_scatter, ring_2lvl, send, send_count, datatype);
+                MPIR_PVAR_INC(reduce_scatter, ring_2lvl, recv, recv_count, datatype);
                 /* exchange data with neighbors */
                 MPIC_Irecv(tmp_recvbuf, recv_count, datatype, rank_left,  0, comm_ptr,
                         &request[0]);

@@ -4,7 +4,7 @@
  *      See COPYRIGHT in top-level directory.
  */
 
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -88,6 +88,7 @@ typedef struct {
     int*    leader_rank;
     int*    node_sizes;
     int*    allgather_new_ranks;
+    void*   coll_tmp_buf;
     int     is_uniform;
     int     is_blocked;
     int     shmem_comm_rank;

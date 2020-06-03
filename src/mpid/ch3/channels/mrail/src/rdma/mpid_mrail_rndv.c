@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -98,11 +98,14 @@ int MPID_MRAIL_RndvSend (
 	sreq->dev.OnFinal = 0;
 	mpi_errno = MPIDI_CH3U_Request_load_send_iov(sreq, &sreq->dev.iov[0],
 						     &sreq->dev.iov_count);
-    /* Fallback to R3 for non-contig transfers */
-    if (IS_VC_SMP(vc)) {
+    /* Fallback to R3 if sender side is non-contiguous
+     * and if the user has not forced RPUT. For Intra-node
+     * we always switch to R3*/
+    if(IS_VC_SMP(vc) || rdma_rndv_protocol != MV2_RNDV_PROTOCOL_RPUT) {
         sreq->mrail.protocol = MV2_RNDV_PROTOCOL_R3;
         MPIDI_CH3I_MRAIL_FREE_RNDV_BUFFER(sreq);
     }
+
 #if defined(_ENABLE_CUDA_)
     if (rdma_enable_cuda && sreq->dev.OnDataAvail == 
                         MPIDI_CH3_ReqHandler_pack_cudabuf) {

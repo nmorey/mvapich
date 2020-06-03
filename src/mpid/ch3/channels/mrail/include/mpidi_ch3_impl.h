@@ -4,7 +4,7 @@
  *      See COPYRIGHT in top-level directory.
  */
 
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -405,7 +405,7 @@ int MPIDI_CH3I_MRAIL_CM_Dealloc(MPIDI_PG_t * pg);
 void MPIDI_CH3I_Cleanup_cqes(void);
 
 /*flag to check if cq_poll is success in the progressing loop*/
-int cq_poll_completion;
+extern int cq_poll_completion;
 
 #ifdef CKPT
 

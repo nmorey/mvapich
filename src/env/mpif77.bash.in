@@ -1,6 +1,6 @@
 #! @BASH_SHELL@
 #
-# Copyright (c) 2001-2019, The Ohio State University. All rights reserved.
+# Copyright (c) 2001-2020, The Ohio State University. All rights reserved.
 #  
 # This file is part of the MVAPICH2 software package developed by the team
 # members of The Ohio State University's Network-Based Computing Laboratory
@@ -318,7 +318,7 @@ if [ "$linking" = yes ] ; then
         $Show $F77 $PROFILE_INCPATHS ${final_fflags} ${final_ldflags} "${allargs[@]}" -I$includedir
         rc=$?
     else
-        $Show $F77 $PROFILE_INCPATHS ${final_fflags} ${final_ldflags} "${allargs[@]}" -I$includedir $ITAC_OPTIONS -L$libdir $f77libs $PROFILE_PRELIB $PROFILE_FOO $rpath_flags -l@MPILIBNAME@ @LPMPILIBNAME@ $PROFILE_POSTLIB ${final_libs} @F77_OTHER_LIBS@
+        $Show $F77 $PROFILE_INCPATHS ${final_fflags} -l@MPILIBNAME@ ${final_ldflags} "${allargs[@]}" -I$includedir $ITAC_OPTIONS -L$libdir $f77libs $PROFILE_PRELIB $PROFILE_FOO $rpath_flags @LPMPILIBNAME@ $PROFILE_POSTLIB ${final_libs} @F77_OTHER_LIBS@
         rc=$?
     fi
 else

@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -41,6 +41,7 @@ extern int rdma_default_max_recv_wqe;
 extern uint32_t rdma_default_max_sg_list;
 extern uint16_t rdma_default_pkey_ix;
 extern uint16_t rdma_default_pkey;
+extern uint32_t rdma_default_qkey;
 extern uint8_t rdma_default_qp_ous_rd_atom;
 extern uint8_t rdma_supported_max_qp_ous_rd_atom;
 extern uint8_t rdma_default_max_rdma_dst_ops;
@@ -130,7 +131,7 @@ extern int mv2_show_runlog_level;
 
 extern int striping_threshold;
 extern int rdma_rail_sharing_policy;
-extern int alpha;
+extern double alpha;
 extern int stripe_factor;
 extern int apm_tester;
 
@@ -282,6 +283,7 @@ extern int rdma_default_async_thread_stack_size;
 #define RDMA_DEFAULT_MAX_SG_LIST        (1)
 #define RDMA_DEFAULT_PKEY_IX            (0)
 #define RDMA_DEFAULT_PKEY               (0x0)
+#define RDMA_DEFAULT_QKEY               (0)
 #define RDMA_DEFAULT_MAX_RDMA_DST_OPS   (4)
 #define RDMA_DEFAULT_PSN                (0)
 #define RDMA_DEFAULT_MIN_RNR_TIMER      (12)
@@ -356,6 +358,11 @@ extern int rdma_default_async_thread_stack_size;
 #define HOSTNAME_LEN                    (255)
 #define RDMA_MAX_REGISTERED_PAGES       (0)
 
+/* SRQ related parameters */
+#define MV2_DEFAULT_SRQ_ALLOC_SIZE  32767
+#define MV2_DEFAULT_SRQ_FILL_SIZE   256
+#define MV2_DEFAULT_SRQ_LIMIT       30
+
 /* #define MIN(a,b) ((a)<(b)?(a):(b)) */
 
 #define NUM_BOOTSTRAP_BARRIERS  2
@@ -375,12 +382,6 @@ typedef enum _mv2_vbuf_pool_offsets {
 #endif /*_ENABLE_CUDA_*/
     MV2_MAX_NUM_VBUF_POOLS
 } mv2_vbuf_pool_offsets;
-
-typedef enum _mv2_iba_network_classes {
-    MV2_NETWORK_CLASS_UNKNOWN = 0,
-    MV2_NETWORK_CLASS_IB = 1,
-    MV2_NETWORK_CLASS_IWARP,
-} mv2_iba_network_classes;
 
 /* Below ROUND_ROBIN refers to the rails where the rails are alternately
  * given to any process asking for it. Where as FIXED_MAPPING refers
@@ -556,6 +557,7 @@ typedef enum mv2_env_param_id {
     MV2_DEFAULT_TIME_OUT,
     MV2_DEFAULT_MTU,
     MV2_DEFAULT_PKEY,
+    MV2_DEFAULT_QKEY,
     MV2_DEFAULT_PORT,
     MV2_DEFAULT_GID_INDEX,
     MV2_DEFAULT_PSN,

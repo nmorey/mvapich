@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -76,7 +76,9 @@ int MPIDI_CH3I_MRAIL_Prepare_rndv(MPIDI_VC_t * vc, MPID_Request * req)
         }
     }
 #endif
-    else {
+    /* This ensures that if R3 was selected in MPID_MRAIL_RndvSend
+     * then that decision is respected */
+    else if (req->mrail.protocol != MV2_RNDV_PROTOCOL_R3) {
         req->mrail.protocol = rdma_rndv_protocol;
     }
 
@@ -92,7 +94,9 @@ int MPIDI_CH3I_MRAIL_Prepare_rndv(MPIDI_VC_t * vc, MPID_Request * req)
         req->mrail.rndv_buf = req->dev.iov[0].MPL_IOV_BUF;
         req->mrail.rndv_buf_sz = req->dev.iov[0].MPL_IOV_LEN;
         req->mrail.rndv_buf_alloc = 0;
-    } else {
+    /* This buffer allocation is not needed for R3 protocol,
+     * as R3 does eager send directly from IOVs*/    
+    } else if(req->mrail.protocol != MV2_RNDV_PROTOCOL_R3){
         req->mrail.rndv_buf_sz = req->dev.segment_size;
         req->mrail.rndv_buf = MPIU_Malloc(req->mrail.rndv_buf_sz);
 

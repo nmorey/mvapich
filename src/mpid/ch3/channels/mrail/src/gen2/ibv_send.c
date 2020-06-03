@@ -4,7 +4,7 @@
  *      See COPYRIGHT in top-level directory.
  */
 
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -220,6 +220,13 @@ static inline void MRAILI_Ext_sendq_send(MPIDI_VC_t *c, int rail)
     }                                                                 \
 }
 
+#if defined(MPIDI_MRAILI_COALESCE_ENABLED)
+/* TODO: Ticket #1433 */
+void FLUSH_SQUEUE_NOINLINE(MPIDI_VC_t *vc)
+{
+    FLUSH_SQUEUE(vc);
+}
+#endif /*defined(MPIDI_MRAILI_COALESCE_ENABLED)*/
 
 #undef FUNCNAME
 #define FUNCNAME MPIDI_CH3I_RDMA_put_datav

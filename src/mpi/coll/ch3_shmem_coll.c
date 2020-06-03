@@ -6,7 +6,7 @@
  * All rights reserved.
  */
 
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -183,6 +183,21 @@ shmem_info_t *ckpt_free_head = NULL;
 #endif /* defined(CHANNEL_MRAIL_GEN2) || defined(CHANNEL_NEMESIS_IB) */
 #endif /* CKPT */
 
+volatile int *child_complete_bcast;   /* use for initial synchro */
+volatile int *child_complete_gather;   /* use for initial synchro */
+volatile int *root_complete_gather;
+volatile int *barrier_gather;
+volatile int *barrier_bcast;
+volatile int *shmem_coll_block_status;
+#if defined(_SMP_LIMIC_)
+volatile int *limic_progress;
+#endif
+
+shmem_coll_region *shmem_coll = NULL;
+
+/* Use a runtime modifiable parameter to determine the minimum IOV density */
+int mv2_iov_density_min = MV2_DEFAULT_IOV_DENSITY_MIN;
+
 typedef unsigned long addrint_t;
 
 /* Shared memory collectives mgmt*/
@@ -293,10 +308,13 @@ int mv2_shmem_coll_spin_count = 5;
 
 int mv2_enable_socket_aware_collectives = 1;
 int mv2_use_socket_aware_allreduce = 1;
+int mv2_use_optimized_release_allreduce=1;
+int mv2_coll_tmp_buf_size=2048;
 int mv2_use_socket_aware_sharp_allreduce = 0;
 int mv2_use_socket_aware_barrier = 1;
 int mv2_socket_aware_allreduce_max_msg = 2048;
 int mv2_socket_aware_allreduce_min_msg = 1;
+int mv2_socket_aware_allreduce_ppn_threshold = 1;
 int mv2_tune_parameter = 0;
 /* Runtime threshold for scatter */
 int mv2_user_scatter_small_msg = 0;
@@ -473,6 +491,8 @@ int use_limic_gather = 0;
 int use_2lvl_allgather = 0;
 
 int mv2_enable_skip_tuning_table_search = 1;
+int mv2_enable_allreduce_skip_small_message_tuning_table_search = 1;
+int mv2_enable_allreduce_skip_large_message_tuning_table_search = 1;
 int mv2_coll_skip_table_threshold = MV2_DEFAULT_COLL_SKIP_TABLE_THRESHOLD; /* msg sizes larger than this will pick an algorithm from tuning table */
 
 struct coll_runtime mv2_coll_param = { MPIR_ALLGATHER_SHORT_MSG,
@@ -538,6 +558,7 @@ int mv2_enable_pvar_timer = 0;
 #define FCNAME MPL_QUOTE(FUNCNAME)
 int MV2_collectives_arch_init(int heterogeneity, struct coll_info *colls_arch_hca)
 {
+    char *value = NULL;
     int mpi_errno = MPI_SUCCESS;
 
 #if defined(CHANNEL_PSM)
@@ -553,7 +574,6 @@ int MV2_collectives_arch_init(int heterogeneity, struct coll_info *colls_arch_hc
 #endif
 
 #if defined(_MCST_SUPPORT_)
-    char *value = NULL;
     /* Disable mcast for any system other than Frontera by default */
     if (rdma_enable_mcast &&
         ((value = getenv("MV2_USE_MCAST")) == NULL) &&
@@ -635,6 +655,16 @@ int MV2_collectives_arch_init(int heterogeneity, struct coll_info *colls_arch_hc
         if (mpi_errno != MPI_SUCCESS) {
             MPIR_ERR_POP(mpi_errno);
         }
+    }
+    /* Honor users requests over default settings */
+    if ((value = getenv("MV2_ENABLE_ALLREDUCE_SKIP_LARGE_MESSAGE_TUNING_TABLE_SEARCH")) != NULL) {
+        mv2_enable_allreduce_skip_large_message_tuning_table_search = !!atoi(value);
+    }
+    if ((value = getenv("MV2_ENABLE_ALLREDUCE_SKIP_SMALL_MESSAGE_TUNING_TABLE_SEARCH")) != NULL) {
+        mv2_enable_allreduce_skip_small_message_tuning_table_search = !!atoi(value);
+    }
+    if ((value = getenv("MV2_SOCKET_AWARE_ALLREDUCE_PPN_THRESHOLD")) !=NULL) {
+        mv2_socket_aware_allreduce_ppn_threshold = atoi(value);
     }
 
 fn_exit:
@@ -1508,6 +1538,104 @@ void MPIDI_CH3I_SHMEM_Coll_Block_Clear_Status(int block_id)
 
 /* Shared memory gather: rank zero is the root always*/
 #undef FUNCNAME
+#define FUNCNAME MPIDI_CH3I_SHMEM_COLL_GetShmemBuf_optrels
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+void MPIDI_CH3I_SHMEM_COLL_GetShmemBuf_optrels(int size, int rank, int shmem_comm_rank, int target_rank,
+                                       void **output_buf)
+{
+    int i = 1, cnt = 0, err = 0;
+    char *shmem_coll_buf = (char *) (&(shmem_coll->shmem_coll_buf));
+    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_SHMEM_COLL_GETSHMEMBUF_OPTRELS);
+    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_SHMEM_COLL_GETSHMEMBUF_OPTRELS);
+
+    READBAR();
+    if (rank == 0) {
+            READBAR();
+            while (SHMEM_COLL_SYNC_ISCLR(child_complete_gather, shmem_comm_rank, target_rank)) {
+#if defined(CKPT)
+                Wait_for_CR_Completion();
+#endif
+                MV2_INC_NUM_UNEXP_RECV();
+                MPID_Progress_test();
+                MV2_DEC_NUM_UNEXP_RECV();
+                /* Yield once in a while */
+                MPIU_THREAD_CHECK_BEGIN++ cnt;
+                if (cnt >= mv2_shmem_coll_spin_count) {
+                    cnt = 0;
+#if defined(CKPT)
+                    MPIDI_CH3I_CR_unlock();
+#endif
+#if (MPICH_THREAD_LEVEL == MPI_THREAD_MULTIPLE)
+                    MPIU_THREAD_CHECK_BEGIN
+                        MPID_Thread_mutex_unlock(&MPIR_ThreadInfo.global_mutex, &err);
+                    MPIU_THREAD_CHECK_END
+#endif
+                        do {
+                    } while (0);
+#if (MPICH_THREAD_LEVEL == MPI_THREAD_MULTIPLE)
+                    MPIU_THREAD_CHECK_BEGIN
+                        MPID_Thread_mutex_lock(&MPIR_ThreadInfo.global_mutex, &err);
+                    MPIU_THREAD_CHECK_END
+#endif
+#if defined(CKPT)
+                        MPIDI_CH3I_CR_lock();
+#endif
+                }
+                MPIU_THREAD_CHECK_END
+                READBAR();
+            }
+        /* Set the completion flags back to zero */
+            SHMEM_COLL_SYNC_CLR(child_complete_gather, shmem_comm_rank, target_rank);
+            WRITEBAR();
+
+        *output_buf = (char *) shmem_coll_buf + shmem_comm_rank * SHMEM_COLL_BLOCK_SIZE;
+    } else {
+        READBAR();
+        while (SHMEM_COLL_SYNC_ISCLR(root_complete_gather, shmem_comm_rank, rank)) {
+#if defined(CKPT)
+            Wait_for_CR_Completion();
+#endif
+            MV2_INC_NUM_UNEXP_RECV();
+            MPID_Progress_test();
+            MV2_DEC_NUM_UNEXP_RECV();
+            /* Yield once in a while */
+            MPIU_THREAD_CHECK_BEGIN++ cnt;
+            if (cnt >= mv2_shmem_coll_spin_count) {
+                cnt = 0;
+#if defined(CKPT)
+                MPIDI_CH3I_CR_unlock();
+#endif
+#if (MPICH_THREAD_LEVEL == MPI_THREAD_MULTIPLE)
+                MPIU_THREAD_CHECK_BEGIN
+                    MPID_Thread_mutex_unlock(&MPIR_ThreadInfo.global_mutex, &err);
+                MPIU_THREAD_CHECK_END
+#endif
+                    do {
+                } while (0);
+#if (MPICH_THREAD_LEVEL == MPI_THREAD_MULTIPLE)
+                MPIU_THREAD_CHECK_BEGIN
+                    MPID_Thread_mutex_lock(&MPIR_ThreadInfo.global_mutex, &err);
+                MPIU_THREAD_CHECK_END
+#endif
+#if defined(CKPT)
+                    MPIDI_CH3I_CR_lock();
+#endif
+            }
+            MPIU_THREAD_CHECK_END
+            READBAR();
+        }
+
+        SHMEM_COLL_SYNC_CLR(root_complete_gather, shmem_comm_rank, rank);
+        WRITEBAR();
+        *output_buf = (char *) shmem_coll_buf + shmem_comm_rank * SHMEM_COLL_BLOCK_SIZE;
+    }
+    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_SHMEM_COLL_GETSHMEMBUF_OPTRELS);
+}
+
+
+/* Shared memory gather: rank zero is the root always*/
+#undef FUNCNAME
 #define FUNCNAME MPIDI_CH3I_SHMEM_COLL_GetShmemBuf
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
@@ -1724,6 +1852,26 @@ void MPIDI_CH3I_SHMEM_Bcast_Complete(int size, int rank, int shmem_comm_rank)
     }
     READBAR();
     MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_SHMEM_COLL_SETBCASTCOMPLETE);
+}
+
+#undef FUNCNAME
+#define FUNCNAME MPIDI_CH3I_SHMEM_COLL_SetGatherComplete_optrels
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+void MPIDI_CH3I_SHMEM_COLL_SetGatherComplete_optrels(int size, int rank, int shmem_comm_rank, int target_rank)
+{
+    int i = 1;
+    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_SHMEM_COLL_SETGATHERCOMPLETE_OPTRELS);
+    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_SHMEM_COLL_SETGATHERCOMPLETE_OPTRELS);
+
+    READBAR();
+    if (rank == 0) {
+            SHMEM_COLL_SYNC_SET(root_complete_gather, shmem_comm_rank, target_rank);
+    } else {
+        SHMEM_COLL_SYNC_SET(child_complete_gather, shmem_comm_rank, rank);
+        WRITEBAR();
+    }
+    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_SHMEM_COLL_SETGATHERCOMPLETE_OPTRELS);
 }
 
 #undef FUNCNAME
@@ -2930,6 +3078,14 @@ void MV2_Read_env_vars(void)
     if ((value = getenv("MV2_USE_SOCKET_AWARE_ALLREDUCE")) !=NULL) {
         mv2_use_socket_aware_allreduce = !!atoi(value);
     }
+
+    if ((value = getenv("MV2_USE_OPTIMIZED_RELEASE_ALLREDUCE")) !=NULL) {
+        mv2_use_optimized_release_allreduce = !!atoi(value);
+    }
+
+    if ((value = getenv("MV2_COLL_TMP_BUF_SIZE")) !=NULL) {
+        mv2_coll_tmp_buf_size = !!atoi(value);
+    } 
 
     if ((value = getenv("MV2_USE_SOCKET_AWARE_SHARP_ALLREDUCE")) !=NULL) {
         mv2_use_socket_aware_sharp_allreduce = !!atoi(value);                   

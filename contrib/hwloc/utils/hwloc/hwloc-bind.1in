@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.\" Copyright © 2009-2018 Inria.  All rights reserved.
+.\" Copyright © 2009-2020 Inria.  All rights reserved.
 .\" Copyright © 2010 Université of Bordeaux
 .\" Copyright © 2009-2010 Cisco Systems, Inc.  All rights reserved.
 .\" See COPYING in top-level directory.
@@ -37,7 +37,7 @@ the default policy is bind.
 \fB\-\-mempolicy\fR <policy>
 Change the memory binding policy.
 The available policies are default, firsttouch, bind, interleave
-replicate and nexttouch.
+and nexttouch.
 This option is only meaningful when an actual binding is also given
 with \fB\-\-membind\fR.
 If \fB\-\-membind\fR is given without \fB\-\-mempolicy\fR,
@@ -97,6 +97,11 @@ No location may be given since no binding is performed.
 \fB\-\-single\fR
 Bind on a single CPU to prevent migration.
 .TP
+\fB\-\-no\-smt\fR, \fB\-\-no\-smt=<N>\fR
+Only keep the first PU per core before binding.
+If \fI<N>\fR is specified, keep the <N>-th instead, if any.
+PUs are ordered by physical index during this filtering.
+.TP
 \fB\-\-strict\fR
 Require strict binding.
 .TP
@@ -125,8 +130,8 @@ both formats are always accepted.
 \fB\-\-restrict\fR <cpuset>
 Restrict the topology to the given cpuset.
 .TP
-\fB\-\-whole\-system\fR
-Do not consider administration limitations.
+\fB\-\-disallowed\fR
+Include objects disallowed by administrative limitations.
 .TP
 \fB--hbm\fR
 Only take high bandwidth memory nodes (such as Intel Xeon Phi MCDRAM)
@@ -154,6 +159,9 @@ Verbose output.
 .TP
 \fB\-\-version\fR
 Report version and exit.
+.TP
+\fB\-h\fR \fB\-\-help\fR
+Display help message and exit.
 .
 .\" **************************
 .\"    Description Section
@@ -161,8 +169,9 @@ Report version and exit.
 .SH DESCRIPTION
 .
 hwloc-bind execs an executable (with optional command line arguments)
-that is bound to the specified location (or list of locations).  Upon
-successful execution, hwloc-bind simply sets bindings and then execs
+that is bound to the specified location (or list of locations).
+Location specification is described in hwloc(7).
+Upon successful execution, hwloc-bind simply sets bindings and then execs
 the executable over itself.
 .
 .PP
@@ -209,6 +218,11 @@ To bind the "echo" command to the first core of the second package and
 the second core of the first package:
 
     $ hwloc-bind package:1.core:0 package:0.core:1 -- echo hello
+
+To bind on the first PU of all cores of the first package:
+
+    $ hwloc-bind package:0.core:all.pu:0 -- echo hello
+    $ hwloc-bind --no-smt package:0 -- echo hello
 
 To bind memory on the first high-bandwidth memory node:
 
@@ -287,9 +301,6 @@ The current memory binding may also be reported:
 
     $ hwloc-bind --membind node:1 --mempolicy interleave -- hwloc-bind --get --membind
     0x000000f0 (interleave)
-
-Note that if the system is not NUMA, the reported string may indicate that the process is bound to
-the entire system memory (e.g., "0xf...f").
 
 .SH HINT
 If the graphics-enabled lstopo is available, use for instance

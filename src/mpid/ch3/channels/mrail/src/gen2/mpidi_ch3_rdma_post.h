@@ -4,7 +4,7 @@
  *      See COPYRIGHT in top-level directory.
  */
 
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -293,7 +293,7 @@ int MPIDI_CH3I_MRAILI_Get_next_vbuf(struct MPIDI_VC** vc_ptr, vbuf** vbuf_ptr);
 
 int MPIDI_CH3I_MRAILI_Waiting_msg(struct MPIDI_VC* vc, vbuf**, int blocking);
 
-int (*MPIDI_CH3I_MRAILI_Cq_poll) (vbuf**, struct MPIDI_VC*, int, int);
+extern int (*MPIDI_CH3I_MRAILI_Cq_poll) (vbuf**, struct MPIDI_VC*, int, int);
 
 void MRAILI_Send_noop(struct MPIDI_VC* c, int rail);
 

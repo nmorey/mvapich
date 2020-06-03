@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -605,6 +605,10 @@ int MPID_Init(int *argc, char ***argv, int requested, int *provided,
         } else {
             cuda_init(pg);
         }
+	if (pg_rank == 0 && mv2_show_env_info >= 2) {
+		mv2_show_cuda_params();
+		fprintf(stderr, "---------------------------------------------------------------------\n");
+	}
     }
 #endif /* defined(CHANNEL_MRAIL) && defined(_ENABLE_CUDA_) */
 

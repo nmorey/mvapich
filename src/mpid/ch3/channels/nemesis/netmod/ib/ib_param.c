@@ -4,7 +4,7 @@
  *      See COPYRIGHT in top-level directory.
  */
 
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -47,6 +47,7 @@ unsigned long rdma_default_max_recv_wqe = RDMA_DEFAULT_MAX_RECV_WQE;
 uint32_t      rdma_default_max_sg_list = RDMA_DEFAULT_MAX_SG_LIST;
 uint16_t      rdma_default_pkey_ix = RDMA_DEFAULT_PKEY_IX;
 uint16_t      rdma_default_pkey = RDMA_DEFAULT_PKEY;
+uint32_t      rdma_default_qkey = RDMA_DEFAULT_QKEY;
 uint8_t       rdma_default_qp_ous_rd_atom;
 uint8_t       rdma_default_max_rdma_dst_ops = RDMA_DEFAULT_MAX_RDMA_DST_OPS;
 enum ibv_mtu  rdma_default_mtu;
@@ -180,7 +181,7 @@ int striping_threshold = STRIPING_THRESHOLD;
 int use_iboeth = 0;
 
 /* Linear update factor for HSAM */
-int alpha = 0.9;
+double alpha = 0.9;
 int stripe_factor = 1;
 int apm_tester = 0;
 
@@ -1095,6 +1096,9 @@ int MPID_nem_ib_get_user_params()
         rdma_default_pkey = (uint16_t)strtol(value, (char **) NULL,0) & PKEY_MASK;
     }
 
+    if ((value = getenv("MV2_DEFAULT_QKEY")) != NULL) {
+        rdma_default_qkey = (uint32_t)strtol(value, (char **) NULL,0);
+    }
     if ((value = getenv("MV2_DEFAULT_MIN_RNR_TIMER")) != NULL) {
         rdma_default_min_rnr_timer = (uint8_t)atoi(value);
     }

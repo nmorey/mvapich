@@ -49,16 +49,11 @@ pipeline {
 				script {
 					listOfNodeNames = []
 					if (env.NO_UNIX != 'true') {
-						labelToSelect = 'unix'
-						listOfNodeNames = jenkins.model.Jenkins.instance.nodes.collect {
-						  node -> node.getLabelString().contains(labelToSelect) ? node.name : null
-						}
-						listOfNodeNames.removeAll(Collections.singleton(null))
+						listOfNodeNames = nodesByLabel('unix')
 					}
 					if (env.NO_MSVC != 'true') {
 						listOfNodeNames.push('VisualStudio')
 					}
-
 					def p = listOfNodeNames.collectEntries {
 					[ (it): {
 						if (it != 'VisualStudio') {
@@ -101,7 +96,7 @@ pipeline {
 			echo "Build success."
 			// email when changed to success
 			script {
-				if (statusHasChanged) {
+				if (statusHasChanged || env.EMAIL_NOTIFICATION == 'true') {
 					emailext(body: '${DEFAULT_CONTENT}',
 						 subject: '${DEFAULT_SUBJECT}',
 						 replyTo: '$DEFAULT_REPLYTO',

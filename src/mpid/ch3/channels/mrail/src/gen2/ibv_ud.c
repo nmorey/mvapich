@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -274,7 +274,7 @@ void mv2_ud_resend(vbuf *v)
 
     v->retry_count++;
     if (v->retry_count > rdma_ud_max_retry_count) {
-        PRINT_ERROR ("UD reliability error. Exeeced max retries(%d) "
+        PRINT_ERROR ("UD reliability error. Exceeded max retries(%d) "
                 "in resending the message(%p). current retry timeout(us): %lu. "
                 "This Error may happen on clusters based on the InfiniBand "
                 "topology and traffic patterns. Please try with increased "

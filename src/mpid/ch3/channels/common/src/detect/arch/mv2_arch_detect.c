@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -98,6 +98,7 @@ mv2_hca_type  table_hca_tmp;
 #define INTEL_XEON_E5_2695_V3_MODEL 63
 #define INTEL_XEON_E5_2670_V3_MODEL 64
 #define INTEL_XEON_E5_2680_V4_MODEL 79
+#define INTEL_XEON_E5_2620_V4_MODEL 80
 /* Skylake */
 #define INTEL_PLATINUM_8160_MODEL   85
 #define INTEL_PLATINUM_8170_MODEL   85
@@ -130,8 +131,9 @@ mv2_hca_type  table_hca_tmp;
 #define INTEL_E5_2670_V3_MODEL_NAME "Intel(R) Xeon(R) CPU E5-2670 v3 @ 2.30GHz"
 #define INTEL_E5_2695_V3_MODEL_NAME "Intel(R) Xeon(R) CPU E5-2695 v3 @ 2.30GHz"
 #define INTEL_E5_2695_V4_MODEL_NAME "Intel(R) Xeon(R) CPU E5-2695 v4 @ 2.10GHz"
+#define INTEL_E5_2620_V4_MODEL_NAME "Intel(R) Xeon(R) CPU E5-2620 v4 @ 2.10GHz"
 
-/* For both Skylake and Cascade Lake, generic models are tthe same */
+/* For both Skylake and Cascade Lake, generic models are the same */
 #define INTEL_PLATINUM_GENERIC_MODEL_NAME  "Intel(R) Xeon(R) Platinum"
 #define INTEL_PLATINUM_8160_MODEL_NAME "Intel(R) Xeon(R) Platinum 8160 CPU @ 2.10GHz"
 #define INTEL_PLATINUM_8170_MODEL_NAME "Intel(R) Xeon(R) Platinum 8170 CPU @ 2.10GHz"
@@ -147,6 +149,8 @@ mv2_hca_type  table_hca_tmp;
 #define INTEL_XEON_PHI_7230_MODEL_NAME    "Intel(R) Xeon Phi(TM) CPU 7230 @ 1.30GHz"
 #define INTEL_XEON_PHI_7250_MODEL_NAME    "Intel(R) Xeon Phi(TM) CPU 7250 @ 1.40GHz"
 #define INTEL_XEON_PHI_7290_MODEL_NAME    "Intel(R) Xeon Phi(TM) CPU 7290 @ 1.50GHz"
+
+#define AMD_EPYC_7601_MODEL_NAME "AMD EPYC 7601 32-Core Processor"
 
 typedef struct _mv2_arch_types_log_t{
     uint64_t arch_type;
@@ -180,6 +184,7 @@ static mv2_arch_types_log_t mv2_arch_types_log[] =
     {MV2_ARCH_INTEL_XEON_E5_2695_V3_2S_28,"MV2_ARCH_INTEL_XEON_E5_2695_V3_2S_28"},
     {MV2_ARCH_INTEL_XEON_E5_2695_V4_2S_36,"MV2_ARCH_INTEL_XEON_E5_2695_V4_2S_36"},
     {MV2_ARCH_INTEL_XEON_E5_2680_V4_2S_28,"MV2_ARCH_INTEL_XEON_E5_2680_V4_2S_28"},
+    {MV2_ARCH_INTEL_XEON_E5_2620_V4_2S_16,"MV2_ARCH_INTEL_XEON_E5_2620_V4_2S_16"},
 
     /* Skylake and Cascade Lake Architectures */
     {MV2_ARCH_INTEL_PLATINUM_GENERIC,      "MV2_ARCH_INTEL_PLATINUM_GENERIC"},
@@ -207,6 +212,7 @@ static mv2_arch_types_log_t mv2_arch_types_log[] =
     {MV2_ARCH_AMD_OPTERON_6276_64,  "MV2_ARCH_AMD_OPTERON_6276_64"},
     {MV2_ARCH_AMD_BULLDOZER_4274HE_16,"MV2_ARCH_AMD_BULLDOZER_4274HE_16"},
     {MV2_ARCH_AMD_EPYC_7551_64, "MV2_ARCH_AMD_EPYC_7551_64"},
+    {MV2_ARCH_AMD_EPYC_7601_64, "MV2_ARCH_AMD_EPYC_7601_64"},
     {MV2_ARCH_AMD_EPYC_7742_128, "MV2_ARCH_AMD_EPYC_7742_128"},
 
     /* IBM Architectures */
@@ -287,123 +293,121 @@ mv2_arch_type mv2_get_intel_arch_type(char *model_name, int num_sockets, int num
     if (1 == num_sockets) {
         if (64 == num_cpus ||
             68 == num_cpus ||
-            72 == num_cpus )
-        {
+            72 == num_cpus ) {
             /* Map all KNL CPUs to 7250 */
             if (NULL != strstr(model_name, INTEL_XEON_PHI_GENERIC_MODEL_NAME)) {
                 arch_type = MV2_ARCH_INTEL_XEON_PHI_7250;
             }
         }
-    } else if(2 == num_sockets) {
-        if(4 == num_cpus) {
+    } else if (2 == num_sockets) {
+        if (4 == num_cpus) {
             arch_type = MV2_ARCH_INTEL_XEON_DUAL_4;
-
-        } else if(8 == num_cpus) {
-
-            if(CLOVERTOWN_MODEL == g_mv2_cpu_model) {
+        } else if (8 == num_cpus) {
+            if (CLOVERTOWN_MODEL == g_mv2_cpu_model) {
                 arch_type = MV2_ARCH_INTEL_CLOVERTOWN_8;
-
-            } else if(HARPERTOWN_MODEL == g_mv2_cpu_model) {
+            } else if (HARPERTOWN_MODEL == g_mv2_cpu_model) {
                 arch_type = MV2_ARCH_INTEL_HARPERTOWN_8;
-
-            } else if(NEHALEM_MODEL == g_mv2_cpu_model) {
+            } else if (NEHALEM_MODEL == g_mv2_cpu_model) {
                 arch_type = MV2_ARCH_INTEL_NEHALEM_8;
-
-            } else if(INTEL_E5630_MODEL == g_mv2_cpu_model){
+            } else if (INTEL_E5630_MODEL == g_mv2_cpu_model) {
                 arch_type = MV2_ARCH_INTEL_XEON_E5630_8;
             } 
-
-        } else if(12 == num_cpus) {
-            if(INTEL_X5650_MODEL == g_mv2_cpu_model) {  
+        } else if (12 == num_cpus) {
+            if (INTEL_X5650_MODEL == g_mv2_cpu_model) {  
                 /* Westmere EP model, Lonestar */
                 arch_type = MV2_ARCH_INTEL_XEON_X5650_12;
             } else if (INTEL_XEON_E5_2670_V2_MODEL == g_mv2_cpu_model) {
-                if(NULL != strstr(model_name, INTEL_E5_2630_V2_MODEL_NAME)){
+                if (NULL != strstr(model_name, INTEL_E5_2630_V2_MODEL_NAME)) {
                     arch_type = MV2_ARCH_INTEL_XEON_E5_2630_V2_2S_12;
                 }
             }
-        } else if(16 == num_cpus) {
-
-            if(NEHALEM_MODEL == g_mv2_cpu_model) {  /* nehalem with smt on */
+        } else if (16 == num_cpus) {
+            if (NEHALEM_MODEL == g_mv2_cpu_model) {  /* nehalem with smt on */
                 arch_type = MV2_ARCH_INTEL_NEHALEM_16;
-
-            }else if(INTEL_E5_2670_MODEL == g_mv2_cpu_model) {
-                if(strncmp(model_name, INTEL_E5_2670_MODEL_NAME, 
-                            strlen(INTEL_E5_2670_MODEL_NAME)) == 0){
+            } else if (INTEL_E5_2670_MODEL == g_mv2_cpu_model) {
+                if (strncmp(model_name, INTEL_E5_2670_MODEL_NAME, 
+                            strlen(INTEL_E5_2670_MODEL_NAME)) == 0) {
                     arch_type = MV2_ARCH_INTEL_XEON_E5_2670_16;
-
-                } else if(strncmp(model_name, INTEL_E5_2680_MODEL_NAME, 
-                            strlen(INTEL_E5_2680_MODEL_NAME)) == 0){
+                } else if (strncmp(model_name, INTEL_E5_2680_MODEL_NAME, 
+                            strlen(INTEL_E5_2680_MODEL_NAME)) == 0) {
                     arch_type = MV2_ARCH_INTEL_XEON_E5_2680_16;
-
                 } else {
                     arch_type = MV2_ARCH_INTEL_GENERIC;
                 }
-            }
-        } else if(20 == num_cpus){
-            if(INTEL_XEON_E5_2670_V2_MODEL == g_mv2_cpu_model) {
-                if(NULL != strstr(model_name, INTEL_E5_2670_V2_MODEL_NAME)){
+            } else if (NULL != strstr(model_name, INTEL_E5_2620_V4_MODEL_NAME)) {
+		        arch_type = MV2_ARCH_INTEL_XEON_E5_2620_V4_2S_16;
+	        }
+        } else if (20 == num_cpus) {
+            if (INTEL_XEON_E5_2670_V2_MODEL == g_mv2_cpu_model) {
+                if (NULL != strstr(model_name, INTEL_E5_2670_V2_MODEL_NAME)) {
                     arch_type = MV2_ARCH_INTEL_XEON_E5_2670_V2_2S_20;
-                }else if(NULL != strstr(model_name, INTEL_E5_2680_V2_MODEL_NAME)){
+                }else if (NULL != strstr(model_name, INTEL_E5_2680_V2_MODEL_NAME)) {
                     arch_type = MV2_ARCH_INTEL_XEON_E5_2680_V2_2S_20;
-                }else if(NULL != strstr(model_name, INTEL_E5_2690_V2_MODEL_NAME)){
+                }else if (NULL != strstr(model_name, INTEL_E5_2690_V2_MODEL_NAME)) {
                     arch_type = MV2_ARCH_INTEL_XEON_E5_2690_V2_2S_20;
                 }
-            } else if(NULL != strstr(model_name, INTEL_E5_2687W_V3_MODEL_NAME)){
+            } else if (NULL != strstr(model_name, INTEL_E5_2687W_V3_MODEL_NAME)) {
                 arch_type = MV2_ARCH_INTEL_XEON_E5_2687W_V3_2S_20;
             } else if (INTEL_XEON_E5_2660_V3_MODEL == g_mv2_cpu_model) {
-                if(NULL != strstr(model_name, INTEL_E5_2660_V3_MODEL_NAME)) {
+                if (NULL != strstr(model_name, INTEL_E5_2660_V3_MODEL_NAME)) {
                     arch_type = MV2_ARCH_INTEL_XEON_E5_2660_V3_2S_20;
                 }
             }
-        } else if(24 == num_cpus){
-            if(NULL != strstr(model_name, INTEL_E5_2680_V3_MODEL_NAME)) {
+        } else if (24 == num_cpus) {
+            if (NULL != strstr(model_name, INTEL_E5_2680_V3_MODEL_NAME)) {
                 arch_type = MV2_ARCH_INTEL_XEON_E5_2680_V3_2S_24;
-            } else if(NULL != strstr(model_name, INTEL_E5_2690_V3_MODEL_NAME)){
+            } else if (NULL != strstr(model_name, INTEL_E5_2690_V3_MODEL_NAME)) {
                 arch_type = MV2_ARCH_INTEL_XEON_E5_2690_V3_2S_24;
-            } else if(NULL != strstr(model_name, INTEL_E5_2670_V3_MODEL_NAME)){
+            } else if (NULL != strstr(model_name, INTEL_E5_2670_V3_MODEL_NAME)) {
                 arch_type = MV2_ARCH_INTEL_XEON_E5_2670_V3_2S_24;
             }
-        } else if(28 == num_cpus){
-            if(NULL != strstr(model_name, INTEL_E5_2695_V3_MODEL_NAME)) {
+        } else if (28 == num_cpus) {
+            if (NULL != strstr(model_name, INTEL_E5_2695_V3_MODEL_NAME)) {
                 arch_type = MV2_ARCH_INTEL_XEON_E5_2695_V3_2S_28;
-            } else if(NULL != strstr(model_name, INTEL_E5_2680_V4_MODEL_NAME)) {
+            } else if (NULL != strstr(model_name, INTEL_E5_2680_V4_MODEL_NAME)) {
                 arch_type = MV2_ARCH_INTEL_XEON_E5_2680_V4_2S_28;
-            } else if(NULL != strstr(model_name, INTEL_GOLD_GENERIC_MODEL_NAME)) { /* SkL Gold */
+            } else if (NULL != strstr(model_name, INTEL_GOLD_GENERIC_MODEL_NAME)) { /* SkL Gold */
                 arch_type = MV2_ARCH_INTEL_PLATINUM_8170_2S_52; /* Use generic SKL tables */
             }
-        } else if(32 == num_cpus){
-            if(INTEL_XEON_E5_2698_V3_MODEL == g_mv2_cpu_model) {
-                if(NULL != strstr(model_name, INTEL_E5_2698_V3_MODEL_NAME)) {
+        } else if (32 == num_cpus) {
+            if (INTEL_XEON_E5_2698_V3_MODEL == g_mv2_cpu_model) {
+                if (NULL != strstr(model_name, INTEL_E5_2698_V3_MODEL_NAME)) {
                     arch_type = MV2_ARCH_INTEL_XEON_E5_2698_V3_2S_32;
                 }
             }
         /* Support Pitzer cluster */
-        } else if(40 == num_cpus){
-            if(NULL != strstr(model_name, INTEL_GOLD_GENERIC_MODEL_NAME)) { /* SkL Gold */
+        } else if (40 == num_cpus) {
+            if (NULL != strstr(model_name, INTEL_GOLD_GENERIC_MODEL_NAME)) { /* SkL Gold */
                 arch_type = MV2_ARCH_INTEL_PLATINUM_8170_2S_52; /* Use generic SKL tables */
             }
-	/* detect skylake or cascade lake CPUs */
-        } else if(48 == num_cpus || 52 == num_cpus || 56 == num_cpus || 44 == num_cpus /* azure skx */){
+	    /* Detect skylake or cascade lake CPUs */
+        } else if (48 == num_cpus || 52 == num_cpus || 56 == num_cpus || 44 == num_cpus /* azure skx */) {
             if (NULL != strstr(model_name, INTEL_PLATINUM_GENERIC_MODEL_NAME)) {
                 arch_type = MV2_ARCH_INTEL_PLATINUM_8170_2S_52;
             }
-
             /* Check if the model is Cascade lake, if yes then change from generic */
             if (NULL != strstr(model_name, INTEL_PLATINUM_8260_MODEL_NAME)) {
                 arch_type = MV2_ARCH_INTEL_PLATINUM_8260_2S_48;
             }
-
             /* Frontera */
-            if(NULL != strstr(model_name, INTEL_PLATINUM_8280_MODEL_NAME)) {
+            if (NULL != strstr(model_name, INTEL_PLATINUM_8280_MODEL_NAME)) {
                 arch_type = MV2_ARCH_INTEL_PLATINUM_8280_2S_56;
             }
-        }  else if(36 == num_cpus || 72 == num_cpus){
-            if(NULL != strstr(model_name, INTEL_E5_2695_V4_MODEL_NAME)) {
+        } else if (36 == num_cpus || 72 == num_cpus) {
+            if (NULL != strstr(model_name, INTEL_E5_2695_V4_MODEL_NAME)) {
                 arch_type = MV2_ARCH_INTEL_XEON_E5_2695_V4_2S_36;
             }
         }
-
+    }
+    /* if not able to determine exact CPU type based on the number of CPU cores,
+     * see if we can at least get the model name */
+    if (arch_type == MV2_ARCH_INTEL_GENERIC) {
+        if (NULL != strstr(model_name, INTEL_XEON_PHI_GENERIC_MODEL_NAME)) {
+            arch_type = MV2_ARCH_INTEL_XEON_PHI_7250;
+        } else if ((NULL != strstr(model_name, INTEL_GOLD_GENERIC_MODEL_NAME)) ||
+                   (NULL != strstr(model_name, INTEL_PLATINUM_GENERIC_MODEL_NAME))) {
+            arch_type = MV2_ARCH_INTEL_PLATINUM_8280_2S_56;
+        }
     }
 
     return arch_type;
@@ -559,7 +563,11 @@ mv2_arch_type mv2_get_arch_type()
                     } else if(24 == num_cpus) {
                         arch_type =  MV2_ARCH_AMD_MAGNY_COURS_24;
                     } else if(64 == num_cpus || 60 == num_cpus /* azure vm */) {
-                        arch_type =  MV2_ARCH_AMD_EPYC_7551_64;
+                        if (NULL != strstr(model_name, AMD_EPYC_7601_MODEL_NAME)) {
+                            arch_type = MV2_ARCH_AMD_EPYC_7601_64;
+                        } else {
+                            arch_type =  MV2_ARCH_AMD_EPYC_7551_64;
+                        }
                     } else if(128 == num_cpus) { /* rome */
                         arch_type = MV2_ARCH_AMD_EPYC_7742_128;
                     }

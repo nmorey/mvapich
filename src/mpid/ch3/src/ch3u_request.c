@@ -3,7 +3,7 @@
  *  (C) 2001 by Argonne National Laboratory.
  *      See COPYRIGHT in top-level directory.
  */
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -27,6 +27,7 @@
  * details.
  */
 
+extern int mv2_iov_density_min;
 /* Routines and data structures for request allocation and deallocation */
 #ifndef MPID_REQUEST_PREALLOC
 #define MPID_REQUEST_PREALLOC 8
@@ -357,7 +358,7 @@ int MPIDI_CH3U_Request_load_send_iov(MPID_Request * const sreq,
 	MPIU_DBG_MSG(CH3_CHANNEL,VERBOSE,"remaining data loaded into IOV");
 	sreq->dev.OnDataAvail = sreq->dev.OnFinal;
     }
-    else if ((last - sreq->dev.segment_first) / *iov_n >= MPIDI_IOV_DENSITY_MIN)
+    else if ((last - sreq->dev.segment_first) / *iov_n >= mv2_iov_density_min)
     {
 	MPIU_DBG_MSG(CH3_CHANNEL,VERBOSE,"more data loaded into IOV");
 	sreq->dev.segment_first = last;
@@ -577,7 +578,7 @@ int MPIDI_CH3U_Request_load_recv_iov(MPID_Request * const rreq)
 	else if (MPIDI_Request_get_type(rreq) == MPIDI_REQUEST_TYPE_ACCUM_RECV ||
                  MPIDI_Request_get_type(rreq) == MPIDI_REQUEST_TYPE_GET_ACCUM_RECV ||
                  (last == rreq->dev.segment_size ||
-                  (last - rreq->dev.segment_first) / rreq->dev.iov_count >= MPIDI_IOV_DENSITY_MIN))
+                  (last - rreq->dev.segment_first) / rreq->dev.iov_count >= mv2_iov_density_min))
 	{
 	    MPIU_DBG_MSG(CH3_CHANNEL,VERBOSE,
 	     "updating rreq to read more data directly into the user buffer");

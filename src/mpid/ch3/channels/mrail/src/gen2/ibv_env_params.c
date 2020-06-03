@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -949,6 +949,14 @@ mv2_env_param_list_t  param_list[] = {
     1,
     NULL    },
 {
+    MV2_DEFAULT_QKEY,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_startup,
+    "MV2_DEFAULT_QKEY",
+    &rdma_default_qkey,
+    1,
+    NULL    },
+{
     MV2_DEFAULT_PORT,
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_startup,
@@ -1691,267 +1699,6 @@ mv2_env_param_list_t  param_list[] = {
     &s_smp_limic2_max_size,
     1,
     NULL    },
-/* cuda */
-#if defined(_ENABLE_CUDA_)
-{
-    MV2_CUDA_BLOCK_SIZE,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_BLOCK_SIZE",
-    &rdma_cuda_block_size,
-    1,
-    NULL    },
-{
-    MV2_CUDA_NUM_RNDV_BLOCKS,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_NUM_RNDV_BLOCKS",
-    &rdma_num_cuda_rndv_blocks,
-    0,
-    NULL    },
-{
-    MV2_CUDA_VECTOR_OPT,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_VECTOR_OPT",
-    &rdma_cuda_vector_dt_opt,
-    0,
-    NULL    },
-{
-    MV2_CUDA_KERNEL_OPT,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_KERNEL_OPT",
-    &rdma_cuda_kernel_dt_opt,
-    0,
-    NULL    },
-{
-    MV2_EAGER_CUDAHOST_REG,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_EAGER_CUDAHOST_REG",
-    &rdma_eager_cudahost_reg,
-    0,
-    NULL    },
-{
-    MV2_USE_CUDA,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_USE_CUDA",
-    &rdma_enable_cuda,
-    0,
-    NULL    },
-{
-    MV2_CUDA_NUM_EVENTS,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_NUM_EVENTS",
-    &rdma_cuda_event_count,
-    0,
-    NULL    },
-#if defined(HAVE_CUDA_IPC)
-{
-    MV2_CUDA_IPC,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_IPC",
-    &rdma_cuda_ipc,
-    0,
-    NULL    },
-{
-    MV2_CUDA_IPC_THRESHOLD,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_IPC_THRESHOLD",
-    &rdma_cuda_ipc_threshold,
-    0,
-    NULL    },
-{
-    MV2_CUDA_ENABLE_IPC_CACHE,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_ENABLE_IPC_CACHE",
-    &rdma_cuda_enable_ipc_cache,
-    0,
-    NULL    },
-{
-    MV2_CUDA_IPC_MAX_CACHE_ENTRIES,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_IPC_MAX_CACHE_ENTRIES",
-    &cudaipc_cache_max_entries,
-    0,
-    NULL    },
-{
-    MV2_CUDA_IPC_NUM_STAGE_BUFFERS,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_IPC_NUM_STAGE_BUFFERS",
-    &cudaipc_num_stage_buffers,
-    0,
-    NULL    },
-{
-    MV2_CUDA_IPC_STAGE_BUF_SIZE,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_IPC_STAGE_BUF_SIZE",
-    &cudaipc_stage_buffer_size,
-    0,
-    NULL    },
-{
-    MV2_CUDA_IPC_BUFFERED,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_IPC_BUFFERED",
-    &cudaipc_stage_buffered,
-    0,
-    NULL    },
-{
-    MV2_CUDA_IPC_BUFFERED_LIMIT,
-    MV2_PARAM_TYPE_LONG,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_IPC_BUFFERED_LIMIT",
-    &cudaipc_stage_buffered_limit,
-    0,
-    NULL    },
-{
-    MV2_CUDA_IPC_SYNC_LIMIT,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_IPC_SYNC_LIMIT",
-    &cudaipc_sync_limit,
-    0,
-    NULL    },
-#endif /*#if defined(HAVE_CUDA_IPC)*/
-{
-    MV2_CUDA_USE_NAIVE,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_USE_NAIVE",
-    &rdma_cuda_use_naive,
-    0,
-    NULL    },
-{
-    MV2_CUDA_REGISTER_NAIVE_BUF,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_REGISTER_NAIVE_BUF",
-    &rdma_cuda_register_naive_buf,
-    0,
-    NULL    },
-{
-    MV2_CUDA_GATHER_NAIVE_LIMIT,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_GATHER_NAIVE_LIMIT",
-    &rdma_cuda_gather_naive_limit,
-    0,
-    NULL    },
-{
-    MV2_CUDA_SCATTER_NAIVE_LIMIT,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_SCATTER_NAIVE_LIMIT",
-    &rdma_cuda_scatter_naive_limit,
-    0,
-    NULL    },
-{
-    MV2_CUDA_ALLGATHER_NAIVE_LIMIT,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_ALLGATHER_NAIVE_LIMIT",
-    &rdma_cuda_allgather_naive_limit,
-    0,
-    NULL    },
-{
-    MV2_CUDA_ALLGATHERV_NAIVE_LIMIT,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_ALLGATHERV_NAIVE_LIMIT",
-    &rdma_cuda_allgatherv_naive_limit,
-    0,
-    NULL    },
-{
-    MV2_CUDA_ALLTOALL_NAIVE_LIMIT,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_ALLTOALL_NAIVE_LIMIT",
-    &rdma_cuda_alltoall_naive_limit,
-    0,
-    NULL    },
-{
-    MV2_CUDA_ALLTOALLV_NAIVE_LIMIT,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_ALLTOALLV_NAIVE_LIMIT",
-    &rdma_cuda_alltoallv_naive_limit,
-    0,
-    NULL    },
-{
-    MV2_CUDA_BCAST_NAIVE_LIMIT,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_BCAST_NAIVE_LIMIT",
-    &rdma_cuda_bcast_naive_limit,
-    0,
-    NULL    },
-{
-    MV2_CUDA_GATHERV_NAIVE_LIMIT,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_GATHERV_NAIVE_LIMIT",
-    &rdma_cuda_gatherv_naive_limit,
-    0,
-    NULL    },
-{
-    MV2_CUDA_SCATTERV_NAIVE_LIMIT,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_SCATTERV_NAIVE_LIMIT",
-    &rdma_cuda_scatterv_naive_limit,
-    0,
-    NULL    },
-{
-    MV2_CUDA_ALLTOALL_DYNAMIC,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_ALLTOALL_DYNAMIC",
-    &rdma_cuda_alltoall_dynamic,
-    0,
-    NULL    },
-{
-    MV2_CUDA_ALLGATHER_RD_LIMIT,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_ALLGATHER_RD_LIMIT",
-    &rdma_cuda_allgather_rd_limit,
-    0,
-    NULL    },
-{
-    MV2_CUDA_ALLGATHER_FGP,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_ALLGATHER_FGP",
-    &rdma_cuda_allgather_fgp,
-    0,
-    NULL    },
-{
-    MV2_SMP_CUDA_PIPELINE,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_SMP_CUDA_PIPELINE",
-    &s_smp_cuda_pipeline,
-    0,
-    NULL    },
-{
-    MV2_CUDA_INIT_CONTEXT,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_cuda,
-    "MV2_CUDA_INIT_CONTEXT",
-    &rdma_cuda_init_context,
-    0,
-    NULL    },
-#endif /*_ENABLE_CUDA */
 /* debug */
 {
     MV2_DEBUG_CORESIZE,
@@ -2455,6 +2202,245 @@ mv2_env_param_list_t  param_list[] = {
 
 };
 
+
+
+/* List of all cuda runtime environment variables.
+ * ** Format of the parameter info
+ * * **  {
+ * * **      id,
+ * * **      datatype,
+ * * **      name,
+ * * **      addr of variables which stores the param value
+ * * **      externally visible 1 or 0
+ * * **      descrption of the parameter.
+ * * **  }
+ * * */
+#if defined(_ENABLE_CUDA_)
+mv2_env_param_list_t  cuda_param_list[] = {
+{
+    MV2_CUDA_BLOCK_SIZE,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_CUDA_BLOCK_SIZE",
+    &rdma_cuda_block_size,
+    1,
+    NULL    },
+{
+    MV2_CUDA_NUM_RNDV_BLOCKS,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_CUDA_NUM_RNDV_BLOCKS",
+    &rdma_num_cuda_rndv_blocks,
+    0,
+    NULL    },
+{
+    MV2_CUDA_VECTOR_OPT,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_CUDA_VECTOR_OPT",
+    &rdma_cuda_vector_dt_opt,
+    0,
+    NULL    },
+{
+    MV2_CUDA_KERNEL_OPT,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_CUDA_KERNEL_OPT",
+    &rdma_cuda_kernel_dt_opt,
+    0,
+    NULL    },
+{
+    MV2_EAGER_CUDAHOST_REG,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_EAGER_CUDAHOST_REG",
+    &rdma_eager_cudahost_reg,
+    0,
+    NULL    },
+{
+    MV2_USE_CUDA,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_USE_CUDA",
+    &rdma_enable_cuda,
+    0,
+    NULL    },
+{
+    MV2_CUDA_NUM_EVENTS,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_CUDA_NUM_EVENTS",
+    &rdma_cuda_event_count,
+    0,
+    NULL    },
+#if defined(HAVE_CUDA_IPC)
+{
+    MV2_CUDA_IPC,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_CUDA_IPC",
+    &rdma_cuda_ipc,
+    0,
+    NULL    },
+{
+    MV2_CUDA_IPC_THRESHOLD,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_CUDA_IPC_THRESHOLD",
+    &rdma_cuda_ipc_threshold,
+    1,
+    NULL    },
+{
+    MV2_CUDA_ENABLE_IPC_CACHE,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_CUDA_ENABLE_IPC_CACHE",
+    &rdma_cuda_enable_ipc_cache,
+    0,
+    NULL    },
+{
+    MV2_CUDA_IPC_MAX_CACHE_ENTRIES,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_CUDA_IPC_MAX_CACHE_ENTRIES",
+    &cudaipc_cache_max_entries,
+    0,
+    NULL    },
+#endif /*#if defined(HAVE_CUDA_IPC)*/
+{
+    MV2_CUDA_USE_NAIVE,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_CUDA_USE_NAIVE",
+    &rdma_cuda_use_naive,
+    0,
+    NULL    },
+{
+    MV2_CUDA_REGISTER_NAIVE_BUF,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_CUDA_REGISTER_NAIVE_BUF",
+    &rdma_cuda_register_naive_buf,
+    0,
+    NULL    },
+{
+    MV2_CUDA_GATHER_NAIVE_LIMIT,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_CUDA_GATHER_NAIVE_LIMIT",
+    &rdma_cuda_gather_naive_limit,
+    0,
+    NULL    },
+{
+    MV2_CUDA_SCATTER_NAIVE_LIMIT,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_CUDA_SCATTER_NAIVE_LIMIT",
+    &rdma_cuda_scatter_naive_limit,
+    0,
+    NULL    },
+{
+    MV2_CUDA_ALLGATHER_NAIVE_LIMIT,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_CUDA_ALLGATHER_NAIVE_LIMIT",
+    &rdma_cuda_allgather_naive_limit,
+    0,
+    NULL    },
+{
+    MV2_CUDA_ALLGATHERV_NAIVE_LIMIT,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_CUDA_ALLGATHERV_NAIVE_LIMIT",
+    &rdma_cuda_allgatherv_naive_limit,
+    0,
+    NULL    },
+{
+    MV2_CUDA_ALLTOALL_NAIVE_LIMIT,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_CUDA_ALLTOALL_NAIVE_LIMIT",
+    &rdma_cuda_alltoall_naive_limit,
+    0,
+    NULL    },
+{
+    MV2_CUDA_ALLTOALLV_NAIVE_LIMIT,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_CUDA_ALLTOALLV_NAIVE_LIMIT",
+    &rdma_cuda_alltoallv_naive_limit,
+    0,
+    NULL    },
+{
+    MV2_CUDA_BCAST_NAIVE_LIMIT,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_CUDA_BCAST_NAIVE_LIMIT",
+    &rdma_cuda_bcast_naive_limit,
+    0,
+    NULL    },
+{
+    MV2_CUDA_GATHERV_NAIVE_LIMIT,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_CUDA_GATHERV_NAIVE_LIMIT",
+    &rdma_cuda_gatherv_naive_limit,
+    0,
+    NULL    },
+{
+    MV2_CUDA_SCATTERV_NAIVE_LIMIT,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_CUDA_SCATTERV_NAIVE_LIMIT",
+    &rdma_cuda_scatterv_naive_limit,
+    0,
+    NULL    },
+{
+    MV2_CUDA_ALLTOALL_DYNAMIC,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_CUDA_ALLTOALL_DYNAMIC",
+    &rdma_cuda_alltoall_dynamic,
+    0,
+    NULL    },
+{
+    MV2_CUDA_ALLGATHER_RD_LIMIT,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_CUDA_ALLGATHER_RD_LIMIT",
+    &rdma_cuda_allgather_rd_limit,
+    0,
+    NULL    },
+{
+    MV2_CUDA_ALLGATHER_FGP,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_CUDA_ALLGATHER_FGP",
+    &rdma_cuda_allgather_fgp,
+    0,
+    NULL    },
+{
+    MV2_SMP_CUDA_PIPELINE,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_SMP_CUDA_PIPELINE",
+    &s_smp_cuda_pipeline,
+    0,
+    NULL    },
+{
+    MV2_CUDA_INIT_CONTEXT,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_cuda,
+    "MV2_CUDA_INIT_CONTEXT",
+    &rdma_cuda_init_context,
+    0,
+    NULL    },
+};
+#endif /*#if defined(_ENABLE_CUDA_)*/
+
+
+
+
 void mv2_show_all_params()
 {
     int i, n_params;
@@ -2497,6 +2483,50 @@ void mv2_show_all_params()
         }
     }
 }
+
+
+#if defined(_ENABLE_CUDA_)
+void mv2_show_cuda_params()
+{
+    int i, n_params;
+    char *value;
+    n_params = sizeof(cuda_param_list)/sizeof(cuda_param_list[0]);
+    fprintf(stderr, "\n MVAPICH2 GDR Parameters\n");
+    for (i = 0; i <n_params; i++) {
+        if(cuda_param_list[i].value != NULL) {
+            switch(cuda_param_list[i].type) {
+                case MV2_PARAM_TYPE_INT8:
+                    fprintf(stderr, "\t%-35s : %d\n", 
+                        cuda_param_list[i].name, *(uint8_t *)(cuda_param_list[i].value));
+                        break;
+                case MV2_PARAM_TYPE_INT16:
+                    fprintf(stderr, "\t%-35s : %d\n", 
+                        cuda_param_list[i].name, *(uint16_t *)(cuda_param_list[i].value));
+                        break;
+                case MV2_PARAM_TYPE_INT:
+                    fprintf(stderr, "\t%-35s : %d\n", 
+                        cuda_param_list[i].name, *(int *)(cuda_param_list[i].value));
+                    break;
+                case MV2_PARAM_TYPE_LONG:
+                    fprintf(stderr, "\t%-35s : %ld\n", 
+                        cuda_param_list[i].name, *(long *)cuda_param_list[i].value);
+                    break;
+                case MV2_PARAM_TYPE_STRING:
+                    fprintf(stderr, "\t%-35s : %s\n", 
+                        cuda_param_list[i].name, (char *)cuda_param_list[i].value);
+                    break;
+                case MV2_PARAM_TYPE_INVALID:
+                    if(cuda_param_list[i].value != NULL) {
+                    }
+                    break;
+            }
+        } else if((value = getenv(cuda_param_list[i].name)) != NULL) {
+                    fprintf(stderr, "\t%-35s : %s\n",
+                                cuda_param_list[i].name, value);
+        }
+    }
+}
+#endif /*#if defined(_ENABLE_CUDA_)*/
 
 /* List of all runtime info.
 ** Format of the parameter info

@@ -4,7 +4,7 @@
  *      See COPYRIGHT in top-level directory.
  */
 
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -1364,15 +1364,15 @@ int rdma_cm_get_verbs_ip(int *num_interfaces)
     *num_interfaces = num_ip_enabled_devices;
     rdma_cm_local_ips = MPIU_Malloc((rdma_num_hcas*rdma_num_ports) * sizeof(int));
     for(index = 0; index < (*num_interfaces); index++){
-        if (value && ip_address_enabled_devices[index].device_name) {
-            if(strstr(value, ip_address_enabled_devices[index].device_name) == NULL) {
+        if (value != NULL && ip_address_enabled_devices != NULL &&
+            strstr(value, ip_address_enabled_devices[index].device_name) == NULL) {
                 continue;
-            }
         }
-        PRINT_DEBUG(DEBUG_RDMACM_verbose, "Assigning ip of: device %s, ip address %s\n", ip_address_enabled_devices[index].device_name,ip_address_enabled_devices[index].ip_address);
+        PRINT_DEBUG(DEBUG_RDMACM_verbose, "Assigning ip of: device %s,\
+        ip address %s\n", ip_address_enabled_devices[index].device_name,\
+        ip_address_enabled_devices[index].ip_address);
         rdma_cm_local_ips[index] = inet_addr(ip_address_enabled_devices[index].ip_address);
     }
-
 
     return mpi_errno;
 }

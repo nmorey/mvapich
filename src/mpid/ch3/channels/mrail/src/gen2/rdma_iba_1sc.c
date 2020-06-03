@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -1449,12 +1449,16 @@ MPIDI_CH3I_RDMA_win_create (void *base,
     (*win_ptr)->rma_issued = 0;
 
     (*win_ptr)->put_get_list =
-        (MPIDI_CH3I_RDMA_put_get_list *) MPIU_Malloc( 
+        (MPIDI_CH3I_RDMA_put_get_list *) MPIU_Malloc(
             rdma_default_put_get_list_size *
             sizeof(MPIDI_CH3I_RDMA_put_get_list));
     if (!(*win_ptr)->put_get_list) {
         DEBUG_PRINT("Fail to malloc space for window put get list\n");
         ibv_error_abort (GEN_EXIT_ERR, "rdma_iba_1sc");
+    }
+    /* Initialize the status of all entries in put_get_list to avoid garbage value */
+    for (i = 0 ; i < rdma_default_put_get_list_size ; ++i) {
+        (*win_ptr)->put_get_list[i].status = FREE;
     }
 
     (*win_ptr)->put_get_list_size_per_process =

@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -186,6 +186,12 @@ int mvapich2_minit()
     ptr_valloc = valloc(PT_TEST_ALLOC_SIZE);
     ptr_memalign = memalign(64, PT_TEST_ALLOC_SIZE);
 
+#ifdef __PGIC__
+    *(volatile int *)ptr_calloc = 0;
+    *(volatile int *)ptr_realloc = 0;
+    *(volatile int *)ptr_valloc = 0;
+#endif
+
     memset(ptr_calloc, 0, PT_TEST_ALLOC_SIZE);
     memset(ptr_realloc, 0, PT_TEST_ALLOC_SIZE);
     memset(ptr_valloc, 0, PT_TEST_ALLOC_SIZE);
@@ -198,7 +204,7 @@ int mvapich2_minit()
     /* ptr_realloc already contains the
      * memory allocated by malloc */
     free(ptr_realloc);
-
+    
     if(!(mvapich2_minfo.is_our_malloc &&
             mvapich2_minfo.is_our_calloc &&
             mvapich2_minfo.is_our_realloc &&

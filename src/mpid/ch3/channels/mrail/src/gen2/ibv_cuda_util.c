@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -1366,3 +1366,14 @@ void cuda_init_thread_context()
     }
 }
 #endif
+
+int MPIX_Query_cuda_support() {
+#if defined(_ENABLE_CUDA_)
+    /* NOTE: Ideally, we may want to return 'rdma_enable_cuda'.
+     * However, this function can be called before performing MPI_Init,
+     * where we intialize rdma_enable_cuda based on MV2_USE_CUDA. */
+    return 1;
+#else
+    return 0;
+#endif
+}

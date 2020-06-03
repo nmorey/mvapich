@@ -999,6 +999,10 @@
 /* MPIU_Upint is an unsigned pointer-sized integer */
 #undef MPIU_Upint
 
+/* Macro that is set to 1 when CUDA-aware support is configured in and 0 when
+   it is not */
+#undef MPIX_CUDA_AWARE_SUPPORT
+
 /* Define to enable GEN2 interface */
 #undef MRAIL_GEN2_INTERFACE
 

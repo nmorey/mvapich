@@ -4,7 +4,7 @@
  *      See COPYRIGHT in top-level directory.
  */
 
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -47,6 +47,10 @@ do {                                                          \
 #else
 #define DEBUG_PRINT(args...)
 #endif
+
+#if defined(MPIDI_MRAILI_COALESCE_ENABLED)
+extern void FLUSH_SQUEUE_NOINLINE(MPIDI_VC_t *vc);
+#endif /*#if defined(MPIDI_MRAILI_COALESCE_ENABLED)*/
 
 #undef FUNCNAME
 #define FUNCNAME MPIDI_CH3_Prepare_rndv_get
@@ -573,10 +577,16 @@ static int MPIDI_CH3_SMP_Rendezvous_push(MPIDI_VC_t * vc,
 
 #endif
 
+#if defined(_SMP_LIMIC_) || defined(_SMP_CMA_)
     PRINT_DEBUG(DEBUG_RNDV_verbose>1,
             "Sending R3 Data to %d, sreq: %p, partner: %08x, niov: %d, cma: %p, limic: %p\n",
             vc->pg_rank, sreq, sreq->mrail.partner_id, sreq->dev.iov_count,
             pkt_head.csend_req_id, pkt_head.send_req_id);
+#else
+    PRINT_DEBUG(DEBUG_RNDV_verbose>1,
+            "Sending R3 Data to %d, sreq: %p, partner: %08x, niov: %d\n",
+            vc->pg_rank, sreq, sreq->mrail.partner_id, sreq->dev.iov_count);
+#endif
 
     mpi_errno = MPIDI_CH3_iStartMsg(vc, &pkt_head,
                                     sizeof(MPIDI_CH3_Pkt_rndv_r3_data_t),
@@ -744,6 +754,11 @@ void MPIDI_CH3_Rendezvous_r3_push(MPIDI_VC_t * vc, MPID_Request * sreq)
 
     MPIDI_CH3_Pkt_rndv_r3_data_t pkt_head;
 
+#if defined(MPIDI_MRAILI_COALESCE_ENABLED)
+    /* TODO: Ticket #1433 */
+    FLUSH_SQUEUE_NOINLINE(vc);
+#endif /*if defined(MPIDI_MRAILI_COALESCE_ENABLED)*/
+
     MPIDI_Pkt_init(&pkt_head, MPIDI_CH3_PKT_RNDV_R3_DATA);
     iov[0].MPL_IOV_LEN = sizeof(MPIDI_CH3_Pkt_rndv_r3_data_t);
     iov[0].MPL_IOV_BUF = (void*) &pkt_head;
@@ -793,7 +808,7 @@ void MPIDI_CH3_Rendezvous_r3_push(MPIDI_VC_t * vc, MPID_Request * sreq)
                 vc->ch.state = MPIDI_CH3I_VC_STATE_FAILED;
                 sreq->status.MPI_ERROR = MPI_ERR_INTERN;
                 MPID_Request_complete(sreq);
-                return;
+                goto fn_exit;
             } else if (MPI_MRAIL_MSG_QUEUED == mpi_errno) {
                 msg_buffered = 1;
             }
@@ -838,6 +853,12 @@ void MPIDI_CH3_Rendezvous_r3_push(MPIDI_VC_t * vc, MPID_Request * sreq)
     }
 
     MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_RNDV_R3_PUSH);
+fn_exit:
+#if defined(MPIDI_MRAILI_COALESCE_ENABLED)
+    /* TODO: Ticket #1433 */
+    FLUSH_SQUEUE_NOINLINE(vc);
+#endif /*if defined(MPIDI_MRAILI_COALESCE_ENABLED)*/
+    return;
 }
 
 #undef FUNCNAME

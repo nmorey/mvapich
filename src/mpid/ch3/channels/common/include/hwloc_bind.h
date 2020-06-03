@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -12,6 +12,10 @@
 
 #ifndef CH3_HWLOC_BIND_H_
 #define CH3_HWLOC_BIND_H_
+
+#if defined(HAVE_LIBIBVERBS)
+#include <infiniband/verbs.h>
+#endif
 
 #include <hwloc.h>
 #include <dirent.h>
@@ -90,7 +94,6 @@ static inline int smpi_load_hwloc_topology(void)
 {
     if (!topology) {
         hwloc_topology_init(&topology);
-        hwloc_topology_set_flags(topology, HWLOC_TOPOLOGY_FLAG_IO_DEVICES);
         hwloc_topology_set_flags(topology, HWLOC_TOPOLOGY_FLAG_WHOLE_SYSTEM);
         hwloc_topology_load(topology);
     }
@@ -99,7 +102,6 @@ static inline int smpi_load_hwloc_topology_whole(void)
 {
     if (!topology_whole) {
         hwloc_topology_init(&topology_whole);
-        hwloc_topology_set_flags(topology_whole, HWLOC_TOPOLOGY_FLAG_IO_DEVICES);
         hwloc_topology_set_flags(topology_whole, HWLOC_TOPOLOGY_FLAG_WHOLE_SYSTEM);
         hwloc_topology_load(topology_whole);
     }    

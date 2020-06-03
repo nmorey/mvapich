@@ -1,6 +1,6 @@
 /* Malloc implementation for multiple threads without lock contention. */
 
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -269,7 +269,7 @@
 /* Channel specific memory hooks. */
 #include <mem_hooks.h>
 
-extern mvapich2_malloc_info_t mvapich2_minfo;
+mvapich2_malloc_info_t mvapich2_minfo;
 
 #define munmap(buf,len) mvapich2_munmap(buf, len)
 
@@ -1302,6 +1302,14 @@ int      public_sET_STATe();
   POSIX wrapper like memalign(), checking for validity of size.
 */
 int      __posix_memalign(void **, size_t, size_t);
+/*
+  void * aligned_alloc (size_t alignment, size_t size)
+
+  The aligned_alloc function allocates a block of size bytes
+  whose address is a multiple of alignment. The alignment must
+  be a power of two and size must be a multiple of alignment.
+*/
+void *  __aligned_alloc(size_t, size_t);
 #endif
 
 /* mallopt tuning options */
@@ -5572,10 +5580,53 @@ posix_memalign (void **memptr, size_t alignment, size_t size)
   return ENOMEM;
 }
 
+/* CHANNEL_MRAIL: We need to expose our own aligned_alloc or the wrong one
+ * will be used.
+#ifdef _LIBC
+*/
+
+void *
+/* <CHANNEL_MRAIL> */
+aligned_alloc (size_t alignment, size_t size)
+/* __aligned_alloc (size_t alignment, size_t size)
+ * </CHANNEL_MRAIL>
+ */
+{
+  void *mem;
+  __malloc_ptr_t (*hook) __MALLOC_PMT ((size_t, size_t,
+					__const __malloc_ptr_t)) =
+    __memalign_hook;
+
+  /* Test whether the size and alignment arguments are valid.
+     The alignment must be a power of two and
+     size must be a multiple of alignment. */
+  if (size % alignment != 0
+      || !powerof2 (alignment) != 0
+      || alignment == 0) {
+    MALLOC_FAILURE_ACTION
+    return 0;
+  }
+
+  /* Call the hook here, so that caller is posix_memalign's caller
+     and not posix_memalign itself.  */
+  if (hook != NULL)
+    mem = (*hook)(alignment, size, RETURN_ADDRESS (0));
+  else
+    mem = public_mEMALIGn (alignment, size);
+
+  if (mem != NULL) {
+    return mem;
+  }
+
+  MALLOC_FAILURE_ACTION
+  return 0;
+}
+
 /* <CHANNEL_MRAIL> */
 #if defined(_LIBC)
 /* </CHANNEL_MRAIL> */
 weak_alias (__posix_memalign, posix_memalign)
+weak_alias (__aligned_alloc, aligned_alloc)
 
 strong_alias (__libc_calloc, __calloc) weak_alias (__libc_calloc, calloc)
 strong_alias (__libc_free, __cfree) weak_alias (__libc_free, cfree)

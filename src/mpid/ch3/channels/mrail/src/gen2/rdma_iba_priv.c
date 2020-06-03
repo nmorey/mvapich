@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -272,6 +272,7 @@ static int check_attrs(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
                        struct ibv_device_attr *dev_attr, int user_set)
 {
     int ret = 0;
+    char *value = NULL;
 #ifdef _ENABLE_XRC_
     if (USE_XRC && !(dev_attr->device_cap_flags & IBV_DEVICE_XRC)) {
         fprintf(stderr, "HCA does not support XRC. Disable MV2_USE_XRC.\n");
@@ -319,7 +320,7 @@ static int check_attrs(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
 #endif /* #if defined(_ENABLE_UD_) || defined(_MCST_SUPPORT_) */
 
     if (dev_attr->max_qp_rd_atom < rdma_default_qp_ous_rd_atom) {
-        if (!user_set) {
+        if ((value = getenv("MV2_DEFAULT_QP_OUS_RD_ATOM")) == NULL) {
             rdma_default_qp_ous_rd_atom = dev_attr->max_qp_rd_atom;
         } else {
             fprintf(stderr,
@@ -332,7 +333,7 @@ static int check_attrs(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
 
     if (mv2_MPIDI_CH3I_RDMA_Process.has_srq) {
         if (dev_attr->max_srq_sge < rdma_default_max_sg_list) {
-            if (!user_set) {
+            if ((value = getenv("MV2_DEFAULT_MAX_SG_LIST")) == NULL) {
                 rdma_default_max_sg_list = dev_attr->max_srq_sge;
             } else {
                 fprintf(stderr,
@@ -344,7 +345,7 @@ static int check_attrs(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
         }
 
         if (dev_attr->max_srq_wr < mv2_srq_alloc_size) {
-            if (!user_set) {
+            if ((value = getenv("MV2_SRQ_MAX_SIZE")) == NULL) {
                 mv2_srq_alloc_size = dev_attr->max_srq_wr;
             } else {
                 fprintf(stderr,
@@ -356,7 +357,7 @@ static int check_attrs(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
         }
     } else {
         if (dev_attr->max_sge < rdma_default_max_sg_list) {
-            if (!user_set) {
+            if ((value = getenv("MV2_DEFAULT_MAX_SG_LIST")) == NULL) {
                 rdma_default_max_sg_list = dev_attr->max_sge;
             } else {
                 fprintf(stderr,
@@ -367,7 +368,7 @@ static int check_attrs(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
         }
 
         if (dev_attr->max_qp_wr < rdma_default_max_send_wqe) {
-            if (!user_set) {
+            if ((value = getenv("MV2_DEFAULT_MAX_SEND_WQE")) == NULL) {
                 rdma_default_max_send_wqe = dev_attr->max_qp_wr;
             } else {
                 fprintf(stderr,
@@ -379,7 +380,7 @@ static int check_attrs(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
         }
     }
     if (dev_attr->max_cqe < rdma_default_max_cq_size) {
-        if (!user_set) {
+        if ((value = getenv("MV2_DEFAULT_MAX_CQ_SIZE")) == NULL) {
             rdma_default_max_cq_size = dev_attr->max_cqe;
         } else {
             fprintf(stderr,
@@ -450,9 +451,13 @@ int rdma_find_network_type(struct ibv_device **dev_list, int num_devices,
                            struct ibv_device **usable_dev_list, int *num_usable_hcas)
 {
     int i = 0;
-    int j = 0;
+    /* j must be initialized to 1 since we always store index fastest HCA in
+     * usable_dev_list[0] */
+    int j = 1;
     int hca_type = 0;
-    int network_type = MV2_HCA_UNKWN;
+    int fastest_hca_type = MV2_HCA_UNKWN;
+    int fastest_network_type = MV2_NETWORK_CLASS_UNKNOWN;
+    int network_type = MV2_NETWORK_CLASS_UNKNOWN;
     int num_ib_cards = 0;
     int num_iwarp_cards = 0;
     int num_unknwn_cards = 0;
@@ -461,17 +466,43 @@ int rdma_find_network_type(struct ibv_device **dev_list, int num_devices,
         hca_type = mv2_get_hca_type(dev_list[i]);
 	    PRINT_DEBUG(DEBUG_INIT_verbose>1, "HCA %s type = %s\n", dev_list[i]->name,
                     mv2_get_hca_name(hca_type));
-        if (network_type <= hca_type) {
-            network_type=hca_type;
+        if (fastest_hca_type < hca_type) {
+            fastest_hca_type = hca_type;
+            /* Get the network type for the fastest HCA */
+            fastest_network_type = MV2_GET_NETWORK_TYPE(fastest_hca_type);
+            /* Store the fastest HCA in usable_dev_list[0] */
+            usable_dev_list[0] = dev_list[i];
         }
     }
+    /* Count fastest HCA type */
+    if (MV2_IS_IB_CARD(fastest_hca_type)) {
+        num_ib_cards++;
+    } else if (MV2_IS_IWARP_CARD(fastest_hca_type)) {
+        num_iwarp_cards++;
+    } else {
+        num_unknwn_cards++;
+    }
+	PRINT_DEBUG(DEBUG_INIT_verbose>1, "Fastest Usable HCA %d = %s. Type = %s\n",
+                0, usable_dev_list[0]->name, mv2_get_hca_name(fastest_hca_type));
     for (i = 0; i < num_devices; ++i) {
         hca_type = mv2_get_hca_type(dev_list[i]);
-        if (network_type != hca_type) {
+        /* Get the network type for the HCA */
+        network_type = MV2_GET_NETWORK_TYPE(hca_type);
+        /* If network type is not fastest or if we have already stored the HCA
+         * index in usable_dev_list[0] skip it */
+        if ((network_type != fastest_network_type) ||
+            (dev_list[i] == usable_dev_list[0])) {
             continue;
         }
+        /* Get the HCA type for the HCA */
+        hca_type = mv2_get_hca_type(dev_list[i]);
+        /* If we have HCAs of different speeds, force SM_SCHEDULING to USE_FIRST
+         * so that we always use the fastest HCA for small messages */
+        if (fastest_hca_type != hca_type) {
+            rdma_rail_sharing_policy = USE_FIRST;
+        }
         usable_dev_list[j] = dev_list[i];
-	    PRINT_DEBUG(DEBUG_INIT_verbose>1, "Usable HCA %d = %s. Type = %s\n",
+	    PRINT_DEBUG(DEBUG_INIT_verbose>1, "Other usable HCA %d = %s. Type = %s\n",
                     j, dev_list[i]->name, mv2_get_hca_name(hca_type));
         j++;
         if (MV2_IS_IB_CARD(hca_type)) {
@@ -491,11 +522,17 @@ int rdma_find_network_type(struct ibv_device **dev_list, int num_devices,
 
     if (num_ib_cards && (num_ib_cards >= num_iwarp_cards)) {
         *num_usable_hcas = num_ib_cards;
+        network_type = MV2_NETWORK_CLASS_IB;
     } else if (num_iwarp_cards && (num_ib_cards < num_iwarp_cards)) {
         *num_usable_hcas = num_iwarp_cards;
+        network_type = MV2_NETWORK_CLASS_IWARP;
     } else {
         *num_usable_hcas = num_unknwn_cards;
     }
+
+    PRINT_DEBUG(DEBUG_INIT_verbose, "Fastest HCA (Network) type = %s (%s). Usable HCAs of type %s = %d\n",
+                mv2_get_hca_name(fastest_hca_type), mv2_get_network_name(fastest_network_type),
+                mv2_get_network_name(fastest_network_type), *num_usable_hcas);
 
     return network_type;
 }
@@ -680,7 +717,7 @@ int rdma_open_hca(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
     network_type = rdma_find_network_type(dev_list, num_devices,
                                           usable_dev_list, &num_usable_hcas);
 
-    if (network_type == MV2_HCA_UNKWN) {
+    if (network_type == MV2_NETWORK_CLASS_UNKNOWN) {
         if (num_usable_hcas) {
             PRINT_INFO((mv2_suppress_hca_warnings==0),
 			"Unknown HCA type: this build of MVAPICH2 does not"
@@ -727,19 +764,7 @@ int rdma_open_hca(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
 #endif /*defined(_MCST_SUPPORT_) && defined(RDMA_CM)*/
     
 
-    PRINT_DEBUG(DEBUG_INIT_verbose, "Selected HCA type = %s, Usable HCAs = %d\n",
-                mv2_get_hca_name(network_type), num_usable_hcas);
-    
     for (i = 0; i < num_usable_hcas; i++) {
-        if (rdma_skip_network_card(network_type, usable_dev_list[i])) {
-            /* Skip HCA's that don't match with network type */
-            PRINT_DEBUG(DEBUG_INIT_verbose, "Skipping HCA %s since type does not match."
-                        "Selected: %s; Current: %s\n",
-                        usable_dev_list[i]->name, mv2_get_hca_name(network_type),
-                        mv2_get_hca_name(mv2_get_hca_type(usable_dev_list[i])));
-            continue;
-        }
-
         if (rdma_multirail_usage_policy == MV2_MRAIL_BINDING) {
             /* Bind a process to a HCA */
             if (mrail_use_default_mapping) {

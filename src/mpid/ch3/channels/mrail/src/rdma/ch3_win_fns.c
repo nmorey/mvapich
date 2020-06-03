@@ -4,7 +4,7 @@
  *      See COPYRIGHT in top-level directory.
  */
 
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -65,7 +65,8 @@ int MPIDI_CH3_SHM_Win_shared_query(MPID_Win * win_ptr, int target_rank, MPI_Aint
 
     comm_size = win_ptr->comm_ptr->local_size;
 
-    if (!SMP_INIT || (SMP_INIT && comm_size <= 1)) {
+    /* fallback when a shared window was not allocated */
+    if (FALSE == win_ptr->shm_allocated || !SMP_INIT || (SMP_INIT && comm_size <= 1)) {
         mpi_errno = MPIDI_CH3U_Win_shared_query(win_ptr, target_rank, size, disp_unit, baseptr);
         if (mpi_errno != MPI_SUCCESS) {
             MPIR_ERR_POP(mpi_errno);
@@ -780,6 +781,13 @@ static int MPIDI_CH3I_Win_allocate_shm(MPI_Aint size, int disp_unit, MPID_Info *
             mpi_errno =
                 MPIDI_CH3U_Win_allocate_no_shm(size, disp_unit, info, comm_ptr, base_ptr, win_ptr);
             (*win_ptr)->shm_allocated = FALSE;
+
+            static uint8_t shown_warning = 0;
+            PRINT_INFO(( !shown_warning && (*win_ptr)->comm_ptr->rank == 0),
+                        "\n\t[WARNING] Shared memory window cannot be created, "
+                        "for better performance, please consider increasing the value of MV2_SHMEM_COLL_NUM_COMM (current value %d)\n\n", mv2_g_shmem_coll_blocks);
+            shown_warning = 1;
+
             goto fn_exit;
         }
 
@@ -977,28 +985,23 @@ static int MPIDI_CH3I_Win_allocate_shm(MPI_Aint size, int disp_unit, MPID_Info *
 
         /* compute the base addresses of each process within the shared memory segment */
         {
-            char *cur_base;
-            int cur_rank;
+            char *cur_base = NULL;
 
             cur_base = (*win_ptr)->shm_base_addr;
-            cur_rank = 0;
-            ((*win_ptr)->shm_base_addrs)[0] = (*win_ptr)->shm_base_addr;
-            for (i = 1; i < node_size; ++i) {
+            for (i = 0; i < node_size; ++i) {
                 if (node_sizes[i]) {
+                    ((*win_ptr)->shm_base_addrs)[i] = cur_base;
                     /* For the base addresses, we track the previous
                      * process that has allocated non-zero bytes of shared
                      * memory.  We can not simply use "i-1" for the
                      * previous process because rank "i-1" might not have
                      * allocated any memory. */
                     if (noncontig) {
-                        ((*win_ptr)->shm_base_addrs)[i] =
-                            cur_base + MPIDI_CH3_ROUND_UP_PAGESIZE(node_sizes[cur_rank]);
+                        cur_base += MPIDI_CH3_ROUND_UP_PAGESIZE(node_sizes[i]);
                     }
                     else {
-                        ((*win_ptr)->shm_base_addrs)[i] = cur_base + node_sizes[cur_rank];
+                        cur_base += node_sizes[i];
                     }
-                    cur_base = ((*win_ptr)->shm_base_addrs)[i];
-                    cur_rank = i;
                 }
                 else {
                     ((*win_ptr)->shm_base_addrs)[i] = NULL;

@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -79,6 +79,10 @@ do {                                                          \
 
 static MPL_IOV iov[MPL_IOV_LIMIT + 1];
 
+#if defined(MPIDI_MRAILI_COALESCE_ENABLED)
+extern void FLUSH_SQUEUE_NOINLINE(MPIDI_VC_t *vc);
+#endif /*#if defined(MPIDI_MRAILI_COALESCE_ENABLED)*/
+
 #undef FUNCNAME
 #define FUNCNAME MPIDI_CH3_Packetized_send
 #undef FCNAME
@@ -101,6 +105,11 @@ int MPIDI_CH3_Packetized_send(MPIDI_VC_t * vc, MPID_Request * sreq)
     MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_SENDV);
     MPIU_DBG_PRINTF(("ch3_isendv\n"));
     MPIDI_DBG_PRINTF((50, FCNAME, "entering"));
+
+#if defined(MPIDI_MRAILI_COALESCE_ENABLED)
+    /* TODO: Ticket #1433 */
+    FLUSH_SQUEUE_NOINLINE(vc);
+#endif /*if defined(MPIDI_MRAILI_COALESCE_ENABLED)*/
 
     MPIDI_Pkt_init(&send_start, MPIDI_CH3_PKT_PACKETIZED_SEND_START);
     iov[0].MPL_IOV_LEN = sizeof(MPIDI_CH3_Pkt_packetized_send_start_t);
@@ -187,6 +196,10 @@ int MPIDI_CH3_Packetized_send(MPIDI_VC_t * vc, MPID_Request * sreq)
     }
 
   fn_exit:
+#if defined(MPIDI_MRAILI_COALESCE_ENABLED)
+    /* TODO: Ticket #1433 */
+    FLUSH_SQUEUE_NOINLINE(vc);
+#endif /*if defined(MPIDI_MRAILI_COALESCE_ENABLED)*/
     MPIDI_DBG_PRINTF((50, FCNAME, "exiting"));
     MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3_SENDV);
     return mpi_errno;

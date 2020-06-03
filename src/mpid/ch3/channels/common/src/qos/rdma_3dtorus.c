@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -41,6 +41,7 @@
  */
 
 struct openib_sa_qp_cache_t *openib_sa_qp_cache = NULL;
+static pthread_mutex_t sl_lock = PTHREAD_MUTEX_INITIALIZER;
 
 int mv2_get_path_rec_sl(struct ibv_context *context_arg, struct ibv_pd *hca_pd,
                         uint32_t port_num, uint16_t lid, uint16_t rem_lid,
@@ -56,6 +57,7 @@ int mv2_get_path_rec_sl(struct ibv_context *context_arg, struct ibv_pd *hca_pd,
     struct ibv_recv_wr *brwr;
     int i;
 
+    pthread_mutex_lock(&sl_lock);
     for (cache = openib_sa_qp_cache; cache; cache = cache->next) {
   	    if ((strcmp(cache->device_name,
                     ibv_get_device_name (context_arg->device)) == 0) &&
@@ -310,8 +312,10 @@ int mv2_get_path_rec_sl(struct ibv_context *context_arg, struct ibv_pd *hca_pd,
     }
 
     /* Now all we do is send back the value laying around */
+    pthread_mutex_unlock(&sl_lock);
     return cache->sl_values[rem_lid];
 fn_fail:
+    pthread_mutex_unlock(&sl_lock);
     if (network_is_3dtorus) {
         fprintf(stderr, "Error: Failed to query Subnet Manager for correct "
                 "Service Level. This will cause deadlock in a 3D Torus network."

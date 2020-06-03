@@ -28,6 +28,6 @@ cd $basename
 touch configure
 
 # embedded tests
-(cd tests/embedded && ./run-embedded-tests.sh ../../$tarball)
+(cd tests/hwloc/embedded && ./run-embedded-tests.sh ../../../$tarball)
 
 exit 0

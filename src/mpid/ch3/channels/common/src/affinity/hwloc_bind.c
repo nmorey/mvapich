@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -38,6 +38,7 @@
 #endif /*defined(CHANNEL_MRAIL)*/
 #include "mv2_arch_hca_detect.h"
 #include "debug_utils.h"
+#include "helper_fns.h"
 
 /* CPU Mapping related definitions */
 
@@ -1964,7 +1965,7 @@ int smpi_identify_free_cores(hwloc_cpuset_t *sock_cpuset, hwloc_cpuset_t *free_s
     for (i = 0; i < num_sockets; ++i) {
         socket = hwloc_get_obj_by_depth(topology, depth_sockets, i);
         /* Find the list of CPUs we're allowed to use in the socket */
-        hwloc_bitmap_and(*sock_cpuset, socket->online_cpuset, socket->allowed_cpuset);
+        hwloc_bitmap_and(*sock_cpuset, socket->cpuset, hwloc_topology_get_allowed_cpuset(topology));
         /* Find the socket the core I'm bound to resides on */
         if (hwloc_bitmap_intersects(my_cpuset, *sock_cpuset)) {
             /* Create a copy to identify list of free coress */
@@ -2081,8 +2082,8 @@ int smpi_load_hwloc_topology_whole(void)
     }
 
     mpi_errno = hwloc_topology_init(&topology_whole);
+    hwloc_topology_set_io_types_filter(topology_whole, HWLOC_TYPE_FILTER_KEEP_ALL);
     hwloc_topology_set_flags(topology_whole,
-            HWLOC_TOPOLOGY_FLAG_IO_DEVICES   |
             HWLOC_TOPOLOGY_FLAG_WHOLE_SYSTEM |
             HWLOC_TOPOLOGY_FLAG_IS_THISSYSTEM);
 
@@ -2127,7 +2128,7 @@ int smpi_load_hwloc_topology_whole(void)
         mpi_errno = hwloc_topology_load(topology_whole);
         if (mpi_errno) MPIR_ERR_POP(mpi_errno);
 
-        mpi_errno = hwloc_topology_export_xml(topology_whole, tmppath);
+        mpi_errno = hwloc_topology_export_xml(topology_whole, tmppath, 0);
         if (mpi_errno) MPIR_ERR_POP(mpi_errno);
 
         if(rename(tmppath, whole_topology_xml_path) < 0) {
@@ -2180,15 +2181,8 @@ int smpi_load_hwloc_topology(void)
     }
 
     mpi_errno = hwloc_topology_init(&topology);
-    hwloc_topology_set_flags(topology,
-            HWLOC_TOPOLOGY_FLAG_IO_DEVICES   |
-    
-    /* removing HWLOC_TOPOLOGY_FLAG_WHOLE_SYSTEM flag since we now 
-     * have cpu_cores in the heterogeneity detection logic
-     */
-     //     HWLOC_TOPOLOGY_FLAG_WHOLE_SYSTEM |
-     
-            HWLOC_TOPOLOGY_FLAG_IS_THISSYSTEM);
+    hwloc_topology_set_io_types_filter(topology, HWLOC_TYPE_FILTER_KEEP_ALL);
+    hwloc_topology_set_flags(topology, HWLOC_TOPOLOGY_FLAG_IS_THISSYSTEM);
 
     uid = getuid();
     my_local_id = MPIDI_Process.my_pg->ch.local_process_id;
@@ -2231,7 +2225,7 @@ int smpi_load_hwloc_topology(void)
         mpi_errno = hwloc_topology_load(topology);
         if (mpi_errno) MPIR_ERR_POP(mpi_errno);
 
-        mpi_errno = hwloc_topology_export_xml(topology, tmppath);
+        mpi_errno = hwloc_topology_export_xml(topology, tmppath, 0);
         if (mpi_errno) MPIR_ERR_POP(mpi_errno);
 
         if(rename(tmppath, xmlpath) < 0) {
@@ -2703,23 +2697,6 @@ void mv2_get_pu_list_on_socket (hwloc_topology_t topology, hwloc_obj_t obj,
     return;
 }
 
-void get_pu_list_on_numanode (hwloc_topology_t topology, hwloc_obj_t obj, int depth, 
-                    int *pu_ids, int *idx) {
-    int i;
-    if (obj->type == HWLOC_OBJ_PU) {
-        pu_ids[*idx] = obj->os_index;
-        *idx = *idx + 1;
-        return;
-    }
-
-    for (i = 0; i < obj->arity; i++) {
-        get_pu_list_on_numanode (topology, obj->children[i], depth+1, pu_ids, idx);
-    }
-
-    return;
-}
-
-
 
 #undef FUNCNAME
 #define FUNCNAME mv2_generate_implicit_cpu_mapping
@@ -2728,6 +2705,7 @@ void get_pu_list_on_numanode (hwloc_topology_t topology, hwloc_obj_t obj, int de
 static int mv2_generate_implicit_cpu_mapping (int local_procs, int num_app_threads) {
     
     hwloc_obj_t obj;
+    hwloc_cpuset_t allowed_cpuset;
 
     int i, j, k, l, curr, count, chunk, size, scanned, step, node_offset, node_base_pu;
     int topodepth, num_physical_cores_per_socket ATTRIBUTE((unused)), num_pu_per_socket;
@@ -2746,15 +2724,33 @@ static int mv2_generate_implicit_cpu_mapping (int local_procs, int num_app_threa
     num_physical_cores = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_CORE);
     num_pu = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_PU);
 
-    num_physical_cores_per_socket = num_physical_cores / num_sockets;
-    num_pu_per_socket = num_pu / num_sockets;
-    num_pu_per_numanode = num_pu / num_numanodes;
+
+    /* non-socket */
+    if (num_sockets == 0) {
+        num_pu_per_socket = num_pu;
+        num_physical_cores_per_socket = num_physical_cores;
+    }
+    else {
+        num_pu_per_socket = num_pu / num_sockets;
+        num_physical_cores_per_socket = num_physical_cores / num_sockets;
+    }
+
+    /* non-NUMA */
+    if (num_numanodes == 0)
+        num_pu_per_numanode = num_pu;
+    else
+        num_pu_per_numanode = num_pu / num_numanodes;
 
     topodepth = hwloc_get_type_depth (topology, HWLOC_OBJ_CORE);
     obj = hwloc_get_obj_by_depth (topology, topodepth, 0); /* check on core 0*/
 
-    hw_threads_per_core = hwloc_bitmap_weight (obj->allowed_cpuset);
-    
+    /* get allowed cpuset and check number of hw threads on any core e.g., 0 */ 
+    allowed_cpuset = hwloc_bitmap_alloc();
+    hwloc_bitmap_zero(allowed_cpuset);
+    hwloc_bitmap_and(allowed_cpuset, obj->cpuset, hwloc_topology_get_allowed_cpuset(topology));
+
+    hw_threads_per_core = hwloc_bitmap_weight (allowed_cpuset);
+
     mv2_core_map = MPIU_Malloc(sizeof(int) * num_pu);
     mv2_core_map_per_numa = MPIU_Malloc(sizeof(int) * num_pu);
 
@@ -2768,19 +2764,6 @@ static int mv2_generate_implicit_cpu_mapping (int local_procs, int num_app_threa
     
     size = scanned;
         
-
-    /* generate core map of the system basd on NUMA domains by scanning the hwloc 
-     * tree and save it in mv2_core_map_per_numa array. NUMA based policies are now 
-     * map-aware */
-    scanned = 0;
-    for (i = 0; i < num_numanodes; i++) {
-        obj = hwloc_get_obj_by_type(topology, HWLOC_OBJ_NUMANODE, i);
-        get_pu_list_on_numanode (topology, obj, topodepth, mv2_core_map_per_numa, &scanned);
-    }
-
-    /* make sure total PUs are same when we scanned the machine w.r.t sockets and NUMA */
-    MPIU_Assert(size == scanned);
-
     if (mv2_hybrid_binding_policy == HYBRID_COMPACT) {
         /* Compact mapping: Bind each MPI rank to a single phyical core, and bind
          * its associated threads to the hardware threads of the same physical core.
@@ -2886,6 +2869,29 @@ static int mv2_generate_implicit_cpu_mapping (int local_procs, int num_app_threa
                     (k + num_pu_per_socket + hw_threads_per_core) % size;
         }
     } else if (mv2_hybrid_binding_policy == HYBRID_NUMA) {
+
+        /* generate core map of the system based on NUMA domains by scanning the hwloc 
+         * tree and save it in mv2_core_map_per_numa array. NUMA based policies are now 
+         * map-aware */
+
+        int index = 0;
+        for (i = 0; i < num_numanodes; i++) {
+            /* reset the auxilary bitmap */
+            hwloc_bitmap_zero(allowed_cpuset);
+            
+            /* get next numa node object */
+            obj = hwloc_get_obj_by_type(topology, HWLOC_OBJ_NUMANODE, i);
+            
+            /* only get the allowed cpuset */
+            hwloc_bitmap_and(allowed_cpuset, obj->cpuset, hwloc_topology_get_allowed_cpuset(topology));
+
+            /* iterate over current node's bitmap and copy to our placeholder */
+            unsigned int id;
+            hwloc_bitmap_foreach_begin(id, allowed_cpuset);
+            mv2_core_map_per_numa[index++] = id;    
+            hwloc_bitmap_foreach_end();
+        }
+
         /* NUMA mapping: Bind consecutive MPI ranks to different NUMA domains in
          * round-robin fashion. */
         for (i = 0; i < local_procs; i++) {
@@ -2906,14 +2912,15 @@ static int mv2_generate_implicit_cpu_mapping (int local_procs, int num_app_threa
     s_cpu_mapping[j-1] = '\0';
 
     if (MPIDI_Process.my_pg_rank == 0) {
-        PRINT_DEBUG(DEBUG_INIT_verbose>0, "num_physical_cores_per_socket %d, mapping: %s", 
+        PRINT_DEBUG(DEBUG_INIT_verbose>0, "num_physical_cores_per_socket %d, mapping: %s\n", 
                 num_physical_cores_per_socket, s_cpu_mapping);
     }
     
     /* cleanup */
     MPIU_Free(mv2_core_map);
     MPIU_Free(mv2_core_map_per_numa);
-     
+    hwloc_bitmap_free(allowed_cpuset); 
+
     return MPI_SUCCESS;
 }
 
@@ -3066,7 +3073,16 @@ int MPIDI_CH3I_set_affinity(MPIDI_PG_t * pg, int pg_rank)
                            /* we only force NUMA binding if we have more than 2 ppn,
                             * otherwise we use bunch (linear) mapping */
                            mv2_hybrid_binding_policy =
-                               (num_local_procs > 2) ?  HYBRID_NUMA : HYBRID_LINEAR;
+                                (num_local_procs > 2) ?  HYBRID_NUMA : HYBRID_LINEAR;
+                        
+                          /* if arch is KNL, disable hybrid NUMA policy and fallback to sprea */
+                          if (arch_type == MV2_ARCH_INTEL_XEON_PHI_7250) {
+                              PRINT_INFO((MPIDI_Process.my_pg_rank == 0), "WARNING: Process "
+                                      "mapping mode is being set to NUMA on KNL architecture which " 
+                                      "is unsupported. We are falling back to 'spread' to ensure " 
+                                      "better performance.\n");
+                              mv2_hybrid_binding_policy = HYBRID_SPREAD;
+                          }
                        }
                    }
 

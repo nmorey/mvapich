@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  * Copyright (c) 2016, Intel, Inc. All rights reserved.
  *
@@ -217,10 +217,10 @@
                              (_len < ipath_rndv_thresh))
 
 int psm_no_lock(pthread_spinlock_t *);
-int (*psm_lock_fn)(pthread_spinlock_t *);
-int (*psm_unlock_fn)(pthread_spinlock_t *);
-int (*psm_progress_lock_fn)(pthread_spinlock_t *);
-int (*psm_progress_unlock_fn)(pthread_spinlock_t *);
+extern int (*psm_lock_fn)(pthread_spinlock_t *);
+extern int (*psm_unlock_fn)(pthread_spinlock_t *);
+extern int (*psm_progress_lock_fn)(pthread_spinlock_t *);
+extern int (*psm_progress_unlock_fn)(pthread_spinlock_t *);
 
 #define MAX_PROGRESS_HOOKS 4
 typedef int (*progress_func_ptr_t) (int* made_progress);
@@ -230,7 +230,7 @@ typedef struct progress_hook_slot {
     int active;
 } progress_hook_slot_t;
 
-progress_hook_slot_t progress_hooks[MAX_PROGRESS_HOOKS];
+extern progress_hook_slot_t progress_hooks[];
 
 #define _psm_enter_  psm_lock_fn(&psmlock)
 #define _psm_exit_   psm_unlock_fn(&psmlock)

@@ -4,7 +4,7 @@
  *      See COPYRIGHT in top-level directory.
  */
 
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -39,11 +39,15 @@
 #define DEBUG_PRINT(args...)
 #endif
 
+int cq_poll_completion = 0;
 static pthread_spinlock_t g_apm_lock;
 static int num_cqes[MAX_NUM_HCAS] = { 0 };
 static int curr_cqe[MAX_NUM_HCAS] = { 0 };
 static struct ibv_wc wc[MAX_NUM_HCAS][RDMA_MAX_CQE_ENTRIES_PER_POLL] = {0};
 static unsigned long nspin = 0;
+
+int (*MPIDI_CH3I_MRAILI_Cq_poll) (vbuf **vbuf_handle,
+        MPIDI_VC_t * vc_req, int receiving, int is_blocking);
 
 MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_vbuf_allocated);
 MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_vbuf_freed);
@@ -60,6 +64,178 @@ MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_ibv_channel_ctrl_packet_count);
 MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2,
         mv2_ibv_channel_out_of_order_packet_count);
 MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_ibv_channel_exact_recv_count);
+
+/* Utility function to print detailed messages for failed work completions.
+ * Thanks to IBM and RDMAmojo.com for the detailed descriptions.
+ */
+void mv2_print_wc_status_error(enum ibv_wc_status status)
+{
+    switch(status) {
+        case IBV_WC_LOC_LEN_ERR:
+            PRINT_ERROR("IBV_WC_LOC_LEN_ERR: This event is generated when a)"
+                        " the receive buffer is smaller than the incoming send,"
+                        " or b) a work request that was posted in a local send"
+                        " queue contains a message that is greater than the"
+                        " maximum message size that is supported by the RDMA"
+                        " device port that should send the message.\n");
+            break;
+        case IBV_WC_LOC_QP_OP_ERR:
+            PRINT_ERROR("IBV_WC_LOC_QP_OP_ERR: This event is generated when a"
+                        " QP error occurs. For example, it may be generated if"
+                        " a) user neglects to specify responder_resources and"
+                        " initiator_depth values in struct rdma_conn_param"
+                        " before calling rdma_connect() on the client side and"
+                        " rdma_accept() on the server side, b) a Work Request"
+                        " that was posted in a local Send Queue of a UD QP"
+                        " contains an Address Handle that is associated with a"
+                        " Protection Domain to a QP which is associated with a"
+                        " different Protection Domain, or c) an opcode which"
+                        " is not supported by the transport type of the QP is"
+                        " not supported (for example: RDMA Write over a UD QP).\n");
+            break;
+        case IBV_WC_LOC_EEC_OP_ERR:
+            PRINT_ERROR("IBV_WC_LOC_EEC_OP_ERR: This event is generated when"
+                        " there is an error related to the local EECs receive"
+                        " logic while executing the request packet. The"
+                        " responder is unable to complete the request. This"
+                        " error is not caused by the sender.\n");
+            break;
+        case IBV_WC_LOC_PROT_ERR:
+            PRINT_ERROR("IBV_WC_LOC_PROT_ERR: This event is generated when a"
+                        " user attempts to access an address outside of the"
+                        " registered memory region. For example, this may"
+                        " happen if the Lkey does not match the address in"
+                        " the WR.\n");
+            break;
+        case IBV_WC_WR_FLUSH_ERR:
+            PRINT_ERROR("IBV_WC_WR_FLUSH_ERR: This event is generated when an"
+                        " invalid remote error is thrown when the responder"
+                        " detects an invalid request. It may be that the"
+                        " operation is not supported by the request queue or"
+                        " there is insufficient buffer space to receive the"
+                        " request.\n");
+            break;
+        case IBV_WC_MW_BIND_ERR:
+            PRINT_ERROR("IBV_WC_MW_BIND_ERR: This event is generated when a"
+                        " memory management operation error occurs. The error"
+                        " may be due to the fact that the memory window and the"
+                        " QP belong to different protection domains. It may"
+                        " also be that the memory window is not allowed to be"
+                        " bound to the specified MR or the access permissions"
+                        " may be wrong.\n");
+            break;
+        case IBV_WC_BAD_RESP_ERR:
+            PRINT_ERROR("IBV_WC_BAD_RESP_ERR: This event is generated when an"
+                        " unexpected transport layer opcode is returned by the"
+                        " responder. Relevant to: RC or DC QPs.\n");
+            break;
+        case IBV_WC_LOC_ACCESS_ERR:
+            PRINT_ERROR("IBV_WC_LOC_ACCESS_ERR: This event is generated when a"
+                        " local protection error occurs on a local data buffer"
+                        " during the process of an RDMA Write with Immediate"
+                        " Data operation sent from the remote node."
+                        " Relevant to: RC or DC QPs.\n");
+            break;
+        case IBV_WC_REM_INV_REQ_ERR:
+            PRINT_ERROR("IBV_WC_REM_INV_REQ_ERR: This event is generated when"
+                        " the responder detects an invalid message on the"
+                        " channel. Possible causes include a) the receive"
+                        " buffer is smaller than the incoming send, b) "
+                        " operation is not supported by this receive queue"
+                        " (qp_access_flags on the remote QP was not"
+                        " configured to support this operation), or c) the"
+                        " length specified in a RDMA request is greater than"
+                        " 2^31 bytes. It is generated on the sender side of"
+                        " the connection. Relevant to: RC or DC QPs.\n");
+            break;
+        case IBV_WC_REM_ACCESS_ERR:
+            PRINT_ERROR("IBV_WC_REM_ACCESS_ERR: This event is generated when"
+                        " a protection error occurs on a remote data buffer"
+                        " to be read by an RDMA read, written by an RDMA Write"
+                        " or accessed by an atomic operation. The error is"
+                        " reported only on RDMA operations or atomic"
+                        " operations. Relevant to: RC or DC QPs.\n");
+            break;
+        case IBV_WC_REM_OP_ERR:
+            PRINT_ERROR("IBV_WC_REM_OP_ERR: This event is generated when an"
+                        " operation cannot be completed successfully by the"
+                        " responder. The failure to complete the operation"
+                        " may be due to QP related errors which prevent the"
+                        " responder from completing the request or a malformed"
+                        " WQE on the Receive Queue. Relevant to: RC or DC QPs.\n");
+            break;
+        case IBV_WC_RETRY_EXC_ERR:
+            PRINT_ERROR("IBV_WC_RETRY_EXC_ERR: This event is generated when"
+                        " a sender is unable to receive feedback from the"
+                        " receiver. This means that either the receiver just"
+                        " never ACKs sender messages in a specified time"
+                        " period, or it has been disconnected or it is in a"
+                        " bad state which prevents it from responding."
+                        " If this happens when sending the first message,"
+                        " usually it means that the QP connection attributes"
+                        " are wrong or the remote side is not in a state"
+                        " that it can respond to messages. If this happens"
+                        " after sending the first message, usually it means"
+                        " that the remote QP is not available anymore or that"
+                        " there is congestion in the network preventing the"
+                        " packets from reaching on time."
+                        " Relevant to: RC or DC QPs.\n");
+            break;
+        case IBV_WC_RNR_RETRY_EXC_ERR:
+            PRINT_ERROR("IBV_WC_RNR_RETRY_EXC_ERR: This event is generated"
+                        " when the RNR NAK retry count is exceeded. This"
+                        " may be caused by lack of receive buffers on the"
+                        " responder side. Relevant to: RC or DC QPs.\n");
+            break;
+        case IBV_WC_LOC_RDD_VIOL_ERR:
+            PRINT_ERROR("IBV_WC_LOC_RDD_VIOL_ERR: This event is generated when"
+                        " the RDD associated with the QP does not match the"
+                        " RDD associated with the EEC.\n");
+            break;
+        case IBV_WC_REM_INV_RD_REQ_ERR:
+            PRINT_ERROR("IBV_WC_REM_INV_RD_REQ_ERR: This event is generated"
+                        " when the responder detects an invalid incoming RD"
+                        " message. The message may be invalid because it has"
+                        " in invalid Q_Key or there may be a Reliable"
+                        " Datagram Domain (RDD) violation.\n");
+            break;
+        case IBV_WC_REM_ABORT_ERR:
+            PRINT_ERROR("IBV_WC_REM_ABORT_ERR: This event is generated when an"
+                        " error occurs on the responder side which causes it"
+                        " to abort the operation. Relevant to: UD or UC QPs"
+                        " associated with a SRQ.\n");
+            break;
+        case IBV_WC_INV_EECN_ERR:
+            PRINT_ERROR("IBV_WC_INV_EECN_ERR: This event is generated when an"
+                        " invalid End to End Context Number (EECN) is detected.\n");
+            break;
+        case IBV_WC_INV_EEC_STATE_ERR:
+            PRINT_ERROR("IBV_WC_INV_EEC_STATE_ERR: This event is generated when"
+                        " an illegal operation is detected in a request for the"
+                        " specified EEC state.\n");
+            break;
+        case IBV_WC_FATAL_ERR:
+            PRINT_ERROR("IBV_WC_FATAL_ERR: This event is generated when a fatal"
+                        " transport error occurs. The user may have to restart"
+                        " the RDMA device driver or reboot the server to"
+                        " recover from the error.\n");
+            break;
+        case IBV_WC_RESP_TIMEOUT_ERR:
+            PRINT_ERROR("IBV_WC_RESP_TIMEOUT_ERR: This event is generated when"
+                        " the responder is unable to respond to a request"
+                        " within the timeout period. It generally indicates that"
+                        " the receiver is not ready to process requests.\n");
+            break;
+        case IBV_WC_GENERAL_ERR:
+            PRINT_ERROR("IBV_WC_GENERAL_ERR: This event is generated when there"
+                        " is a transport error which cannot be described by the"
+                        " other specific events discussed here.\n");
+            break;
+        default:
+            PRINT_ERROR("ERROR: Unknown work completion status %d\n", status);
+            break;
+    }
+}
 
 volatile int mv2_in_blocking_progress = 0;
 
@@ -538,10 +714,11 @@ static inline int handle_cqe(vbuf **vbuf_handle, MPIDI_VC_t * vc_req,
         } else {
     		PRINT_ERROR("Recv desc error in msg from %d, wc_opcode=%d\n",vc->pg_rank, wc.opcode);
 		}
-        PRINT_ERROR("Msg from %d: wc.status=%d, wc.wr_id=%p, wc.opcode=%d, vbuf->phead->type=%d = %s\n",
-                    vc->pg_rank, wc.status, v, wc.opcode,
+        PRINT_ERROR("Msg from %d: wc.status=%d (%s), wc.wr_id=%p, wc.opcode=%d, vbuf->phead->type=%d = %s\n",
+                    vc->pg_rank, wc.status, ibv_wc_status_str(wc.status), v, wc.opcode,
                     ((MPIDI_CH3I_MRAILI_Pkt_comm_header*)v->pheader)->type,
                     MPIDI_CH3_Pkt_type_to_string[((MPIDI_CH3I_MRAILI_Pkt_comm_header*)v->pheader)->type]);
+        mv2_print_wc_status_error(wc.status);
 
         ibv_va_error_abort(IBV_STATUS_ERR,
                 "[] Got completion with error %d, vendor code=0x%x, dest rank=%d\n",
@@ -1131,7 +1308,7 @@ void async_thread(void *context)
             case IBV_EVENT_PATH_MIG_ERR:
 #ifdef DEBUG
                 if(mv2_MPIDI_CH3I_RDMA_Process.has_apm) {
-                    DEBUG_PRINT("Path Migration Failed\n");
+                    PRINT_DEBUG(DEBUG_CHM_verbose, "Path Migration Failed\n");
                 }
 #endif /* ifdef DEBUG */
                 ibv_va_error_abort(GEN_EXIT_ERR, "Got FATAL event %s on QP 0x%x\n",
@@ -1140,7 +1317,7 @@ void async_thread(void *context)
                 break;
             case IBV_EVENT_PATH_MIG:
                 if(mv2_MPIDI_CH3I_RDMA_Process.has_apm && !apm_tester){
-                    DEBUG_PRINT("Path Migration Successful\n");
+                    PRINT_DEBUG(DEBUG_CHM_verbose, "Path Migration Successful\n");
                     reload_alternate_path((&event)->element.qp);
                 }
 
@@ -1166,6 +1343,11 @@ void async_thread(void *context)
                 PRINT_DEBUG(DEBUG_CHM_verbose, "Async event %s on SRQ %p\n",
                             ibv_event_type_str(event.event_type),
                             event.element.srq);
+                break;
+            case IBV_EVENT_GID_CHANGE:
+            case IBV_EVENT_CLIENT_REREGISTER:
+                PRINT_DEBUG(DEBUG_CHM_verbose, "Async event %s\n",
+                            ibv_event_type_str(event.event_type));
                 break;
             case IBV_EVENT_PORT_ACTIVE:
             case IBV_EVENT_LID_CHANGE:

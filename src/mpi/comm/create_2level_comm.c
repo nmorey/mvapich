@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -39,6 +39,8 @@ extern int mv2_g_shmem_coll_blocks;
 #define MAX_NUM_THREADS 1024
 pthread_t thread_reg[MAX_NUM_THREADS];
 
+extern int get_socket_bound_info(int *socket_bound, int *num_sockets, int *num_cores_socket, int *is_uniform);
+
 void clear_2level_comm (MPID_Comm* comm_ptr)
 {
     comm_ptr->dev.ch.allgather_comm_ok = 0;
@@ -47,6 +49,7 @@ void clear_2level_comm (MPID_Comm* comm_ptr)
     comm_ptr->dev.ch.leader_rank = NULL;
     comm_ptr->dev.ch.node_disps  = NULL;
     comm_ptr->dev.ch.rank_list   = NULL;
+    comm_ptr->dev.ch.coll_tmp_buf = NULL;
     comm_ptr->dev.ch.rank_list_index = -1;
     comm_ptr->dev.ch.shmem_comm = MPI_COMM_NULL; 
     comm_ptr->dev.ch.leader_comm = MPI_COMM_NULL;
@@ -150,7 +153,10 @@ int free_2level_comm (MPID_Comm* comm_ptr)
     if (comm_ptr->dev.ch.rank_list != NULL) {
         MPIU_Free(comm_ptr->dev.ch.rank_list);
     }
- 
+    if (comm_ptr->dev.ch.coll_tmp_buf != NULL) {
+        MPIU_Free(comm_ptr->dev.ch.coll_tmp_buf);
+        comm_ptr->dev.ch.coll_tmp_buf = NULL;
+    }
     MPID_Comm_get_ptr((comm_ptr->dev.ch.shmem_comm), shmem_comm_ptr );
     MPID_Comm_get_ptr((comm_ptr->dev.ch.leader_comm), leader_comm_ptr );
     
@@ -885,12 +891,12 @@ int create_intra_sock_comm(MPI_Comm comm)
                 int allred_flag = mv2_use_socket_aware_allreduce;
                 mv2_use_socket_aware_allreduce = 0;
                 mpi_errno = MPIR_Allreduce_impl(&local_leader_shmem_status, &global_leader_shmem_status, 1,
-                        MPI_INT, MPI_LAND, global_sock_leader_ptr, &errflag);
+                        MPI_INT, MPI_MIN, global_sock_leader_ptr, &errflag);
                 mv2_use_socket_aware_allreduce = allred_flag;
                 if (mpi_errno) {
                     MPIR_ERR_POP(mpi_errno);
                 }
-                if (global_leader_shmem_status == 0) {
+                if (global_leader_shmem_status != 1) {
                     intra_sock_leader_comm_ptr->dev.ch.shmem_coll_ok = 0;    
                 }
             }
@@ -1380,6 +1386,14 @@ int create_2level_comm (MPI_Comm comm, int size, int my_rank)
     MPID_Comm_get_ptr( comm, comm_ptr );
     if (size <= 1) {
         return mpi_errno;
+    }
+
+    comm_ptr->dev.ch.coll_tmp_buf = MPIU_Malloc(mv2_coll_tmp_buf_size);
+    if (NULL == comm_ptr->dev.ch.coll_tmp_buf){
+        mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPI_ERR_OTHER,
+                   FCNAME, __LINE__, MPI_ERR_OTHER, "**fail", "%s: %s",
+                   "memory allocation failed", strerror(errno));
+                   MPIR_ERR_POP(mpi_errno);
     }
 
     MPIR_T_PVAR_COUNTER_INC(MV2, mv2_num_2level_comm_requests, 1);

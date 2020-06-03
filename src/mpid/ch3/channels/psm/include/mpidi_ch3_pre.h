@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  * Copyright (c) 2016, Intel, Inc. All rights reserved.
  *
@@ -47,6 +47,7 @@ typedef struct {
     int*    node_disps;      /* displacements into rank_list for each node */
     int*    allgather_new_ranks;
     int*    rank_list;       /* list of ranks, ordered by node id, then shmem rank on each node */
+    void*   coll_tmp_buf;
     int     rank_list_index; /* index of this process in the rank_list array */
     int     is_uniform;
     int     is_blocked;

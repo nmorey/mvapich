@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2019, The Ohio State University. All rights
+/* Copyright (c) 2001-2020, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH2 software package developed by the
@@ -70,7 +70,7 @@ int mv2_ud_qp_transition(struct ibv_qp *qp, int hca_index)
     attr.qp_state = IBV_QPS_INIT;
     attr.pkey_index = 0;
     attr.port_num = mv2_MPIDI_CH3I_RDMA_Process.ports[hca_index][0];
-    attr.qkey = 0;
+    attr.qkey = rdma_default_qkey;
 
     if (ibv_modify_qp(qp, &attr,
                 IBV_QP_STATE |
