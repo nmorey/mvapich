@@ -66,7 +66,7 @@ void MPIR_SUM (
 #define MPIR_OP_C_COMPLEX_TYPE_MACRO(mpi_type_,c_type_,type_name_) MPIR_OP_TYPE_MACRO(mpi_type_,c_type_,type_name_)
         /* --BEGIN ERROR HANDLING-- */
 #ifdef HAVE_FORTRAN_BINDING
-#ifndef __PGI
+#if !defined(__PGI) && !defined(__ARM_ARCH_7A__)
         /* As of v20.1, PGI compilers only support real8 */
         case MPI_REAL16:
 #ifdef __ibmxl__
@@ -75,7 +75,7 @@ void MPIR_SUM (
             real16_sum_(invec, inoutvec, Len);
 #endif
             break;
-#endif /*ifndef __PGI*/
+#endif /*if !defined(__PGI) && !defined(__ARM_ARCH_7A__) */
 #endif /*#ifdef HAVE_FORTRAN_BINDING*/
         default: {
             MPID_THREADPRIV_DECL;
@@ -108,10 +108,10 @@ int MPIR_SUM_check_dtype( MPI_Datatype type )
         MPIR_OP_TYPE_GROUP(COMPLEX)
         MPIR_OP_TYPE_GROUP(COMPLEX_EXTRA)
 #ifdef HAVE_FORTRAN_BINDING
-#ifndef __PGI
+#if !defined(__PGI) && !defined(__ARM_ARCH_7A__)
         /* As of v20.1, PGI compilers only support real8 */
         case (MPI_REAL16):
-#endif /*ifndef __PGI*/
+#endif /*if !defined(__PGI) && !defined(__ARM_ARCH_7A__) */
 #endif /*#ifdef HAVE_FORTRAN_BINDING*/
 #undef MPIR_OP_TYPE_MACRO
             return MPI_SUCCESS;

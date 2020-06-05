@@ -146,7 +146,7 @@ void MPIR_MINLOC(
     case MPI_2INTEGER:          MPIR_MINLOC_F_CASE(MPI_Fint);
     case MPI_2REAL:             MPIR_MINLOC_F_CASE(MPIR_FC_REAL_CTYPE);
     case MPI_2DOUBLE_PRECISION: MPIR_MINLOC_F_CASE(MPIR_FC_DOUBLE_CTYPE);
-#ifndef __PGI
+#if !defined(__PGI) && !defined(__ARM_ARCH_7A__)
         /* As of v20.1, PGI compilers only support real8 */
     case MPI_REAL16:
 #ifdef __ibmxl__
@@ -155,7 +155,7 @@ void MPIR_MINLOC(
         real16_minloc_(invec, inoutvec, &flen);
 #endif
         break;
-#endif /*ifndef __PGI*/
+#endif /*if !defined(__PGI) && !defined(__ARM_ARCH_7A__) */
 #endif
 #endif
 	/* --BEGIN ERROR HANDLING-- */
@@ -198,11 +198,11 @@ int MPIR_MINLOC_check_dtype( MPI_Datatype type )
     case MPI_2INTEGER: 
     case MPI_2REAL: 
     case MPI_2DOUBLE_PRECISION: 
-#ifndef __PGI
+#if !defined(__PGI) && !defined(__ARM_ARCH_7A__)
         /* As of v20.1, PGI compilers only support real8 */
     case MPI_REAL16:
         break;
-#endif /*ifndef __PGI*/
+#endif /*if !defined(__PGI) && !defined(__ARM_ARCH_7A__) */
 #endif
 #endif
 

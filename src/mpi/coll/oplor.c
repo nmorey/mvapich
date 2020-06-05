@@ -79,7 +79,7 @@ void MPIR_LOR (
 #undef MPIR_OP_TYPE_MACRO
 	/* --BEGIN ERROR HANDLING-- */
 #ifdef HAVE_FORTRAN_BINDING
-#ifndef __PGI
+#if !defined(__PGI) && !defined(__ARM_ARCH_7A__)
         /* As of v20.1, PGI compilers only support real8 */
         case (MPI_REAL16):
 #ifdef __ibmxl__
@@ -88,7 +88,7 @@ void MPIR_LOR (
             real16_lor_(invec, inoutvec, Len);
 #endif
             break;
-#endif /*ifndef __PGI*/
+#endif /*if !defined(__PGI) && !defined(__ARM_ARCH_7A__) */
 #endif /*#ifdef HAVE_FORTRAN_BINDING*/
         default: {
             MPID_THREADPRIV_DECL;
@@ -124,10 +124,10 @@ int MPIR_LOR_check_dtype ( MPI_Datatype type )
         MPIR_OP_TYPE_GROUP(FLOATING_POINT_EXTRA)
 #undef MPIR_OP_TYPE_MACRO
 #ifdef HAVE_FORTRAN_BINDING
-#ifndef __PGI
+#if !defined(__PGI) && !defined(__ARM_ARCH_7A__)
         /* As of v20.1, PGI compilers only support real8 */
         case (MPI_REAL16):
-#endif /*ifndef __PGI*/
+#endif /*if !defined(__PGI) && !defined(__ARM_ARCH_7A__) */
 #endif /*#ifdef HAVE_FORTRAN_BINDING*/
             return MPI_SUCCESS;
 	/* --BEGIN ERROR HANDLING-- */

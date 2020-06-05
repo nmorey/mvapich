@@ -390,7 +390,6 @@ mpi_f77_sources += src/binding/fortran/mpif_h/sendf.c \
 	src/binding/fortran/mpif_h/null_type_copy_fnf.c 
 mpi_core_sources += src/binding/fortran/mpif_h/fdebug.c \
 		src/binding/fortran/mpif_h/setbot.c \
-        src/binding/fortran/mpif_h/fortran_ops.F \
 		src/binding/fortran/mpif_h/setbotf.f
 mpi_sources += src/binding/fortran/mpif_h/statusf2c.c src/binding/fortran/mpif_h/statusc2f.c
 
