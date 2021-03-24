@@ -176,7 +176,7 @@ int MPID_nem_ib_get_cell(
             MPIR_ERR_POP(mpi_errno);
         }
 
-        /* Atleast one cell is available now! */
+        /* At least one cell is available now! */
 
         MPID_nem_ib_queue_dequeue(
                 MPID_nem_ib_cell_pool.queue,

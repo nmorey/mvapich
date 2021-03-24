@@ -341,14 +341,14 @@ static int MPIR_Reduce_redscat_gather (
     
     /* If I'm not the root, then my recvbuf may not be valid, therefore
        I have to allocate a temporary one */
-    if (rank != root) {
-        MPIU_CHKLMEM_MALLOC(recvbuf, void *, 
-                            count*(MPIR_MAX(extent,true_extent)), 
-                            mpi_errno, "receive buffer");
-        recvbuf = (void *)((char*)recvbuf - true_lb);
-    }
+    if (sendbuf != MPI_IN_PLACE) {
+        if (rank != root) {
+            MPIU_CHKLMEM_MALLOC(recvbuf, void *,
+                                count*(MPIR_MAX(extent,true_extent)),
+                                mpi_errno, "receive buffer");
+            recvbuf = (void *)((char*)recvbuf - true_lb);
+        }
 
-    if ((rank != root) || (sendbuf != MPI_IN_PLACE)) {
         mpi_errno = MPIR_Localcopy(sendbuf, count, datatype, recvbuf,
                                    count, datatype);
         if (mpi_errno) { MPIR_ERR_POP(mpi_errno); }

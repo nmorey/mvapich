@@ -1586,14 +1586,6 @@ mv2_env_param_list_t  param_list[] = {
     1,
     NULL    },
 {
-    MV2_HCA_AWARE_PROCESS_MAPPING,
-    MV2_PARAM_TYPE_INT,
-    MV2_PARAM_GROUP_intranode,
-    "MV2_HCA_AWARE_PROCESS_MAPPING",
-    &mv2_hca_aware_process_mapping,
-    1,
-    NULL    },
-{
     MV2_ENABLE_LEASTLOAD,
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_intranode,
@@ -2069,6 +2061,14 @@ mv2_env_param_list_t  param_list[] = {
     0,
     NULL    },
 {
+    MV2_UD_ZCOPY_NUM_RETRY,
+    MV2_PARAM_TYPE_INT,
+    MV2_PARAM_GROUP_hybrid,
+    "MV2_UD_ZCOPY_NUM_RETRY",
+    &rdma_ud_zcopy_num_retry,
+    0,
+    NULL    },
+{
     MV2_USE_UD_ZCOPY,
     MV2_PARAM_TYPE_INT8,
     MV2_PARAM_GROUP_hybrid,
@@ -2222,7 +2222,7 @@ mv2_env_param_list_t  cuda_param_list[] = {
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_cuda,
     "MV2_CUDA_BLOCK_SIZE",
-    &rdma_cuda_block_size,
+    &mv2_device_stage_block_size,
     1,
     NULL    },
 {
@@ -2230,7 +2230,7 @@ mv2_env_param_list_t  cuda_param_list[] = {
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_cuda,
     "MV2_CUDA_NUM_RNDV_BLOCKS",
-    &rdma_num_cuda_rndv_blocks,
+    &mv2_device_num_rndv_blocks,
     0,
     NULL    },
 {
@@ -2254,7 +2254,7 @@ mv2_env_param_list_t  cuda_param_list[] = {
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_cuda,
     "MV2_EAGER_CUDAHOST_REG",
-    &rdma_eager_cudahost_reg,
+    &rdma_eager_devicehost_reg,
     0,
     NULL    },
 {
@@ -2270,7 +2270,7 @@ mv2_env_param_list_t  cuda_param_list[] = {
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_cuda,
     "MV2_CUDA_NUM_EVENTS",
-    &rdma_cuda_event_count,
+    &mv2_device_event_count,
     0,
     NULL    },
 #if defined(HAVE_CUDA_IPC)
@@ -2279,7 +2279,7 @@ mv2_env_param_list_t  cuda_param_list[] = {
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_cuda,
     "MV2_CUDA_IPC",
-    &rdma_cuda_ipc,
+    &mv2_device_use_ipc,
     0,
     NULL    },
 {
@@ -2287,7 +2287,7 @@ mv2_env_param_list_t  cuda_param_list[] = {
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_cuda,
     "MV2_CUDA_IPC_THRESHOLD",
-    &rdma_cuda_ipc_threshold,
+    &mv2_device_ipc_threshold,
     1,
     NULL    },
 {
@@ -2295,7 +2295,7 @@ mv2_env_param_list_t  cuda_param_list[] = {
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_cuda,
     "MV2_CUDA_ENABLE_IPC_CACHE",
-    &rdma_cuda_enable_ipc_cache,
+    &mv2_device_enable_ipc_cache,
     0,
     NULL    },
 {
@@ -2303,7 +2303,7 @@ mv2_env_param_list_t  cuda_param_list[] = {
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_cuda,
     "MV2_CUDA_IPC_MAX_CACHE_ENTRIES",
-    &cudaipc_cache_max_entries,
+    &mv2_device_ipc_cache_max_entries,
     0,
     NULL    },
 #endif /*#if defined(HAVE_CUDA_IPC)*/
@@ -2312,7 +2312,7 @@ mv2_env_param_list_t  cuda_param_list[] = {
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_cuda,
     "MV2_CUDA_USE_NAIVE",
-    &rdma_cuda_use_naive,
+    &mv2_device_coll_use_stage,
     0,
     NULL    },
 {
@@ -2320,7 +2320,7 @@ mv2_env_param_list_t  cuda_param_list[] = {
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_cuda,
     "MV2_CUDA_REGISTER_NAIVE_BUF",
-    &rdma_cuda_register_naive_buf,
+    &mv2_device_coll_register_stage_buf_threshold,
     0,
     NULL    },
 {
@@ -2328,7 +2328,7 @@ mv2_env_param_list_t  cuda_param_list[] = {
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_cuda,
     "MV2_CUDA_GATHER_NAIVE_LIMIT",
-    &rdma_cuda_gather_naive_limit,
+    &mv2_device_gather_stage_limit,
     0,
     NULL    },
 {
@@ -2336,7 +2336,7 @@ mv2_env_param_list_t  cuda_param_list[] = {
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_cuda,
     "MV2_CUDA_SCATTER_NAIVE_LIMIT",
-    &rdma_cuda_scatter_naive_limit,
+    &mv2_device_scatter_stage_limit,
     0,
     NULL    },
 {
@@ -2344,7 +2344,7 @@ mv2_env_param_list_t  cuda_param_list[] = {
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_cuda,
     "MV2_CUDA_ALLGATHER_NAIVE_LIMIT",
-    &rdma_cuda_allgather_naive_limit,
+    &mv2_device_allgather_stage_limit,
     0,
     NULL    },
 {
@@ -2352,7 +2352,7 @@ mv2_env_param_list_t  cuda_param_list[] = {
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_cuda,
     "MV2_CUDA_ALLGATHERV_NAIVE_LIMIT",
-    &rdma_cuda_allgatherv_naive_limit,
+    &mv2_device_allgatherv_stage_limit,
     0,
     NULL    },
 {
@@ -2360,7 +2360,7 @@ mv2_env_param_list_t  cuda_param_list[] = {
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_cuda,
     "MV2_CUDA_ALLTOALL_NAIVE_LIMIT",
-    &rdma_cuda_alltoall_naive_limit,
+    &mv2_device_alltoall_stage_limit,
     0,
     NULL    },
 {
@@ -2368,7 +2368,7 @@ mv2_env_param_list_t  cuda_param_list[] = {
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_cuda,
     "MV2_CUDA_ALLTOALLV_NAIVE_LIMIT",
-    &rdma_cuda_alltoallv_naive_limit,
+    &mv2_device_alltoallv_stage_limit,
     0,
     NULL    },
 {
@@ -2376,7 +2376,7 @@ mv2_env_param_list_t  cuda_param_list[] = {
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_cuda,
     "MV2_CUDA_BCAST_NAIVE_LIMIT",
-    &rdma_cuda_bcast_naive_limit,
+    &mv2_device_bcast_stage_limit,
     0,
     NULL    },
 {
@@ -2384,7 +2384,7 @@ mv2_env_param_list_t  cuda_param_list[] = {
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_cuda,
     "MV2_CUDA_GATHERV_NAIVE_LIMIT",
-    &rdma_cuda_gatherv_naive_limit,
+    &mv2_device_gatherv_stage_limit,
     0,
     NULL    },
 {
@@ -2392,7 +2392,7 @@ mv2_env_param_list_t  cuda_param_list[] = {
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_cuda,
     "MV2_CUDA_SCATTERV_NAIVE_LIMIT",
-    &rdma_cuda_scatterv_naive_limit,
+    &mv2_device_scatterv_stage_limit,
     0,
     NULL    },
 {
@@ -2400,7 +2400,7 @@ mv2_env_param_list_t  cuda_param_list[] = {
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_cuda,
     "MV2_CUDA_ALLTOALL_DYNAMIC",
-    &rdma_cuda_alltoall_dynamic,
+    &mv2_device_alltoall_dynamic,
     0,
     NULL    },
 {
@@ -2408,7 +2408,7 @@ mv2_env_param_list_t  cuda_param_list[] = {
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_cuda,
     "MV2_CUDA_ALLGATHER_RD_LIMIT",
-    &rdma_cuda_allgather_rd_limit,
+    &mv2_device_allgather_rd_limit,
     0,
     NULL    },
 {
@@ -2416,7 +2416,7 @@ mv2_env_param_list_t  cuda_param_list[] = {
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_cuda,
     "MV2_CUDA_ALLGATHER_FGP",
-    &rdma_cuda_allgather_fgp,
+    &mv2_device_use_allgather_fgp,
     0,
     NULL    },
 {
@@ -2424,7 +2424,7 @@ mv2_env_param_list_t  cuda_param_list[] = {
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_cuda,
     "MV2_SMP_CUDA_PIPELINE",
-    &s_smp_cuda_pipeline,
+    &mv2_device_smp_pipeline,
     0,
     NULL    },
 {
@@ -2432,7 +2432,7 @@ mv2_env_param_list_t  cuda_param_list[] = {
     MV2_PARAM_TYPE_INT,
     MV2_PARAM_GROUP_cuda,
     "MV2_CUDA_INIT_CONTEXT",
-    &rdma_cuda_init_context,
+    &mv2_device_init_context,
     0,
     NULL    },
 };

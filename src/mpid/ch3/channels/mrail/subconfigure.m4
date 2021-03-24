@@ -23,6 +23,7 @@ AM_COND_IF([BUILD_MRAIL], [
 dnl
 dnl user options
 dnl
+AC_SEARCH_LIBS(dlopen, dl, dlopen_available="yes", dlopen_available="no",)
 AC_ARG_WITH([rdma],
     [AS_HELP_STRING([--with-rdma], [specify the RDMA type])],
     [],
@@ -176,6 +177,61 @@ if test "x$with_limic2" != "xno"; then
         [AC_MSG_ERROR(Unable to run program linked with LiMIC2)],
         [AC_MSG_WARN([Unable to verify if program can run linked with LiMIC2])])
 
+fi
+
+AC_ARG_ENABLE([ibv-dlopen],
+              [
+                AS_HELP_STRING([--disable-ibv-dlopen],
+                              [Disable abstraction for IB verbs calls])
+              ],
+              [
+                AC_MSG_NOTICE([Disabling support for ibv-dlopen])
+                enable_ibv_dlopen=no
+              ],
+              [
+                AC_MSG_NOTICE([Automatically identifying support for ibv-dlopen])
+                enable_ibv_dlopen=check
+              ])
+
+if test "x$enable_ibv_dlopen" = "xcheck"; then
+    if test "x$dlopen_available" = "xyes"; then
+        AC_MSG_NOTICE([dl library found. Automatically enabling ibv-dlopen])
+        enable_ibv_dlopen=yes
+    else
+        AC_MSG_ERROR([dl library not found. Please reconfigure after setting --disable-ibv-dlopen])
+    fi
+fi
+
+AC_ARG_ENABLE([xrc],
+              [AS_HELP_STRING([--disable-xrc],
+                              [compile MVAPICH2 without XRC support])
+              ],
+              [enable_xrc=no],
+              [enable_xrc=check])
+
+if test "x$enable_ibv_dlopen" = "xyes"; then
+    AC_DEFINE([_ENABLE_IBV_DLOPEN_], [1], [Define to enable abstraction of calls to IB Verbs])
+    if test "x$enable_xrc" = "xcheck"; then
+        AC_CHECK_DECLS([IBV_QPT_XRC],[xrc_qp_found=yes],[xrc_qp_found=no],[[#include <infiniband/verbs.h>]])
+        if test "x$xrc_qp_found" = "xyes"; then
+            AC_DEFINE([_ENABLE_XRC_], [1], [Define to enable XRC support])
+        fi
+    fi
+else
+    AC_SEARCH_LIBS(ibv_open_device, ibverbs,, [AC_MSG_ERROR(['libibverbs not found. Did you specify --with-ib-libpath=?'])],)
+    AC_SEARCH_LIBS(umad_init, ibumad, lib_umad_found="yes", lib_umad_found="no",)
+    AC_SEARCH_LIBS(rdma_create_event_channel, rdmacm,enable_rdma_cm="yes",enable_rdma_cm="no",)
+    AC_SEARCH_LIBS(mad_get_field, ibmad, lib_mad_found="yes", lib_mad_found="no",)
+    # Check for available functions after finding header files
+    AC_CHECK_FUNCS([ibv_open_xrc_domain])
+   
+    AS_CASE([$ac_cv_func_ibv_open_xrc_domain],
+            [no], [AS_CASE([$enable_xrc],
+                           [check], [AC_MSG_WARN([support for XRC is disabled])],
+                           [yes], [AC_MSG_ERROR([infiniband/verbs.h does not provide support for XRC])])],
+            [yes], [AS_CASE([$enable_xrc],
+                            [no], [],
+                            [AC_DEFINE([_ENABLE_XRC_], [1], [Define to enable XRC support])])])
 fi
 
 AC_ARG_ENABLE([mcast],
@@ -353,13 +409,6 @@ AC_ARG_ENABLE(rdma-cm,
 [--enable-rdma-cm - Enable support for RDMA CM.],,enable_rdma_cm=default)
 AC_ARG_ENABLE(registration-cache,
 [--enable-registration-cache - Enable registration caching on Linux.],,enable_registration_cache=default)
-
-AC_ARG_ENABLE([xrc],
-              [AS_HELP_STRING([--disable-xrc],
-                              [compile MVAPICH2 without XRC support])
-              ],
-              [],
-              [enable_xrc=check])
 
 AC_ARG_WITH([libcuda],
         [AS_HELP_STRING([--with-libcuda=@<:@libcuda directory path@:>@],
@@ -567,34 +616,18 @@ if test "$with_rdma" = "gen2"; then
             ["no"], [AC_MSG_ERROR(['no library containing `shm_open\' was found'])],
             [])
 
-    AC_SEARCH_LIBS(dlopen, dl,,[AC_MSG_ERROR(['libdl not found'])])
-    AC_SEARCH_LIBS(ibv_open_device, ibverbs,[AC_DEFINE([HAVE_LIBIBVERBS], [1])],[AC_MSG_ERROR(['libibverbs not found. Did you specify --with-ib-libpath=?'])],)
-    AC_CHECK_HEADER([infiniband/verbs.h],,[AC_MSG_ERROR(['infiniband/verbs.h not found. Did you specify --with-ib-include=?'])])
+    AC_CHECK_HEADER([infiniband/verbs.h],
+                    [AC_DEFINE([HAVE_LIBIBVERBS], [1])],
+                    [AC_MSG_ERROR(['infiniband/verbs.h not found. Did you specify --with-ib-include=?'])])
 
-    AC_CHECKING([checking for infiniband umad installation])
-    AC_SEARCH_LIBS(umad_init, ibumad, lib_umad_found="yes", lib_umad_found="no",)
+    AC_CHECKING([checking for InfiniBand umad installation])
+    AC_CHECK_HEADER([infiniband/umad.h],lib_umad_found="yes",lib_umad_found="no")
     if test $lib_umad_found = "yes"; then
-        AC_CHECK_HEADER([infiniband/umad.h],,lib_umad_found="no")
-        if test $lib_umad_found = "yes"; then
-            AC_DEFINE(HAVE_LIBIBUMAD, 1, [UMAD installation found.])
-            AC_MSG_NOTICE([infiniband libumand found])
-        else 
-            AC_MSG_NOTICE([infiniband libumand not found])
-        fi
-    else
-        AC_MSG_NOTICE([infiniband libumand not found])
+        AC_DEFINE(HAVE_LIBIBUMAD, 1, [UMAD installation found.])
+        AC_MSG_NOTICE([InfiniBand libumad found])
+    else 
+        AC_MSG_NOTICE([InfiniBand libumad not found])
     fi
-
-    # Check for available functions after finding header files
-    AC_CHECK_FUNCS([ibv_open_xrc_domain])
-   
-    AS_CASE([$ac_cv_func_ibv_open_xrc_domain],
-            [no], [AS_CASE([$enable_xrc],
-                           [check], [AC_MSG_WARN([support for XRC is disabled])],
-                           [yes], [AC_MSG_ERROR([infiniband/verbs.h does not provide support for XRC])])],
-            [yes], [AS_CASE([$enable_xrc],
-                            [no], [],
-                            [AC_DEFINE([_ENABLE_XRC_], [1], [Define to enable XRC support])])])
 
     AC_MSG_CHECKING([whether to enable hybrid communication channel])
     if test "$enable_hybrid" == "yes"; then
@@ -604,21 +637,15 @@ if test "$with_rdma" = "gen2"; then
 
     if test "$enable_rdma_cm" = "yes"; then
         AC_CHECKING([for RDMA CM support])
-        AC_SEARCH_LIBS(rdma_create_event_channel, rdmacm,,[AC_MSG_ERROR(['librdmacm not found. Did you specify --with-ib-libpath=?'])],)
         AC_CHECK_HEADER([rdma/rdma_cma.h],,[AC_MSG_ERROR(['rdma/rdma_cma.h not found. Did you specify --with-ib-include=?'])])
         AC_DEFINE(RDMA_CM, 1, [Define to enable support from RDMA CM.])
         AC_MSG_NOTICE([RDMA CM support enabled])
     elif test "$enable_rdma_cm" = "default"; then
         AC_CHECKING([for RDMA CM support])
-        AC_SEARCH_LIBS(rdma_create_event_channel, rdmacm,enable_rdma_cm="yes",enable_rdma_cm="no",)
+        AC_CHECK_HEADER([rdma/rdma_cma.h],enable_rdma_cm="yes",enable_rdma_cm="no")
         if test $enable_rdma_cm = "yes"; then
-            AC_CHECK_HEADER([rdma/rdma_cma.h],,enable_rdma_cm="no")
-            if test $enable_rdma_cm = "yes"; then
-                AC_DEFINE(RDMA_CM, 1, [Define to enable support from RDMA CM.])
-                AC_MSG_NOTICE([RDMA CM support enabled])
-            else
-                AC_MSG_NOTICE([RDMA CM support disabled])
-            fi
+            AC_DEFINE(RDMA_CM, 1, [Define to enable support from RDMA CM.])
+            AC_MSG_NOTICE([RDMA CM support enabled])
         else
             AC_MSG_NOTICE([RDMA CM support disabled])
         fi
@@ -639,12 +666,9 @@ if test "$with_rdma" = "gen2"; then
 
     if test "$enable_mcast" != "no"; then
         AC_CHECKING([for Hardware multicast support enabled])
-        AC_SEARCH_LIBS(mad_get_field, ibmad, lib_mad_found="yes", lib_mad_found="no",)
         AC_CHECK_HEADER([infiniband/mad.h],,[AC_MSG_ERROR(['infiniband/mad.h not found. Please retry with --disable-mcast'])])
-        if test $lib_mad_found = "yes"; then
-            AC_DEFINE(_MCST_SUPPORT_, 1 , [Define to enable Hardware multicast support.])
-            AC_MSG_NOTICE([Hardware multicast support enabled])
-        fi
+        AC_DEFINE(_MCST_SUPPORT_, 1 , [Define to enable Hardware multicast support.])
+        AC_MSG_NOTICE([Hardware multicast support enabled])
     fi
 
     if test "$enable_sharp" != "no"; then
@@ -694,6 +718,11 @@ if test "$with_rdma" = "gen2"; then
                   ])
 
     found_cuda=0
+    support_sm_75=no
+    support_sm_70=no
+    support_sm_62=no
+    support_sm_53=no
+    support_sm_37=no
     AS_IF([test "$build_mrail_cuda" == "yes"], [
         AC_CHECK_HEADER([cuda.h],
                            [],
@@ -721,6 +750,70 @@ if test "$with_rdma" = "gen2"; then
         AC_CHECK_FUNCS([cudaIpcGetMemHandle], , found_cudaipc_funcs=no)
         if test "$found_cudaipc_funcs" = yes ; then
                AC_DEFINE(HAVE_CUDA_IPC,1,[Define to enable CUDA IPC features])
+        fi
+
+        cat>conftest.cu<<EOF
+        __global__ static void test_cuda() {
+        const int tid = threadIdx.x;
+        const int bid = blockIdx.x;
+        __syncthreads();
+        }
+EOF
+        AC_MSG_CHECKING(if nvcc supports sm_86)
+        if nvcc -c -arch=sm_86 -gencode=arch=compute_86,code=compute_86 conftest.cu &> /dev/null
+        then
+            support_sm_86=yes
+            AC_MSG_NOTICE(nvcc supports sm_86)
+        else
+            AC_MSG_NOTICE(nvcc does not support sm_86)
+        fi
+        AC_MSG_CHECKING(if nvcc supports sm_80)
+        if nvcc -c -arch=sm_80 -gencode=arch=compute_80,code=compute_80 conftest.cu &> /dev/null
+        then
+            support_sm_80=yes
+            AC_MSG_NOTICE(nvcc supports sm_80)
+        else
+            AC_MSG_NOTICE(nvcc does not support sm_80)
+        fi
+        AC_MSG_CHECKING(if nvcc supports sm_75)
+        if nvcc -c -arch=sm_75 -gencode=arch=compute_75,code=compute_75 conftest.cu &> /dev/null
+        then
+            support_sm_75=yes
+            AC_MSG_NOTICE(nvcc supports sm_75)
+        else
+            AC_MSG_NOTICE(nvcc does not support sm_75)
+        fi
+        AC_MSG_CHECKING(if nvcc supports sm_70)
+        if nvcc -c -arch=sm_70 -gencode=arch=compute_70,code=compute_70 conftest.cu &> /dev/null
+        then
+            support_sm_70=yes
+            AC_MSG_NOTICE(nvcc supports sm_70)
+        else
+            AC_MSG_NOTICE(nvcc does not support sm_70)
+        fi
+        AC_MSG_CHECKING(if nvcc supports sm_62)
+        if nvcc -c -arch=sm_62 -gencode=arch=compute_62,code=compute_62 conftest.cu &> /dev/null
+        then
+            support_sm_62=yes
+            AC_MSG_NOTICE(nvcc supports sm_62)
+        else
+            AC_MSG_NOTICE(nvcc does not support sm_62)
+        fi
+        AC_MSG_CHECKING(if nvcc supports sm_53)
+        if nvcc -c -arch=sm_53 -gencode=arch=compute_53,code=compute_53 conftest.cu &> /dev/null
+        then
+            support_sm_53=yes
+            AC_MSG_NOTICE(nvcc supports sm_53)
+        else
+            AC_MSG_NOTICE(nvcc does not support sm_53)
+        fi
+        AC_MSG_CHECKING(if nvcc supports sm_37)
+        if nvcc -c -arch=sm_37 -gencode=arch=compute_37,code=compute_37 conftest.cu &> /dev/null
+        then
+            support_sm_37=yes
+            AC_MSG_NOTICE(nvcc supports sm_37)
+        else
+            AC_MSG_NOTICE(nvcc does not support sm_37)
         fi
         ])
 
@@ -805,7 +898,7 @@ AC_DEFINE([MPIDI_CH3_CHANNEL_RNDV], [1],
 AC_DEFINE([MPID_USE_SEQUENCE_NUMBERS], [1],
         [Define to enable use of sequence numbers (Required by MVAPICH2)])
 AC_DEFINE([_OSU_COLLECTIVES_], [1],
-        [Define to enable the use of MVAPICH2 implmentation of collectives])
+        [Define to enable the use of MVAPICH2 implementation of collectives])
 
 AS_CASE([$with_rdma],
     [gen2], [
@@ -828,6 +921,13 @@ AS_CASE([$with_rdma],
     AM_CONDITIONAL([BUILD_MRAIL_CUDA], [test X$build_mrail_cuda = Xyes])
     AM_CONDITIONAL([BUILD_MRAIL_CUDA_KERNELS],
             [test X$build_mrail_cuda_kernels = Xyes])
+    AM_CONDITIONAL([BUILD_MRAIL_CUDA_SM_86], [test X$support_sm_86 = Xyes])
+    AM_CONDITIONAL([BUILD_MRAIL_CUDA_SM_80], [test X$support_sm_80 = Xyes])
+    AM_CONDITIONAL([BUILD_MRAIL_CUDA_SM_75], [test X$support_sm_75 = Xyes])
+    AM_CONDITIONAL([BUILD_MRAIL_CUDA_SM_70], [test X$support_sm_70 = Xyes])
+    AM_CONDITIONAL([BUILD_MRAIL_CUDA_SM_62], [test X$support_sm_62 = Xyes])
+    AM_CONDITIONAL([BUILD_MRAIL_CUDA_SM_53], [test X$support_sm_53 = Xyes])
+    AM_CONDITIONAL([BUILD_MRAIL_CUDA_SM_37], [test X$support_sm_37 = Xyes])
     AM_CONDITIONAL([BUILD_USE_PGI], [`$CXX -V 2>&1 | grep pgc++ > /dev/null 2>&1`])
     AM_CONDITIONAL([BUILD_LIB_CH3AFFINITY], [test X$build_mrail = Xyes])
     AM_CONDITIONAL([BUILD_LIB_SCR], [test X$with_scr = Xyes])

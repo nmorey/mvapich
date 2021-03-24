@@ -159,7 +159,8 @@ int     iba_lock(MPID_Win *, MPIDI_RMA_Op_t *, int);
 int     iba_unlock(MPID_Win *, MPIDI_RMA_Op_t *, int);
 int MRAILI_Handle_one_sided_completions(vbuf * v);                            
 
-#ifdef INFINIBAND_VERBS_EXP_H
+#if defined(INFINIBAND_VERBS_EXP_H) && !defined(_MCST_SUPPORT_)
+#ifndef ntohll
 uint64_t ntohll(const uint64_t value)
 {
    enum { TYP_INIT, TYP_SMLE, TYP_BIGE };
@@ -196,12 +197,11 @@ uint64_t ntohll(const uint64_t value)
 
    return x.ull;
 }
-
-uint64_t htonll(const uint64_t value)
-{
-   return ntohll(value);
-}
-#endif  /* INFINIBAND_VERBS_EXP_H */
+#endif /* #ifndef ntohll */
+#ifndef htonll
+  #define htonll ntohll
+#endif /* #ifndef htonll */
+#endif  /* #if defined(INFINIBAND_VERBS_EXP_H) && !defined(_MCST_SUPPORT_) */
 
 #undef FUNCNAME
 #define FUNCNAME mv2_allocate_shm_local
@@ -327,7 +327,7 @@ int mv2_deallocate_shm_local (void *ptr)
                    "**fail", "**fail %s", "buffer not found in shm list");
     }
 
-    /*delink the current pointer from the list*/
+    /*unlink the current pointer from the list*/
     if (prev_ptr != NULL) {
        prev_ptr->next = curr_ptr->next;
     } else {
@@ -359,7 +359,7 @@ int mv2_find_and_deallocate_shm (shm_buffer **list)
     prev_ptr = NULL;
     while (curr_ptr) {
        if (curr_ptr->ref_count == 0) {
-          /*delink pointer from the list*/
+          /*unlink pointer from the list*/
           if (prev_ptr != NULL) {
              prev_ptr->next = curr_ptr->next;
           } else {
@@ -574,14 +574,14 @@ MPIDI_CH3I_RDMA_start (MPID_Win* win_ptr, int start_grp_size, int* ranks_in_win_
 
                 if (win_ptr->post_flag[src] == 0 && vc->smp.local_nodes == -1)
                 {
-                    /* Correspoding post has not been issued. */
+                    /* Corresponding post has not been issued. */
                     flag = 0;
                     break;
                 }
             }
             else if (win_ptr->post_flag[src] == 0)
             {
-                /* Correspoding post has not been issued. */
+                /* Corresponding post has not been issued. */
                 flag = 0;
                 break;
             }

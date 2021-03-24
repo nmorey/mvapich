@@ -116,6 +116,7 @@ int MPIR_Comm_init(MPID_Comm * comm_p)
     comm_p->dev.ch.shmem_coll_count = 0; 
     comm_p->dev.ch.allgather_coll_count = 0; 
     comm_p->dev.ch.allreduce_coll_count = 0; 
+    comm_p->dev.ch.barrier_coll_count = 0; 
     comm_p->dev.ch.bcast_coll_count = 0;
     comm_p->dev.ch.scatter_coll_count = 0;
     comm_p->dev.ch.shmem_coll_ok = 0;
@@ -131,6 +132,10 @@ int MPIR_Comm_init(MPID_Comm * comm_p)
 #if defined(_MCST_SUPPORT_)
     comm_p->dev.ch.is_mcast_ok = 0;
     comm_p->dev.ch.bcast_info = NULL;
+#endif
+#if defined(_SHARP_SUPPORT_)
+    comm_p->dev.ch.is_sharp_ok = 0;
+    comm_p->dev.ch.sharp_coll_info = NULL;
 #endif
     comm_p->dev.ch.shmem_info = NULL;
     comm_p->dev.ch.leader_map  = NULL;

@@ -156,7 +156,7 @@ int MPID_nem_ib_pmi_init()
 				 "**pmi_get_appnum %d", pmi_errno);
 	}
 
-    / * Note that if pmi is not availble, the value of MPI_APPNUM is
+    / * Note that if pmi is not available, the value of MPI_APPNUM is
        not set * /
     if (appnum != -1) {
         MPIR_Process.attrs.appnum = appnum;

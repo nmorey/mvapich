@@ -206,7 +206,7 @@ cvars:
       verbosity   : MPI_T_VERBOSITY_USER_BASIC
       scope       : MPI_T_SCOPE_ALL_EQ
       description : >-
-         This parameter determines the threshhold for message coalescing.
+         This parameter determines the threshold for message coalescing.
 
     - name        : USE_COALESCE
       category    : CH3

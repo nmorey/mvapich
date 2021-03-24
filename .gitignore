@@ -1,0 +1,3 @@
+src/pm/mpirun/src/hostfile/scanner.c
+src/pm/mpirun/src/slurm/nodelist_scanner.c
+src/pm/mpirun/src/slurm/tasklist_scanner.c

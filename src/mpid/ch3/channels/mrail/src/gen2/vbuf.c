@@ -169,7 +169,7 @@ void deallocate_vbufs(int hca_num)
     while (r)
     {
         if (r->mem_handle[hca_num] != NULL
-            && ibv_dereg_mr(r->mem_handle[hca_num]))
+            && ibv_ops.dereg_mr(r->mem_handle[hca_num]))
         {
             ibv_error_abort(IBV_RETURN_ERR, "could not deregister MR");
         }
@@ -183,7 +183,7 @@ void deallocate_vbufs(int hca_num)
         r = rdma_vbuf_pools[i].region_head;
         while (r) {
             if (r->mem_handle[hca_num] != NULL
-                    && ibv_dereg_mr(r->mem_handle[hca_num])) {
+                    && ibv_ops.dereg_mr(r->mem_handle[hca_num])) {
                 ibv_error_abort(IBV_RETURN_ERR, "could not deregister MR");
             }
 
@@ -225,13 +225,13 @@ void deallocate_vbuf_region(void)
 
     int i;
 #ifdef _ENABLE_CUDA_
-    static CUcontext active_context = NULL;
+    static deviceContext active_context = NULL;
 
     /*check if three is an active context, or else skip cuda_unregister,
      *the application might have called destroyed the context before finalize
      */
-    if (rdma_enable_cuda) {
-        CU_CHECK(cuCtxGetCurrent(&active_context));
+    if (mv2_enable_device) {
+        MPIU_Device_CtxGetCurrent(&active_context);
     }
 #endif
 
@@ -244,9 +244,9 @@ void deallocate_vbuf_region(void)
 #ifdef _ENABLE_CUDA_
             if (active_context != NULL && 
                 (rdma_vbuf_pools[i].index == MV2_CUDA_VBUF_POOL_OFFSET ||
-                (rdma_eager_cudahost_reg && 
+                (rdma_eager_devicehost_reg &&
                          rdma_vbuf_pools[i].index <= MV2_RECV_VBUF_POOL_OFFSET))) {
-                ibv_cuda_unregister(curr->malloc_buf_start);
+                ibv_device_unregister(curr->malloc_buf_start);
             }
 #endif
                 
@@ -330,20 +330,20 @@ static inline int reregister_vbuf_pool(vbuf_pool_t *rdma_vbuf_pool)
         PRINT_DEBUG(DEBUG_CR_verbose > 0,"region_head = %p\n", region);
     
 #ifdef _ENABLE_CUDA_
-        if (rdma_enable_cuda && (rdma_vbuf_pool->index == MV2_CUDA_VBUF_POOL_OFFSET ||
-            (rdma_eager_cudahost_reg && rdma_vbuf_pool->index <= MV2_RECV_VBUF_POOL_OFFSET))) {
-            ibv_cuda_register(vbuf_buffer, nvbufs * buf_size);
+        if (mv2_enable_device && (rdma_vbuf_pool->index == MV2_CUDA_VBUF_POOL_OFFSET ||
+            (rdma_eager_devicehost_reg && rdma_vbuf_pool->index <= MV2_RECV_VBUF_POOL_OFFSET))) {
+            ibv_device_register(vbuf_buffer, nvbufs * buf_size);
         }
 #endif
 
         // for posix_memalign
         for (i = 0; i < rdma_num_hcas; ++i) {
             if (g_atomics_support) {
-                region->mem_handle[i] = ibv_reg_mr(ptag_save[i], vbuf_buffer,
+                region->mem_handle[i] = ibv_ops.reg_mr(ptag_save[i], vbuf_buffer,
                         nvbufs * buf_size, IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE |
                         IBV_ACCESS_REMOTE_ATOMIC );
             } else {
-                region->mem_handle[i] = ibv_reg_mr(ptag_save[i], vbuf_buffer,
+                region->mem_handle[i] = ibv_ops.reg_mr(ptag_save[i], vbuf_buffer,
                         nvbufs * buf_size, IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE);
             }
             if (!region->mem_handle[i]) {
@@ -409,9 +409,9 @@ int allocate_vbuf_pool(vbuf_pool_t *rdma_vbuf_pool, int nvbufs)
     }
 
 #ifdef _ENABLE_CUDA_
-    if (rdma_enable_cuda && (rdma_vbuf_pool->index == MV2_CUDA_VBUF_POOL_OFFSET ||
-        (rdma_eager_cudahost_reg && rdma_vbuf_pool->index <= MV2_RECV_VBUF_POOL_OFFSET))) {
-        ibv_cuda_register(vbuf_buffer, nvbufs * buf_size);
+    if (mv2_enable_device && (rdma_vbuf_pool->index == MV2_CUDA_VBUF_POOL_OFFSET ||
+        (rdma_eager_devicehost_reg && rdma_vbuf_pool->index <= MV2_RECV_VBUF_POOL_OFFSET))) {
+        ibv_device_register(vbuf_buffer, nvbufs * buf_size);
     }
 #endif
 
@@ -451,11 +451,11 @@ int allocate_vbuf_pool(vbuf_pool_t *rdma_vbuf_pool, int nvbufs)
     // for posix_memalign
     for (i = 0; i < rdma_num_hcas; ++i) {
         if (g_atomics_support) {
-            region->mem_handle[i] = ibv_reg_mr(ptag_save[i], vbuf_buffer,
+            region->mem_handle[i] = ibv_ops.reg_mr(ptag_save[i], vbuf_buffer,
                     nvbufs * buf_size, IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE |
                     IBV_ACCESS_REMOTE_ATOMIC );
         } else {
-            region->mem_handle[i] = ibv_reg_mr(ptag_save[i], vbuf_buffer,
+            region->mem_handle[i] = ibv_ops.reg_mr(ptag_save[i], vbuf_buffer,
                     nvbufs * buf_size, IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE);
         }
         if (!region->mem_handle[i]) {
@@ -512,15 +512,15 @@ void register_cuda_vbuf_regions()
     vbuf_pool_t *rdma_vbuf_pool; 
     struct vbuf_region *region = NULL;
 
-    MPIU_Assert (rdma_cuda_dynamic_init == 1);
+    MPIU_Assert (mv2_device_dynamic_init == 1);
     
     for (i=0; i<rdma_num_vbuf_pools; i++) {
         rdma_vbuf_pool = &rdma_vbuf_pools[i];        
         if (rdma_vbuf_pool->index == MV2_CUDA_VBUF_POOL_OFFSET ||
-           (rdma_eager_cudahost_reg && rdma_vbuf_pool->index <= MV2_RECV_VBUF_POOL_OFFSET)) {
+           (rdma_eager_devicehost_reg && rdma_vbuf_pool->index <= MV2_RECV_VBUF_POOL_OFFSET)) {
             region = rdma_vbuf_pool->region_head;
             while (region != NULL) { 
-                ibv_cuda_register(region->malloc_buf_start, 
+                ibv_device_register(region->malloc_buf_start,
                         (uint64_t)region->malloc_buf_end - (uint64_t)region->malloc_buf_start);
                 region = region->next;
             }
@@ -686,7 +686,7 @@ int allocate_vbufs(struct ibv_pd* ptag[])
 
     if (allocate_vbuf_pools(ptag) !=0 ) {
         ibv_va_error_abort(GEN_EXIT_ERR,
-                "VBUF CUDA region allocation failed.\n")
+                "VBUF region allocation failed.\n")
     }
     
     return 0;
@@ -826,7 +826,7 @@ int allocate_ud_vbuf_region(int nvbufs)
     /* region should be registered for both of the hca */
     for (; i < rdma_num_hcas; ++i)
     {
-        reg->mem_handle[i] = ibv_reg_mr(
+        reg->mem_handle[i] = ibv_ops.reg_mr(
                 ptag_save[i],
                 vbuf_dma_buffer,
                 nvbufs * rdma_default_ud_mtu,
@@ -1041,14 +1041,14 @@ void vbuf_reregister_all()
         for (i = 0; i < rdma_num_hcas; ++i)
         {
             if (g_atomics_support) {
-                vr->mem_handle[i] = ibv_reg_mr(
+                vr->mem_handle[i] = ibv_ops.reg_mr(
                     ptag_save[i],
                     vr->malloc_buf_start,
                     vr->count * rdma_vbuf_total_size,
                     IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE |
                     IBV_ACCESS_REMOTE_ATOMIC);
             } else {
-                vr->mem_handle[i] = ibv_reg_mr(
+                vr->mem_handle[i] = ibv_ops.reg_mr(
                     ptag_save[i],
                     vr->malloc_buf_start,
                     vr->count * rdma_vbuf_total_size,

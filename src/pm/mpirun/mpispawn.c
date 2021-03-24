@@ -430,7 +430,7 @@ void spawn_mpispawn_tree (int argc, char * argv[], int mt_nnodes, int
 
             } else {
                 /*If mpmd is selected the name and args of the executable are written in the HOST_LIST, not in the
-                 * MPISPAWN_ARGV and MPISPAWN_ARGC. So the value of these varibles is not exact and we don't
+                 * MPISPAWN_ARGV and MPISPAWN_ARGC. So the value of these variables is not exact and we don't
                  * read this value.*/
                 if (mpmd_on) {
                     if (strstr(var, "MPISPAWN_ARGV_") == NULL && strstr(var, "MPISPAWN_ARGC") == NULL) {

@@ -1151,7 +1151,7 @@ int MPIR_Reduce_scatter_ring(const void* sendbuf, void* recvbuf,
                         &request[1], errflag);
                 MPIC_Waitall(2, request, status, errflag);
             } else {
-                /* write the result to the ouput buffer */
+                /* write the result to the output buffer */
                 char* buf = output_buf + nread * extent;
                 MPIR_Localcopy(tmp_sendbuf, send_count, datatype,
                         buf, send_count, datatype);
@@ -1328,7 +1328,7 @@ int MPIR_Reduce_scatter_ring_2lvl(const void* sendbuf, void* recvbuf,
                         &request[1], errflag);
                 MPIC_Waitall(2, request, status, errflag);
             } else {
-                /* write the result to the ouput buffer */
+                /* write the result to the output buffer */
                 char* buf = output_buf + nread * extent;
                 MPIR_Localcopy(tmp_sendbuf, send_count, datatype,
                         buf, send_count, datatype);
@@ -1826,29 +1826,29 @@ int MPIR_Reduce_scatter_MV2(const void *sendbuf, void *recvbuf, const int *recvc
     MPID_Datatype_get_extent_macro(datatype, extent);
     stride = total_count * MPIR_MAX(extent, true_extent);
 
-    if (rdma_enable_cuda) {
+    if (mv2_enable_device) {
        recv_mem_type = is_device_buffer(recvbuf);
        if ( sendbuf != MPI_IN_PLACE ){
            send_mem_type = is_device_buffer(sendbuf);
        }
     }
-    if (rdma_enable_cuda && send_mem_type) {
+    if (mv2_enable_device && send_mem_type) {
         send_host_buf = (char*) MPIU_Malloc(stride);
-        MPIU_Memcpy_CUDA((void *)send_host_buf, 
+        MPIU_Memcpy_Device((void *)send_host_buf,
                             (void *)sendbuf, 
                             stride, 
-                            cudaMemcpyDeviceToHost);
+                            deviceMemcpyDeviceToHost);
         sendbuf = send_host_buf;
     }
 
-    if (rdma_enable_cuda && recv_mem_type) {
+    if (mv2_enable_device && recv_mem_type) {
         /* recvbuf will be treated as sendbuf if sendbuf is MPI_IN_PLACE */
         if (sendbuf == MPI_IN_PLACE) {
             recv_host_buf = (char*) MPIU_Malloc(stride);
-            MPIU_Memcpy_CUDA((void *)recv_host_buf,
+            MPIU_Memcpy_Device((void *)recv_host_buf,
                                 (void *)recvbuf,
                                 stride,
-                                cudaMemcpyDeviceToHost);
+                                deviceMemcpyDeviceToHost);
         } else {
             recv_host_buf = (char*) MPIU_Malloc(recvcnts[rank]*type_size);
         }
@@ -1905,20 +1905,20 @@ int MPIR_Reduce_scatter_MV2(const void *sendbuf, void *recvbuf, const int *recvc
 
 fn_exit:
 #ifdef _ENABLE_CUDA_
-    if (rdma_enable_cuda && recv_mem_type==1) {
+    if (mv2_enable_device && recv_mem_type==1) {
         recvbuf = temp_recvbuf;
-        MPIU_Memcpy_CUDA((void *)recvbuf, 
+        MPIU_Memcpy_Device((void *)recvbuf,
                            (void *)recv_host_buf, 
                             recvcnts[rank]*type_size, 
-                            cudaMemcpyHostToDevice);
+                            deviceMemcpyHostToDevice);
     }
-    if (rdma_enable_cuda && recv_mem_type) {
+    if (mv2_enable_device && recv_mem_type) {
         if (recv_host_buf) {
             MPIU_Free(recv_host_buf);
             recv_host_buf = NULL;
         }
     }
-    if (rdma_enable_cuda && send_mem_type) {
+    if (mv2_enable_device && send_mem_type) {
         if (send_host_buf) {
             MPIU_Free(send_host_buf);
             send_host_buf = NULL;

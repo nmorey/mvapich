@@ -75,7 +75,7 @@ void ib_internal_error_abort(int line, char *file, int code, char *message);
 
 #define GEN_EXIT_ERR     -1     /* general error which forces us to abort */
 #define GEN_ASSERT_ERR   -2     /* general assert error */
-#define IBV_RETURN_ERR   -3     /* ibverbs funtion return error */
-#define IBV_STATUS_ERR   -4     /* ibverbs funtion status error */
+#define IBV_RETURN_ERR   -3     /* ibverbs function return error */
+#define IBV_STATUS_ERR   -4     /* ibverbs function status error */
 
 #endif

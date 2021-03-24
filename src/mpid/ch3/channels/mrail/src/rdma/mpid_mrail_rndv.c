@@ -62,8 +62,8 @@ int MPID_MRAIL_RndvSend (
     rts_pkt->sender_req_id    = sreq->handle;
     rts_pkt->data_sz	      = data_sz;
 #if defined(_ENABLE_CUDA_)
-    if(rdma_enable_cuda) {
-        rts_pkt->rndv.cuda_transfer_mode = sreq->mrail.cuda_transfer_mode;
+    if(mv2_enable_device) {
+        rts_pkt->rndv.device_transfer_mode = sreq->mrail.device_transfer_mode;
     }
 #endif
     MPIDI_Comm_get_vc(comm, rank, &vc);
@@ -107,10 +107,10 @@ int MPID_MRAIL_RndvSend (
     }
 
 #if defined(_ENABLE_CUDA_)
-    if (rdma_enable_cuda && sreq->dev.OnDataAvail == 
-                        MPIDI_CH3_ReqHandler_pack_cudabuf) {
+    if (mv2_enable_device && sreq->dev.OnDataAvail ==
+                        MPIDI_CH3_ReqHandler_pack_device) {
         int complete ATTRIBUTE((unused));
-        MPIDI_CH3_ReqHandler_pack_cudabuf_stream(vc, sreq, &complete, (void *) stream_d2h);
+        MPIDI_CH3_ReqHandler_pack_device_stream(vc, sreq, &complete, (void *) stream_d2h);
         sreq->dev.iov[0].MPL_IOV_BUF = (MPL_IOV_BUF_CAST)sreq->dev.tmpbuf;
         sreq->dev.iov[0].MPL_IOV_LEN = sreq->dev.segment_size;
         sreq->dev.iov_count = 1;
@@ -120,7 +120,7 @@ int MPID_MRAIL_RndvSend (
          * this situation. In particular, when we are using MPI_BOTTOM based
          * scheme in MPIR_Igather_binomial, MPIR_Igather_binomial_MV2,
          * MPIR_Gather_intra we can hit this situation. */
-        rts_pkt->rndv.cuda_transfer_mode = sreq->mrail.cuda_transfer_mode = DEVICE_TO_DEVICE;
+        rts_pkt->rndv.device_transfer_mode = sreq->mrail.device_transfer_mode = DEVICE_TO_DEVICE;
     }
 #endif
 	/* --BEGIN ERROR HANDLING-- */

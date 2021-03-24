@@ -20,3 +20,8 @@ include $(top_srcdir)/src/mpid/ch3/channels/sock/Makefile.mk
 include $(top_srcdir)/src/mpid/ch3/channels/mrail/Makefile.mk
 include $(top_srcdir)/src/mpid/ch3/channels/psm/Makefile.mk
 include $(top_srcdir)/src/mpid/ch3/channels/common/Makefile.mk
+
+if BUILD_ROMIO
+AM_CPPFLAGS += -I$(top_builddir)/src/mpi/romio/adio/include   \
+           -I$(top_srcdir)/src/mpi/romio/adio/include
+endif

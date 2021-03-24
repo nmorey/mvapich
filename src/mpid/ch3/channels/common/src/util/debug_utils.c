@@ -92,6 +92,9 @@ int DEBUG_DREG_verbose;
 // Verbosity level for vbuf cache
 int DEBUG_VBUF_verbose;
 
+// Verbosity level for P2P send
+int DEBUG_SEND_verbose;
+
 static inline int env2int (char *name)
 {
     char* env_str = getenv( name );

@@ -3977,12 +3977,12 @@ struct coll_runtime {
    functions. They do sends/receives by setting the context offset to
    MPID_CONTEXT_INTRA(INTER)_COLL. */
 #ifdef _ENABLE_CUDA_
-void cuda_init_thread_context();
+void device_init_thread_context();
 int is_device_buffer(const void *buffer);
-int cuda_stage_alloc_v (void **, int *, MPI_Datatype, int **, int,
+int device_stage_alloc_v (void **, int *, MPI_Datatype, int **, int,
             void **, int *, MPI_Datatype, int **, int,
             int , int, int);
-void cuda_stage_free_v (void **, int *, MPI_Datatype, int **, int,
+void device_stage_free_v (void **, int *, MPI_Datatype, int **, int,
             void **, int *, MPI_Datatype, int **, int,
             int , int, int);
 int MPIR_Alltoall_CUDA_intra_MV2(const void *, int, MPI_Datatype, void *, 

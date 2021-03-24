@@ -46,21 +46,21 @@ static inline void MPIDI_CH3_Prepare_rndv(MPIDI_VC_t *vc, MPID_Request *sreq)
     MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_PREPARE_RNDV);
 
 #if defined(_ENABLE_CUDA_) && defined(HAVE_CUDA_IPC)
-    if (rdma_enable_cuda
-        && rdma_cuda_ipc) {
-        if (cudaipc_stage_buffered &&
-            sreq->dev.iov[0].MPL_IOV_LEN < cudaipc_stage_buffered_limit) {
-            if (MPIDI_CH3I_MRAIL_Prepare_rndv_cuda_ipc_buffered (vc, sreq)) {
+    if (mv2_enable_device
+        && mv2_device_use_ipc) {
+        if (mv2_device_use_ipc_stage_buffer &&
+            sreq->dev.iov[0].MPL_IOV_LEN < mv2_device_ipc_stage_buffer_limit) {
+            if (MPIDI_CH3I_MRAIL_Prepare_rndv_device_ipc_buffered (vc, sreq)) {
                 goto fn_exit;
             }
         } else {
-            if (MPIDI_CH3I_MRAIL_Prepare_rndv_cuda_ipc (vc, sreq)) {
+            if (MPIDI_CH3I_MRAIL_Prepare_rndv_device_ipc (vc, sreq)) {
                 goto fn_exit;
             }
         }
     }
-    /* Use R3 for intra-node D-D transfer if CUDA IPC is not avaliable */
-    if (rdma_enable_cuda && IS_VC_SMP(vc) && sreq->mrail.cuda_transfer_mode != NONE) {
+    /* Use R3 for intra-node D-D transfer if CUDA IPC is not available */
+    if (mv2_enable_device && IS_VC_SMP(vc) && sreq->mrail.device_transfer_mode != NONE) {
         sreq->mrail.protocol = MV2_RNDV_PROTOCOL_R3;
         goto fn_exit;
     }

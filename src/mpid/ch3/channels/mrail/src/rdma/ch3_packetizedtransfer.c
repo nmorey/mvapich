@@ -12,6 +12,7 @@
 
 #include "mpidi_ch3_impl.h"
 #include "mpiutil.h"
+#include "ibv_send_inline.h"
 
 #undef DEBUG_PRINT
 

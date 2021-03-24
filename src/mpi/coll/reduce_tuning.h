@@ -134,6 +134,14 @@ extern int MPIR_Reduce_shmem_MV2_optrels(const void *sendbuf,
                                  int root,
                                  MPID_Comm * comm_ptr, MPIR_Errflag_t *errflag);
 
+extern int MPIR_Reduce_tree_shmem_MV2_optrels(const void *sendbuf,
+                                 void *recvbuf,
+                                 int count,
+                                 MPI_Datatype datatype,
+                                 MPI_Op op,
+                                 int root,
+                                 MPID_Comm * comm_ptr, MPIR_Errflag_t *errflag);
+
 extern int MPIR_Reduce_redscat_gather_MV2(const void *sendbuf,
                                           void *recvbuf,
                                           int count,

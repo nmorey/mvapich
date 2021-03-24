@@ -947,11 +947,11 @@ int MPIR_Allgatherv_impl(const void *sendbuf, int sendcount, MPI_Datatype sendty
 #if defined(_ENABLE_CUDA_)
     int i, rank, comm_size;
     int sendbuf_on_device = 0, recvbuf_on_device = 0;
-    int sendtype_extent = 0, recvtype_extent = 0, total_count = 0; 
-    int total_size = 0, total_msgs = 0, avg_size = 0;
+    MPI_Aint sendtype_extent = 0, recvtype_extent = 0, total_count = 0; 
+    MPI_Aint total_size = 0, total_msgs = 0, avg_size = 0;
     int *send_displs;
 
-    if (rdma_enable_cuda) {
+    if (mv2_enable_device) {
         rank = comm_ptr->rank;
         if (comm_ptr->comm_kind == MPID_INTRACOMM) {
             comm_size = comm_ptr->local_size;
@@ -977,8 +977,8 @@ int MPIR_Allgatherv_impl(const void *sendbuf, int sendcount, MPI_Datatype sendty
         avg_size = total_size / total_msgs;
 
         if ((sendbuf_on_device || recvbuf_on_device) &&
-             rdma_cuda_use_naive && 
-             avg_size <= rdma_cuda_allgatherv_naive_limit) {
+             mv2_device_coll_use_stage &&
+             avg_size <= mv2_device_allgatherv_stage_limit) {
 
             send_displs = (int *) MPIU_Malloc(sizeof(int));
             if (send_displs == NULL) { 
@@ -989,7 +989,7 @@ int MPIR_Allgatherv_impl(const void *sendbuf, int sendcount, MPI_Datatype sendty
             }
             send_displs[0] = 0;
 
-            mpi_errno = cuda_stage_alloc_v ((void **)&sendbuf, &sendcount, sendtype,
+            mpi_errno = device_stage_alloc_v ((void **)&sendbuf, &sendcount, sendtype,
                      &send_displs, 1,
                      &recvbuf, (int *)recvcounts, recvtype, 
                      (int **)&displs, comm_size,
@@ -1016,12 +1016,12 @@ int MPIR_Allgatherv_impl(const void *sendbuf, int sendcount, MPI_Datatype sendty
     }
 
 #if defined(_ENABLE_CUDA_)
-    if (rdma_enable_cuda) {
+    if (mv2_enable_device) {
         if ((sendbuf_on_device || recvbuf_on_device) &&
-             rdma_cuda_use_naive && 
-             avg_size <= rdma_cuda_allgatherv_naive_limit) {
+             mv2_device_coll_use_stage &&
+             avg_size <= mv2_device_allgatherv_stage_limit) {
 
-            cuda_stage_free_v ((void **)&sendbuf, &sendcount, sendtype,
+            device_stage_free_v ((void **)&sendbuf, &sendcount, sendtype,
                &send_displs, 1,
                &recvbuf, (int *)recvcounts, recvtype,
                (int **)&displs, comm_size,

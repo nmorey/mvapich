@@ -148,7 +148,7 @@ int MPIR_Reduce_scatter_block_ring_2lvl_MV2(
                         &request[1], errflag);
                 MPIC_Waitall(2, request, status, errflag);
             } else {
-                /* write the result to the ouput buffer */
+                /* write the result to the output buffer */
                 char* buf = output_buf + nread * extent;
                 MPIR_Localcopy(tmp_sendbuf, count, datatype,
                         buf, count, datatype);
@@ -279,7 +279,7 @@ int MPIR_Reduce_scatter_block_ring_MV2(
                         &request[1], errflag);
                 MPIC_Waitall(2, request, status, errflag);
             } else {
-                /* write the result to the ouput buffer */
+                /* write the result to the output buffer */
                 char* buf = output_buf + nread * extent;
                 MPIR_Localcopy(tmp_sendbuf, count, datatype,
                         buf, count, datatype);

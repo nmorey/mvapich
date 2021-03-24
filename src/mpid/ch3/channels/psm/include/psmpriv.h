@@ -100,7 +100,7 @@
 }while (0)
 
 #if PSM_VERNO >= PSM_2_1_VERSION
-/* For PSM2, there is a performance enchancement that uses the MPI rank to
+/* For PSM2, there is a performance enhancement that uses the MPI rank to
  * place messages in separate hash buckets for faster message matching.
  * In order to take advantage of this feature, the PSM2 tag must be in the
  * order: user tag, rank, context id. PSM2 expects the PSM tag to be in

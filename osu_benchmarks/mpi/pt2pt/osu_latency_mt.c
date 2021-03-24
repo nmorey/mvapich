@@ -172,8 +172,8 @@ int main(int argc, char *argv[])
     return EXIT_SUCCESS;
 }
 
-void * recv_thread(void *arg) {
-    unsigned long align_size = sysconf(_SC_PAGESIZE);
+void * recv_thread(void *arg)
+{
     int size = 0, i = 0, val = 0;
     int iter = 0;
     int myid = 0;
@@ -250,8 +250,8 @@ void * recv_thread(void *arg) {
 }
 
 
-void * send_thread(void *arg) {
-    unsigned long align_size = sysconf(_SC_PAGESIZE);
+void * send_thread(void *arg)
+{
     int size = 0, i = 0, val = 0, iter = 0;
     int myid = 0;
     char *s_buf, *r_buf;

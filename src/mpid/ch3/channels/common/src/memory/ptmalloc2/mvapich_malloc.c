@@ -323,7 +323,7 @@ extern "C" {
   is fairly extensive, and will slow down execution
   noticeably. Calling malloc_stats or mallinfo with MALLOC_DEBUG set
   will attempt to check every non-mmapped allocated and free chunk in
-  the course of computing the summmaries. (By nature, mmapped regions
+  the course of computing the summaries. (By nature, mmapped regions
   cannot be checked very much automatically.)
 
   Setting MALLOC_DEBUG may also be helpful if you are trying to modify
@@ -1766,7 +1766,7 @@ nextchunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     the malloc code, but "mem" is the pointer that is returned to the
     user.  "Nextchunk" is the beginning of the next contiguous chunk.
 
-    Chunks always begin on even word boundries, so the mem portion
+    Chunks always begin on even word boundaries, so the mem portion
     (which is returned to the user) is also on an even word boundary, and
     thus at least double-word aligned.
 
@@ -1976,7 +1976,7 @@ nextchunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     and consolidated sets of chunks, which is what these bins hold, so
     they can be found quickly.  All procedures maintain the invariant
     that no consolidated chunk physically borders another one, so each
-    chunk in a list is known to be preceeded and followed by either
+    chunk in a list is known to be preceded and followed by either
     inuse chunks or the ends of memory.
 
     Chunks in bins are kept in size order, with ties going to the
@@ -2928,19 +2928,6 @@ static Void_t* sYSMALLOc(nb, av) INTERNAL_SIZE_T nb; mstate av;
 	       | PREV_INUSE);
     }
     else if ((heap = new_heap(nb + (MINSIZE + sizeof(*heap)), mp_.top_pad))) {
-      /* Use a newly allocated heap.  */
-      heap->ar_ptr = av;
-      heap->prev = old_heap;
-      av->system_mem += heap->size;
-      arena_mem += heap->size;
-#if 0
-      if((unsigned long)(mmapped_mem + arena_mem + sbrked_mem) > max_total_mem)
-	max_total_mem = mmapped_mem + arena_mem + sbrked_mem;
-#endif
-      /* Set up the new top.  */
-      top(av) = chunk_at_offset(heap, sizeof(*heap));
-      set_head(top(av), (heap->size - sizeof(*heap)) | PREV_INUSE);
-
       /* Setup fencepost and free the old top chunk. */
       /* The fencepost takes at least MINSIZE bytes, because it might
 	 become the top chunk again later.  Note that a footer is set
@@ -2956,6 +2943,19 @@ static Void_t* sYSMALLOc(nb, av) INTERNAL_SIZE_T nb; mstate av;
 	set_head(old_top, (old_size + 2*SIZE_SZ)|PREV_INUSE);
 	set_foot(old_top, (old_size + 2*SIZE_SZ));
       }
+
+      /* Use a newly allocated heap.  */
+      heap->ar_ptr = av;
+      heap->prev = heap_for_ptr(av->top);
+      av->system_mem += heap->size;
+      arena_mem += heap->size;
+#if 0
+      if((unsigned long)(mmapped_mem + arena_mem + sbrked_mem) > max_total_mem)
+	max_total_mem = mmapped_mem + arena_mem + sbrked_mem;
+#endif
+      /* Set up the new top.  */
+      top(av) = chunk_at_offset(heap, sizeof(*heap));
+      set_head(top(av), (heap->size - sizeof(*heap)) | PREV_INUSE);
     }
 
   } else { /* av == main_arena */

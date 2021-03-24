@@ -328,7 +328,7 @@ int limic_init(void)
     mutex_init(&limic_lock);
 #endif
 
-    printk("LiMIC: module is successfuly loaded.\n");
+    printk("LiMIC: module is successfully loaded.\n");
     printk("LiMIC: device major number: %d.\n", MAJOR(limic_devnum));
 #ifndef CREATE_LIMIC_DEVICE
     printk("LiMIC: use 'mknod /dev/%s c %d 0' to create the device file.\n",

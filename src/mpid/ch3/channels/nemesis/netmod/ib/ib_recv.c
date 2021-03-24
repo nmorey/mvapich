@@ -523,7 +523,7 @@ int MPIDI_nem_ib_recv_addr_reply(MPIDI_VC_t * vc, void *vstart)
         }
 
         /* set flag to mark that FP setup is failed/rejected. 
-        we sholdn't try further on this vc */
+        we shouldn't try further on this vc */
         VC_FIELD(vc, connection)->rfp.rdma_failed = 1;
 
     } else if (pkt->reply_data == RDMA_FP_SUCCESS) {

@@ -28,6 +28,11 @@
 #include "coll_shmem.h"
 #endif /* _OSU_MVAPICH_ */
 
+#ifndef _OSU_MVAPICH_
+/* Use a runtime modifiable parameter to determine the minimum IOV density */
+int mv2_iov_density_min = MPIDI_IOV_DENSITY_MIN;
+#endif
+
 void *MPIDI_CH3_packet_buffer = NULL;
 int MPIDI_CH3I_my_rank = -1;
 MPIDI_PG_t *MPIDI_CH3I_my_pg = NULL;

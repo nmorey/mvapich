@@ -359,7 +359,7 @@ if [ "$linking" = yes ] ; then
         $Show $FC $PROFILE_INCPATHS ${final_fcflags} ${final_ldflags} "${allargs[@]}"
         rc=$?
     else
-        $Show $FC $PROFILE_INCPATHS ${final_fcflags} -l@MPIFCLIBNAME@ -l@MPILIBNAME@ ${final_ldflags} "${allargs[@]}" $FCINCDIRS $FCMODDIRS $ITAC_OPTIONS -L$libdir $PROFILE_PRELIB $PROFILE_FOO $rpath_flags @LPMPILIBNAME@ $PROFILE_POSTLIB ${final_libs} @FC_OTHER_LIBS@
+        $Show $FC $PROFILE_INCPATHS ${final_fcflags} ${final_ldflags} "${allargs[@]}" $FCINCDIRS $FCMODDIRS $ITAC_OPTIONS -L$libdir -l@MPIFCLIBNAME@ $PROFILE_PRELIB $PROFILE_FOO $rpath_flags -l@MPILIBNAME@ @LPMPILIBNAME@ $PROFILE_POSTLIB ${final_libs} @FC_OTHER_LIBS@
         rc=$?
     fi
 else

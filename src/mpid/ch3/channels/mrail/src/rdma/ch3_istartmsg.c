@@ -18,6 +18,7 @@
 
 #include "mpidi_ch3_impl.h"
 #include "rdma_impl.h"
+#include "ibv_send_inline.h"
 
 #ifdef MPICH_DBG_OUTPUT
 #ifdef HAVE_ERRNO_H
@@ -85,7 +86,7 @@ int MPIDI_CH3_SMP_iStartMsg(MPIDI_VC_t * vc, void *pkt,
  * entire message is successfully sent, then NULL is returned.  Otherwise a
  * request is allocated, the header is copied into the request, and a pointer
  * to the request is returned.  An error condition also results in a request be
- * allocated and the errror being returned in the status field of the
+ * allocated and the error being returned in the status field of the
  * request.
  */
 #undef FUNCNAME

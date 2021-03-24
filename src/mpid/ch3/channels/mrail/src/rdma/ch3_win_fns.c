@@ -587,7 +587,7 @@ static int MPIDI_CH3I_Win_gather_info(void *base, MPI_Aint size, int disp_unit, 
             MPIR_ERR_POP(mpi_errno);
 
         mpi_errno =
-            MPIR_Shmem_Bcast_MV2(serialized_hnd_ptr, MPIU_SHMW_GHND_SZ, MPI_CHAR, 0, node_comm_ptr,
+            MPIR_Bcast_impl(serialized_hnd_ptr, MPIU_SHMW_GHND_SZ, MPI_CHAR, 0, node_comm_ptr,
                     &errflag);
         if (mpi_errno)
             MPIR_ERR_POP(mpi_errno);
@@ -609,7 +609,7 @@ static int MPIDI_CH3I_Win_gather_info(void *base, MPI_Aint size, int disp_unit, 
 
         /* get serialized handle from rank 0 and deserialize it */
         mpi_errno =
-            MPIR_Shmem_Bcast_MV2(serialized_hnd, MPIU_SHMW_GHND_SZ, MPI_CHAR, 0, node_comm_ptr,
+            MPIR_Bcast_impl(serialized_hnd, MPIU_SHMW_GHND_SZ, MPI_CHAR, 0, node_comm_ptr,
                     &errflag);
         if (mpi_errno)
             MPIR_ERR_POP(mpi_errno);
@@ -778,17 +778,13 @@ static int MPIDI_CH3I_Win_allocate_shm(MPI_Aint size, int disp_unit, MPID_Info *
 
         /* Fall back to no_shm function if shmem_comm is not created successfully*/
         if (node_comm_ptr == NULL) {
-            mpi_errno =
-                MPIDI_CH3U_Win_allocate_no_shm(size, disp_unit, info, comm_ptr, base_ptr, win_ptr);
-            (*win_ptr)->shm_allocated = FALSE;
-
             static uint8_t shown_warning = 0;
             PRINT_INFO(( !shown_warning && (*win_ptr)->comm_ptr->rank == 0),
                         "\n\t[WARNING] Shared memory window cannot be created, "
                         "for better performance, please consider increasing the value of MV2_SHMEM_COLL_NUM_COMM (current value %d)\n\n", mv2_g_shmem_coll_blocks);
             shown_warning = 1;
 
-            goto fn_exit;
+            node_comm_ptr = comm_ptr;
         }
 
         MPIU_Assert(node_comm_ptr != NULL);
@@ -861,7 +857,7 @@ static int MPIDI_CH3I_Win_allocate_shm(MPI_Aint size, int disp_unit, MPID_Info *
                 MPIR_ERR_POP(mpi_errno);
 
             mpi_errno =
-                MPIR_Shmem_Bcast_MV2(serialized_hnd_ptr, MPIU_SHMW_GHND_SZ, MPI_CHAR, 0, node_comm_ptr,
+                MPIR_Bcast_impl(serialized_hnd_ptr, MPIU_SHMW_GHND_SZ, MPI_CHAR, 0, node_comm_ptr,
                         &errflag);
             if (mpi_errno)
                 MPIR_ERR_POP(mpi_errno);
@@ -884,7 +880,7 @@ static int MPIDI_CH3I_Win_allocate_shm(MPI_Aint size, int disp_unit, MPID_Info *
 
             /* get serialized handle from rank 0 and deserialize it */
             mpi_errno =
-                MPIR_Shmem_Bcast_MV2(serialized_hnd, MPIU_SHMW_GHND_SZ, MPI_CHAR, 0, node_comm_ptr,
+                MPIR_Bcast_impl(serialized_hnd, MPIU_SHMW_GHND_SZ, MPI_CHAR, 0, node_comm_ptr,
                         &errflag);
             if (mpi_errno)
                 MPIR_ERR_POP(mpi_errno);
@@ -935,7 +931,7 @@ static int MPIDI_CH3I_Win_allocate_shm(MPI_Aint size, int disp_unit, MPID_Info *
                 MPIR_ERR_POP(mpi_errno);
 
             mpi_errno =
-                MPIR_Shmem_Bcast_MV2(serialized_hnd_ptr, MPIU_SHMW_GHND_SZ, MPI_CHAR, 0, node_comm_ptr,
+                MPIR_Bcast_impl(serialized_hnd_ptr, MPIU_SHMW_GHND_SZ, MPI_CHAR, 0, node_comm_ptr,
                         &errflag);
             if (mpi_errno)
                 MPIR_ERR_POP(mpi_errno);
@@ -957,7 +953,7 @@ static int MPIDI_CH3I_Win_allocate_shm(MPI_Aint size, int disp_unit, MPID_Info *
 
             /* get serialized handle from rank 0 and deserialize it */
             mpi_errno =
-                MPIR_Shmem_Bcast_MV2(serialized_hnd, MPIU_SHMW_GHND_SZ, MPI_CHAR, 0, node_comm_ptr,
+                MPIR_Bcast_impl(serialized_hnd, MPIU_SHMW_GHND_SZ, MPI_CHAR, 0, node_comm_ptr,
                         &errflag);
             if (mpi_errno)
                 MPIR_ERR_POP(mpi_errno);

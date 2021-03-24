@@ -136,7 +136,8 @@ enum mv2_reduce_tuning
     REDUCE_INTRA_KNOMIAL,
     REDUCE_SHMEM,
     REDUCE_RDSC_GATHER,
-    REDUCE_ZCPY
+    REDUCE_ZCPY,
+    REDUCE_X1, /* place holder for master-x algorithm */
 };
 
 enum mv2_gather_tuning 
@@ -159,7 +160,8 @@ enum mv2_allreduce_tuning
     ALLREDUCE_RED_SCAT_ALLGA_COLL,
     ALLREDUCE_RING,
     ALLREDUCE_X2, /* place holder for master-x algorithm */
-    ALLREDUCE_SOCK_AWARE
+    ALLREDUCE_SOCK_AWARE,
+    ALLREDUCE_X3, /* place holder for master-x algorithm */
 };
 
 enum mv2_scatter_tuning 

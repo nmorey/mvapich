@@ -421,10 +421,25 @@ int MPI_Barrier( MPI_Comm comm )
 
 #ifdef _OSU_MVAPICH_
     if (mv2_use_osu_collectives) {
+        comm_ptr->dev.ch.barrier_coll_count++;
         mpi_errno = mv2_increment_shmem_coll_counter(comm_ptr);
         if (mpi_errno) {
             MPIR_ERR_POP(mpi_errno);
         }
+#if defined(_SHARP_SUPPORT_)
+        if (mv2_enable_sharp_coll &&
+            mv2_enable_sharp_barrier &&
+            (comm_ptr->dev.ch.is_sharp_ok == 0) &&
+            (comm_ptr->dev.ch.shmem_coll_ok == 1) &&
+            (comm_ptr->dev.ch.barrier_coll_count >= shmem_coll_count_threshold)) { 
+            disable_split_comm(pthread_self());
+            mpi_errno = create_sharp_comm(comm_ptr->handle, comm_ptr->local_size, comm_ptr->rank);
+            if(mpi_errno) {
+               MPIR_ERR_POP(mpi_errno);
+            }
+            enable_split_comm(pthread_self());
+        }
+#endif /*(_SHARP_SUPPORT_)*/
     }
 #endif /* _OSU_MVAPICH_ */
     

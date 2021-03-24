@@ -9,10 +9,18 @@
  * copyright file COPYRIGHT in the top level MVAPICH2 directory.
  */
 
+#if defined(__cplusplus) || defined(c_plusplus)
+extern "C" {
+#endif
+
 #ifndef MPIEXT_H_INCLUDED
 #define MPIEXT_H_INCLUDED
 
 /* Extension for CUDA support */
 #include "mpiext_cuda.h"
 
+#endif
+
+#if defined(__cplusplus) || defined(c_plusplus)
+}
 #endif

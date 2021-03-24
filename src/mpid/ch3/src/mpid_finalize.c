@@ -130,8 +130,8 @@ int MPID_Finalize(void)
 #endif 
 
 #ifdef _ENABLE_CUDA_
-    if (rdma_enable_cuda) {
-        cuda_cleanup();
+    if (mv2_enable_device) {
+        device_cleanup();
     }
 #endif
 
@@ -217,7 +217,7 @@ int MPID_Finalize(void)
 	p = MPIDI_CH3U_COLL_SRBuf_pool;
 	while (p) {
 	    pNext = p->next;
-	    MPIU_Free_CUDA_HOST(p->buf);
+	    MPIU_Free_Device_Pinned_Host(p->buf);
         MPIU_Free(p);
 	    p = pNext;
 	}
@@ -232,7 +232,7 @@ int MPID_Finalize(void)
         p = MPIDI_CH3U_CUDA_SRBuf_pool;
         while (p) {
             pNext = p->next;
-            MPIU_Free_CUDA(p->buf);
+            MPIU_Free_Device(p->buf);
             MPIU_Free(p);
             p = pNext;
         }

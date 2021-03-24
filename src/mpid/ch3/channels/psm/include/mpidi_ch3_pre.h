@@ -63,6 +63,7 @@ typedef struct {
     int     shmem_coll_count;
     int     allgather_coll_count;
     int     allreduce_coll_count;
+    int     barrier_coll_count;
     int     bcast_coll_count;
     int     scatter_coll_count;
     void    *shmem_info; /* intra node shmem info */

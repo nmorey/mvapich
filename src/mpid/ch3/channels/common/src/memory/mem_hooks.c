@@ -266,7 +266,7 @@ int mvapich2_munmap(void *buf, size_t len)
              * stack frame stored a ptr to
              * be really munmap'd. do it now. */
 
-            /* addtional note: since munmap ptr
+            /* additional note: since munmap ptr
              * was not resolved, therefore we must
              * not have inited mem hooks, i.e.
              * assert(0 == mem_hook_init); therefore

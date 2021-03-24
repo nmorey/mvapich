@@ -61,7 +61,6 @@ extern level_type_t mv2_binding_level;
 extern int mv2_user_defined_mapping;
 extern unsigned int mv2_enable_affinity;
 extern unsigned int mv2_enable_leastload;
-extern unsigned int mv2_hca_aware_process_mapping;
 
 extern int s_cpu_mapping_line_max;
 extern char *s_cpu_mapping;
@@ -94,6 +93,9 @@ static inline int smpi_load_hwloc_topology(void)
 {
     if (!topology) {
         hwloc_topology_init(&topology);
+#ifdef _USE_HWLOC_V1_
+        hwloc_topology_set_flags(topology_whole, HWLOC_TOPOLOGY_FLAG_IO_DEVICES);
+#endif /* _USE_HWLOC_V1_ */
         hwloc_topology_set_flags(topology, HWLOC_TOPOLOGY_FLAG_WHOLE_SYSTEM);
         hwloc_topology_load(topology);
     }
@@ -102,6 +104,9 @@ static inline int smpi_load_hwloc_topology_whole(void)
 {
     if (!topology_whole) {
         hwloc_topology_init(&topology_whole);
+#ifdef _USE_HWLOC_V1_
+        hwloc_topology_set_flags(topology_whole, HWLOC_TOPOLOGY_FLAG_IO_DEVICES);
+#endif /* _USE_HWLOC_V1_ */
         hwloc_topology_set_flags(topology_whole, HWLOC_TOPOLOGY_FLAG_WHOLE_SYSTEM);
         hwloc_topology_load(topology_whole);
     }    

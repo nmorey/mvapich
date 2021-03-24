@@ -135,7 +135,7 @@ MPID_Request * MPID_Request_create(void)
 }
 
 /* FIXME: We need a lighter-weight version of this to avoid all of the
-   extra checks.  One posibility would be a single, no special case (no 
+   extra checks.  One possibility would be a single, no special case (no 
    comm, datatype, or srbuf to check) and a more general (check everything)
    version.  */
 #undef FUNCNAME
@@ -260,11 +260,11 @@ void MPIDI_CH3_Request_destroy(MPID_Request * req)
     }
 
 #if defined(_ENABLE_CUDA_)
-    if (rdma_enable_cuda && req->dev.tmpbuf && req->dev.is_device_tmpbuf) {
-        if (req->dev.cuda_srbuf_entry) {
+    if (mv2_enable_device && req->dev.tmpbuf && req->dev.is_device_tmpbuf) {
+        if (req->dev.device_srbuf_entry) {
             MPIDI_CH3U_CUDA_SRBuf_free(req);
         } else {
-            MPIU_Free_CUDA(req->dev.tmpbuf);
+            MPIU_Free_Device(req->dev.tmpbuf);
         }
         req->dev.tmpbuf = NULL;
     }
@@ -342,13 +342,13 @@ int MPIDI_CH3U_Request_load_send_iov(MPID_Request * const sreq,
 		      sreq->dev.segment_first, last, *iov_n));
     MPIU_Assert(*iov_n > 0 && *iov_n <= MPL_IOV_LIMIT);
 #if defined(_ENABLE_CUDA_)
-    if (rdma_enable_cuda && is_device_buffer(iov[0].MPL_IOV_BUF)) {
+    if (mv2_enable_device && is_device_buffer(iov[0].MPL_IOV_BUF)) {
         MPIDI_CH3U_CUDA_SRBuf_alloc(sreq, sreq->dev.segment_size);
         if (sreq->dev.tmpbuf == NULL) {
-            MPIU_Malloc_CUDA(sreq->dev.tmpbuf, sreq->dev.segment_size);
+            MPIU_Malloc_Device(sreq->dev.tmpbuf, sreq->dev.segment_size);
         }
         sreq->dev.is_device_tmpbuf = 1;
-        sreq->dev.OnDataAvail = MPIDI_CH3_ReqHandler_pack_cudabuf;
+        sreq->dev.OnDataAvail = MPIDI_CH3_ReqHandler_pack_device;
         goto fn_exit;
     }
 #endif
@@ -532,7 +532,7 @@ int MPIDI_CH3U_Request_load_recv_iov(MPID_Request * const rreq)
 	/* --BEGIN ERROR HANDLING-- */
 	if (rreq->dev.iov_count == 0)
 	{
-	    /* If the data can't be unpacked, the we have a mis-match between
+	    /* If the data can't be unpacked, the we have a mismatch between
 	       the datatype and the amount of data received.  Adjust
 	       the segment info so that the remaining data is received and 
 	       thrown away. */
@@ -549,10 +549,10 @@ int MPIDI_CH3U_Request_load_recv_iov(MPID_Request * const rreq)
             MPIU_Assert(rreq->dev.iov_offset < rreq->dev.iov_count);
         }
 #ifdef _ENABLE_CUDA_ 
-        if (rdma_enable_cuda && is_device_buffer(rreq->dev.iov[0].MPL_IOV_BUF)) {
+        if (mv2_enable_device && is_device_buffer(rreq->dev.iov[0].MPL_IOV_BUF)) {
             MPIDI_CH3U_CUDA_SRBuf_alloc(rreq, rreq->dev.segment_size);
             if (rreq->dev.tmpbuf == NULL) {
-                MPIU_Malloc_CUDA(rreq->dev.tmpbuf, rreq->dev.segment_size); 
+                MPIU_Malloc_Device(rreq->dev.tmpbuf, rreq->dev.segment_size);
             }
             rreq->dev.tmpbuf_off = 0;
             rreq->dev.is_device_tmpbuf = 1;
@@ -561,7 +561,7 @@ int MPIDI_CH3U_Request_load_recv_iov(MPID_Request * const rreq)
             rreq->dev.iov[0].MPL_IOV_LEN = rreq->dev.segment_size;
             rreq->dev.iov_offset = 0;
             rreq->dev.iov_count = 1;
-            rreq->dev.OnDataAvail = MPIDI_CH3_ReqHandler_unpack_cudabuf;
+            rreq->dev.OnDataAvail = MPIDI_CH3_ReqHandler_unpack_device;
             goto fn_exit;
         }
 #endif
@@ -805,10 +805,10 @@ int MPIDI_CH3U_Request_unpack_uebuf(MPID_Request * rreq)
 	       (unless configured with --enable-fast) */
 	    MPIDI_FUNC_ENTER(MPID_STATE_MEMCPY);
 #ifdef _ENABLE_CUDA_
-        if (rdma_enable_cuda && (rreq->mrail.cuda_transfer_mode != NONE
+        if (mv2_enable_device && (rreq->mrail.device_transfer_mode != NONE
 	    || is_device_buffer((void *)rreq->dev.tmpbuf))) {
-            MPIU_Memcpy_CUDA((char *)rreq->dev.user_buf + dt_true_lb,
-                    rreq->dev.tmpbuf, unpack_sz, cudaMemcpyDefault);
+            MPIU_Memcpy_Device((char *)rreq->dev.user_buf + dt_true_lb,
+                    rreq->dev.tmpbuf, unpack_sz, deviceMemcpyDefault);
         } else
 #endif
 	    MPIU_Memcpy((char *)rreq->dev.user_buf + dt_true_lb, rreq->dev.tmpbuf,
@@ -824,8 +824,8 @@ int MPIDI_CH3U_Request_unpack_uebuf(MPID_Request * rreq)
 			      rreq->dev.datatype, &seg, 0);
 	    last = unpack_sz;
 #if defined(_ENABLE_CUDA_)
-        if (rdma_enable_cuda && rreq->mrail.cuda_transfer_mode != NONE) {
-            MPID_Segment_unpack_cuda(&seg, 0, &last, dt_ptr, rreq->dev.tmpbuf);
+        if (mv2_enable_device && rreq->mrail.device_transfer_mode != NONE) {
+            MPID_Segment_unpack_device(&seg, 0, &last, dt_ptr, rreq->dev.tmpbuf);
         } else
 #endif
 	    MPID_Segment_unpack(&seg, 0, &last, rreq->dev.tmpbuf);

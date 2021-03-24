@@ -214,7 +214,7 @@ static void get_hca_user_parameters()
         if (ib_hca_num_hcas > MAX_NUM_HCAS) {
         	ib_hca_num_hcas = MAX_NUM_HCAS;
             MPL_msg_printf("Warning, max hca is %d, change %s in ib_hca.h "
-            		"to overide the option\n", MAX_NUM_HCAS, "MAX_NUM_HCAS");
+            		"to override the option\n", MAX_NUM_HCAS, "MAX_NUM_HCAS");
         }
     }
 
@@ -225,7 +225,7 @@ static void get_hca_user_parameters()
         if (ib_hca_num_ports > MAX_NUM_PORTS) {
         	ib_hca_num_ports = MAX_NUM_PORTS;
 	    MPL_usage_printf("Warning, max ports per hca is %d, change %s in "
-		    "ibv_hca.h to overide the option\n", MAX_NUM_PORTS,
+		    "ibv_hca.h to override the option\n", MAX_NUM_PORTS,
 		    "MAX_NUM_PORTS");
         }
     }
@@ -892,7 +892,7 @@ int MPID_nem_ib_set_default_params()
         struct ibv_device_attr dev_attr;
         int mpi_errno = MPI_SUCCESS;
 
-        /*quering device for cq depth*/
+        /*querying device for cq depth*/
         mpi_errno = ibv_query_device(hca_list[0].nic_context, &dev_attr);
 
         if(!mpi_errno) {
@@ -964,7 +964,7 @@ int MPID_nem_ib_get_user_params()
         if (rdma_num_qp_per_port > MAX_NUM_QP_PER_PORT) {
             rdma_num_qp_per_port = MAX_NUM_QP_PER_PORT;
             MPL_usage_printf("Warning, max qps per port is %d, change %s in "
-		    "ibv_param.h to overide the option\n", MAX_NUM_QP_PER_PORT,
+		    "ibv_param.h to override the option\n", MAX_NUM_QP_PER_PORT,
 		    "MAX_NUM_QP_PER_PORT");
         }
     }

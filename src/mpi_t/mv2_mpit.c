@@ -875,7 +875,7 @@ MPIT_REGISTER_MV2_VARIABLES (void)
             MPI_T_BIND_NO_OBJECT,
             (MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM),
             "CH3", /* category name */
-            "Unsucessful CH3 SMP read progress engine polling count");
+            "Unsuccessful CH3 SMP read progress engine polling count");
     MPIR_T_PVAR_COUNTER_REGISTER_STATIC(
             MV2,
             MPI_UNSIGNED_LONG,
@@ -884,7 +884,7 @@ MPIT_REGISTER_MV2_VARIABLES (void)
             MPI_T_BIND_NO_OBJECT,
             (MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM),
             "CH3", /* category name */
-            "Unsucessful CH3 SMP write progress engine polling count");
+            "Unsuccessful CH3 SMP write progress engine polling count");
     MPIR_T_PVAR_COUNTER_REGISTER_STATIC(
             MV2,
             MPI_UNSIGNED_LONG,

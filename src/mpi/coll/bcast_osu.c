@@ -198,7 +198,7 @@ int MPIR_Bcast_binomial_MV2(void *buffer,
 
        Do subdivision.  There are two phases:
        1. Wait for arrival of data.  Because of the power of two nature
-       of the subtree roots, the source of this message is alwyas the
+       of the subtree roots, the source of this message is always the
        process whose relative rank has the least significant 1 bit CLEARED.
        That is, process 4 (100) receives from process 0, process 7 (111) 
        from process 6 (110), etc.   
@@ -239,7 +239,7 @@ int MPIR_Bcast_binomial_MV2(void *buffer,
     }
 
     /* This process is responsible for all processes that have bits
-       set from the LSB upto (but not including) mask.  Because of
+       set from the LSB up to (but not including) mask.  Because of
        the "not including", we start by shifting mask back down one.
 
        We can easily change to a different algorithm at any power of two
@@ -387,7 +387,7 @@ static int scatter_for_bcast_MV2(void *buffer ATTRIBUTE((unused)),
     }
 
     /* This process is responsible for all processes that have bits
-       set from the LSB upto (but not including) mask.  Because of
+       set from the LSB up to (but not including) mask.  Because of
        the "not including", we start by shifting mask back down
        one. */
 
@@ -940,7 +940,7 @@ int MPIR_Bcast_scatter_ring_allgather_shm_MV2(void *buffer,
     }
 
     MPIR_Type_get_true_extent_impl(datatype, &true_lb, &true_extent);
-    /* even though we always call this algorithm with contigious buffer, still,
+    /* even though we always call this algorithm with contiguous buffer, still,
      * the datatype might have some holes in the beginning. Therefore, true_lb
      * might be non zero */
     tmp_buf = buffer + true_lb;
@@ -1040,7 +1040,7 @@ int MPIR_Bcast_scatter_ring_allgather_shm_MV2(void *buffer,
         j = jnext;
         jnext = (comm_size + jnext - 1) % comm_size;
         
-        /* Leaders receive other chunks via allgather ring. When a leader is geting
+        /* Leaders receive other chunks via allgather ring. When a leader is getting
          * ith chunk from another leader, it broadcast (i-1)th chunk to non-leaders
          * inside the node
         */
@@ -1133,7 +1133,7 @@ int MPIR_Bcast_scatter_ring_allgather_shm_MV2(void *buffer,
         j = jnext;
         jnext = (comm_size + jnext - 1) % comm_size;
 
-        /* Leaders receive other chunks via allgather ring. When a leader is geting
+        /* Leaders receive other chunks via allgather ring. When a leader is getting
          * ith chunk from another leader, it broadcast (i-1)th chunk to non-leaders
          * inside the node
          */
@@ -1665,7 +1665,7 @@ int MPIR_Pipelined_Bcast_MV2(void *buffer,
     nbytes = (MPIDI_msg_sz_t) (count) * extent;
 
     MPIR_Type_get_true_extent_impl(datatype, &true_lb, &true_extent);
-    /* even though we always call this algorithm with contigious buffer, still,
+    /* even though we always call this algorithm with contiguous buffer, still,
      * the datatype might have some holes in the beginning. Therefore, true_lb
      * might be non zero */
     tmp_buf = buffer + true_lb;
@@ -1879,7 +1879,7 @@ int MPIR_Pipelined_Bcast_Zcpy_MV2(void *buffer,
 
 
     MPIR_Type_get_true_extent_impl(datatype, &true_lb, &true_extent);
-    /* even though we always call this algorithm with contigious buffer, still,
+    /* even though we always call this algorithm with contiguous buffer, still,
      * the datatype might have some holes in the beginning. Therefore, true_lb
      * might be non zero */
     tmp_buf = buffer + true_lb;
@@ -2552,7 +2552,7 @@ int MPIR_Bcast_index_tuned_intra_MV2(void *buffer,
     else {
         MPID_Datatype_get_ptr(datatype, dtp);
         is_contig = dtp->is_contig;
-    }
+    } 
 
     is_homogeneous = 1;
 #ifdef MPID_HAS_HETERO
@@ -2767,7 +2767,7 @@ skip_tuning_tables:
                             datatype, root, 
                             comm_ptr, errflag);
         } 
-    } else if (mv2_enable_shmem_bcast == 1 && two_level_bcast == 1) {
+    } else if (mv2_enable_shmem_bcast == 1) {
         if (!is_contig || !is_homogeneous) {
             MPIU_CHKLMEM_MALLOC(tmp_buf, void *, nbytes, mpi_errno, "tmp_buf");
 
@@ -2851,7 +2851,7 @@ skip_tuning_tables:
         } else {
 #ifdef CHANNEL_MRAIL_GEN2
             if ((&MPIR_Pipelined_Bcast_Zcpy_MV2 == MV2_Bcast_function) &&
-                (mv2_enable_zcpy_bcast == 0)) {
+                (mv2_enable_zcpy_bcast == 0 || !is_contig || !is_homogeneous)) {
                 /* We should not be reaching here, with bcast_fn set to the 
                  * zcpy function. The bcast-zcpy runtime variable has been disabled. 
                  * Just set MV2_Bcast_function to something else to handle this corner
@@ -3161,17 +3161,17 @@ int MPIR_Bcast_MV2(void *buf, int count, MPI_Datatype datatype,
     nbytes = (MPIDI_msg_sz_t) (count) * (datatype_extent);
     int mem_type = 0;
     int rank = comm_ptr->rank;
-    if (rdma_enable_cuda) {
+    if (mv2_enable_device) {
         mem_type = is_device_buffer(buf);
     }
 
-    if (rdma_enable_cuda && mem_type &&
-        rdma_cuda_use_naive && (nbytes <= rdma_cuda_bcast_naive_limit)) {
+    if (mv2_enable_device && mem_type &&
+        mv2_device_coll_use_stage && (nbytes <= mv2_device_bcast_stage_limit)) {
         if (rank == root) {
-            mpi_errno = cuda_stage_alloc(&buf, count * datatype_extent,
+            mpi_errno = device_stage_alloc(&buf, count * datatype_extent,
                                          NULL, 0, mem_type, 0, 0);
         } else {
-            mpi_errno = cuda_stage_alloc(NULL, 0, &buf, count * datatype_extent, 0, 1, 0);
+            mpi_errno = device_stage_alloc(NULL, 0, &buf, count * datatype_extent, 0, 1, 0);
         }
         if (mpi_errno) {
             MPIR_ERR_POP(mpi_errno);
@@ -3194,12 +3194,12 @@ int MPIR_Bcast_MV2(void *buf, int count, MPI_Datatype datatype,
     }
     comm_ptr->dev.ch.intra_node_done = 0;
 #ifdef _ENABLE_CUDA_
-    if (rdma_enable_cuda && mem_type &&
-        rdma_cuda_use_naive && (nbytes <= rdma_cuda_bcast_naive_limit)) {
+    if (mv2_enable_device && mem_type &&
+        mv2_device_coll_use_stage && (nbytes <= mv2_device_bcast_stage_limit)) {
         if (rank == root) {
-            cuda_stage_free(&buf, NULL, 0, mem_type, 0);
+            device_stage_free(&buf, NULL, 0, mem_type, 0);
         } else {
-            cuda_stage_free(NULL, &buf, count * datatype_extent, 0, mem_type);
+            device_stage_free(NULL, &buf, count * datatype_extent, 0, mem_type);
         }
     }
 #endif                          /*#ifdef _ENABLE_CUDA_ */

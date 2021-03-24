@@ -121,7 +121,7 @@ void free_ib_buffer(struct ib_buffer *buf)
 
     /// dereg the mem-region
     if (buf->mr)
-        ibv_dereg_mr(buf->mr);
+        mpirun_ibv_ops.dereg_mr(buf->mr);
 
     free(buf->addr);
     free(buf);

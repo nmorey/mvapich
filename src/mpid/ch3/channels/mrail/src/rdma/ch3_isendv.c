@@ -18,7 +18,7 @@
 
 #include "mpidi_ch3_impl.h"
 #include "rdma_impl.h"
-
+#include "ibv_send_inline.h"
 
 #undef FUNCNAME
 #define FUNCNAME update_request

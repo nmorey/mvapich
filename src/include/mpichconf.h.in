@@ -253,6 +253,10 @@
 /* Define if debugger support is included */
 #undef HAVE_DEBUGGER_SUPPORT
 
+/* Define to 1 if you have the declaration of `IBV_QPT_XRC', and to 0 if you
+   don't. */
+#undef HAVE_DECL_IBV_QPT_XRC
+
 /* Define to 1 if you have the declaration of `RAI_FAMILY', and to 0 if you
    don't. */
 #undef HAVE_DECL_RAI_FAMILY
@@ -1357,6 +1361,9 @@
 /* Define to enable MVAPICH2-GPU design. */
 #undef _ENABLE_CUDA_
 
+/* Define to enable abstraction of calls to IB Verbs */
+#undef _ENABLE_IBV_DLOPEN_
+
 /* Define to enable hybrid design. */
 #undef _ENABLE_UD_
 
@@ -1378,7 +1385,7 @@
 /* Define to enable inter subnet communication support. */
 #undef _MULTI_SUBNET_SUPPORT_
 
-/* Define to enable the use of MVAPICH2 implmentation of collectives */
+/* Define to enable the use of MVAPICH2 implementation of collectives */
 #undef _OSU_COLLECTIVES_
 
 /* Define to enable MVAPICH2 customizations */
@@ -1407,6 +1414,12 @@
    <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
    #define below would cause a syntax error. */
 #undef _UINT8_T
+
+/* Define when using HWLOC V1 */
+#undef _USE_HWLOC_V1_
+
+/* Define when using HWLOC V2 */
+#undef _USE_HWLOC_V2_
 
 /* Define to specify the build CPU type. */
 #undef _X86_64_

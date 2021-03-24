@@ -3,7 +3,7 @@
 
 Automatically generated
   by:   ./maint/extractcvars
-  at:   Mon Jun  1 17:50:05 2020
+  at:   Sun Nov 29 08:34:01 2020
 DO NOT EDIT!!!
 
 This file lists the various environment variables available to change the
@@ -755,7 +755,7 @@ MPIR_CVAR_COALESCE_THRESHOLD
     Aliases: MPIR_PARAM_COALESCE_THRESHOLD
              MPICH_COALESCE_THRESHOLD
              MV2_COALESCE_THRESHOLD
-    Description: This parameter determines the threshhold for message
+    Description: This parameter determines the threshold for message
         coalescing.
     Default: 6
 
@@ -855,7 +855,7 @@ MPIR_CVAR_CH3_RMA_DELAY_ISSUING_FOR_PIGGYBACKING
         tries to piggyback LOCK message with the first operation; for
         UNLOCK/FLUSH message, the origin process no longer keeps the
         current last operation but only piggyback UNLOCK/FLUSH if there is
-        an operation avaliable in the ending synchronization call.
+        an operation available in the ending synchronization call.
     Default: 0
 
 MPIR_CVAR_CH3_ENABLE_HCOLL
@@ -884,7 +884,7 @@ MPIR_CVAR_CH3_RMA_POKE_PROGRESS_REQ_THRESHOLD
              MV2_CH3_RMA_POKE_PROGRESS_REQ_THRESHOLD
     Description: Threshold at which the RMA implementation attempts to
         complete requests while completing RMA operations and while using
-        the lazy synchonization approach.  Change this value if programs
+        the lazy synchronization approach.  Change this value if programs
         fail because they run out of requests or other internal resources
     Default: 128
 
@@ -903,7 +903,7 @@ MPIR_CVAR_CH3_RMA_OP_GLOBAL_POOL_SIZE
              MV2_CH3_RMA_OP_GLOBAL_POOL_SIZE
     Description: Size of the Global RMA operations pool (in number of
         operations) that stores information about RMA operations that could
-        not be issued immediatly.  Requires a positive value.
+        not be issued immediately.  Requires a positive value.
     Default: 16384
 
 MPIR_CVAR_CH3_RMA_TARGET_WIN_POOL_SIZE
@@ -921,7 +921,7 @@ MPIR_CVAR_CH3_RMA_TARGET_GLOBAL_POOL_SIZE
              MV2_CH3_RMA_TARGET_GLOBAL_POOL_SIZE
     Description: Size of the Global RMA targets pool (in number of targets)
         that stores information about RMA targets that could not be issued
-        immediatly.  Requires a positive value.
+        immediately.  Requires a positive value.
     Default: 16384
 
 MPIR_CVAR_CH3_RMA_TARGET_LOCK_ENTRY_WIN_POOL_SIZE
@@ -930,7 +930,7 @@ MPIR_CVAR_CH3_RMA_TARGET_LOCK_ENTRY_WIN_POOL_SIZE
              MV2_CH3_RMA_TARGET_LOCK_ENTRY_WIN_POOL_SIZE
     Description: Size of the window-private RMA lock entries pool (in
         number of lock entries) that stores information about RMA lock
-        requests that could not be satisfied immediatly.  Requires a
+        requests that could not be satisfied immediately.  Requires a
         positive value.
     Default: 256
 
@@ -999,6 +999,6 @@ MPIR_CVAR_CH3_RMA_TARGET_LOCK_DATA_BYTES
     Description: Size (in bytes) of available lock data this window can
         provided. If current buffered lock data is more than this value,
         the process will drop the upcoming operation data. Requires a
-        positive calue.
+        positive value.
     Default: 655360
 

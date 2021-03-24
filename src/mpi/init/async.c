@@ -54,9 +54,9 @@ static void progress_fn(void * data)
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
 
 #if defined(_ENABLE_CUDA_)
-    if (rdma_enable_cuda && 
-        cuda_initialized) {
-        cuda_init_thread_context();
+    if (mv2_enable_device &&
+        mv2_device_initialized) {
+        device_init_thread_context();
     }
 #endif
 

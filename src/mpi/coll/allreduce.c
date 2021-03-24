@@ -921,6 +921,7 @@ int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
         }
 #if defined(_SHARP_SUPPORT_)
         if (mv2_enable_sharp_coll &&
+            mv2_enable_sharp_allreduce &&
             (comm_ptr->dev.ch.is_sharp_ok == 0) &&
             (comm_ptr->dev.ch.shmem_coll_ok == 1) &&
             (comm_ptr->dev.ch.allreduce_coll_count >= shmem_coll_count_threshold)) { 

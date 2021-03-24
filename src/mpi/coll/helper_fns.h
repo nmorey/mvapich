@@ -95,7 +95,7 @@ static inline int MPIR_Localcopy(const void *sendbuf, MPI_Aint sendcount, MPI_Da
     MPID_Datatype *sdt_ptr, *rdt_ptr;
     MPID_Datatype_get_ptr(sendtype, sdt_ptr);
     MPID_Datatype_get_ptr(recvtype, rdt_ptr);
-    if (rdma_enable_cuda) {
+    if (mv2_enable_device) {
         sbuf_isdev = is_device_buffer(sendbuf);
         rbuf_isdev = is_device_buffer(recvbuf);
     }
@@ -105,9 +105,9 @@ static inline int MPIR_Localcopy(const void *sendbuf, MPI_Aint sendcount, MPI_Da
     if ((HANDLE_GET_KIND(sendtype) == HANDLE_KIND_BUILTIN) &&
         HANDLE_GET_KIND(recvtype) == HANDLE_KIND_BUILTIN) {
 #if defined(_ENABLE_CUDA_)
-        if (rdma_enable_cuda && (sbuf_isdev || rbuf_isdev)) {
-            MPIU_Memcpy_CUDA((void *) recvbuf, (void *) sendbuf,
-                    copy_sz, cudaMemcpyDefault);
+        if (mv2_enable_device && (sbuf_isdev || rbuf_isdev)) {
+            MPIU_Memcpy_Device((void *) recvbuf, (void *) sendbuf,
+                    copy_sz, deviceMemcpyDefault);
             goto fn_exit;
         }
 #endif
@@ -124,10 +124,10 @@ static inline int MPIR_Localcopy(const void *sendbuf, MPI_Aint sendcount, MPI_Da
     if (sendtype_iscontig && recvtype_iscontig)
     {
 #if defined(_ENABLE_CUDA_)
-        if (rdma_enable_cuda && (sbuf_isdev || rbuf_isdev)) { 
-                MPIU_Memcpy_CUDA((void *) ((char *)recvbuf + recvtype_true_lb),
+        if (mv2_enable_device && (sbuf_isdev || rbuf_isdev)) {
+                MPIU_Memcpy_Device((void *) ((char *)recvbuf + recvtype_true_lb),
                     (void *) ((char *)sendbuf + sendtype_true_lb),
-                    copy_sz, cudaMemcpyDefault); 
+                    copy_sz, deviceMemcpyDefault);
         } else {     
 #endif
 #if defined(HAVE_ERROR_CHECKING)
@@ -151,8 +151,8 @@ static inline int MPIR_Localcopy(const void *sendbuf, MPI_Aint sendcount, MPI_Da
 	MPID_Segment_init(recvbuf, recvcount, recvtype, &seg, 0);
 	last = copy_sz;
 #if defined(_ENABLE_CUDA_)
-    if (rdma_enable_cuda && (sbuf_isdev || rbuf_isdev)) {
-	    MPID_Segment_unpack_cuda(&seg, 0, &last, rdt_ptr, (char*)sendbuf + sendtype_true_lb);
+    if (mv2_enable_device && (sbuf_isdev || rbuf_isdev)) {
+	    MPID_Segment_unpack_device(&seg, 0, &last, rdt_ptr, (char*)sendbuf + sendtype_true_lb);
     } else
 #endif
     {
@@ -168,8 +168,8 @@ static inline int MPIR_Localcopy(const void *sendbuf, MPI_Aint sendcount, MPI_Da
 	MPID_Segment_init(sendbuf, sendcount, sendtype, &seg, 0);
 	last = copy_sz;
 #if defined(_ENABLE_CUDA_)
-    if (rdma_enable_cuda && (sbuf_isdev || rbuf_isdev)) {
-	    MPID_Segment_pack_cuda(&seg, 0, &last, sdt_ptr, (char*)recvbuf + recvtype_true_lb);
+    if (mv2_enable_device && (sbuf_isdev || rbuf_isdev)) {
+	    MPID_Segment_pack_device(&seg, 0, &last, sdt_ptr, (char*)recvbuf + recvtype_true_lb);
     } else
 #endif
     {
@@ -186,8 +186,8 @@ static inline int MPIR_Localcopy(const void *sendbuf, MPI_Aint sendcount, MPI_Da
 	MPID_Segment rseg;
 	MPIDI_msg_sz_t rfirst;
 #if defined (_ENABLE_CUDA_)
-    if (rdma_enable_cuda && (sbuf_isdev || rbuf_isdev)) {
-         MPIU_Malloc_CUDA(buf, copy_sz);
+    if (mv2_enable_device && (sbuf_isdev || rbuf_isdev)) {
+         MPIU_Malloc_Device(buf, copy_sz);
     } else
 #endif   
     {
@@ -202,13 +202,13 @@ static inline int MPIR_Localcopy(const void *sendbuf, MPI_Aint sendcount, MPI_Da
 	buf_off = 0;
 
 #if defined (_ENABLE_CUDA_)
-    if (rdma_enable_cuda && (sbuf_isdev || rbuf_isdev)) {
+    if (mv2_enable_device && (sbuf_isdev || rbuf_isdev)) {
         MPI_Aint last;
         last = copy_sz;
 
-        MPID_Segment_pack_cuda(&sseg, sfirst, &last, rdt_ptr, buf);
-        MPID_Segment_unpack_cuda(&rseg, rfirst, &last, sdt_ptr, buf);
-        MPIU_Free_CUDA(buf);
+        MPID_Segment_pack_device(&sseg, sfirst, &last, rdt_ptr, buf);
+        MPID_Segment_unpack_device(&rseg, rfirst, &last, sdt_ptr, buf);
+        MPIU_Free_Device(buf);
     } else 
 #endif
         {

@@ -119,7 +119,7 @@ static int process_line (char * const lineptr)
     }
 
     if (setenv(key, value, 0)) {
-        config_error.msg = "Error seting environment variable";
+        config_error.msg = "Error setting environment variable";
         return -1;
     }
 

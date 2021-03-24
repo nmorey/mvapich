@@ -93,20 +93,29 @@ typedef enum {
         MV2_HCA_MARVEL_QEDR,
         MV2_HCA_MARVEL_END,
 
+/* Broadcom Cards */
+        MV2_HCA_BROADCOM_START,
+        MV2_HCA_BROADCOM_BNXTRE,
+        MV2_HCA_BROADCOM_END,
+
         MV2_HCA_LIST_END,
 } mv2_hca_types_list;
 
 typedef enum {
     MV2_NETWORK_CLASS_UNKNOWN = 0,
-    MV2_NETWORK_CLASS_IB = 1,
-    MV2_NETWORK_CLASS_IWARP = 2,
-    MV2_NETWORK_LAST_ENTRY = 3,
+    MV2_NETWORK_CLASS_IB,
+    MV2_NETWORK_CLASS_IWARP,
+    MV2_NETWORK_CLASS_MARVEL,
+    MV2_NETWORK_CLASS_BROADCOM,
+    MV2_NETWORK_LAST_ENTRY,
 } mv2_iba_network_classes;
 
 #define MV2_GET_NETWORK_TYPE(_x)                                \
     ((MV2_IS_IB_CARD(_x))?MV2_NETWORK_CLASS_IB:                 \
-            ((MV2_IS_IWARP_CARD(_x))?MV2_NETWORK_CLASS_IWARP:   \
-                                    MV2_NETWORK_CLASS_UNKNOWN))
+      ((MV2_IS_IWARP_CARD(_x))?MV2_NETWORK_CLASS_IWARP:         \
+       ((MV2_IS_MARVEL_CARD(_x))?MV2_NETWORK_CLASS_MARVEL:      \
+        ((MV2_IS_BROADCOM_CARD(_x))?MV2_NETWORK_CLASS_BROADCOM: \
+                                    MV2_NETWORK_CLASS_UNKNOWN))))
 /* Check if given card is IB card or not */
 #define MV2_IS_IB_CARD(_x) \
     ((_x) > MV2_HCA_IB_TYPE_START && (_x) < MV2_HCA_IB_TYPE_END)
@@ -130,6 +139,10 @@ typedef enum {
 /* Check if given card is Marvel card or not */
 #define MV2_IS_MARVEL_CARD(_x) \
     ((_x) > MV2_HCA_MARVEL_START && (_x) < MV2_HCA_MARVEL_END)
+
+/* Check if given card is Broadcom card or not */
+#define MV2_IS_BROADCOM_CARD(_x) \
+    ((_x) > MV2_HCA_BROADCOM_START && (_x) < MV2_HCA_BROADCOM_END)
 
 /* Architecture Type 
  * Layout:
@@ -190,8 +203,11 @@ typedef enum {
         MV2_ARCH_AMD_OPTERON_6136_32,
         MV2_ARCH_AMD_OPTERON_6276_64,
         MV2_ARCH_AMD_BULLDOZER_4274HE_16,
+        MV2_ARCH_AMD_EPYC_GENERIC,
     	MV2_ARCH_AMD_EPYC_7551_64,
         MV2_ARCH_AMD_EPYC_7601_64,
+        MV2_ARCH_AMD_EPYC_7V12_64,
+        MV2_ARCH_AMD_EPYC_7401_48,
         MV2_ARCH_AMD_EPYC_7742_128,
         MV2_ARCH_AMD_END,
 /* IBM Architectures */
@@ -204,6 +220,7 @@ typedef enum {
         MV2_ARCH_ARM_START,
         MV2_ARCH_ARM_CAVIUM_V8_2S_28,
         MV2_ARCH_ARM_CAVIUM_V8_2S_32,
+        MV2_ARCH_ARM_FUJITSU_V0_4S_48,
         MV2_ARCH_ARM_END,
         MV2_ARCH_LIST_END, 
 } mv2_proc_arch_list;

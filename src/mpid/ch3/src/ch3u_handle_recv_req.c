@@ -80,13 +80,13 @@ int MPIDI_CH3U_Handle_recv_req(MPIDI_VC_t * vc, MPID_Request * rreq, int *comple
     }
     else {
 #if defined (_ENABLE_CUDA_)
-        if (rdma_enable_cuda && reqFn == MPIDI_CH3_ReqHandler_unpack_cudabuf) {  
+        if (mv2_enable_device && reqFn == MPIDI_CH3_ReqHandler_unpack_device) {
             /*pass stream if using rndv protocol*/ 
             if (rreq->mrail.protocol != 0) {
-                mpi_errno = MPIDI_CH3_ReqHandler_unpack_cudabuf_stream(vc, rreq, 
+                mpi_errno = MPIDI_CH3_ReqHandler_unpack_device_stream(vc, rreq,
                         complete, (void *) stream_h2d);
             } else {
-                 mpi_errno = MPIDI_CH3_ReqHandler_unpack_cudabuf_stream(vc, rreq, 
+                 mpi_errno = MPIDI_CH3_ReqHandler_unpack_device_stream(vc, rreq,
                         complete, NULL);
             }
         } else 

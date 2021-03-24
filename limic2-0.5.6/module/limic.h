@@ -225,7 +225,7 @@ struct page **limic_get_pages(limic_user *lu, int rw)
     lu->nr_pages = err;
  
     while (pgcount--) {
-        /* FIXME: flush superflous for rw==READ,
+        /* FIXME: flush superfluous for rw==READ,
          * probably wrong function for rw==WRITE
          */
         /* flush_dcache_page(maplist[pgcount]); */

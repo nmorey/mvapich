@@ -5,7 +5,7 @@
  */
 /* automatically generated
  *   by:   ./maint/extractcvars
- *   at:   Mon Jun  1 17:50:05 2020
+ *   at:   Sun Nov 29 08:34:01 2020
  *
  * DO NOT EDIT!!!
  */
@@ -346,47 +346,47 @@ int MPIR_T_cvar_init(void)
         return MPI_SUCCESS;
     initialized = TRUE;
 
-    /* declared in /tmp/Axy9IXL3Zo/mvapich2-2.3.4/maint/../src/mpi/comm/comm_split.c */
+    /* declared in /tmp/gPSxk0Dbic/mvapich2-2.3.5/maint/../src/mpi/comm/comm_split.c */
     MPIR_T_cat_add_desc("COMMUNICATOR",
         "cvars that control communicator construction and operation");
 
-    /* declared in /tmp/Axy9IXL3Zo/mvapich2-2.3.4/maint/../src/mpi/errhan/errutil.c */
+    /* declared in /tmp/gPSxk0Dbic/mvapich2-2.3.5/maint/../src/mpi/errhan/errutil.c */
     MPIR_T_cat_add_desc("ERROR_HANDLING",
         "cvars that control error handling behavior (stack traces, aborts, etc)");
 
-    /* declared in /tmp/Axy9IXL3Zo/mvapich2-2.3.4/maint/../src/mpi/coll/alltoall.c */
+    /* declared in /tmp/gPSxk0Dbic/mvapich2-2.3.5/maint/../src/mpi/coll/alltoall.c */
     MPIR_T_cat_add_desc("COLLECTIVE",
         "A category for collective communication variables.");
 
-    /* declared in /tmp/Axy9IXL3Zo/mvapich2-2.3.4/maint/../src/mpi/init/init.c */
+    /* declared in /tmp/gPSxk0Dbic/mvapich2-2.3.5/maint/../src/mpi/init/init.c */
     MPIR_T_cat_add_desc("THREADS",
         "multi-threading cvars");
 
-    /* declared in /tmp/Axy9IXL3Zo/mvapich2-2.3.4/maint/../src/mpi/init/initthread.c */
+    /* declared in /tmp/gPSxk0Dbic/mvapich2-2.3.5/maint/../src/mpi/init/initthread.c */
     MPIR_T_cat_add_desc("DEBUGGER",
         "cvars relevant to the \"MPIR\" debugger interface");
 
-    /* declared in /tmp/Axy9IXL3Zo/mvapich2-2.3.4/maint/../src/mpi/init/finalize.c */
+    /* declared in /tmp/gPSxk0Dbic/mvapich2-2.3.5/maint/../src/mpi/init/finalize.c */
     MPIR_T_cat_add_desc("DEVELOPER",
         "useful for developers working on MPICH itself");
 
-    /* declared in /tmp/Axy9IXL3Zo/mvapich2-2.3.4/maint/../src/nameserv/file/file_nameserv.c */
+    /* declared in /tmp/gPSxk0Dbic/mvapich2-2.3.5/maint/../src/nameserv/file/file_nameserv.c */
     MPIR_T_cat_add_desc("PROCESS_MANAGER",
         "cvars that control the client-side process manager code");
 
-    /* declared in /tmp/Axy9IXL3Zo/mvapich2-2.3.4/maint/../src/util/mem/handlemem.c */
+    /* declared in /tmp/gPSxk0Dbic/mvapich2-2.3.5/maint/../src/util/mem/handlemem.c */
     MPIR_T_cat_add_desc("MEMORY",
         "affects memory allocation and usage, including MPI object handles");
 
-    /* declared in /tmp/Axy9IXL3Zo/mvapich2-2.3.4/maint/../src/mpid/ch3/channels/nemesis/src/mpid_nem_init.c */
+    /* declared in /tmp/gPSxk0Dbic/mvapich2-2.3.5/maint/../src/mpid/ch3/channels/nemesis/src/mpid_nem_init.c */
     MPIR_T_cat_add_desc("NEMESIS",
         "cvars that control behavior of the ch3:nemesis channel");
 
-    /* declared in /tmp/Axy9IXL3Zo/mvapich2-2.3.4/maint/../src/mpid/ch3/channels/nemesis/src/mpid_nem_lmt.c */
+    /* declared in /tmp/gPSxk0Dbic/mvapich2-2.3.5/maint/../src/mpid/ch3/channels/nemesis/src/mpid_nem_lmt.c */
     MPIR_T_cat_add_desc("FT",
         "cvars that control behavior of fault tolerance");
 
-    /* declared in /tmp/Axy9IXL3Zo/mvapich2-2.3.4/maint/../src/mpid/ch3/src/mpidi_rma.c */
+    /* declared in /tmp/gPSxk0Dbic/mvapich2-2.3.5/maint/../src/mpid/ch3/src/mpidi_rma.c */
     MPIR_T_cat_add_desc("CH3",
         "cvars that control behavior of ch3");
 
@@ -2163,7 +2163,7 @@ int MPIR_T_cvar_init(void)
         MPI_T_SCOPE_ALL_EQ,
         defaultval,
         "CH3", /* category */
-        "This parameter determines the threshhold for message coalescing.");
+        "This parameter determines the threshold for message coalescing.");
     rc = MPL_env2int("MPICH_COALESCE_THRESHOLD", &(MPIR_CVAR_COALESCE_THRESHOLD));
     MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MPICH_COALESCE_THRESHOLD");
     rc = MPL_env2int("MV2_COALESCE_THRESHOLD", &(MPIR_CVAR_COALESCE_THRESHOLD));
@@ -2387,7 +2387,7 @@ int MPIR_T_cvar_init(void)
         MPI_T_SCOPE_ALL_EQ,
         defaultval,
         "CH3", /* category */
-        "Specify if delay issuing of RMA operations for piggybacking LOCK/UNLOCK/FLUSH is enabled. It can be either 0 or 1. When it is set to 1, the issuing of LOCK message is delayed until origin process see the first RMA operation and piggyback LOCK with that operation, and the origin process always keeps the current last operation until the ending synchronization call in order to piggyback UNLOCK/FLUSH with that operation. When it is set to 0, in WIN_LOCK/UNLOCK case, the LOCK message is sent out as early as possible, in WIN_LOCK_ALL/UNLOCK_ALL case, the origin process still tries to piggyback LOCK message with the first operation; for UNLOCK/FLUSH message, the origin process no longer keeps the current last operation but only piggyback UNLOCK/FLUSH if there is an operation avaliable in the ending synchronization call.");
+        "Specify if delay issuing of RMA operations for piggybacking LOCK/UNLOCK/FLUSH is enabled. It can be either 0 or 1. When it is set to 1, the issuing of LOCK message is delayed until origin process see the first RMA operation and piggyback LOCK with that operation, and the origin process always keeps the current last operation until the ending synchronization call in order to piggyback UNLOCK/FLUSH with that operation. When it is set to 0, in WIN_LOCK/UNLOCK case, the LOCK message is sent out as early as possible, in WIN_LOCK_ALL/UNLOCK_ALL case, the origin process still tries to piggyback LOCK message with the first operation; for UNLOCK/FLUSH message, the origin process no longer keeps the current last operation but only piggyback UNLOCK/FLUSH if there is an operation available in the ending synchronization call.");
     rc = MPL_env2int("MPICH_CH3_RMA_DELAY_ISSUING_FOR_PIGGYBACKING", &(MPIR_CVAR_CH3_RMA_DELAY_ISSUING_FOR_PIGGYBACKING));
     MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MPICH_CH3_RMA_DELAY_ISSUING_FOR_PIGGYBACKING");
     rc = MPL_env2int("MV2_CH3_RMA_DELAY_ISSUING_FOR_PIGGYBACKING", &(MPIR_CVAR_CH3_RMA_DELAY_ISSUING_FOR_PIGGYBACKING));
@@ -2447,7 +2447,7 @@ int MPIR_T_cvar_init(void)
         MPI_T_SCOPE_ALL_EQ,
         defaultval,
         "CH3", /* category */
-        "Threshold at which the RMA implementation attempts to complete requests while completing RMA operations and while using the lazy synchonization approach.  Change this value if programs fail because they run out of requests or other internal resources");
+        "Threshold at which the RMA implementation attempts to complete requests while completing RMA operations and while using the lazy synchronization approach.  Change this value if programs fail because they run out of requests or other internal resources");
     rc = MPL_env2int("MPICH_CH3_RMA_POKE_PROGRESS_REQ_THRESHOLD", &(MPIR_CVAR_CH3_RMA_POKE_PROGRESS_REQ_THRESHOLD));
     MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MPICH_CH3_RMA_POKE_PROGRESS_REQ_THRESHOLD");
     rc = MPL_env2int("MV2_CH3_RMA_POKE_PROGRESS_REQ_THRESHOLD", &(MPIR_CVAR_CH3_RMA_POKE_PROGRESS_REQ_THRESHOLD));
@@ -2487,7 +2487,7 @@ int MPIR_T_cvar_init(void)
         MPI_T_SCOPE_ALL_EQ,
         defaultval,
         "CH3", /* category */
-        "Size of the Global RMA operations pool (in number of operations) that stores information about RMA operations that could not be issued immediatly.  Requires a positive value.");
+        "Size of the Global RMA operations pool (in number of operations) that stores information about RMA operations that could not be issued immediately.  Requires a positive value.");
     rc = MPL_env2int("MPICH_CH3_RMA_OP_GLOBAL_POOL_SIZE", &(MPIR_CVAR_CH3_RMA_OP_GLOBAL_POOL_SIZE));
     MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MPICH_CH3_RMA_OP_GLOBAL_POOL_SIZE");
     rc = MPL_env2int("MV2_CH3_RMA_OP_GLOBAL_POOL_SIZE", &(MPIR_CVAR_CH3_RMA_OP_GLOBAL_POOL_SIZE));
@@ -2527,7 +2527,7 @@ int MPIR_T_cvar_init(void)
         MPI_T_SCOPE_ALL_EQ,
         defaultval,
         "CH3", /* category */
-        "Size of the Global RMA targets pool (in number of targets) that stores information about RMA targets that could not be issued immediatly.  Requires a positive value.");
+        "Size of the Global RMA targets pool (in number of targets) that stores information about RMA targets that could not be issued immediately.  Requires a positive value.");
     rc = MPL_env2int("MPICH_CH3_RMA_TARGET_GLOBAL_POOL_SIZE", &(MPIR_CVAR_CH3_RMA_TARGET_GLOBAL_POOL_SIZE));
     MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MPICH_CH3_RMA_TARGET_GLOBAL_POOL_SIZE");
     rc = MPL_env2int("MV2_CH3_RMA_TARGET_GLOBAL_POOL_SIZE", &(MPIR_CVAR_CH3_RMA_TARGET_GLOBAL_POOL_SIZE));
@@ -2547,7 +2547,7 @@ int MPIR_T_cvar_init(void)
         MPI_T_SCOPE_ALL_EQ,
         defaultval,
         "CH3", /* category */
-        "Size of the window-private RMA lock entries pool (in number of lock entries) that stores information about RMA lock requests that could not be satisfied immediatly.  Requires a positive value.");
+        "Size of the window-private RMA lock entries pool (in number of lock entries) that stores information about RMA lock requests that could not be satisfied immediately.  Requires a positive value.");
     rc = MPL_env2int("MPICH_CH3_RMA_TARGET_LOCK_ENTRY_WIN_POOL_SIZE", &(MPIR_CVAR_CH3_RMA_TARGET_LOCK_ENTRY_WIN_POOL_SIZE));
     MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MPICH_CH3_RMA_TARGET_LOCK_ENTRY_WIN_POOL_SIZE");
     rc = MPL_env2int("MV2_CH3_RMA_TARGET_LOCK_ENTRY_WIN_POOL_SIZE", &(MPIR_CVAR_CH3_RMA_TARGET_LOCK_ENTRY_WIN_POOL_SIZE));
@@ -2683,7 +2683,7 @@ int MPIR_T_cvar_init(void)
         MPI_T_SCOPE_ALL_EQ,
         defaultval,
         "CH3", /* category */
-        "Size (in bytes) of available lock data this window can provided. If current buffered lock data is more than this value, the process will drop the upcoming operation data. Requires a positive calue.");
+        "Size (in bytes) of available lock data this window can provided. If current buffered lock data is more than this value, the process will drop the upcoming operation data. Requires a positive value.");
     rc = MPL_env2int("MPICH_CH3_RMA_TARGET_LOCK_DATA_BYTES", &(MPIR_CVAR_CH3_RMA_TARGET_LOCK_DATA_BYTES));
     MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MPICH_CH3_RMA_TARGET_LOCK_DATA_BYTES");
     rc = MPL_env2int("MV2_CH3_RMA_TARGET_LOCK_DATA_BYTES", &(MPIR_CVAR_CH3_RMA_TARGET_LOCK_DATA_BYTES));

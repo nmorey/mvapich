@@ -237,6 +237,9 @@
 /* Define to 1 if we have -llgrp */
 #undef HAVE_LIBLGRP
 
+/* Define to 1 if you have the `pbs' library (-lpbs). */
+#undef HAVE_LIBPBS
+
 /* Define to 1 if you have the `torque' library (-ltorque). */
 #undef HAVE_LIBTORQUE
 
@@ -287,6 +290,9 @@
 
 /* Define to 1 if you have the `openat' function. */
 #undef HAVE_OPENAT
+
+/* Define if PBS Pro support is enabled */
+#undef HAVE_PBS_PRO
 
 /* Define to 1 if you have the <picl.h> header file. */
 #undef HAVE_PICL_H

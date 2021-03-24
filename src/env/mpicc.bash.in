@@ -268,7 +268,7 @@ if [ "$linking" = yes ] ; then
         $Show $CC ${final_cppflags} $PROFILE_INCPATHS ${final_cflags} ${final_ldflags} "${allargs[@]}" -I$includedir
         rc=$?
     else
-        $Show $CC ${final_cppflags} $PROFILE_INCPATHS ${final_cflags} -l@MPILIBNAME@ ${final_ldflags} "${allargs[@]}" -I$includedir $ITAC_OPTIONS -L$libdir $PROFILE_PRELIB $PROFILE_FOO $rpath_flags @LPMPILIBNAME@ $PROFILE_POSTLIB ${final_libs}
+        $Show $CC ${final_cppflags} $PROFILE_INCPATHS ${final_cflags} ${final_ldflags} "${allargs[@]}" -I$includedir $ITAC_OPTIONS -L$libdir $PROFILE_PRELIB $PROFILE_FOO $rpath_flags -l@MPILIBNAME@ @LPMPILIBNAME@ $PROFILE_POSTLIB ${final_libs}
         rc=$?
     fi
 else

@@ -63,7 +63,7 @@ void push(config_spec_t ** headRef, char *exe, char *args, int numprocs)
 
 /*
  * This function is in part equal to the one present in mpiexec project from OSC.
- * Read the heterogenous config file, making sure it's proper and all the
+ * Read the heterogeneous config file, making sure it's proper and all the
  * executables exist.  Command-line node limits have already been applied
  * and the tasks[] list reduced accordingly, except for -numproc.
  */

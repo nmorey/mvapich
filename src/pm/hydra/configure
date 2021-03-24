@@ -15857,6 +15857,210 @@ else
 fi
 
                 fi
+
+
+# Check whether --with-pbs was given.
+if test "${with_pbs+set}" = set; then :
+  withval=$with_pbs; case "$withval" in #(
+  yes|no|'') :
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: --without-pbs=PATH expects a valid PATH" >&5
+$as_echo "$as_me: WARNING: --without-pbs=PATH expects a valid PATH" >&2;}
+                          with_pbs="" ;; #(
+  *) :
+     ;;
+esac
+else
+  with_pbs=
+fi
+
+
+# Check whether --with-pbs-include was given.
+if test "${with_pbs_include+set}" = set; then :
+  withval=$with_pbs_include; case "$withval" in #(
+  yes|no|'') :
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: --without-pbs-include=PATH expects a valid PATH" >&5
+$as_echo "$as_me: WARNING: --without-pbs-include=PATH expects a valid PATH" >&2;}
+                          with_pbs_include="" ;; #(
+  *) :
+     ;;
+esac
+fi
+
+
+# Check whether --with-pbs-lib was given.
+if test "${with_pbs_lib+set}" = set; then :
+  withval=$with_pbs_lib; case "$withval" in #(
+  yes|no|'') :
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: --without-pbs-lib=PATH expects a valid PATH" >&5
+$as_echo "$as_me: WARNING: --without-pbs-lib=PATH expects a valid PATH" >&2;}
+                          with_pbs_lib="" ;; #(
+  *) :
+     ;;
+esac
+fi
+
+
+    # The args have been sanitized into empty/non-empty values above.
+    # Now append -I/-L args to CPPFLAGS/LDFLAGS, with more specific options
+    # taking priority
+
+    if test -n "${with_pbs_include}"; then :
+
+
+	if echo "$CPPFLAGS" | $FGREP -e "\<-I${with_pbs_include}\>" >/dev/null 2>&1; then :
+  echo "CPPFLAGS(='$CPPFLAGS') contains '-I${with_pbs_include}', not appending" >&5
+else
+  echo "CPPFLAGS(='$CPPFLAGS') does not contain '-I${with_pbs_include}', appending" >&5
+		CPPFLAGS="$CPPFLAGS -I${with_pbs_include}"
+
+fi
+
+else
+  if test -n "${with_pbs}"; then :
+
+
+	if echo "$CPPFLAGS" | $FGREP -e "\<-I${with_pbs}/include\>" >/dev/null 2>&1; then :
+  echo "CPPFLAGS(='$CPPFLAGS') contains '-I${with_pbs}/include', not appending" >&5
+else
+  echo "CPPFLAGS(='$CPPFLAGS') does not contain '-I${with_pbs}/include', appending" >&5
+		CPPFLAGS="$CPPFLAGS -I${with_pbs}/include"
+
+fi
+
+fi
+fi
+
+    if test -n "${with_pbs_lib}"; then :
+
+
+	if echo "$LDFLAGS" | $FGREP -e "\<-L${with_pbs_lib}\>" >/dev/null 2>&1; then :
+  echo "LDFLAGS(='$LDFLAGS') contains '-L${with_pbs_lib}', not appending" >&5
+else
+  echo "LDFLAGS(='$LDFLAGS') does not contain '-L${with_pbs_lib}', appending" >&5
+		LDFLAGS="$LDFLAGS -L${with_pbs_lib}"
+
+fi
+
+else
+  if test -n "${with_pbs}"; then :
+
+
+	if echo "$LDFLAGS" | $FGREP -e "\<-L${with_pbs}/lib\>" >/dev/null 2>&1; then :
+  echo "LDFLAGS(='$LDFLAGS') contains '-L${with_pbs}/lib', not appending" >&5
+else
+  echo "LDFLAGS(='$LDFLAGS') does not contain '-L${with_pbs}/lib', appending" >&5
+		LDFLAGS="$LDFLAGS -L${with_pbs}/lib"
+
+fi
+
+                  if test -d "${with_pbs}/lib64"; then :
+
+
+	if echo "$LDFLAGS" | $FGREP -e "\<-L${with_pbs}/lib64\>" >/dev/null 2>&1; then :
+  echo "LDFLAGS(='$LDFLAGS') contains '-L${with_pbs}/lib64', not appending" >&5
+else
+  echo "LDFLAGS(='$LDFLAGS') does not contain '-L${with_pbs}/lib64', appending" >&5
+		LDFLAGS="$LDFLAGS -L${with_pbs}/lib64"
+
+fi
+
+fi
+
+fi
+
+fi
+
+
+	if test -z "${pac_save_LIBS_nesting}" ; then
+	   pac_save_LIBS_nesting=0
+	fi
+	eval pac_save_LIBS_${pac_save_LIBS_nesting}='"$LIBS"'
+	pac_save_LIBS_nesting=`expr ${pac_save_LIBS_nesting} + 1`
+
+
+    failure=no
+    ac_fn_c_check_header_mongrel "$LINENO" "tm.h" "ac_cv_header_tm_h" "$ac_includes_default"
+if test "x$ac_cv_header_tm_h" = xyes; then :
+
+else
+  failure=yes
+fi
+
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for tm_init in -lpbs" >&5
+$as_echo_n "checking for tm_init in -lpbs... " >&6; }
+if ${ac_cv_lib_pbs_tm_init+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lpbs  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char tm_init ();
+int
+main ()
+{
+return tm_init ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_pbs_tm_init=yes
+else
+  ac_cv_lib_pbs_tm_init=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_pbs_tm_init" >&5
+$as_echo "$ac_cv_lib_pbs_tm_init" >&6; }
+if test "x$ac_cv_lib_pbs_tm_init" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBPBS 1
+_ACEOF
+
+  LIBS="-lpbs $LIBS"
+
+else
+  failure=yes
+fi
+
+    if test "$failure" = "no" ; then
+       have_pbs_launcher=yes
+    else
+       have_pbs_launcher=no
+    fi
+
+
+	pac_save_LIBS_nesting=`expr ${pac_save_LIBS_nesting} - 1`
+	eval LIBS="\$pac_save_LIBS_${pac_save_LIBS_nesting}"
+	eval pac_save_LIBS_${pac_save_LIBS_nesting}=""
+
+                if test "$have_pbs_launcher" = "yes" ; then
+		    available_launchers="$available_launchers pbs"
+
+
+	if echo "$WRAPPER_LIBS" | $FGREP -e "\<-lpbs\>" >/dev/null 2>&1; then :
+  echo "WRAPPER_LIBS(='$WRAPPER_LIBS') contains '-lpbs', not appending" >&5
+else
+  echo "WRAPPER_LIBS(='$WRAPPER_LIBS') does not contain '-lpbs', appending" >&5
+		WRAPPER_LIBS="$WRAPPER_LIBS -lpbs"
+
+fi
+
+
+$as_echo "#define HAVE_PBS_PRO 1" >>confdefs.h
+
+                fi
 		available_rmks="$available_rmks pbs"
 		;;
 	cobalt)

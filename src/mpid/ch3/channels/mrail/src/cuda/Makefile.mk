@@ -14,6 +14,34 @@
 
 AM_NVCCFLAGS = $(NVCCFLAGS)
 
+if BUILD_MRAIL_CUDA_SM_86
+AM_NVCCFLAGS += -gencode=arch=compute_86,code=compute_86
+endif
+
+if BUILD_MRAIL_CUDA_SM_80
+AM_NVCCFLAGS += -gencode=arch=compute_80,code=compute_80
+endif
+
+if BUILD_MRAIL_CUDA_SM_75
+AM_NVCCFLAGS += -gencode=arch=compute_75,code=compute_75
+endif
+
+if BUILD_MRAIL_CUDA_SM_70
+AM_NVCCFLAGS += -gencode=arch=compute_70,code=compute_70
+endif
+
+if BUILD_MRAIL_CUDA_SM_62
+AM_NVCCFLAGS += -gencode=arch=compute_62,code=compute_62
+endif
+
+if BUILD_MRAIL_CUDA_SM_53
+AM_NVCCFLAGS += -gencode=arch=compute_53,code=compute_53
+endif
+
+if BUILD_MRAIL_CUDA_SM_37
+AM_NVCCFLAGS += -gencode=arch=compute_37,code=compute_37
+endif
+
 NVCC = nvcc
 NVCFLAGS = -cuda -ccbin $(CXX) $(AM_NVCCFLAGS)
 

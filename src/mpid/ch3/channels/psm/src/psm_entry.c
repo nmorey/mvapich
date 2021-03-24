@@ -308,7 +308,7 @@ int psm_doinit(int has_parent, MPIDI_PG_t *pg, int pg_rank)
     /* detect architecture and hca type */
     g_mv2_arch_hca_type = MV2_get_arch_hca_type();
 
-    /* Detect heterogeneity if not overriden by user */
+    /* Detect heterogeneity if not overridden by user */
     psm_detect_heterogeneity(g_mv2_arch_hca_type, pg_size, pg_rank);
 
     /* initialize tuning-table for collectives. 

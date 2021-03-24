@@ -33,7 +33,7 @@
 #endif /* #if defined(_SMP_LIMIC_) */ 
 
 #define MV2_SHMEM_MAX_MSG_SIZE 128*1024
-#define MV2_SHMEM_COLL_BLOCKS 8
+#define MV2_SHMEM_COLL_BLOCKS 32
 
 #define PID_CHAR_LEN 22
 
@@ -179,6 +179,8 @@ void MPIDI_CH3I_SHMEM_COLL_GetShmemBuf(int, int, int, void**);
 void MPIDI_CH3I_SHMEM_COLL_SetGatherComplete(int, int, int);
 void MPIDI_CH3I_SHMEM_COLL_GetShmemBuf_optrels(int, int, int, int, void**);
 void MPIDI_CH3I_SHMEM_COLL_SetGatherComplete_optrels(int, int, int, int);
+void MPIDI_CH3I_SHMEM_TREE_COLL_GetShmemBuf_optrels(int, int, int, int, void**, int);
+void MPIDI_CH3I_SHMEM_TREE_COLL_SetGatherComplete_optrels(int, int, int, int, int);
 int create_allgather_comm(MPID_Comm * comm_ptr, MPIR_Errflag_t *errflag);
 
 #define MV2_DEFAULT_COLL_SKIP_TABLE_THRESHOLD 1024
@@ -257,7 +259,9 @@ extern int mv2_mcast_allreduce_large_msg_size;
 #endif  /* #if defined(_MCST_SUPPORT_) */ 
 
 /* Use inside alltoall_osu.h */
+#define MV2_ALLTOALL_RD_MAX_MSG 512
 extern int mv2_use_xor_alltoall; 
+extern int mv2_alltoall_rd_max_msg_size; 
 
 extern char *mv2_user_bcast_intra;
 extern char *mv2_user_bcast_inter;
@@ -272,6 +276,10 @@ extern int mv2_enable_socket_aware_collectives;
 extern int mv2_use_socket_aware_barrier;
 extern int mv2_use_socket_aware_allreduce;
 extern int mv2_use_optimized_release_allreduce;
+extern int mv2_use_shmem_tree_enable;
+extern int mv2_use_shmem_tree_min_message_size;
+extern int mv2_use_shmem_tree_max_message_size;
+extern int mv2_use_shmem_num_trees;
 extern int mv2_coll_tmp_buf_size;
 extern int mv2_use_socket_aware_sharp_allreduce;
 extern int mv2_socket_aware_allreduce_max_msg;
@@ -417,15 +425,15 @@ extern int (*reduce_fn)(const void *sendbuf,
                              MPI_Op op, int root, MPID_Comm * comm_ptr, MPIR_Errflag_t *errflag);
 
 #ifdef _ENABLE_CUDA_
-int cuda_stage_alloc(void **, int, void **, int,
+int device_stage_alloc(void **, int, void **, int,
                       int, int, int);
-void cuda_stage_free (void **, void **, int, int, 
+void device_stage_free (void **, void **, int, int,
                         int);
-void CUDA_COLL_Finalize ();                        
-void cuda_coll_pack (void **, int *, MPI_Datatype *,
+void DEVICE_COLL_Finalize ();
+void device_coll_pack (void **, int *, MPI_Datatype *,
                      void **, int *, MPI_Datatype *,
                      int, int, int);
-void cuda_coll_unpack (int *, int);
+void device_coll_unpack (int *, int);
 #endif /*_ENABLE_CUDA_*/
 
 extern int mv2_shm_window_size;
@@ -451,7 +459,7 @@ extern int mv2_use_mcast_pipeline_shm;
 int IS_SHMEM_WINDOW_REDUCE_HALF_FULL(int start, int end); 
 
 #if defined(CHANNEL_MRAIL_GEN2) || defined(CHANNEL_NEMESIS_IB)
-#define MAX_NUM_HCAS                    (4)
+#define MAX_NUM_HCAS                    (10)
 typedef struct shm_coll_pkt{
      int  peer_rank;
      int  recv_id;
@@ -522,6 +530,8 @@ typedef struct shm_info_t {
 shmem_info_t * mv2_shm_coll_init(int id, int local_rank, int local_size, 
                                  MPID_Comm *comm_ptr);
 void mv2_shm_coll_cleanup(shmem_info_t * shmem);
+void mv2_shm_barrier_gather(shmem_info_t * shmem);
+void mv2_shm_barrier_bcast(shmem_info_t * shmem);
 void mv2_shm_barrier(shmem_info_t * shmem);
 int mv2_shm_bcast(shmem_info_t * shmem, char *buf, int len, int root);
 void mv2_shm_reduce(shmem_info_t *shmem, char *buf, int len, 
