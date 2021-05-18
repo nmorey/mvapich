@@ -1097,6 +1097,9 @@
 /* Define to turn on the prefetching optimization in Nemesis code */
 #undef PREFETCH_CELL
 
+/* Define to enable profiling of job startup code */
+#undef PROFILE_STARTUP
+
 /* Define to enable support from RDMA CM. */
 #undef RDMA_CM
 

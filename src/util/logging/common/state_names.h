@@ -1184,6 +1184,7 @@ static MPIU_State_defs mpich_states[] = {
     { MPID_STATE_RDMA_CM_GET_LOCAL_IP, "rdma_cm_get_local_ip", (const char *)0 },
     { MPID_STATE_RDMA_GET_CONTROL_PARAMETERS, "rdma_get_control_parameters", (const char *)0 },
     { MPID_STATE_RDMA_GET_CONTROL_PARAMS_AFTER, "rdma_get_control_params_after_hcainit", (const char *)0 },
+    { MPID_STATE_RDMA_IBA_ALLOCATE_MEMORY, "rdma_iba_allocate_memory", (const char *)0 },
     { MPID_STATE_READ, "read", (const char *)0 },
     { MPID_STATE_READV, "readv", (const char *)0 },
     { MPID_STATE_RECEIVEPGANDDISTRIBUTE, "ReceivePGAndDistribute", (const char *)0 },

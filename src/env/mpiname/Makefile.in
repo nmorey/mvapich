@@ -14,7 +14,7 @@
 
 @SET_MAKE@
 
-# Copyright (c) 2001-2020, The Ohio State University. All rights
+# Copyright (c) 2001-2021, The Ohio State University. All rights
 # reserved.
 #
 # This file is part of the MVAPICH2 software package developed by the
@@ -652,6 +652,7 @@ SIZEOF_FC_DOUBLE_PRECISION = @SIZEOF_FC_DOUBLE_PRECISION@
 SIZEOF_FC_INTEGER = @SIZEOF_FC_INTEGER@
 SIZEOF_FC_REAL = @SIZEOF_FC_REAL@
 SIZEOF_MPI_STATUS = @SIZEOF_MPI_STATUS@
+SRUN_CMD = @SRUN_CMD@
 SSH = @SSH@
 SSH_CMD = @SSH_CMD@
 STRIP = @STRIP@
