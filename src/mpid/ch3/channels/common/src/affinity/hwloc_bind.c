@@ -2746,9 +2746,21 @@ static int mv2_generate_implicit_cpu_mapping (int local_procs, int num_app_threa
     num_physical_cores = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_CORE);
     num_pu = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_PU);
 
-    num_physical_cores_per_socket = num_physical_cores / num_sockets;
-    num_pu_per_socket = num_pu / num_sockets;
-    num_pu_per_numanode = num_pu / num_numanodes;
+    /* non-socket */
+    if (num_sockets == 0) {
+        num_pu_per_socket = num_pu;
+        num_physical_cores_per_socket = num_physical_cores;
+    }
+    else {
+        num_pu_per_socket = num_pu / num_sockets;
+        num_physical_cores_per_socket = num_physical_cores / num_sockets;
+    }
+
+    /* non-NUMA */
+    if (num_numanodes == 0)
+        num_pu_per_numanode = num_pu;
+    else
+        num_pu_per_numanode = num_pu / num_numanodes;
 
     topodepth = hwloc_get_type_depth (topology, HWLOC_OBJ_CORE);
     obj = hwloc_get_obj_by_depth (topology, topodepth, 0); /* check on core 0*/
