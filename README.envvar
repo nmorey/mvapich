@@ -3,7 +3,7 @@
 
 Automatically generated
   by:   ./maint/extractcvars
-  at:   Tue May 11 15:55:55 2021
+  at:   Mon May 23 13:43:52 2022
 DO NOT EDIT!!!
 
 This file lists the various environment variables available to change the
@@ -610,7 +610,7 @@ MPIR_CVAR_NEMESIS_TCP_HOST_LOOKUP_RETRIES
              MPICH_NEMESIS_TCP_HOST_LOOKUP_RETRIES
              MV2_NEMESIS_TCP_HOST_LOOKUP_RETRIES
     Description: This cvar controls the number of times to retry the
-        gethostbyname() function before giving up.
+        getaddrinfo() function before giving up.
     Default: 10
 
 MPIR_CVAR_OFI_USE_PROVIDER

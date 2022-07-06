@@ -1,14 +1,18 @@
-#### Branch
-QA-PATCHES/master
+#### Branch (master, master-x, next-gdr, etc)
+QA-PATCHES/
 #### Commit Hash
 
 #### Issue Notes
 
-#### Link
+#### Buildbot Configuration
 
-#### Reproducible?
+#### Envs From the Runbot Command
+
+#### Link to Testing Results Page
+
+#### Reproducibility - Add minimal run cmd once reproduced
 Under investigation.
-/assign @reifsteck.8
-@subramon
 
-/label ~testing
+@subramon @shineman.5
+
+/label ~testing ~testing-needs-validation

@@ -257,6 +257,18 @@
    don't. */
 #undef HAVE_DECL_IBV_QPT_XRC
 
+/* Define to 1 if you have the declaration of `IBV_WC_DRIVER1', and to 0 if
+   you don't. */
+#undef HAVE_DECL_IBV_WC_DRIVER1
+
+/* Define to 1 if you have the declaration of `IBV_WC_DRIVER2', and to 0 if
+   you don't. */
+#undef HAVE_DECL_IBV_WC_DRIVER2
+
+/* Define to 1 if you have the declaration of `IBV_WC_DRIVER3', and to 0 if
+   you don't. */
+#undef HAVE_DECL_IBV_WC_DRIVER3
+
 /* Define to 1 if you have the declaration of `RAI_FAMILY', and to 0 if you
    don't. */
 #undef HAVE_DECL_RAI_FAMILY
@@ -315,8 +327,8 @@
 /* Define if GNU __attribute__ is supported */
 #undef HAVE_GCC_ATTRIBUTE
 
-/* Define to 1 if you have the `gethostbyname' function. */
-#undef HAVE_GETHOSTBYNAME
+/* Define to 1 if you have the `getaddrinfo' function. */
+#undef HAVE_GETADDRINFO
 
 /* Define to 1 if you have the `gethostname' function. */
 #undef HAVE_GETHOSTNAME
@@ -835,6 +847,9 @@
 
 /* Define if we have __va_copy */
 #undef HAVE___VA_COPY
+
+/* Define if using hydra pmi client */
+#undef HYDRA_PMI_CLIENT
 
 /* Define if using jsm pmi client */
 #undef JSM_PMI_CLIENT
@@ -1364,11 +1379,23 @@
 /* Define to enable MVAPICH2-GPU design. */
 #undef _ENABLE_CUDA_
 
+/* Define to enable support for hot spot avoidance. */
+#undef _ENABLE_HSAM_
+
 /* Define to enable abstraction of calls to IB Verbs */
 #undef _ENABLE_IBV_DLOPEN_
 
 /* Define to enable hybrid design. */
 #undef _ENABLE_UD_
+
+/* Define to enable support for IBV_WC_DRIVER1 */
+#undef _ENABLE_WC_DRV1_
+
+/* Define to enable support for IBV_WC_DRIVER2 */
+#undef _ENABLE_WC_DRV2_
+
+/* Define to enable support for IBV_WC_DRIVER3 */
+#undef _ENABLE_WC_DRV3_
 
 /* Define to enable XRC support */
 #undef _ENABLE_XRC_
@@ -1381,6 +1408,9 @@
 
 /* Define to specify the build CPU type. */
 #undef _IA64_
+
+/* Define to check for max_dm_size. */
+#undef _IBV_DEVICE_ATTR_EX_HAS_MAX_DM_SIZE_
 
 /* Define to enable Hardware multicast support. */
 #undef _MCST_SUPPORT_
