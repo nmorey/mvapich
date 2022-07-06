@@ -203,7 +203,9 @@ if BUILD_OSU_MVAPICH
 if BUILD_HWLOC_v1
 SUBDIRS += contrib/hwloc_v1
 else
+if BUILD_HWLOC_v2
 SUBDIRS += contrib/hwloc_v2
+endif
 endif
 endif
 
@@ -222,8 +224,12 @@ if BUILD_HWLOC_v1
 AM_CPPFLAGS += -Icontrib/hwloc_v1/include/ -I$(top_srcdir)/contrib/hwloc_v1/include
 lib_lib@MPILIBNAME@_la_LIBADD += contrib/hwloc_v1/src/libhwloc_embedded.la
 else
+if BUILD_HWLOC_v2
 AM_CPPFLAGS += -Icontrib/hwloc_v2/include/ -I$(top_srcdir)/contrib/hwloc_v2/include
-lib_lib@MPILIBNAME@_la_LIBADD += contrib/hwloc_v2/hwloc/libhwloc_embedded.la
+lib_lib@MPILIBNAME@_la_LIBADD += contrib/hwloc_v2/src/libhwloc_embedded.la
+else
+lib_lib@MPILIBNAME@_la_LDFLAGS += -lhwloc
+endif
 endif
 endif
 

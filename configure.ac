@@ -539,18 +539,24 @@ dnl based on the environment.
 AC_ARG_WITH(hwloc,
 	AC_HELP_STRING([--with-hwloc=version],
                    [Specify the hwloc version to use with MVAPICH2
-                    (Options: v1, v2) (Default: v1)]),,
+                    (Options: v1, v2, external) (Default: v1)]),,
 	               with_hwloc=v1)
  
 AM_CONDITIONAL([BUILD_HWLOC_v1], [test x$with_hwloc = xv1])
 AM_CONDITIONAL([BUILD_HWLOC_v2], [test x$with_hwloc = xv2])
+AM_CONDITIONAL([BUILD_HWLOC_EXT], [test x$with_hwloc = xexternal])
 
 if test "$with_hwloc" = "v1" ; then
     AC_CONFIG_SUBDIRS([contrib/hwloc_v1])
     AC_DEFINE([_USE_HWLOC_V1_], 1, [Define when using HWLOC V1])
 else
-    AC_CONFIG_SUBDIRS([contrib/hwloc_v2])
-    AC_DEFINE([_USE_HWLOC_V2_], 1, [Define when using HWLOC V2])
+ if test "$with_hwloc" = "v2" ; then
+     AC_CONFIG_SUBDIRS([contrib/hwloc_v2])
+     AC_DEFINE([_USE_HWLOC_V2_], 1, [Define when using HWLOC V2])
+ else
+     AC_DEFINE([_USE_HWLOC_EXT_], 1, [Define when using HWLOC External])
+     AC_DEFINE([_USE_HWLOC_V2_], 1, [Define when using HWLOC V2])
+ fi
 fi
 
 AC_ARG_WITH(device,
