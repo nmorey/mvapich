@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
-/* 
- *
- *   Copyright (C) 1997 University of Chicago. 
- *   See COPYRIGHT notice in top-level directory.
+/*
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpioimpl.h"
@@ -17,7 +15,8 @@
 #pragma _CRI duplicate MPI_File_get_group as PMPI_File_get_group
 /* end of weak pragmas */
 #elif defined(HAVE_WEAK_ATTRIBUTE)
-int MPI_File_get_group(MPI_File fh, MPI_Group *group) __attribute__((weak,alias("PMPI_File_get_group")));
+int MPI_File_get_group(MPI_File fh, MPI_Group * group)
+    __attribute__ ((weak, alias("PMPI_File_get_group")));
 #endif
 
 /* Include mapping from MPI->PMPI */
@@ -26,7 +25,7 @@ int MPI_File_get_group(MPI_File fh, MPI_Group *group) __attribute__((weak,alias(
 #endif
 
 /*@
-    MPI_File_get_group - Returns the group of processes that 
+    MPI_File_get_group - Returns the group of processes that
                          opened the file
 
 Input Parameters:
@@ -37,7 +36,7 @@ Output Parameters:
 
 .N fortran
 @*/
-int MPI_File_get_group(MPI_File fh, MPI_Group *group)
+int MPI_File_get_group(MPI_File fh, MPI_Group * group)
 {
     int error_code;
     ADIO_File adio_fh;
@@ -58,7 +57,7 @@ int MPI_File_get_group(MPI_File fh, MPI_Group *group)
      */
     error_code = MPI_Comm_group(adio_fh->comm, group);
 
-fn_exit:
+  fn_exit:
     ROMIO_THREAD_CS_EXIT();
     return error_code;
 }

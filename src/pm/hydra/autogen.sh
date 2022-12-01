@@ -1,10 +1,10 @@
 #! /bin/sh
+##
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
+##
 
-if [ -n "$MPICH_AUTOTOOLS_DIR" ] ; then
-    autoreconf=${MPICH_AUTOTOOLS_DIR}/autoreconf
-else
-    autoreconf=${AUTORECONF:-autoreconf}
-fi
+autoreconf=${AUTORECONF:-autoreconf}
 
 echo "=== running autoreconf in 'mpl' ==="
 (cd mpl && $autoreconf ${autoreconf_args:-"-vif"}) || exit 1

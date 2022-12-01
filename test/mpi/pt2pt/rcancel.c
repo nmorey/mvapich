@@ -1,8 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,8 +34,7 @@ int main(int argc, char *argv[])
 
     if (rank == source) {
         MPI_Send(MPI_BOTTOM, 0, MPI_CHAR, dest, 1, MPI_COMM_WORLD);
-    }
-    else if (rank == dest) {
+    } else if (rank == dest) {
         /* Create 3 requests to cancel, plus one to use.
          * Then receive one message and exit */
         for (i = 0; i < 4; i++) {
@@ -84,6 +83,5 @@ int main(int argc, char *argv[])
     }
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

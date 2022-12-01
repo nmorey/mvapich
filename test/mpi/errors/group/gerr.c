@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include "mpitest.h"
@@ -33,8 +32,7 @@ int main(int argc, char *argv[])
     if (rc == MPI_SUCCESS) {
         errs++;
         printf("Did not detect invalid handle (comm) in group_incl\n");
-    }
-    else {
+    } else {
         if (verbose) {
             MPI_Error_string(rc, str, &slen);
             printf("Found expected error; message is: %s\n", str);
@@ -42,6 +40,5 @@ int main(int argc, char *argv[])
     }
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

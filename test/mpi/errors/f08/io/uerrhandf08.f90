@@ -1,9 +1,10 @@
+!
+! Copyright (C) by Argonne National Laboratory
+!     See COPYRIGHT in top-level directory
+!
+
 ! This file created from test/mpi/errors/f77/io/uerrhandf.f with f77tof90
-! -*- Mode: Fortran; -*-
-!
-!  (C) 2013 by Argonne National Laboratory.
-!      See COPYRIGHT in top-level directory.
-!
+
       program main
       use mpi_f08
       integer (kind=MPI_ADDRESS_KIND) asize
@@ -113,7 +114,6 @@
       call mpi_errhandler_free( file_errh, ierr )
 
       call mtest_finalize( errs )
-      call mpi_finalize( ierr )
       end
 !
       subroutine comm_errh_fn( comm, ec )

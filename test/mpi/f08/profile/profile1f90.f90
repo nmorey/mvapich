@@ -1,8 +1,8 @@
-! -*- Mode: Fortran; -*-
 !
-!  (C) 2014 by Argonne National Laboratory.
-!      See COPYRIGHT in top-level directory.
+! Copyright (C) by Argonne National Laboratory
+!     See COPYRIGHT in top-level directory
 !
+
        program main
        use mpi_f08
        integer ierr
@@ -50,17 +50,8 @@
           endif
        endif
 
-       call mpi_allreduce( MPI_IN_PLACE, toterrs, 1, MPI_INT, MPI_SUM, &
-      &      MPI_COMM_WORLD, ierr )
-       if (wrank .eq. 0) then
-          if (toterrs .eq. 0) then
-             print *, " No Errors"
-          else
-             print *, " Found ", toterrs, " errors"
-          endif
-       endif
+       call mtest_finalize( toterrs )
 !
-       call mpi_finalize( ierr )
        end
 !
        subroutine mpi_send_f08ts( smsg, count, dtype, dest, tag, comm, ierr )

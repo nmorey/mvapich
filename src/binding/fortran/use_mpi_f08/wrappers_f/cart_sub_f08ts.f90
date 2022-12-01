@@ -1,8 +1,8 @@
-!   -*- Mode: Fortran; -*-
 !
-!   (C) 2014 by Argonne National Laboratory.
-!   See COPYRIGHT in top-level directory.
+! Copyright (C) by Argonne National Laboratory
+!     See COPYRIGHT in top-level directory
 !
+
 subroutine MPI_Cart_sub_f08(comm, remain_dims, newcomm, ierror)
     use, intrinsic :: iso_c_binding, only : c_int
     use :: mpi_f08, only : MPI_Comm, MPI_SUCCESS
@@ -25,7 +25,7 @@ subroutine MPI_Cart_sub_f08(comm, remain_dims, newcomm, ierror)
     comm_c = comm%MPI_VAL
     ierror_c = MPIR_Cartdim_get_c(comm_c, ndims)
 
-    if (ierror_c /= MPI_SUCCESS) then
+    if (ierror_c == MPI_SUCCESS) then
         remain_dims_c = merge(1, 0, remain_dims(1:ndims))
         ierror_c = MPIR_Cart_sub_c(comm_c, remain_dims_c, newcomm_c)
         newcomm%MPI_VAL = newcomm_c

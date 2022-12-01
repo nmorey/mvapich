@@ -14,10 +14,10 @@
 #include "mpid_mrail_rndv.h"
 #include "rdma_impl.h"
 #include "mem_hooks.h"
-#include "coll_shmem.h"
+#include "mv2_ch3_shmem.h"
 #include "hwloc_bind.h"
 #include "cm.h"
-#include <timestamp.h>
+#include "mpir_nodemap.h"
 #if defined(_MCST_SUPPORT_)
 #include "ibv_mcast.h"
 #endif
@@ -28,11 +28,254 @@
 #include "romioconf.h"
 #endif
 
+#include <mv2_config.h>
+#include <hwloc_bind.h>
+#include <error_handling.h>
+
+#ifdef CKPT
+
+#ifdef ENABLE_SCR
+#include "scr.h"
+#endif
+
+pthread_mutex_t MVAPICH2_sync_ckpt_lock;
+pthread_cond_t MVAPICH2_sync_ckpt_cond;
+int MVAPICH2_Sync_Checkpoint();
+#endif /* CKPT */
+
+#if defined(_ENABLE_CUDA_)
+MPIDI_CH3U_CUDA_SRBuf_element_t * MPIDI_CH3U_CUDA_SRBuf_pool = NULL;
+MPIDI_CH3U_COLL_SRBuf_element_t * MPIDI_CH3U_COLL_SRBuf_pool = NULL;
+#endif
+
 #define MPIDI_CH3I_HOST_DESCRIPTION_KEY "description"
+
+/*
+=== BEGIN_MPI_T_MV2_CVAR_INFO_BLOCK ===
+
+cvars:
+    - name        : MV2_IOV_DENSITY_MIN
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : TODO-DESC
+
+    - name        : MV2_ENABLE_EAGER_THRESHOLD_REDUCTION
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : TODO-DESC
+
+    - name        : MV2_USE_EAGER_FAST_SEND
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : TODO-DESC
+
+    - name        : MV2_SUPPORT_FORK_SAFETY
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : TODO-DESC
+
+    - name        : MV2_RDMA_MAX_TRANSFER_SIZE
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : TODO-DESC
+
+    - name        : MV2_RNDV_IMMEDIATE
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : TODO-DESC
+
+    - name        : MV2_CHECK_CACHE_ALIGNMENT
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : TODO-DESC
+
+    - name        : MV2_HYBRID_ENABLE_THRESHOLD
+      category    : CH3
+      type        : int
+      default     : 512
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This defines the threshold for enabling Hybrid communication using UD
+        and RC/XRC. When the size of the job is greater than or equal to the
+        threshold value, Hybrid mode will be enabled. Otherwise, it uses default
+        RC/XRC connections for communication.
+
+    - name        : MV2_USE_ONLY_UD
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Set this to 1, to enable only UD transport in hybrid configuration mode.
+        It will not use any RC/XRC connections in this mode.
+
+    - name        : MV2_SHOW_ENV_INFO
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Show the values assigned to the run time environment parameters.
+
+    - name        : MV2_DEBUG_CORESIZE
+      category    : CH3
+      type        : string
+      default     : NULL
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_DEBUG_SHOW_BACKTRACE
+      category    : CH3
+      type        : boolean
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_USE_THREAD_WARNING
+      category    : CH3
+      type        : boolean
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+=== END_MPI_T_MV2_CVAR_INFO_BLOCK ===
+*/
+
+char *MPIDI_CH3_Pkt_type_to_string[MPIDI_CH3_PKT_END_ALL+1] = {
+    [MPIDI_CH3_PKT_EAGER_SEND] = "MPIDI_CH3_PKT_EAGER_SEND",
+#if defined(CHANNEL_MRAIL)
+    [MPIDI_CH3_PKT_EAGER_SEND_CONTIG] = "MPIDI_CH3_PKT_EAGER_SEND_CONTIG",
+#ifndef MV2_DISABLE_HEADER_CACHING
+    [MPIDI_CH3_PKT_FAST_EAGER_SEND] = "MPIDI_CH3_PKT_FAST_EAGER_SEND",
+    [MPIDI_CH3_PKT_FAST_EAGER_SEND_WITH_REQ] =
+        "MPIDI_CH3_PKT_FAST_EAGER_SEND_WITH_REQ",
+#endif /* !MV2_DISABLE_HEADER_CACHING */
+    [MPIDI_CH3_PKT_RPUT_FINISH] = "MPIDI_CH3_PKT_RPUT_FINISH",
+    [MPIDI_CH3_PKT_RGET_FINISH] = "MPIDI_CH3_PKT_RGET_FINISH",
+    [MPIDI_CH3_PKT_ZCOPY_FINISH] = "MPIDI_CH3_PKT_ZCOPY_FINISH",
+    [MPIDI_CH3_PKT_ZCOPY_ACK] = "MPIDI_CH3_PKT_ZCOPY_ACK",
+    [MPIDI_CH3_PKT_MCST] = "MPIDI_CH3_PKT_MCST",
+    [MPIDI_CH3_PKT_MCST_NACK] = "MPIDI_CH3_PKT_MCST_NACK",
+    [MPIDI_CH3_PKT_MCST_INIT] = "MPIDI_CH3_PKT_MCST_INIT",
+    [MPIDI_CH3_PKT_MCST_INIT_ACK] = "MPIDI_CH3_PKT_MCST_INIT_ACK",
+    [MPIDI_CH3_PKT_NOOP] = "MPIDI_CH3_PKT_NOOP",
+    [MPIDI_CH3_PKT_RMA_RNDV_CLR_TO_SEND] = "MPIDI_CH3_PKT_RMA_RNDV_CLR_TO_SEND",
+    [MPIDI_CH3_PKT_CUDA_CTS_CONTI] = "MPIDI_CH3_PKT_CUDA_CTS_CONTI",
+    [MPIDI_CH3_PKT_PUT_RNDV] = "MPIDI_CH3_PKT_PUT_RNDV",
+    [MPIDI_CH3_PKT_ACCUMULATE_RNDV] = "MPIDI_CH3_PKT_ACCUMULATE_RNDV",
+    [MPIDI_CH3_PKT_GET_ACCUM_RNDV] = "MPIDI_CH3_PKT_GET_ACCUM_RNDV",
+    [MPIDI_CH3_PKT_GET_RNDV] = "MPIDI_CH3_PKT_GET_RNDV",
+    [MPIDI_CH3_PKT_RNDV_READY_REQ_TO_SEND] = "MPIDI_CH3_PKT_RNDV_READY_REQ_TO_SEND",
+    [MPIDI_CH3_PKT_PACKETIZED_SEND_START] = "MPIDI_CH3_PKT_PACKETIZED_SEND_START",
+    [MPIDI_CH3_PKT_PACKETIZED_SEND_DATA] = "MPIDI_CH3_PKT_PACKETIZED_SEND_DATA",
+    [MPIDI_CH3_PKT_RNDV_R3_DATA] = "MPIDI_CH3_PKT_RNDV_R3_DATA",
+    [MPIDI_CH3_PKT_RNDV_R3_ACK] = "MPIDI_CH3_PKT_RNDV_R3_ACK",
+    [MPIDI_CH3_PKT_ADDRESS] = "MPIDI_CH3_PKT_ADDRESS",
+    [MPIDI_CH3_PKT_ADDRESS_REPLY] = "MPIDI_CH3_PKT_ADDRESS_REPLY",
+    [MPIDI_CH3_PKT_CM_ESTABLISH] = "MPIDI_CH3_PKT_CM_ESTABLISH",
+#if defined(CKPT)
+    [MPIDI_CH3_PKT_CM_SUSPEND] = "MPIDI_CH3_PKT_CM_SUSPEND",
+    [MPIDI_CH3_PKT_CM_REACTIVATION_DONE] = "MPIDI_CH3_PKT_CM_REACTIVATION_DONE",
+    [MPIDI_CH3_PKT_CR_REMOTE_UPDATE] = "MPIDI_CH3_PKT_CR_REMOTE_UPDATE",
+#endif /* defined(CKPT) */
+#if defined(_SMP_LIMIC_) || defined(_SMP_CMA_)
+    [MPIDI_CH3_PKT_SMP_DMA_COMP] = "MPIDI_CH3_PKT_SMP_DMA_COMP",
+#endif
+#endif /* defined(CHANNEL_MRAIL) */
+#if defined(USE_EAGER_SHORT)
+    [MPIDI_CH3_PKT_EAGERSHORT_SEND] = "MPIDI_CH3_PKT_EAGERSHORT_SEND",
+#endif /* defined(USE_EAGER_SHORT) */
+    [MPIDI_CH3_PKT_EAGER_SYNC_SEND] = "MPIDI_CH3_PKT_EAGER_SYNC_SEND",
+    [MPIDI_CH3_PKT_EAGER_SYNC_ACK] = "MPIDI_CH3_PKT_EAGER_SYNC_ACK",
+    [MPIDI_CH3_PKT_READY_SEND] = "MPIDI_CH3_PKT_READY_SEND",
+    [MPIDI_CH3_PKT_RNDV_REQ_TO_SEND] = "MPIDI_CH3_PKT_RNDV_REQ_TO_SEND",
+    [MPIDI_CH3_PKT_RNDV_CLR_TO_SEND] = "MPIDI_CH3_PKT_RNDV_CLR_TO_SEND",
+    [MPIDI_CH3_PKT_RNDV_SEND] = "MPIDI_CH3_PKT_RNDV_SEND",
+    [MPIDI_CH3_PKT_CANCEL_SEND_REQ] = "MPIDI_CH3_PKT_CANCEL_SEND_REQ",
+    [MPIDI_CH3_PKT_CANCEL_SEND_RESP] = "MPIDI_CH3_PKT_CANCEL_SEND_RESP",
+    /* RMA Packets begin here */
+    [MPIDI_CH3_PKT_PUT] = "MPIDI_CH3_PKT_PUT",
+    [MPIDI_CH3_PKT_PUT_IMMED] = "MPIDI_CH3_PKT_PUT_IMMED",
+    [MPIDI_CH3_PKT_GET] = "MPIDI_CH3_PKT_GET",
+    [MPIDI_CH3_PKT_ACCUMULATE] = "MPIDI_CH3_PKT_ACCUMULATE",
+    [MPIDI_CH3_PKT_ACCUMULATE_IMMED] = "MPIDI_CH3_PKT_ACCUMULATE_IMMED",
+    [MPIDI_CH3_PKT_GET_ACCUM] = "MPIDI_CH3_PKT_GET_ACCUM",
+    [MPIDI_CH3_PKT_GET_ACCUM_IMMED] = "MPIDI_CH3_PKT_GET_ACCUM_IMMED",
+    [MPIDI_CH3_PKT_FOP] = "MPIDI_CH3_PKT_FOP",
+    [MPIDI_CH3_PKT_FOP_IMMED] = "MPIDI_CH3_PKT_FOP_IMMED",
+    [MPIDI_CH3_PKT_CAS_IMMED] = "MPIDI_CH3_PKT_CAS_IMMED",
+    [MPIDI_CH3_PKT_GET_RESP] = "MPIDI_CH3_PKT_GET_RESP",
+    [MPIDI_CH3_PKT_GET_RESP_IMMED] = "MPIDI_CH3_PKT_GET_RESP_IMMED",
+    [MPIDI_CH3_PKT_GET_ACCUM_RESP] = "MPIDI_CH3_PKT_GET_ACCUM_RESP",
+    [MPIDI_CH3_PKT_GET_ACCUM_RESP_IMMED] = "MPIDI_CH3_PKT_GET_ACCUM_RESP_IMMED",
+    [MPIDI_CH3_PKT_FOP_RESP] = "MPIDI_CH3_PKT_FOP_RESP",
+    [MPIDI_CH3_PKT_FOP_RESP_IMMED] = "MPIDI_CH3_PKT_FOP_RESP_IMMED",
+    [MPIDI_CH3_PKT_CAS_RESP_IMMED] = "MPIDI_CH3_PKT_CAS_RESP_IMMED",
+    [MPIDI_CH3_PKT_LOCK] = "MPIDI_CH3_PKT_LOCK",
+    [MPIDI_CH3_PKT_LOCK_ACK] = "MPIDI_CH3_PKT_LOCK_ACK",
+    [MPIDI_CH3_PKT_LOCK_OP_ACK] = "MPIDI_CH3_PKT_LOCK_OP_ACK",
+    [MPIDI_CH3_PKT_UNLOCK] = "MPIDI_CH3_PKT_UNLOCK",
+    [MPIDI_CH3_PKT_FLUSH] = "MPIDI_CH3_PKT_FLUSH",
+    [MPIDI_CH3_PKT_ACK] = "MPIDI_CH3_PKT_ACK",
+    [MPIDI_CH3_PKT_DECR_AT_COUNTER] = "MPIDI_CH3_PKT_DECR_AT_COUNTER",
+    /* RMA Packets end here */
+    [MPIDI_CH3_PKT_FLOW_CNTL_UPDATE] = "MPIDI_CH3_PKT_FLOW_CNTL_UPDATE",
+    [MPIDI_CH3_PKT_CLOSE] = "MPIDI_CH3_PKT_CLOSE",
+    [MPIDI_CH3_PKT_REVOKE] = "MPIDI_CH3_PKT_REVOKE",
+    [MPIDI_CH3_PKT_END_CH3] = "MPIDI_CH3_PKT_END_CH3",
+    /* The channel can define additional types by defining the value
+       MPIDI_CH3_PKT_ENUM */
+#if defined(MPIDI_CH3_PKT_ENUM)
+    MPIDI_CH3_PKT_ENUM_TYPE_TO_STRING
+# endif
+    [MPIDI_CH3_PKT_END_ALL] = "MPIDI_CH3_PKT_END_ALL"
+};
 
 MPIDI_CH3I_Process_t MPIDI_CH3I_Process;
 int mv2_use_ib_channel = 1;
-extern int MPIDI_Get_local_host(MPIDI_PG_t *pg, int our_pg_rank);
 extern void ib_finalize_rdma_cm(int pg_rank, MPIDI_PG_t *pg);
 
 ibv_ops_t ibv_ops;
@@ -58,23 +301,24 @@ sharp_ops_t sharp_ops;
 void *sharp_dl_handle = NULL;
 #endif /* defined(_SHARP_SUPPORT_) */
 
-#undef FUNCNAME
-#define FUNCNAME split_type
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-static int split_type(MPID_Comm * comm_ptr, int stype, int key,
-                      MPID_Info *info_ptr, MPID_Comm ** newcomm_ptr)
+/* TODO: These should go in a proper header */
+extern int mv2_my_async_cpu_id;
+extern int smpi_identify_core_for_async_thread(MPIDI_PG_t * pg);
+extern void mv2_update_cvars();
+
+static int split_type(MPIR_Comm *comm_ptr, int stype, int key,
+                      MPIR_Info *info_ptr, MPIR_Comm **newcomm_ptr)
 {
-    MPID_Node_id_t id;
+    int id;
     MPIDI_Rank_t nid;
     int mpi_errno = MPI_SUCCESS;
 
     mpi_errno = MPID_Get_node_id(comm_ptr, comm_ptr->rank, &id);
-    if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+    MPIR_ERR_CHECK(mpi_errno);
 
     nid = (stype == MPI_COMM_TYPE_SHARED) ? id : MPI_UNDEFINED;
     mpi_errno = MPIR_Comm_split_impl(comm_ptr, nid, key, newcomm_ptr);
-    if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+    MPIR_ERR_CHECK(mpi_errno);
 
   fn_exit:
     return mpi_errno;
@@ -85,7 +329,7 @@ static int split_type(MPID_Comm * comm_ptr, int stype, int key,
     /* --END ERROR HANDLING-- */
 }
 
-static MPID_CommOps comm_fns = {
+static MPIR_Commops comm_fns = {
     split_type
 };
 
@@ -116,30 +360,210 @@ int mv2_check_cache_alignment()
     }
 
     /* Look at different structures */
-    MV2_CHECK_ALIGNMENT(sizeof(MPID_Request), "MPID_Request",
+    MV2_CHECK_ALIGNMENT(sizeof(MPIR_Request), "MPIR_Request",
                         SMPI_CACHE_LINE_SIZE);
 
     return mpi_errno;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_Init
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
+static inline int MPIDI_CH3_Populate_vc_local_ranks(MPIDI_PG_t *pg,
+                                                    int our_pg_rank)
+{
+    int mpi_errno = MPI_SUCCESS;
+    int i;
+    int *local_map = MPIR_Process.node_local_map;
+
+    if (pg->size == 1) {
+        pg->ch.local_process_id = 0;
+        pg->ch.num_local_processes = 1;
+        pg->vct[0].smp.local_rank = 0;
+
+        return mpi_errno;
+    }
+
+    for (i = 0; i < pg->size; i++) {
+        pg->vct[i].smp.local_rank = -1;
+    }
+
+    /* assume local_nodemap is correctly filled by channel independent init */
+    pg->ch.num_local_processes = MPIR_Process.local_size;
+    for (i = 0; i < MPIR_Process.local_size; i++) {
+        pg->vct[local_map[i]].smp.local_rank = i;
+        if (our_pg_rank == local_map[i]) {
+            pg->ch.local_process_id = i;
+        }
+    }
+
+    return mpi_errno;
+}
+
+void init_debug1() {
+    /* Set coresize limit */
+    char *value = NULL;
+    int backtrace = 0;
+    int setup_sighandler = 1;
+
+    set_coresize_limit(MV2_DEBUG_CORESIZE);
+    /* ignore error code, failure if not fatal */
+
+    /* Set an error signal handler */
+    backtrace = MV2_DEBUG_SHOW_BACKTRACE;
+
+    value = getenv("MV2_DEBUG_SETUP_SIGHDLR");
+    if (value != NULL) {
+        setup_sighandler = !!atoi(value);
+    }
+
+    if (setup_sighandler) {
+        setup_error_sighandler( backtrace );
+    }
+
+    /* ignore error code, failure if not fatal */
+
+    /* Initialize DEBUG variables */
+    initialize_debug_variables();
+}
+
+void init_debug2(int mpi_rank)
+{
+    /* Set prefix for debug output */
+    const int MAX_LENGTH = 256;
+    char hostname[MAX_LENGTH];
+    gethostname(hostname, MAX_LENGTH);
+    hostname[MAX_LENGTH-1] = '\0';
+    char output_prefix[MAX_LENGTH];
+    snprintf( output_prefix, MAX_LENGTH, "%s:mpi_rank_%i", hostname, mpi_rank);
+    set_output_prefix( output_prefix );
+}
+
+static int MPIDI_CH3I_Thread_check(MPIDI_PG_t *pg, int *provided)
+{
+    char *value;
+    int mpi_errno = MPI_SUCCESS;
+    int pg_rank = MPIDI_Process.my_pg_rank;
+
+    /* affinity/thread checks */
+    if (provided != NULL)
+    {
+        /* If user has enabled blocking mode progress,
+         * then we cannot support MPI_THREAD_MULTIPLE */
+        int thread_warning = 1;
+        int aligned_alloc = 0;
+        thread_warning = MV2_USE_THREAD_WARNING;
+        if ((value = getenv("MV2_USE_ALIGNED_ALLOC")) != NULL) {
+            aligned_alloc = !!atoi(value);
+        }
+        if (!aligned_alloc && (0 == pg_rank) && (*provided > MPI_THREAD_SINGLE)) {
+            PRINT_INFO(thread_warning,
+                        "[Performance Suggestion]: Application has requested"
+                        " for multi-thread capability. If allocating memory"
+                        " from different pthreads/OpenMP threads, please"
+                        " consider setting MV2_USE_ALIGNED_ALLOC=1 for improved"
+                        " performance.\n"
+                        "Use MV2_USE_THREAD_WARNING=0 to suppress this error message.\n");
+        }
+        if (rdma_use_blocking) {
+            if (0 == pg_rank && MPI_THREAD_MULTIPLE == *provided) {
+                PRINT_INFO(thread_warning, "WARNING: Requested MPI_THREAD_MULTIPLE, \n"
+                        "  but MV2_USE_BLOCKING=1 only supports MPI_THREAD_SERIALIZED.\n"
+                        "  Use MV2_USE_THREAD_WARNING=0 to suppress this error message.\n");
+            }
+            *provided = (MPICH_THREAD_LEVEL < *provided) ?
+                MPICH_THREAD_LEVEL : MPI_THREAD_SERIALIZED;
+        }
+        /* Check if user has allocated spare cores for progress thread */
+        if ((value = getenv("MV2_ENABLE_PROGRESS_AFFINITY")) != NULL) {
+            mv2_enable_progress_affinity = !!atoi(value);
+        }
+        if (SMP_INIT && mv2_enable_progress_affinity) {
+            mpi_errno = smpi_identify_core_for_async_thread(pg);
+            MPIR_ERR_CHECK(mpi_errno);
+        }
+        /*
+         * Check to see if the user has explicitly disabled affinity.  If not
+         * then affinity will be enabled barring any errors.
+         * Need to disable thread_multiple only if binding level is core.
+         */
+        if (mv2_enable_affinity && (mv2_my_async_cpu_id == -1) &&
+            (mv2_binding_level == LEVEL_CORE)) {
+            /*
+             * Affinity will be enabled, MPI_THREAD_SINGLE will be the provided
+             * MPICH_THREAD_LEVEL in this case.
+             */
+            *provided = MPI_THREAD_SINGLE;
+        }
+        if ((value = getenv("OMP_NUM_THREADS")) != NULL) {
+            int _temp = atoi(value);
+            if ((_temp > 1) && mv2_enable_affinity && (0 == pg_rank)
+                && thread_warning && (mv2_binding_level == LEVEL_CORE)) {
+                fprintf(stderr, "Warning: Process to core binding is enabled and"
+                        " OMP_NUM_THREADS is greater than one (%d).\nIf"
+                        " your program has OpenMP sections, this can cause"
+                        " over-subscription of cores and consequently poor"
+                        " performance\nTo avoid this, please re-run your"
+                        " application after setting MV2_ENABLE_AFFINITY=0\n"
+                        "Use MV2_USE_THREAD_WARNING=0 to suppress this message\n", _temp);
+            }
+        }
+    }
+
+  fn_exit:
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}
+
 int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
 {
     int mpi_errno = MPI_SUCCESS;
     int pg_size, threshold, dpm = 0, p;
-    char *value, *conn_info = NULL;
+    char *conn_info = NULL;
     int mv2_rdma_init_timers = 0;
     int user_selected_rdma_cm = 0;
     MPIDI_VC_t *vc;
 
-    /* Override split_type */
-    MPID_Comm_fns = &comm_fns;
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3_INIT);
 
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3_INIT);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_INIT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3_INIT);
+
+#if ENABLE_PVAR_MV2
+    mv2_update_cvars();
+#endif
+
+    /* init ch3 specific struct info */
+    mpi_errno = MPIDI_CH3_Populate_vc_local_ranks(pg, pg_rank);
+    MPIR_ERR_CHECK(mpi_errno);
+
+    mpi_errno = MPIDI_CH3I_Thread_check(pg, &MPIR_ThreadInfo.thread_provided);
+    MPIR_ERR_CHECK(mpi_errno);
+
+    /* FIXME: This is a good place to check for environment variables
+     * and command line options that may control the device.
+     */
+    if(mpi_errno = read_configuration_files(&MPIDI_Process.mv2_config_crc)) {
+        MPIR_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**fail",
+                                  "**fail %s",
+                                  "Error processing configuration file");
+    }
+
+    init_debug1();
+
+    init_debug2(pg_rank);
+
+    if(has_parent) {
+        pg->is_spawned = has_parent;
+        /* TODO: CVARs - this will no longer be relevant and we need to change
+         * the backing value since CVARs are already read in */
+        putenv("MV2_SUPPORT_DPM=1");
+    }
+
+    /* Setting CPU affinity before opening PSM contexts and opening IB HCAs. For
+     * IB HCAs, the change is to ensure HCA aware process mapping */
+    mpi_errno = MPIDI_CH3I_set_affinity(pg, pg_rank);
+    MPIR_ERR_CHECK(mpi_errno);
+
+    /* Override split_type */
+    MPIR_Comm_fns = &comm_fns;
 
     /* Explicitly initializing RDMA_FP to 0 */
     mv2_MPIDI_CH3I_RDMA_Process.has_adaptive_fast_path = 0;
@@ -156,21 +580,19 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
     /* Allocate PMI Key Value Pair */
     mv2_allocate_pmi_keyval();
 
-    mv2_take_timestamp("MPIDI_CH3U_..._create_hook", NULL);
     mpi_errno = MPIDI_CH3U_Comm_register_create_hook(MPIDI_CH3I_comm_create, NULL);
-    mv2_take_timestamp("MPIDI_CH3U_..._create_hook", NULL);
-    if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-    
+    MPIR_ERR_CHECK(mpi_errno);
+
     /* Choose default startup method and set default on-demand threshold */
 #if defined(RDMA_CM) && !defined(CKPT) && !(ROMIO_IME)
     /* If user has not forcefully disabled RDMA_CM, and if user has not
      * specified the use of MCAST use it by default */
     if (
-        (((value = getenv("MV2_USE_RDMA_CM")) == NULL) || !!atoi(value))
-        && (((value = getenv("MV2_USE_RoCE")) == NULL) || !!!atoi(value))
+        ((MV2_USE_RDMA_CM == -1) || !!MV2_USE_RDMA_CM) &&
+        ((MV2_USE_ROCE == -1) || !MV2_USE_ROCE)
 #if defined(_MCST_SUPPORT_)
-        && (((value = getenv("MV2_USE_MCAST")) == NULL) || !!!atoi(value))
-        && rdma_enable_mcast != 1
+        && ((MV2_USE_MCAST == -1) || !MV2_USE_MCAST)
+        && !rdma_enable_mcast
 #endif /*defined(_MCST_SUPPORT_)*/
        )
     {
@@ -183,20 +605,19 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
         threshold = MPIDI_CH3I_CM_DEFAULT_ON_DEMAND_THRESHOLD;
     }
 
-    if ((value = getenv("MV2_IOV_DENSITY_MIN")) != NULL) {
-        mv2_iov_density_min = atoi(value);
+    if (MV2_IOV_DENSITY_MIN != -1) {
+        mv2_iov_density_min = MV2_IOV_DENSITY_MIN;
         if (mv2_iov_density_min < 0) {
             mv2_iov_density_min = MPIDI_IOV_DENSITY_MIN;
         }
     }
     /*check ON_DEMAND_THRESHOLD */
-    value = getenv("MV2_ON_DEMAND_THRESHOLD");
-    if (value) {
-        threshold = atoi(value);
+    if (MV2_ON_DEMAND_THRESHOLD != -1) {
+        threshold = MV2_ON_DEMAND_THRESHOLD;
     }
 
-    if ((value = getenv("MV2_SUPPORT_DPM")) != NULL) {
-        dpm = !!atoi(value);
+    if (MV2_SUPPORT_DPM != 1) {
+        dpm = !!MV2_SUPPORT_DPM;
         MPIDI_CH3I_Process.has_dpm = dpm;
     }
     if (MPIDI_CH3I_Process.has_dpm) {
@@ -204,7 +625,7 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
         /* DPM is not supported with RDMA_CM. Fall back to basic alltoall CM */
         MPIDI_CH3I_Process.cm_type = MPIDI_CH3I_CM_BASIC_ALL2ALL;
         /* Reset value of threshold if user has not set it already */
-        if ((value = getenv("MV2_ON_DEMAND_THRESHOLD")) == NULL) {
+        if (MV2_ON_DEMAND_THRESHOLD == -1) {
             threshold = MPIDI_CH3I_CM_DEFAULT_ON_DEMAND_THRESHOLD;
         }
 #endif /*defined(RDMA_CM) && !defined(CKPT)*/
@@ -215,15 +636,15 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
     }
 
 #ifdef _ENABLE_CUDA_
-    if ((value = getenv("MV2_USE_CUDA")) != NULL) {
-        rdma_enable_cuda = !!atoi(value);
+    if (MV2_USE_CUDA != -1) {
+        rdma_enable_cuda = !!MV2_USE_CUDA;
         if (rdma_enable_cuda) {
             cuda_get_user_parameters();
         }
 #ifdef ENABLE_LLNL_SITE_SPECIFIC_OPTIONS
     } else {
         rdma_enable_cuda = 1;
-        if (!(((value = getenv("MV2_SUPPRESS_CUDA_USAGE_WARNING")) != NULL) && !!atoi(value))) {
+        if (!((MV2_SUPPRESS_CUDA_USAGE_WARNING != -1) && !!MV2_SUPPRESS_CUDA_USAGE_WARNING)) {
             PRINT_INFO((pg_rank == 0), " Automatically enabling CUDA support."
                         " If not using GPU buffers, disabling CUDA support by"
                         " setting MV2_USE_CUDA=0 may improve performance.\n"
@@ -233,7 +654,7 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
 #endif /*ENABLE_LLNL_SITE_SPECIFIC_OPTIONS*/
     }
     if (!rdma_enable_cuda) {
-        if (!(((value = getenv("MV2_SUPPRESS_CUDA_USAGE_WARNING")) != NULL) && !!atoi(value))) {
+        if (!((MV2_SUPPRESS_CUDA_USAGE_WARNING != -1) && !!MV2_SUPPRESS_CUDA_USAGE_WARNING)) {
             PRINT_INFO((pg_rank == 0), "MVAPICH2 has been built with support for CUDA."
                         " But, MV2_USE_CUDA not set to 1. This can lead to errors in"
                         " using GPU buffers. If you are running applications that use"
@@ -254,17 +675,17 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
     for (i = 0; i < MAX_NUM_HCAS; ++i) {
         mv2_MPIDI_CH3I_RDMA_Process.ud_rails[i] = NULL;
     }
-    if ((value = getenv("MV2_HYBRID_ENABLE_THRESHOLD")) != NULL) {
-        rdma_hybrid_enable_threshold = atoi(value);
+    if (MV2_HYBRID_ENABLE_THRESHOLD != -1) {
+        rdma_hybrid_enable_threshold = MV2_HYBRID_ENABLE_THRESHOLD;
     }
-    if ((value = getenv("MV2_USE_UD_HYBRID")) != NULL) {
-        rdma_enable_hybrid = atoi(value);
+    if (MV2_USE_UD_HYBRID != -1) {
+        rdma_enable_hybrid = MV2_USE_UD_HYBRID;
     }
-    if (((value = getenv("MV2_USE_ONLY_UD")) != NULL) && !!atoi(value)) {
-        rdma_enable_hybrid = atoi(value);
-        rdma_enable_only_ud = atoi(value);
-        if ((value = getenv("MV2_HYBRID_ENABLE_THRESHOLD")) != NULL) {
-            if (atoi(value) > 0) {
+    if ((MV2_USE_ONLY_UD != -1) && !!MV2_USE_ONLY_UD) {
+        rdma_enable_hybrid = MV2_USE_ONLY_UD;
+        rdma_enable_only_ud = MV2_USE_ONLY_UD;
+        if (MV2_HYBRID_ENABLE_THRESHOLD != -1) {
+            if (MV2_HYBRID_ENABLE_THRESHOLD > 0) {
                 PRINT_INFO((pg_rank == 0),
                            "User requested only UD. Resetting MV2_HYBRID_ENABLE_THRESHOLD to 0.\n");
             }
@@ -272,7 +693,7 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
         rdma_hybrid_enable_threshold = 0;
     }
 
-    if(((value = getenv("MV2_SUPPORT_DPM")) != NULL) && !!atoi(value)) {
+    if((MV2_SUPPORT_DPM != -1) && !!MV2_SUPPORT_DPM) {
             rdma_enable_hybrid = 0;
     }
 
@@ -284,11 +705,11 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
         rdma_enable_only_ud = 0;
         rdma_enable_hybrid = 0;
     }
-    if (rdma_enable_hybrid) { 
-        /* The zero-copy bcast design is disabled when 
-         * hybrid is used */ 
-        mv2_enable_zcpy_bcast = 0; 
-        mv2_enable_zcpy_reduce = 0; 
+    if (rdma_enable_hybrid) {
+        /* The zero-copy bcast design is disabled when
+         * hybrid is used */
+        mv2_enable_zcpy_bcast = 0;
+        mv2_enable_zcpy_reduce = 0;
         rdma_use_coalesce = 0;
         /* TODO: Automatically use SRQ for UD once it is working right */
         rdma_use_ud_srq = 0;
@@ -297,7 +718,7 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
         /* UD/Hybrid is not supported with RDMA_CM. Fall back to basic alltoall CM */
         MPIDI_CH3I_Process.cm_type = MPIDI_CH3I_CM_BASIC_ALL2ALL;
         /* Reset value of threshold if user has not set it already */
-        if ((value = getenv("MV2_ON_DEMAND_THRESHOLD")) == NULL) {
+        if (MV2_ON_DEMAND_THRESHOLD == -1) {
             threshold = MPIDI_CH3I_CM_DEFAULT_ON_DEMAND_THRESHOLD;
         }
 #endif /*defined(RDMA_CM) && !defined(CKPT)*/
@@ -306,14 +727,13 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
                     "Please retry after setting MV2_HYBRID_ENABLE_THRESHOLD=<nprocs+1>.\n");
             MPIR_ERR_SETFATALANDJUMP(mpi_errno, MPI_ERR_OTHER, "**fail");
         }
-    } 
+    }
 #endif /* #ifdef _ENABLE_UD_ */
 
-    value = getenv("MV2_USE_XRC");
-    if (value) {
+    if (MV2_USE_XRC != -1) {
 #ifdef _ENABLE_XRC_
-        USE_XRC = !!atoi(value);
-        if (atoi(value)) {
+        USE_XRC = !!MV2_USE_XRC;
+        if (MV2_USE_XRC) {
 #ifdef _ENABLE_UD_
             if (rdma_enable_only_ud) {
                 PRINT_INFO((pg_rank == 0), "XRC and only UD cannot be set at the same time.\n");
@@ -334,7 +754,7 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
             rdma_rndv_protocol = MV2_RNDV_PROTOCOL_RPUT;
         }
 #else
-        if (atoi(value)) {
+        if (MV2_USE_XRC) {
             PRINT_INFO((pg_rank == 0), "XRC support is not configured. Please retry with"
                  "MV2_USE_XRC=0 (or) Reconfigure MVAPICH2 library without --disable-xrc.\n");
             PRINT_INFO((pg_rank == 0), "Proceeding after disabling XRC.\n");
@@ -343,9 +763,9 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
     }
 
 #if defined(RDMA_CM)
-    if (((value = getenv("MV2_USE_RDMA_CM")) != NULL
-         || (value = getenv("MV2_USE_IWARP_MODE")) != NULL)
-        && atoi(value) && !dpm) {
+    if (((MV2_USE_RDMA_CM != -1 && MV2_USE_RDMA_CM)
+         || (MV2_USE_IWARP_MODE != -1 && MV2_USE_IWARP_MODE))
+         && !dpm) {
 #if defined (ROMIO_IME)
         PRINT_INFO((pg_rank == 0), "Error: IME FS does not work with RDMA CM. "
                                    "Proceeding without RDMA support.\n");
@@ -354,9 +774,8 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
 #endif
 #ifdef _ENABLE_XRC_
         USE_XRC = 0;
-        value = getenv("MV2_USE_XRC");
-        if (value && (pg_rank == 0)) {
-            if (atoi(value)) {
+        if (MV2_USE_XRC != -1 && (pg_rank == 0)) {
+            if (MV2_USE_XRC) {
                 MPL_error_printf("Error: XRC does not work with RDMA CM. "
                                   "Proceeding without XRC support.\n");
             }
@@ -399,23 +818,23 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
 #endif /* defined(CKPT) */
 #ifdef _ENABLE_UD_
     if (rdma_enable_hybrid) {
-        MPIU_Assert(MPIDI_CH3I_Process.cm_type == MPIDI_CH3I_CM_ON_DEMAND);
+        MPIR_Assert(MPIDI_CH3I_Process.cm_type == MPIDI_CH3I_CM_ON_DEMAND);
     }
 #endif
 
 #if defined(RDMA_CM) && !defined(CKPT)
     if (MPIDI_CH3I_Process.cm_type == MPIDI_CH3I_CM_RDMA_CM) {
-        if((value = getenv("MV2_USE_RDMA_CM")) != NULL && !!atoi(value)) {
+        if(MV2_USE_RDMA_CM != -1 && !!MV2_USE_RDMA_CM) {
             user_selected_rdma_cm = 1;
         }
-        setenv("MV2_USE_RDMA_CM", "1", 1);
+        MV2_USE_RDMA_CM = 1;
         if (mv2_MPIDI_CH3I_RDMA_Process.use_iwarp_mode ||
-                (((value = getenv("MV2_USE_IWARP_MODE")) != NULL) && !!atoi(value))) {
+                ((MV2_USE_IWARP_MODE != -1) && !!MV2_USE_IWARP_MODE)) {
 	    mv2_use_ib_channel = 0;
         } else {
 	    mv2_use_ib_channel = 1;
         }
-    } else 
+    } else
 #endif /* defined(RDMA_CM) && !defined(CKPT) */
     {
 	mv2_use_ib_channel = 1;
@@ -425,46 +844,45 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
     MPIDI_PG_Get_vc(pg, pg_rank, &MPIDI_CH3I_Process.vc);
 
     /* Initialize Progress Engine */
-    mv2_take_timestamp("MPIDI_CH3I_Progress_init", NULL);
     if ((mpi_errno = MPIDI_CH3I_Progress_init())) {
         MPIR_ERR_POP(mpi_errno);
     }
-    mv2_take_timestamp("MPIDI_CH3I_Progress_init", NULL);
 
     /* Get parameters from the job-launcher */
-    mv2_take_timestamp("rdma_get_pm_paramters", NULL);
     rdma_get_pm_parameters(&mv2_MPIDI_CH3I_RDMA_Process);
-    mv2_take_timestamp("rdma_get_pm_paramters", NULL);
     /* Check for SMP only */
-    mv2_take_timestamp("MPIDI_CH3I_set_smp_only", NULL);
     MPIDI_CH3I_set_smp_only();
-    mv2_take_timestamp("MPIDI_CH3I_set_smp_only", NULL);
 
-    if ((value = getenv("MV2_ENABLE_EAGER_THRESHOLD_REDUCTION")) != NULL) {
-        mv2_enable_eager_threshold_reduction = !!atoi(value);
+    if (MV2_ENABLE_EAGER_THRESHOLD_REDUCTION != -1) {
+        mv2_enable_eager_threshold_reduction = !!MV2_ENABLE_EAGER_THRESHOLD_REDUCTION;
     }
 
-    if ((value = getenv("MV2_USE_EAGER_FAST_SEND")) != NULL) {
-        mv2_use_eager_fast_send = !!atoi(value);
+    if (MV2_USE_EAGER_FAST_SEND != -1) {
+        mv2_use_eager_fast_send = !!MV2_USE_EAGER_FAST_SEND;
     }
 
     if (MPIDI_CH3I_Process.has_dpm) {
         mv2_use_eager_fast_send = 0;
     }
 
-    if ((value = getenv("MV2_POLLING_LEVEL")) != NULL) {
-        rdma_polling_level = atoi(value);
+    if (MV2_POLLING_LEVEL < MV2_POLLING_LEVEL_MAX) {
+        rdma_polling_level = MV2_POLLING_LEVEL;
+    } else {
+        MV2_POLLING_LEVEL = MV2_POLLING_LEVEL_MAX - 1;
+        rdma_polling_level = MV2_POLLING_LEVEL_MAX - 1;
+        PRINT_INFO(!pg_rank, "WARNING: Requested polling level is higher than "
+                             "max of %d. Falling back to max polling value.",
+                             MV2_POLLING_LEVEL_MAX - 1);
     }
+
     /* Use abstractions to remove dependency on OFED */
-    mv2_take_timestamp("mv2_dlopen_init", NULL);
     mpi_errno = mv2_dlopen_init();
-    mv2_take_timestamp("mv2_dlopen_init", NULL);
     /* TODO: make this have better error handling in dl_open */
     if (mpi_errno) {
         mpi_errno = MPI_ERR_OTHER;
         PRINT_INFO((pg_rank == 0),
                     "Failed to locate underlying libraries using dlopen."
-                    " Please consider setting one of the suggested environment" 
+                    " Please consider setting one of the suggested environment"
                     " variables to the path of the missing library."
                     " Or please reconfigure after setting --disable-ibv-dlopen\n");
         if (!SMP_ONLY) {
@@ -478,58 +896,32 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
          * fork() function calls correctly and avoid data corruption, whether
          * fork() is called explicitly or implicitly (such as in system()).
          * If the user requested support for fork safety, call ibv_fork_init */
-        if (((value = getenv("MV2_SUPPORT_FORK_SAFETY")) != NULL) && !!atoi(value)) {
-            mv2_take_timestamp("fork_init", NULL);
+        if ((MV2_SUPPORT_FORK_SAFETY != -1) && !!MV2_SUPPORT_FORK_SAFETY) {
             mpi_errno = ibv_ops.fork_init();
-            mv2_take_timestamp("fork_init", NULL);
             if (mpi_errno) {
                 MPIR_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**fail",
                         "**fail %s", "ibv_fork_init");
             }
         }
-        /*
-         * Identify local rank and number of local processes
-         */
-        if (pg->ch.local_process_id == -1) {
-            mv2_take_timestamp("MPIDI_Get_local_host", NULL);
-            mpi_errno = MPIDI_Get_local_host(pg, pg_rank);
-            mv2_take_timestamp("MPIDI_Get_local_host", NULL);
-            if (mpi_errno) {
-                MPIR_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**fail",
-                        "**fail %s", "MPIDI_Get_local_host");
-            }
-        }
 
-        mv2_take_timestamp("MPIDI_Get_local_process_id", NULL);
-        rdma_local_id = MPIDI_Get_local_process_id(pg);
-        mv2_take_timestamp("MPIDI_Get_local_process_id", NULL);
-        mv2_take_timestamp("MPIDI_Num_local_processes", NULL);
-        rdma_num_local_procs = MPIDI_Num_local_processes(pg);
-        mv2_take_timestamp("MPIDI_Num_local_processes", NULL);
+        rdma_local_id = MPIDI_MV2_Get_local_process_id(pg);
+        rdma_num_local_procs = MPIDI_MV2_Num_local_processes(pg);
 
         /* Reading the values from user first and then allocating the memory */
-        mv2_take_timestamp("rdma_get_control_paramters", NULL);
         mpi_errno = rdma_get_control_parameters(&mv2_MPIDI_CH3I_RDMA_Process);
-        mv2_take_timestamp("rdma_get_control_paramters", NULL);
         if (mpi_errno) {
             MPIR_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**fail",
                     "**fail %s", "rdma_get_control_parameters");
         }
         /* Set default values for parameters */
-        mv2_take_timestamp("rdma_set_default_paramters", NULL);
         rdma_set_default_parameters(&mv2_MPIDI_CH3I_RDMA_Process);
-        mv2_take_timestamp("rdma_set_default_paramters", NULL);
         /* Read user defined values for parameters */
-        mv2_take_timestamp("rdma_get_user_paramters", NULL);
         rdma_get_user_parameters(pg_size, pg_rank);
-        mv2_take_timestamp("rdma_get_user_paramters", NULL);
 
         /* Allocate structures to store CM information
          * This MUST come after reading env vars */
-        mv2_take_timestamp("MPIDI_CH3I_MRAIL_CM_Alloc", NULL);
         mpi_errno = MPIDI_CH3I_MRAIL_CM_Alloc(pg);
-        mv2_take_timestamp("MPIDI_CH3I_MRAIL_CM_Alloc", NULL);
-        if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+        MPIR_ERR_CHECK(mpi_errno);
 
 #if !defined(DISABLE_PTMALLOC)
         if (mvapich2_minit()) {
@@ -545,23 +937,18 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
         mv2_MPIDI_CH3I_RDMA_Process.has_lazy_mem_unregister = 0;
 #endif /* !defined(DISABLE_PTMALLOC) */
 
-        if ((value = getenv("MV2_RDMA_MAX_TRANSFER_SIZE")) != NULL) {
-            mv2_MPIDI_CH3I_RDMA_Process.maxtransfersize = atoi(value);
+        if (MV2_RDMA_MAX_TRANSFER_SIZE != -1) {
+            mv2_MPIDI_CH3I_RDMA_Process.maxtransfersize = MV2_RDMA_MAX_TRANSFER_SIZE;
         } else {
             mv2_MPIDI_CH3I_RDMA_Process.maxtransfersize = RDMA_MAX_RDMA_SIZE;
         }
 
         /* Read RDMA FAST Path related params */
-        mv2_take_timestamp("rdma_set_rdma_fast_path_params", NULL);
         rdma_set_rdma_fast_path_params(pg_size);
-        mv2_take_timestamp("rdma_set_rdma_fast_path_params", NULL);
-        mv2_take_timestamp("MPIDI_CH3I Init Path", NULL);
         switch (MPIDI_CH3I_Process.cm_type) {
 #if defined(RDMA_CM)
             case MPIDI_CH3I_CM_RDMA_CM:
-                mv2_take_timestamp("MPIDI_CH3I_RDMA_CM_Init", NULL);
                 mpi_errno = MPIDI_CH3I_RDMA_CM_Init(pg, pg_rank, &conn_info);
-                mv2_take_timestamp("MPIDI_CH3I_RDMA_CM_Init", NULL);
                 if (mpi_errno != MPI_SUCCESS) {
                     if (user_selected_rdma_cm) {
                         /* Print backtrace and exit */
@@ -572,9 +959,7 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
                                 "Please set MV2_USE_RDMA_CM=0 to disable RDMA CM.\n");
                     }
                     /* Fall back to On-Demand CM */
-                    mv2_take_timestamp("ib_finalize_rdma_cm", NULL);
                     ib_finalize_rdma_cm(pg_rank, pg);
-                    mv2_take_timestamp("ib_finalize_rdma_cm", NULL);
                     rdma_default_port = RDMA_DEFAULT_PORT;
                     mv2_MPIDI_CH3I_RDMA_Process.use_rdma_cm = 0;
                     mv2_MPIDI_CH3I_RDMA_Process.use_rdma_cm_on_demand = 0;
@@ -584,23 +969,17 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
 #endif /* defined(RDMA_CM) */
             case MPIDI_CH3I_CM_ON_DEMAND:
                 MPIDI_CH3I_Process.cm_type = MPIDI_CH3I_CM_ON_DEMAND;
-                mv2_take_timestamp("MPIDI_CH3I_CM_Init", NULL);
                 mpi_errno = MPIDI_CH3I_CM_Init(pg, pg_rank, &conn_info);
-                mv2_take_timestamp("MPIDI_CH3I_CM_Init", NULL);
-                if (mpi_errno != MPI_SUCCESS) {
-                    MPIR_ERR_POP(mpi_errno);
-                }
+                MPIR_ERR_CHECK(mpi_errno);
                 break;
             default:
                 /*call old init to setup all connections */
                 MPIDI_CH3I_Process.cm_type = MPIDI_CH3I_CM_BASIC_ALL2ALL;
                 /* old init function */
-                mv2_take_timestamp("MPDIDI_CH3I_RDMA_init", NULL);
                 if ((mpi_errno =
                      MPIDI_CH3I_RDMA_init(pg, pg_rank)) != MPI_SUCCESS) {
                     MPIR_ERR_POP(mpi_errno);
                 }
-                mv2_take_timestamp("MPDIDI_CH3I_RDMA_init", NULL);
 
                 /* All vc should be connected */
                 for (p = 0; p < pg_size; ++p) {
@@ -609,31 +988,28 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
                 }
                 break;
         }
-        mv2_take_timestamp("MPIDI_CH3I Init Path", NULL);
 #if defined(RDMA_CM)
     } else {
         /* If SMP_ONLY, we need to get the HCA type */
-        mv2_take_timestamp("rdma_cm_get_hca_type", NULL);
         rdma_cm_get_hca_type(&mv2_MPIDI_CH3I_RDMA_Process);
-        mv2_take_timestamp("rdma_cm_get_hca_type", NULL);
 #endif /*defined(RDMA_CM)*/
     }
 
-    if ((value = getenv("MV2_RNDV_PROTOCOL")) != NULL) {
-        if (strncmp(value, "RPUT", 4) == 0) {
+    if (MV2_RNDV_PROTOCOL != NULL) {
+        if (strncmp(MV2_RNDV_PROTOCOL, "RPUT", 4) == 0) {
             rdma_rndv_protocol = MV2_RNDV_PROTOCOL_RPUT;
-        } else if (strncmp(value, "RGET", 4) == 0) {
+        } else if (strncmp(MV2_RNDV_PROTOCOL, "RGET", 4) == 0) {
             rdma_rndv_protocol = MV2_RNDV_PROTOCOL_RGET;
         } else {
             rdma_rndv_protocol = MV2_RNDV_PROTOCOL_R3;
         }
     }
-    if ((value = getenv("MV2_SMP_RNDV_PROTOCOL")) != NULL) {
-        if (strncmp(value, "RPUT", 4) == 0) {
+    if (MV2_SMP_RNDV_PROTOCOL != NULL) {
+        if (strncmp(MV2_SMP_RNDV_PROTOCOL, "RPUT", 4) == 0) {
             smp_rndv_protocol = MV2_RNDV_PROTOCOL_RPUT;
-        } else if (strncmp(value, "RGET", 4) == 0) {
+        } else if (strncmp(MV2_SMP_RNDV_PROTOCOL, "RGET", 4) == 0) {
             smp_rndv_protocol = MV2_RNDV_PROTOCOL_RGET;
-        } else if (strncmp(value, "R3", 2) == 0) {
+        } else if (strncmp(MV2_SMP_RNDV_PROTOCOL, "R3", 2) == 0) {
             smp_rndv_protocol = MV2_RNDV_PROTOCOL_R3;
         } else {
             MPL_usage_printf("MV2_SMP_RNDV_PROTOCOL "
@@ -641,8 +1017,8 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
             smp_rndv_protocol = rdma_rndv_protocol;
         }
     }
-    if ((value = getenv("MV2_RNDV_IMMEDIATE")) != NULL) {
-        rdma_rndv_immediate = !!atoi(value);
+    if (MV2_RNDV_IMMEDIATE != -1) {
+        rdma_rndv_immediate = !!MV2_RNDV_IMMEDIATE;
     }
 #if defined(CKPT)
 #if defined(DISABLE_PTMALLOC)
@@ -652,53 +1028,38 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
     MPIR_ERR_SETFATALANDJUMP(mpi_errno, MPI_ERR_OTHER, "**fail");
 #endif /* defined(DISABLE_PTMALLOC) */
 
-    mv2_take_timestamp("MPIDI_CH3I_CR_Init", NULL);
     if ((mpi_errno = MPIDI_CH3I_CR_Init(pg, pg_rank, pg_size))) {
         MPIR_ERR_POP(mpi_errno);
     }
-    mv2_take_timestamp("MPIDI_CH3I_CR_Init", NULL);
 #endif /* defined(CKPT) */
 
     if (conn_info) {
         /* set connection info for dynamic process management */
         if (dpm) {
-            mv2_take_timestamp("MPIDI_PG_SetConnInfo", NULL);
             mpi_errno = MPIDI_PG_SetConnInfo(pg_rank, (const char *) conn_info);
-            mv2_take_timestamp("MPIDI_PG_SetConnInfo", NULL);
-	        if (mpi_errno != MPI_SUCCESS) {
-	            MPIR_ERR_POP(mpi_errno);
-	        }
+	        MPIR_ERR_CHECK(mpi_errno);
         }
-        MPIU_Free(conn_info);
+        MPL_free(conn_info);
     }
 
 
     struct coll_info colls_arch_hca[colls_max];
 
-    mv2_take_timestamp("MV2_collectives_arch_init", NULL);
     mpi_errno = MV2_collectives_arch_init(mv2_MPIDI_CH3I_RDMA_Process.heterogeneity, colls_arch_hca);
-    mv2_take_timestamp("MV2_collectives_arch_init", NULL);
-    if (mpi_errno != MPI_SUCCESS) {
-        MPIR_ERR_POP(mpi_errno);
-    }
+    MPIR_ERR_CHECK(mpi_errno);
 
     /* Initialize the smp channel */
-    mv2_take_timestamp("MPIDI_CH3I_SMP_init", NULL);
     if ((mpi_errno = MPIDI_CH3I_SMP_init(pg))) {
         MPIR_ERR_POP(mpi_errno);
     }
-    mv2_take_timestamp("MPIDI_CH3I_SMP_init", NULL);
 
     if (mv2_enable_shmem_collectives) {
-        mv2_take_timestamp("MPIDI_CH3I_SMP_COLL_init", NULL);
-        if ((mpi_errno = MPIDI_CH3I_SMP_COLL_init(pg))) {
+        if ((mpi_errno = MPIR_MV2_SMP_COLL_init())) {
             MPIR_ERR_POP(mpi_errno);
         }
-        mv2_take_timestamp("MPIDI_CH3I_SMP_COLL_init", NULL);
     }
 
     if (SMP_INIT) {
-        mv2_take_timestamp("MPIDI_CH3I_SMP_Init_vc (loop)", (void *)(unsigned long)pg_size);
         for (p = 0; p < pg_size; ++p) {
             MPIDI_PG_Get_vc(pg, p, &vc);
             /* Mark the SMP VC as Idle */
@@ -716,19 +1077,15 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
 #endif
             }
         }
-        mv2_take_timestamp("MPIDI_CH3I_SMP_Init_vc (loop)", NULL);
     }
 
     /* Allocate and Init Dummy request */
-    mv2_take_timestamp("mv2_create_dummy_request", NULL);
     mpi_errno = mv2_create_dummy_request();
-    mv2_take_timestamp("mv2_create_dummy_request", NULL);
 
     /* Set the eager max msg size now that we know SMP and RDMA are initialized.
      * The max message size is also set during VC initialization, but the state
      * of SMP is unknown at that time.
      */
-    mv2_take_timestamp("MPIDI_PG_Get_vc (loop) [2]", NULL);
     for (p = 0; p < pg_size; ++p) {
         MPIDI_PG_Get_vc(pg, p, &vc);
         vc->eager_max_msg_sz = MPIDI_CH3_EAGER_MAX_MSG_SIZE(vc);
@@ -743,10 +1100,9 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
             vc->eager_fast_max_msg_sz = 0;
         }
     }
-    mv2_take_timestamp("MPIDI_PG_Get_vc (loop) [2]", NULL);
 
-    if ((value = getenv("MV2_SHOW_ENV_INFO")) != NULL) {
-        mv2_show_env_info = atoi(value);
+    if (MV2_SHOW_ENV_INFO != -1) {
+        mv2_show_env_info = MV2_SHOW_ENV_INFO;
     }
     if (pg_rank == 0 && mv2_show_env_info) {
         mv2_print_env_info(&mv2_MPIDI_CH3I_RDMA_Process, colls_arch_hca);
@@ -764,7 +1120,7 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
         }
         /* init mcast context */
         if (mcast_ctx == NULL) {
-            mcast_ctx = MPIU_Malloc (sizeof(mcast_context_t));
+            mcast_ctx = MPL_malloc (sizeof(mcast_context_t), MPL_MEM_OTHER);
             if (mcast_ctx == NULL) {
                 MPIR_ERR_SETFATALANDSTMT1(mpi_errno, MPI_ERR_NO_MEM, goto fn_fail,
                         "**fail", "**fail %s",
@@ -775,19 +1131,17 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
                     " %d\n",mcast_ctx->selected_rail);
         }
         mcast_ctx->init_list = NULL;
-#if defined(RDMA_CM) 
+#if defined(RDMA_CM)
         if(rdma_use_rdma_cm_mcast == 1){
             int ret = 0;
             mcast_ctx->src_addr = (struct sockaddr *) &(mcast_ctx->src_in);
             PRINT_DEBUG(DEBUG_MCST_verbose>1,"RDMA CM mcast source ip"
                    " address:%s\n",ip_address_enabled_devices[mcast_ctx->ip_index].ip_address);
-            
-            mv2_take_timestamp("mv2_rdma_cm_mcst_get_addr_info", NULL);
+
             ret = mv2_rdma_cm_mcst_get_addr_info(ip_address_enabled_devices[mcast_ctx->ip_index].ip_address,
                     (struct sockaddr *) &mcast_ctx->src_in);
-            mv2_take_timestamp("mv2_rdma_cm_mcst_get_addr_info", NULL);
             if(ret){
-                if(MPIDI_Process.my_pg_rank == 0) { 
+                if(MPIDI_Process.my_pg_rank == 0) {
                     PRINT_ERROR("[Warning]: get src addr failed: not using rdma cm"
                             " based mcast\n");
                 }
@@ -795,9 +1149,7 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
             }
         }
 #endif /* #if defined(RDMA_CM) */
-        mv2_take_timestamp("mv2_mcast_prepare_ud_ctx", NULL);
         mcast_ctx->ud_ctx = mv2_mcast_prepare_ud_ctx();
-        mv2_take_timestamp("mv2_mcast_prepare_ud_ctx", NULL);
         if (mcast_ctx->ud_ctx == NULL) {
             MPIR_ERR_SETFATALANDSTMT1(mpi_errno, MPI_ERR_OTHER, goto fn_fail,
                     "**fail", "**fail %s",
@@ -808,51 +1160,66 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t * pg, int pg_rank)
 #endif
 
     if (mv2_rdma_init_timers) {
-        mv2_take_timestamp("mv2_init_timers", NULL);
         mv2_init_timers();
-        mv2_take_timestamp("mv2_init_timers", NULL);
     }
 
-    mv2_take_timestamp("MPIDI_CH3U_..._destroy_hook", NULL);
     mpi_errno = MPIDI_CH3U_Comm_register_destroy_hook(MPIDI_CH3I_comm_destroy, NULL);
-    mv2_take_timestamp("MPIDI_CH3U_..._destroy_hook", NULL);
-    if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+    MPIR_ERR_CHECK(mpi_errno);
 
     if (MPIDI_CH3I_Process.cm_type == MPIDI_CH3I_CM_ON_DEMAND) {
         if (g_atomics_support || ((rdma_use_blocking) && (pg_size > threshold))) {
-            mv2_take_timestamp("MPIDI_PG_Get_vc", NULL);
             MPIDI_PG_Get_vc(pg, pg_rank, &vc);
-            mv2_take_timestamp("MPIDI_PG_Get_vc", NULL);
-            mv2_take_timestamp("MPIDI_CH3I_CM_Connect_self", NULL);
             MPIDI_CH3I_CM_Connect_self(vc);
-            mv2_take_timestamp("MPIDI_CH3I_CM_Connect_self", NULL);
         }
     }
-    if (pg_rank == 0 && (value = getenv("MV2_CHECK_CACHE_ALIGNMENT")) != NULL && 
-        !!atoi(value)) {
-        mv2_take_timestamp("mv2_check_cache_alignment", NULL);
+    if (pg_rank == 0 && MV2_CHECK_CACHE_ALIGNMENT != -1 &&
+        !!MV2_CHECK_CACHE_ALIGNMENT) {
         mpi_errno = mv2_check_cache_alignment();
-        mv2_take_timestamp("mv2_check_cache_alignment", NULL);
         if (mpi_errno) MPIR_ERR_POP(mpi_errno);
     }
 
+#if defined(CKPT)
+    MPIDI_Process.use_sync_ckpt = 1;
+    /*Initialize conditional variable*/
+    pthread_mutex_init(&MVAPICH2_sync_ckpt_lock, NULL);
+    pthread_cond_init(&MVAPICH2_sync_ckpt_cond, NULL);
+#endif /* defined(CKPT) */
+
+#if defined(_ENABLE_CUDA_)
+    if (mv2_enable_device) {
+        if (mv2_device_dynamic_init) {
+            device_preinit(pg);
+        } else {
+            device_init(pg);
+        }
+        if (pg_rank == 0 && mv2_show_env_info >= 2) {
+            mv2_show_cuda_params();
+            fprintf(stderr, "---------------------------------------------------------------------\n");
+        }
+    }
+#endif /* defined(_ENABLE_CUDA_) */
+
+#if defined(CKPT) && defined(ENABLE_SCR)
+    /* Initialize the Scalable Checkpoint/Restart library */
+    SCR_Init();
+#endif
+
   fn_exit:
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3_INIT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3_INIT);
     return mpi_errno;
 
   fn_fail:
     goto fn_exit;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_VC_Init
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_VC_Init(MPIDI_VC_t * vc)
 {
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3_VC_INIT);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_VC_INIT);
     int mpi_errno = MPI_SUCCESS;
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3_VC_INIT);
+
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3_VC_INIT);
+
     vc->smp.local_nodes = -1;
 #if !defined (CHANNEL_PSM)
     vc->smp.sendq_head = NULL;
@@ -866,9 +1233,9 @@ int MPIDI_CH3_VC_Init(MPIDI_VC_t * vc)
 #endif /* #if !defined (CHANNEL_PSM) */
     vc->ch.sendq_head = NULL;
     vc->ch.sendq_tail = NULL;
-    vc->ch.req = (MPID_Request *) MPIU_Malloc(sizeof(MPID_Request));
+    vc->ch.req = (MPIR_Request *) MPL_malloc(sizeof(MPIR_Request), MPL_MEM_OBJECT);
     if (!vc->ch.req) {
-        MPIU_CHKMEM_SETERR(mpi_errno, sizeof(MPID_Request), "MPID Request");
+        MPIR_CHKMEM_SETERR(mpi_errno, sizeof(MPIR_Request), "MPIR Request");
     }
     /* vc->ch.state = MPIDI_CH3I_VC_STATE_IDLE; */
     vc->ch.state = MPIDI_CH3I_VC_STATE_UNCONNECTED;
@@ -907,18 +1274,14 @@ int MPIDI_CH3_VC_Init(MPIDI_VC_t * vc)
     /* It is needed for temp vc */
     vc->eager_max_msg_sz = rdma_iba_eager_threshold;
 
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3_VC_INIT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3_VC_INIT);
     return mpi_errno;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_PortFnsInit
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_PortFnsInit(MPIDI_PortFns * portFns)
 {
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3_RDMA_PORTFNSINIT);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_RDMA_PORTFNSINIT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3_RDMA_PORTFNSINIT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3_RDMA_PORTFNSINIT);
 
     if (!MPIDI_CH3I_Process.has_dpm) {
         portFns->OpenPort = 0;
@@ -926,16 +1289,12 @@ int MPIDI_CH3_PortFnsInit(MPIDI_PortFns * portFns)
         portFns->CommAccept = 0;
         portFns->CommConnect = 0;
     } else
-        MPIU_UNREFERENCED_ARG(portFns);
+        MPL_UNREFERENCED_ARG(portFns);
 
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3_RDMA_PORTFNSINIT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3_RDMA_PORTFNSINIT);
     return MPI_SUCCESS;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_Connect_to_root
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_Connect_to_root(const char *port_name, MPIDI_VC_t ** new_vc)
 {
     int mpi_errno = MPI_SUCCESS;
@@ -943,23 +1302,23 @@ int MPIDI_CH3_Connect_to_root(const char *port_name, MPIDI_VC_t ** new_vc)
     char ifname[MAX_HOST_DESCRIPTION_LEN];
     MPIDI_VC_t *vc;
     MPIDI_CH3_Pkt_cm_establish_t pkt;
-    MPID_Request *sreq;
+    MPIR_Request *sreq;
     int seqnum;
 
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3_CONNECT_TO_ROOT);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_CONNECT_TO_ROOT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3_CONNECT_TO_ROOT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3_CONNECT_TO_ROOT);
 
     *new_vc = NULL;
     if (!MPIDI_CH3I_Process.has_dpm)
-        return MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_FATAL, FCNAME,
+        return MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_FATAL, __func__,
                                     __LINE__, MPI_ERR_OTHER, "**notimpl", 0);
 
-    str_errno = MPIU_Str_get_string_arg(port_name,
+    str_errno = MPL_str_get_string_arg(port_name,
                                         MPIDI_CH3I_HOST_DESCRIPTION_KEY,
                                         ifname, MAX_HOST_DESCRIPTION_LEN);
-    if (str_errno != MPIU_STR_SUCCESS) {
+    if (str_errno != MPL_SUCCESS) {
         /* --BEGIN ERROR HANDLING */
-        if (str_errno == MPIU_STR_FAIL) {
+        if (str_errno == MPL_ERR_STR_FAIL) {
             MPIR_ERR_SETANDJUMP(mpi_errno, MPI_ERR_OTHER,
                                 "**argstr_missinghost");
         } else {
@@ -969,23 +1328,19 @@ int MPIDI_CH3_Connect_to_root(const char *port_name, MPIDI_VC_t ** new_vc)
         /* --END ERROR HANDLING-- */
     }
 
-    vc = MPIU_Malloc(sizeof(MPIDI_VC_t));
+    vc = MPL_malloc(sizeof(MPIDI_VC_t), MPL_MEM_OBJECT);
     if (!vc) {
         MPIR_ERR_SETANDJUMP(mpi_errno, MPI_ERR_OTHER, "**nomem");
     }
     MPIDI_VC_Init(vc, NULL, 0);
 
     mpi_errno = MPIDI_CH3I_CM_Connect_raw_vc(vc, ifname);
-    if (mpi_errno) {
-        MPIR_ERR_POP(mpi_errno);
-    }
+    MPIR_ERR_CHECK(mpi_errno);
 
     while (vc->ch.state != MPIDI_CH3I_VC_STATE_IDLE) {
-        mpi_errno = MPID_Progress_test();
+        mpi_errno = MPID_Progress_test(NULL);
         /* --BEGIN ERROR HANDLING-- */
-        if (mpi_errno != MPI_SUCCESS) {
-            MPIR_ERR_POP(mpi_errno);
-        }
+        MPIR_ERR_CHECK(mpi_errno);
     }
 
     /* fprintf(stderr, "[###] vc state to idel, now send cm_establish msg\n") */
@@ -997,7 +1352,7 @@ int MPIDI_CH3_Connect_to_root(const char *port_name, MPIDI_VC_t ** new_vc)
     MPIDI_Pkt_set_seqnum(&pkt, seqnum);
     pkt.vc_addr = vc->mrail.remote_vc_addr;
     mpi_errno = MPIDI_GetTagFromPort(port_name, &pkt.port_name_tag);
-    if (mpi_errno != MPIU_STR_SUCCESS) {
+    if (mpi_errno != MPI_SUCCESS) {
         MPIR_ERR_SETANDJUMP(mpi_errno, MPI_ERR_OTHER, "**argstr_port_name_tag");
     }
 
@@ -1010,43 +1365,37 @@ int MPIDI_CH3_Connect_to_root(const char *port_name, MPIDI_VC_t ** new_vc)
     if (sreq != NULL) {
         if (sreq->status.MPI_ERROR != MPI_SUCCESS) {
             mpi_errno = MPIR_Err_create_code(sreq->status.MPI_ERROR,
-                                             MPIR_ERR_FATAL, FCNAME, __LINE__,
+                                             MPIR_ERR_FATAL, __func__, __LINE__,
                                              MPI_ERR_OTHER, "**fail", 0);
-            MPID_Request_release(sreq);
+            MPIR_Request_free(sreq);
             goto fn_fail;
         }
-        MPID_Request_release(sreq);
+        MPIR_Request_free(sreq);
     }
 
     *new_vc = vc;
 
   fn_fail:
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3_CONNECT_TO_ROOT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3_CONNECT_TO_ROOT);
 
     return mpi_errno;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_Get_business_card
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_Get_business_card(int myRank, char *value, int length)
 {
     char ifname[MAX_HOST_DESCRIPTION_LEN];
     int mpi_errno;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3_GET_BUSINESS_CARD);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_GET_BUSINESS_CARD);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3_GET_BUSINESS_CARD);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3_GET_BUSINESS_CARD);
 
     mpi_errno = MPIDI_CH3I_CM_Get_port_info(ifname, MAX_HOST_DESCRIPTION_LEN);
-    if (mpi_errno) {
-        MPIR_ERR_POP(mpi_errno);
-    }
+    MPIR_ERR_CHECK(mpi_errno);
 
-    mpi_errno = MPIU_Str_add_string_arg(&value, &length,
+    mpi_errno = MPL_str_add_string_arg(&value, &length,
                                         MPIDI_CH3I_HOST_DESCRIPTION_KEY,
                                         ifname);
-    if (mpi_errno != MPIU_STR_SUCCESS) {
-        if (mpi_errno == MPIU_STR_NOMEM) {
+    if (mpi_errno != MPL_SUCCESS) {
+        if (mpi_errno == MPL_ERR_STR_NOMEM) {
             MPIR_ERR_SETANDJUMP(mpi_errno, MPI_ERR_OTHER, "**buscard_len");
         } else {
             MPIR_ERR_SETANDJUMP(mpi_errno, MPI_ERR_OTHER, "**buscard");
@@ -1054,45 +1403,41 @@ int MPIDI_CH3_Get_business_card(int myRank, char *value, int length)
     }
 
   fn_fail:
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3_GET_BUSINESS_CARD);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3_GET_BUSINESS_CARD);
     return mpi_errno;
 }
 
 /* This routine is a hook for initializing information for a process
    group before the MPIDI_CH3_VC_Init routine is called */
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_PG_Init
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_PG_Init(MPIDI_PG_t * pg)
 {
-    char *value     = NULL;
     int mpi_errno   = MPI_SUCCESS;
 
-    if ((value = getenv("MV2_SHMEM_BACKED_UD_CM")) != NULL) {
-        mv2_shmem_backed_ud_cm = !!atoi(value);
+    if (MV2_SHMEM_BACKED_UD_CM != -1) {
+        mv2_shmem_backed_ud_cm = !!MV2_SHMEM_BACKED_UD_CM;
     }
-    if ((value = getenv("MV2_SUPPORT_DPM")) != NULL) {
-        if (!!atoi(value)) {
+    if (MV2_SUPPORT_DPM != -1) {
+        if (!!MV2_SUPPORT_DPM) {
             mv2_shmem_backed_ud_cm = 0;
         }
     }
 
-    pg->ch.mrail = MPIU_Malloc(sizeof(MPIDI_CH3I_MRAIL_CM_t));
+    pg->ch.mrail = MPL_malloc(sizeof(MPIDI_CH3I_MRAIL_CM_t), MPL_MEM_OBJECT);
     if (pg->ch.mrail == NULL) {
         MPIR_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_INTERN, "**nomem",
                 "**nomem %s", "ud_cm mrail");
     }
-    MPIU_Memset(pg->ch.mrail, 0, sizeof(MPIDI_CH3I_MRAIL_CM_t));
+    MPIR_Memset(pg->ch.mrail, 0, sizeof(MPIDI_CH3I_MRAIL_CM_t));
 
     if (!mv2_shmem_backed_ud_cm) {
         pg->ch.mrail->cm_shmem.ud_cm =
-                MPIU_Malloc(pg->size * sizeof(MPIDI_CH3I_MRAIL_UD_CM_t));
+                MPL_malloc(pg->size * sizeof(MPIDI_CH3I_MRAIL_UD_CM_t),
+                            MPL_MEM_SHM);
         if (pg->ch.mrail->cm_shmem.ud_cm == NULL) {
             MPIR_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_INTERN, "**nomem",
                     "**nomem %s", "ud_cm");
         }
-        MPIU_Memset(pg->ch.mrail->cm_shmem.ud_cm, 0,
+        MPIR_Memset(pg->ch.mrail->cm_shmem.ud_cm, 0,
                     pg->size * sizeof(MPIDI_CH3I_MRAIL_UD_CM_t));
     }
 
@@ -1102,10 +1447,6 @@ fn_fail:
 
 /* This routine is a hook for any operations that need to be performed before
    freeing a process group */
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_PG_Destroy
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_PG_Destroy(struct MPIDI_PG *pg)
 {
     return MPIDI_CH3I_MRAIL_CM_Dealloc(pg);
@@ -1113,59 +1454,64 @@ int MPIDI_CH3_PG_Destroy(struct MPIDI_PG *pg)
 
 /* This routine is a hook for any operations that need to be performed before
    freeing a virtual connection */
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_VC_Destroy
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_VC_Destroy(struct MPIDI_VC *vc)
 {
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3_VC_DESTROY);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_VC_DESTROY);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3_VC_DESTROY);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3_VC_DESTROY);
 
 #if !defined (CHANNEL_PSM)
     if (vc->smp.sendq_head != NULL) {
-        MPIU_Free(vc->smp.sendq_head);
+        MPL_free(vc->smp.sendq_head);
     }
     if (vc->smp.sendq_tail != NULL) {
-        MPIU_Free(vc->smp.sendq_tail);
+        MPL_free(vc->smp.sendq_tail);
     }
     if (vc->smp.recv_active != NULL) {
-        MPIU_Free(vc->smp.recv_active);
+        MPL_free(vc->smp.recv_active);
     }
     if (vc->smp.send_active != NULL) {
-        MPIU_Free(vc->smp.send_active);
+        MPL_free(vc->smp.send_active);
     }
     if (vc->ch.req != NULL) {
-        MPIU_Free(vc->ch.req);
+        MPL_free(vc->ch.req);
     }
     if (vc->mrail.cmanager.msg_channels != NULL) {
-        MPIU_Free(vc->mrail.cmanager.msg_channels);
+        MPL_free(vc->mrail.cmanager.msg_channels);
     }
     if (vc->mrail.srp.credits != NULL) {
-        MPIU_Free(vc->mrail.srp.credits);
+        MPL_free(vc->mrail.srp.credits);
     }
     if (vc->mrail.rails != NULL) {
-        MPIU_Free(vc->mrail.rails);
+        MPL_free(vc->mrail.rails);
     }
 #endif /* #if !defined (CHANNEL_PSM) */
 
 
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3_VC_DESTROY);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3_VC_DESTROY);
     return MPI_SUCCESS;
 }
 
-/* A dummy function so that all channels provide the same set of functions,
-   enabling dll channels */
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_InitCompleted
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_InitCompleted(void)
 {
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3_INITCOMPLETED);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_INITCOMPLETED);
+    int show_binding = 0;
+    int mpi_errno = MPI_SUCCESS;
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3_INITCOMPLETED);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3_INITCOMPLETED);
 
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3_INITCOMPLETED);
+    /* A reasonable place to put this rather than directly in the ch3 src */
+    MPL_env2int("MV2_SHOW_CPU_BINDING", &show_binding);
+    if (show_binding) {
+        mv2_show_cpu_affinity(show_binding);
+    }
+    /* Unlink hwloc topology file */
+    mpi_errno = smpi_unlink_hwloc_topology_file();
+
+    MPL_env2int("MV2_SHOW_HCA_BINDING", &show_binding);
+    if (show_binding && !SMP_ONLY) {
+        mv2_show_hca_affinity(show_binding);
+    }
+
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3_INITCOMPLETED);
     return MPI_SUCCESS;
 }
 
@@ -1193,5 +1539,37 @@ void rdma_process_hostid(MPIDI_PG_t * pg, int *host_ids, int my_rank,
         }
     }
 }
+
+/* TODO: this should move. Only here because it was in MPID_Init before */
+/* Synchronous checkpoint interface*/
+#if defined(CKPT)
+int MVAPICH2_Sync_Checkpoint()
+{
+    MPIR_Comm * comm_ptr;
+    int errflag = FALSE;
+
+    if (MPIDI_Process.use_sync_ckpt == 0) /*Not enabled*/
+        return 0;
+
+    MPIR_Comm_get_ptr (MPI_COMM_WORLD, comm_ptr);
+
+    /*MPIU_THREAD_SINGLE_CS_ENTER("coll");*/
+    MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+    MPIR_Barrier_impl(comm_ptr, &errflag);
+    MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+    /*MPIU_THREAD_SINGLE_CS_EXIT("coll");*/
+
+    if (MPIDI_Process.my_pg_rank == 0)
+    {/*Notify console to take checkpoint*/
+        MPIDI_CH3I_CR_Sync_ckpt_request();
+    }
+
+    /*Now wait for the lower layer to indicate that the checkpoint finished*/
+    pthread_mutex_lock(&MVAPICH2_sync_ckpt_lock);
+    pthread_cond_wait(&MVAPICH2_sync_ckpt_cond,&MVAPICH2_sync_ckpt_lock);
+    pthread_mutex_unlock(&MVAPICH2_sync_ckpt_lock);
+    return 0;
+}
+#endif /* defined(CKPT) */
 
 /* vi: set sw=4 */

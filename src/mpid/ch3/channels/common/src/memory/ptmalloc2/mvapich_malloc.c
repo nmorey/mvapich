@@ -218,7 +218,7 @@
 /* <CHANNEL_MRAIL> */
 #ifndef NEMESIS_BUILD
 #include "mpichconf.h"
-#include "mpl.h"
+#include "mpl_base.h"
 extern int mv2_use_aligned_alloc;
 #endif
 #include "dreg.h"
@@ -340,8 +340,7 @@ extern "C" {
 
 #if MALLOC_DEBUG
 /* <CHANNEL_MRAIL> */
-#include "mpiutil.h"
-#define assert(x) MPIU_Assert(x)
+#define assert(x) MPIR_Assert(x)
 /* #include <assert.h>
  * </CHANNEL_MRAIL>
  */

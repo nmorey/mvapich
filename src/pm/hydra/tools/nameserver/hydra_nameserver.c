@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2010 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "hydra.h"
@@ -84,13 +83,9 @@ static void free_publish_element(struct HYDT_ns_publish *publish)
     if (publish == NULL)
         return;
 
-    if (publish->name)
-        HYDU_FREE(publish->name);
-
-    if (publish->info)
-        HYDU_FREE(publish->info);
-
-    HYDU_FREE(publish);
+    MPL_free(publish->name);
+    MPL_free(publish->info);
+    MPL_free(publish);
 }
 
 static HYD_status cmd_response(int fd, const char *str)
@@ -142,19 +137,20 @@ static HYD_status request_cb(int fd, HYD_event_t events, void *userp)
     HYDU_ERR_POP(status, "error reading data\n");
     HYDU_ASSERT(!closed, status);
 
-    HYDU_MALLOC(cmd, char *, len + 1, status);
+    HYDU_MALLOC_OR_JUMP(cmd, char *, len + 1, status);
     status = HYDU_sock_read(fd, cmd, len, &recvd, &closed, HYDU_SOCK_COMM_MSGWAIT);
     HYDU_ERR_POP(status, "error reading data\n");
     HYDU_ASSERT(!closed, status);
 
     if (!strcmp(cmd, "PUBLISH")) {
-        HYDU_MALLOC(publish, struct HYDT_ns_publish *, sizeof(struct HYDT_ns_publish), status);
+        HYDU_MALLOC_OR_JUMP(publish, struct HYDT_ns_publish *, sizeof(struct HYDT_ns_publish),
+                            status);
 
         status = HYDU_sock_read(fd, &len, sizeof(int), &recvd, &closed, HYDU_SOCK_COMM_MSGWAIT);
         HYDU_ERR_POP(status, "error reading data\n");
         HYDU_ASSERT(!closed, status);
 
-        HYDU_MALLOC(publish->name, char *, len + 1, status);
+        HYDU_MALLOC_OR_JUMP(publish->name, char *, len + 1, status);
         status = HYDU_sock_read(fd, publish->name, len, &recvd, &closed, HYDU_SOCK_COMM_MSGWAIT);
         HYDU_ERR_POP(status, "error reading data\n");
         HYDU_ASSERT(!closed, status);
@@ -163,7 +159,7 @@ static HYD_status request_cb(int fd, HYD_event_t events, void *userp)
         HYDU_ERR_POP(status, "error reading data\n");
         HYDU_ASSERT(!closed, status);
 
-        HYDU_MALLOC(publish->info, char *, len + 1, status);
+        HYDU_MALLOC_OR_JUMP(publish->info, char *, len + 1, status);
         status = HYDU_sock_read(fd, publish->info, len, &recvd, &closed, HYDU_SOCK_COMM_MSGWAIT);
         HYDU_ERR_POP(status, "error reading data\n");
         HYDU_ASSERT(!closed, status);
@@ -186,18 +182,16 @@ static HYD_status request_cb(int fd, HYD_event_t events, void *userp)
         if (success) {
             status = cmd_response(fd, "SUCCESS");
             HYDU_ERR_POP(status, "error responding to REMOVE request\n");
-        }
-        else {
+        } else {
             status = cmd_response(fd, "FAILURE");
             HYDU_ERR_POP(status, "error responding to REMOVE request\n");
         }
-    }
-    else if (!strcmp(cmd, "UNPUBLISH")) {
+    } else if (!strcmp(cmd, "UNPUBLISH")) {
         status = HYDU_sock_read(fd, &len, sizeof(int), &recvd, &closed, HYDU_SOCK_COMM_MSGWAIT);
         HYDU_ERR_POP(status, "error reading data\n");
         HYDU_ASSERT(!closed, status);
 
-        HYDU_MALLOC(name, char *, len + 1, status);
+        HYDU_MALLOC_OR_JUMP(name, char *, len + 1, status);
         status = HYDU_sock_read(fd, name, len, &recvd, &closed, HYDU_SOCK_COMM_MSGWAIT);
         HYDU_ERR_POP(status, "error reading data\n");
         HYDU_ASSERT(!closed, status);
@@ -208,13 +202,13 @@ static HYD_status request_cb(int fd, HYD_event_t events, void *userp)
                 publish_list = publish_list->next;
                 free_publish_element(tmp);
                 success = 1;
-            }
-            else {
+            } else {
                 for (tmp = publish_list; tmp->next && strcmp(tmp->next->name, name);
                      tmp = tmp->next);
                 if (tmp->next) {
+                    struct HYDT_ns_publish *next_entry = tmp->next;
                     tmp->next = tmp->next->next;
-                    free_publish_element(tmp->next);
+                    free_publish_element(next_entry);
                     success = 1;
                 }
             }
@@ -223,18 +217,16 @@ static HYD_status request_cb(int fd, HYD_event_t events, void *userp)
         if (success) {
             status = cmd_response(fd, "SUCCESS");
             HYDU_ERR_POP(status, "error responding to REMOVE request\n");
-        }
-        else {
+        } else {
             status = cmd_response(fd, "FAILURE");
             HYDU_ERR_POP(status, "error responding to REMOVE request\n");
         }
-    }
-    else if (!strcmp(cmd, "LOOKUP")) {
+    } else if (!strcmp(cmd, "LOOKUP")) {
         status = HYDU_sock_read(fd, &len, sizeof(int), &recvd, &closed, HYDU_SOCK_COMM_MSGWAIT);
         HYDU_ERR_POP(status, "error reading data\n");
         HYDU_ASSERT(!closed, status);
 
-        HYDU_MALLOC(name, char *, len + 1, status);
+        HYDU_MALLOC_OR_JUMP(name, char *, len + 1, status);
         status = HYDU_sock_read(fd, name, len, &recvd, &closed, HYDU_SOCK_COMM_MSGWAIT);
         HYDU_ERR_POP(status, "error reading data\n");
         HYDU_ASSERT(!closed, status);
@@ -244,13 +236,11 @@ static HYD_status request_cb(int fd, HYD_event_t events, void *userp)
             status = cmd_response(fd, tmp->info);
             HYDU_ERR_POP(status, "error sending command response\n");
             success = 1;
-        }
-        else {
+        } else {
             status = cmd_response(fd, "");
             HYDU_ERR_POP(status, "error sending command response\n");
         }
-    }
-    else {
+    } else {
         HYDU_ERR_SETANDJUMP(status, HYD_INTERNAL_ERROR, "unrecognized command: %s\n", cmd);
     }
 
@@ -264,7 +254,7 @@ static HYD_status request_cb(int fd, HYD_event_t events, void *userp)
 
 static HYD_status listen_cb(int fd, HYD_event_t events, void *userp)
 {
-    int client_fd;
+    int client_fd = -1;
     HYD_status status = HYD_SUCCESS;
 
     HYDU_FUNC_ENTER();
@@ -282,6 +272,8 @@ static HYD_status listen_cb(int fd, HYD_event_t events, void *userp)
     return status;
 
   fn_fail:
+    if (-1 != client_fd)
+        close(client_fd);
     goto fn_exit;
 }
 

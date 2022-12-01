@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -140,8 +139,7 @@ static int isPermutedIdentity(MPI_Comm comm, int mat[])
                 printf("mat(%d,%d) = %d, should = 1\n", i, j, mat[j]);
                 errs++;
             }
-        }
-        else {
+        } else {
             if (mat[j] != 0) {
                 printf("mat(%d,%d) = %d, should = 0\n", i, j, mat[j]);
                 errs++;
@@ -155,8 +153,7 @@ static int isPermutedIdentity(MPI_Comm comm, int mat[])
                 printf("mat(%d,%d) = %d, should = 1\n", i, j, mat[j + i * size]);
                 errs++;
             }
-        }
-        else {
+        } else {
             if (mat[j + i * size] != 0) {
                 printf("mat(%d,%d) = %d, should = 0\n", i, j, mat[j + i * size]);
                 errs++;
@@ -171,8 +168,7 @@ static int isPermutedIdentity(MPI_Comm comm, int mat[])
                     printf("mat(%d,%d) = %d, should = 1\n", i, j, mat[j + i * size]);
                     errs++;
                 }
-            }
-            else {
+            } else {
                 if (mat[j + i * size] != 0) {
                     printf("mat(%d,%d) = %d, should = 0\n", i, j, mat[j + i * size]);
                     errs++;
@@ -234,8 +230,7 @@ int main(int argc, char *argv[])
             initMat(comm, bufout);
             if (rank == root) {
                 MPI_Reduce(MPI_IN_PLACE, bufout, count, mattype, op, root, comm);
-            }
-            else {
+            } else {
                 MPI_Reduce(bufout, NULL, count, mattype, op, root, comm);
             }
             if (rank == root) {
@@ -253,6 +248,5 @@ int main(int argc, char *argv[])
     MPI_Op_free(&op);
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

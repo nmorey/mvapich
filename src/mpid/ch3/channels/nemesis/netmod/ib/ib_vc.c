@@ -111,10 +111,10 @@ int MPID_nem_ib_vc_init (MPIDI_VC_t *vc )
 #ifndef MV2_DISABLE_HEADER_CACHING 
     VC_FIELD(vc, connection)->rfp.cached_miss   = 0;
     VC_FIELD(vc, connection)->rfp.cached_hit    = 0;
-    VC_FIELD(vc, connection)->rfp.cached_incoming = MPIU_Malloc (sizeof(MPIDI_CH3_Pkt_send_t));
-    VC_FIELD(vc, connection)->rfp.cached_outgoing = MPIU_Malloc (sizeof(MPIDI_CH3_Pkt_send_t));
-    VC_FIELD(vc, connection)->rfp.cached_incoming_iheader = MPIU_Malloc (sizeof(MPIDI_nem_ib_pkt_comm_header));
-    VC_FIELD(vc, connection)->rfp.cached_outgoing_iheader = MPIU_Malloc (sizeof(MPIDI_nem_ib_pkt_comm_header));
+    VC_FIELD(vc, connection)->rfp.cached_incoming = MPL_malloc (sizeof(MPIDI_CH3_Pkt_send_t));
+    VC_FIELD(vc, connection)->rfp.cached_outgoing = MPL_malloc (sizeof(MPIDI_CH3_Pkt_send_t));
+    VC_FIELD(vc, connection)->rfp.cached_incoming_iheader = MPL_malloc (sizeof(MPIDI_nem_ib_pkt_comm_header));
+    VC_FIELD(vc, connection)->rfp.cached_outgoing_iheader = MPL_malloc (sizeof(MPIDI_nem_ib_pkt_comm_header));
     memset(VC_FIELD(vc, connection)->rfp.cached_outgoing, 0, sizeof(MPIDI_CH3_Pkt_send_t));
     memset(VC_FIELD(vc, connection)->rfp.cached_incoming, 0, sizeof(MPIDI_CH3_Pkt_send_t));
     memset(VC_FIELD(vc, connection)->rfp.cached_outgoing_iheader, 0, sizeof(MPIDI_nem_ib_pkt_comm_header));

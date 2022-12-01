@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include "mpitest.h"
@@ -30,8 +29,7 @@ int main(int argc, char *argv[])
             errs++;
             printf("rank outside of input communicator not UNDEFINED\n");
         }
-    }
-    else {
+    } else {
         if (rank != newrank) {
             errs++;
             printf("Newrank not defined and should be 0\n");
@@ -47,8 +45,7 @@ int main(int argc, char *argv[])
             errs++;
             printf("rank outside of input communicator not UNDEFINED\n");
         }
-    }
-    else {
+    } else {
         /* rank == 0 */
         if (rank != newrank) {
             errs++;
@@ -58,7 +55,5 @@ int main(int argc, char *argv[])
 
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
-
+    return MTestReturnValue(errs);
 }

@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /*
- *
- *  (C) 2012 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include <stdio.h>
@@ -554,8 +552,7 @@ void ccompareint2aint_(MPI_Fint * in1, MPI_Aint * in2, MPI_Fint * result)
     static int idx = -1;
     if (sizeof(MPI_Fint) == sizeof(MPI_Aint)) {
         *result = *in1 == *in2;
-    }
-    else if (sizeof(MPI_Fint) < sizeof(MPI_Aint)) {
+    } else if (sizeof(MPI_Fint) < sizeof(MPI_Aint)) {
         /* Assume Aint no smaller than Fint, and that size of aint
          * is a multiple of the size of fint) */
         MPI_Fint *v2 = (MPI_Fint *) in2;
@@ -577,8 +574,7 @@ void ccompareint2aint_(MPI_Fint * in1, MPI_Aint * in2, MPI_Fint * result)
             }
             *result = *in1 == v2[idx];
         }
-    }
-    else {
+    } else {
         fprintf(stderr, "PANIC: sizeof(MPI_Fint) = %d > sizeof(MPI_Aint) %d\n",
                 (int) sizeof(MPI_Fint), (int) sizeof(MPI_Aint));
         MPI_Abort(MPI_COMM_WORLD, 1);
@@ -590,8 +586,7 @@ void ccompareint2void_(MPI_Fint * in1, void *in2, MPI_Fint * result)
     static int idx = -1;
     if (sizeof(MPI_Fint) == sizeof(void *)) {
         *result = *in1 == *(MPI_Fint *) in2;
-    }
-    else if (sizeof(MPI_Fint) < sizeof(void *)) {
+    } else if (sizeof(MPI_Fint) < sizeof(void *)) {
         /* Assume void* no smaller than Fint, and that size of aint
          * is a multiple of the size of fint) */
         MPI_Fint *v2 = (MPI_Fint *) in2;
@@ -613,8 +608,7 @@ void ccompareint2void_(MPI_Fint * in1, void *in2, MPI_Fint * result)
             }
             *result = *in1 == v2[idx];
         }
-    }
-    else {
+    } else {
         fprintf(stderr, "PANIC: sizeof(MPI_Fint) = %d > sizeof(void*) %d\n",
                 (int) sizeof(MPI_Fint), (int) sizeof(void *));
         MPI_Abort(MPI_COMM_WORLD, 1);

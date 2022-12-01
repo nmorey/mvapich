@@ -36,7 +36,7 @@ typedef struct{
 #if defined(MPID_USE_SEQUENCE_NUMBERS)
     MPID_Seqnum_t seqnum;
 #endif /* defined(MPID_USE_SEQUENCE_NUMBERS) */
-    MPIDI_msg_sz_t recv_sz;
+    intptr_t recv_sz;
 
    /* MPIDI_CH3I_MRAILI_IBA_PKT_DECL (new MPIDI_nem_ib_pkt_comm_header_t)*/
     uint8_t  vbuf_credit;
@@ -64,8 +64,8 @@ typedef struct{
     /*why do we need to store buf and size here though we have already store it
     inside request*/
     void * rndv_buf;
-    MPIDI_msg_sz_t rndv_buf_sz;
-    MPIDI_msg_sz_t rndv_buf_off;
+    intptr_t rndv_buf_sz;
+    intptr_t rndv_buf_off;
     MPID_nem_ib_rndv_protocol_t protocol;
     /*temporary holder for registered memory*/
     struct dreg_entry *d_entry;
@@ -104,7 +104,7 @@ typedef struct{
         }                                                       \
         if (1 == REQ_FIELD(rreq, rndv_buf_alloc)                \
             && REQ_FIELD(rreq, rndv_buf) != NULL) {             \
-            MPIU_Free(REQ_FIELD(rreq, rndv_buf));                    \
+            MPL_free(REQ_FIELD(rreq, rndv_buf));                    \
             REQ_FIELD(rreq, rndv_buf) = NULL;                        \
             REQ_FIELD(rreq, rndv_buf_off) = REQ_FIELD(rreq, rndv_buf_sz) = 0; \
             REQ_FIELD(rreq, rndv_buf_alloc) = 0;                     \
@@ -116,11 +116,11 @@ typedef struct{
 }
 
 int MPID_nem_lmt_ib_initiate_lmt(MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *rts_pkt,
-                                           struct MPID_Request *req);
-int MPID_nem_lmt_ib_start_send(struct MPIDI_VC *vc, struct MPID_Request *sreq,
-                                           MPL_IOV r_cookie);
-int MPID_nem_ib_lmt_start_recv(struct MPIDI_VC *VC, struct MPID_Request *rreq, MPL_IOV s_cookie);
-int MPID_nem_ib_lmt_done_recv(struct MPIDI_VC *VC, struct MPID_Request *rreq);
+                                           struct MPIR_Request *req);
+int MPID_nem_lmt_ib_start_send(struct MPIDI_VC *vc, struct MPIR_Request *sreq,
+                                           struct iovec r_cookie);
+int MPID_nem_ib_lmt_start_recv(struct MPIDI_VC *VC, struct MPIR_Request *rreq, struct iovec s_cookie);
+int MPID_nem_ib_lmt_done_recv(struct MPIDI_VC *VC, struct MPIR_Request *rreq);
 int MPIDI_nem_ib_lmt_r3_recv_data(MPIDI_VC_t * vc, vbuf * buffer);
 void MPIDI_nem_ib_lmt_r3_recv_ack(MPIDI_VC_t * vc,
                                void* vstart);

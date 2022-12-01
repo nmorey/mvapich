@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpiimpl.h"
@@ -15,7 +13,7 @@
 #elif defined(HAVE_PRAGMA_CRI_DUP)
 #pragma _CRI duplicate MPI_Address as PMPI_Address
 #elif defined(HAVE_WEAK_ATTRIBUTE)
-int MPI_Address(void *location, MPI_Aint *address) __attribute__((weak,alias("PMPI_Address")));
+int MPI_Address(void *location, MPI_Aint * address) __attribute__ ((weak, alias("PMPI_Address")));
 #endif
 /* -- End Profiling Symbol Block */
 
@@ -27,10 +25,6 @@ int MPI_Address(void *location, MPI_Aint *address) __attribute__((weak,alias("PM
 
 #endif
 
-#undef FUNCNAME
-#define FUNCNAME MPI_Address
-#undef FCNAME
-#define FCNAME "MPI_Address"
 
 /*@
     MPI_Address - Gets the address of a location in memory
@@ -59,46 +53,46 @@ The replacement for this routine is 'MPI_Get_address'.
 .N MPI_SUCCESS
 .N MPI_ERR_OTHER
 @*/
-int MPI_Address(void *location, MPI_Aint *address)
+int MPI_Address(void *location, MPI_Aint * address)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_ADDRESS);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_ADDRESS);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
 
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_ADDRESS);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_ADDRESS);
 
     /* Validate parameters and objects (post conversion) */
-#   ifdef HAVE_ERROR_CHECKING
+#ifdef HAVE_ERROR_CHECKING
     {
         MPID_BEGIN_ERROR_CHECKS;
         {
-	    MPIR_ERRTEST_ARGNULL(address,"address",mpi_errno);
+            MPIR_ERRTEST_ARGNULL(address, "address", mpi_errno);
         }
         MPID_END_ERROR_CHECKS;
     }
-#   endif /* HAVE_ERROR_CHECKING */
+#endif /* HAVE_ERROR_CHECKING */
 
     /* ... body of routine ...  */
 
     /* SX_4 needs to set CHAR_PTR_IS_ADDRESS
-       The reason is that it computes the difference in two pointers in
-       an "int", and addresses typically have the high (bit 31) bit set;
-       thus the difference, when cast as MPI_Aint (long), is sign-extended,
-       making the absolute address negative.  Without a copy of the C
-       standard, I can't tell if this is a compiler bug or a language bug.
-    */
+     * The reason is that it computes the difference in two pointers in
+     * an "int", and addresses typically have the high (bit 31) bit set;
+     * thus the difference, when cast as MPI_Aint (long), is sign-extended,
+     * making the absolute address negative.  Without a copy of the C
+     * standard, I can't tell if this is a compiler bug or a language bug.
+     */
 #ifdef CHAR_PTR_IS_ADDRESS
-    *address = MPIU_VOID_PTR_CAST_TO_MPI_AINT ((char *) location);
+    *address = (MPI_Aint) location;
 #else
     /* Note that this is the "portable" way to generate an address.
-       The difference of two pointers is the number of elements
-       between them, so this gives the number of chars between location
-       and ptr.  As long as sizeof(char) represents one byte,
-       of bytes from 0 to location */
+     * The difference of two pointers is the number of elements
+     * between them, so this gives the number of chars between location
+     * and ptr.  As long as sizeof(char) represents one byte,
+     * of bytes from 0 to location */
     /* To cover the case where a pointer is 32 bits and MPI_Aint is 64 bits,
-       add cast to unsigned so the high order address bit is not sign-extended. */
-    *address = MPIU_VOID_PTR_CAST_TO_MPI_AINT ((char *) location - (char *) MPI_BOTTOM);
+     * add cast to unsigned so the high order address bit is not sign-extended. */
+    *address = (MPI_Aint) ((char *) location - (char *) MPI_BOTTOM);
 #endif
     /* The same code is used in MPI_Get_address */
 
@@ -107,20 +101,19 @@ int MPI_Address(void *location, MPI_Aint *address)
 #ifdef HAVE_ERROR_CHECKING
   fn_exit:
 #endif
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_ADDRESS);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_ADDRESS);
     return mpi_errno;
 
     /* --BEGIN ERROR HANDLING-- */
-#   ifdef HAVE_ERROR_CHECKING
+#ifdef HAVE_ERROR_CHECKING
   fn_fail:
     {
-	mpi_errno = MPIR_Err_create_code(
-	    mpi_errno, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPI_ERR_OTHER,
-	    "**mpi_address",
-	    "**mpi_address %p %p", location, address);
+        mpi_errno =
+            MPIR_Err_create_code(mpi_errno, MPIR_ERR_RECOVERABLE, __func__, __LINE__, MPI_ERR_OTHER,
+                                 "**mpi_address", "**mpi_address %p %p", location, address);
     }
-    mpi_errno = MPIR_Err_return_comm(0, FCNAME, mpi_errno);
+    mpi_errno = MPIR_Err_return_comm(0, __func__, mpi_errno);
     goto fn_exit;
-#   endif
+#endif
     /* --END ERROR HANDLING-- */
 }

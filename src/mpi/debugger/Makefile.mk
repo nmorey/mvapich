@@ -1,8 +1,6 @@
-## -*- Mode: Makefile; -*-
-## vim: set ft=automake :
 ##
-## (C) 2011 by Argonne National Laboratory.
-##     See COPYRIGHT in top-level directory.
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
 ##
 
 # all of these routines are internal, nothing gets added to mpi_sources
@@ -48,4 +46,3 @@ src/mpi/debugger/allcommdbg: src/mpi/debugger/allcommdbg.c
 	$(bindir)/mpicc -o $@ $?
 
 endif BUILD_DEBUGGER_DLL
-

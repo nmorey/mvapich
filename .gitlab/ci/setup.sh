@@ -17,19 +17,19 @@ case $BRANCH in
         export BRANCH   
         export BUILDER="MR_mrail_master"
         mkdir .buildbot
-        echo 'try_builders = ["MR_mrail_master", "MR_psm_master", "MR_sock_master"]' > .buildbot/options
+        echo 'try_builders = ["MR_mrail_master", "MR_ofi_master", "MR_ucx_master", "MR_sock_master", "REG_ri2_mrail_master", "REG_mri_ucx_master", "REG_nowlab_ofi_master" ]' > .buildbot/options
         ;;
     "master-x" | "x" )
         export BRANCH="master-x"
         export BUILDER="MR_mrail_x"
         mkdir .buildbot
-        echo 'try_builders = ["MR_mrail_x", "MR_psm_x", "MR_sock_x"]' > .buildbot/options
+        echo 'try_builders = ["MR_mrail_x", "MR_psm_x", "MR_sock_x", "REG_x"]' > .buildbot/options
         ;;
     "gdr" | "next-gdr" )
         export BRANCH="next-gdr"
         export BUILDER="MR_mrail_gdr"
         mkdir .buildbot
-        echo 'try_builders = ["MR_mrail_nvidia_gdr", "MR_mrail_amd_gdr", "MR_sock_gdr"]' > .buildbot/options
+        echo 'try_builders = ["MR_mrail_nvidia_gdr", "MR_mrail_amd_gdr", "MR_sock_gdr", "REG_gdr"]' > .buildbot/options
         ;;
     * ) 
         export BRANCH="invalid"

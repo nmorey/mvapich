@@ -213,20 +213,20 @@ int MPID_nem_ib_finalize(void)
         }
 
         if (VC_FIELD(vc, connection)->rfp.RDMA_send_buf_DMA)
-            MPIU_Memalign_Free(VC_FIELD(vc, connection)->rfp.RDMA_send_buf_DMA);
+            MPL_free(VC_FIELD(vc, connection)->rfp.RDMA_send_buf_DMA);
         if (VC_FIELD(vc, connection)->rfp.RDMA_recv_buf_DMA)
-            MPIU_Memalign_Free(VC_FIELD(vc, connection)->rfp.RDMA_recv_buf_DMA);
+            MPL_free(VC_FIELD(vc, connection)->rfp.RDMA_recv_buf_DMA);
         if (VC_FIELD(vc, connection)->rfp.RDMA_send_buf)
-            MPIU_Memalign_Free(VC_FIELD(vc, connection)->rfp.RDMA_send_buf);
+            MPL_free(VC_FIELD(vc, connection)->rfp.RDMA_send_buf);
         if (VC_FIELD(vc, connection)->rfp.RDMA_recv_buf)
-            MPIU_Memalign_Free(VC_FIELD(vc, connection)->rfp.RDMA_recv_buf);
+            MPL_free(VC_FIELD(vc, connection)->rfp.RDMA_recv_buf);
 
 #ifndef MV2_DISABLE_HEADER_CACHING
         if (NULL != VC_FIELD(vc, connection)) {
-            MPIU_Free(VC_FIELD(vc, connection)->rfp.cached_incoming);
-            MPIU_Free(VC_FIELD(vc, connection)->rfp.cached_outgoing);
-            MPIU_Free(VC_FIELD(vc, connection)->rfp.cached_incoming_iheader);
-            MPIU_Free(VC_FIELD(vc, connection)->rfp.cached_outgoing_iheader);
+            MPL_free(VC_FIELD(vc, connection)->rfp.cached_incoming);
+            MPL_free(VC_FIELD(vc, connection)->rfp.cached_outgoing);
+            MPL_free(VC_FIELD(vc, connection)->rfp.cached_incoming_iheader);
+            MPL_free(VC_FIELD(vc, connection)->rfp.cached_outgoing_iheader);
         }
 #endif
 
@@ -248,9 +248,9 @@ int MPID_nem_ib_finalize(void)
                 MPL_error_printf("Failed to destroy QP (%d)\n", err);
         }
 
-        MPIU_Free(conn_info.connections[i].rails);
-        MPIU_Free(cmanagers[i].msg_channels);
-        MPIU_Free(conn_info.connections[i].srp.credits);
+        MPL_free(conn_info.connections[i].rails);
+        MPL_free(cmanagers[i].msg_channels);
+        MPL_free(conn_info.connections[i].srp.credits);
     }
 
 
@@ -327,17 +327,17 @@ int MPID_nem_ib_finalize(void)
     }
 
     if (process_info.polling_set != NULL) {
-        MPIU_Free(process_info.polling_set);
+        MPL_free(process_info.polling_set);
         process_info.polling_group_size = 0;
     }
 
     if (cmanagers != NULL) {
-        MPIU_Free(cmanagers);
+        MPL_free(cmanagers);
     }
 
 
     if (conn_info.connections != NULL) {
-        MPIU_Free(conn_info.connections);
+        MPL_free(conn_info.connections);
     }
 
     MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_NEM_IB_FINALIZE);

@@ -1,7 +1,4 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
  *
  * Copyright (c) 2001-2022, The Ohio State University. All rights
  * reserved.
@@ -12,6 +9,10 @@
  *
  * For detailed copyright and licensing information, please refer to the
  * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ */
+/*
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpidimpl.h"
@@ -25,10 +26,6 @@
  * bypass the standard PMI implementations, it is the responsibility of the
  * channel to provide an implementation of the PMI routines.
  */
-#undef FUNCNAME
-#define FUNCNAME MPID_Get_universe_size
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPID_Get_universe_size(int  * universe_size)
 {
     int mpi_errno = MPI_SUCCESS;

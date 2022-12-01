@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2009 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 /*
       The MPI-2.2 specification makes it clear that attributes are called on
       MPI_COMM_WORLD and MPI_COMM_SELF at the very beginning of MPI_Finalize in
@@ -62,8 +61,7 @@ int main(int argc, char **argv)
             if (was_called[i] < 1) {
                 errs++;
                 printf("Attribute delete function on MPI_COMM_SELF was not called for idx=%d\n", i);
-            }
-            else if (was_called[i] > 1) {
+            } else if (was_called[i] > 1) {
                 errs++;
                 printf
                     ("Attribute delete function on MPI_COMM_SELF was called multiple times for idx=%d\n",
@@ -77,8 +75,7 @@ int main(int argc, char **argv)
         }
         if (errs == 0) {
             printf(" No Errors\n");
-        }
-        else {
+        } else {
             printf(" Found %d errors\n", errs);
         }
         fflush(stdout);
@@ -89,7 +86,7 @@ int main(int argc, char **argv)
         printf(" No Errors\n");
 #endif
 
-    return 0;
+    return MTestReturnValue(errs);
 }
 
 int delete_fn(MPI_Comm comm, int keyval, void *attribute_val, void *extra_state)

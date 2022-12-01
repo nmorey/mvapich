@@ -110,7 +110,7 @@ int MPIDI_nem_ib_handle_read_individual(MPIDI_VC_t* vc, vbuf* buffer, int* heade
 
 
     *header_type = header->type;
-    MPID_Request* req = VC_FIELD(vc, recv_active);
+    MPIR_Request* req = VC_FIELD(vc, recv_active);
 
     MPID_nem_lmt_pkthandler_init(pktArray, PKTARRAY_SIZE);
 
@@ -118,7 +118,7 @@ int MPIDI_nem_ib_handle_read_individual(MPIDI_VC_t* vc, vbuf* buffer, int* heade
     MPIDI_nem_ckpt_pkthandler_init(pktArray, PKTARRAY_SIZE);
 #endif 
 
-    MPIDI_msg_sz_t lmt_len;
+    intptr_t lmt_len;
     switch(((MPIDI_nem_ib_pkt_comm_header* )buffer->iheader)->type)
     {   
         case MPIDI_NEM_PKT_LMT_RTS:
@@ -178,7 +178,7 @@ int MPIDI_nem_ib_handle_read_individual(MPIDI_VC_t* vc, vbuf* buffer, int* heade
     }
 
 
-    MPIDI_msg_sz_t buflen = sizeof(MPIDI_CH3_Pkt_t);
+    intptr_t buflen = sizeof(MPIDI_CH3_Pkt_t);
 
     /* Step two, load request according to the header content */
     if ((mpi_errno = MPIDI_CH3U_Handle_recv_pkt(
@@ -224,7 +224,7 @@ int MPIDI_nem_ib_handle_read_individual(MPIDI_VC_t* vc, vbuf* buffer, int* heade
             "[recv: handle read] nb %d, iov n %d, len %d, VBUFSIZE %d\n",
             nb,
             req->dev.iov_count,
-            req->dev.iov[0].MPL_IOV_LEN,
+            req->dev.iov[0].iov_len,
             VBUF_BUFFER_SIZE
         );
 
@@ -342,7 +342,7 @@ int MPIDI_nem_ib_read_progress(MPIDI_VC_t ** vc_pptr, vbuf ** v_ptr, int is_bloc
                 fprintf(stderr, "mismatch %p %p\n", pending_vc,
                         (*v_ptr)->vc);
             }
-            MPIU_Assert((void *) pending_vc == (*v_ptr)->vc);
+            MPIR_Assert((void *) pending_vc == (*v_ptr)->vc);
             *vc_pptr = pending_vc;
         } else if(type == T_CHANNEL_EXACT_ARRIVE) {
             *vc_pptr = pending_vc;
@@ -816,7 +816,7 @@ int MPIDI_nem_ib_cq_poll(vbuf **vbuf_handle,
                         }
                     } else {
                         /* Commenting out the assert - possible coding error
-                         * MPIU_Assert(0);
+                         * MPIR_Assert(0);
                          */
                         /* Now since this is not the packet we want, we have to enqueue it */
                         type = T_CHANNEL_OUT_OF_ORDER_ARRIVE;
@@ -883,9 +883,9 @@ int MPIDI_nem_ib_cq_poll(vbuf **vbuf_handle,
                         /* Okay ... spun long enough, now time to go to sleep! */
 
         #if (MPICH_THREAD_LEVEL == MPI_THREAD_MULTIPLE)
-                        MPIU_THREAD_CHECK_BEGIN
+                        MPIR_THREAD_CHECK_BEGIN
                         MPID_Thread_mutex_unlock(&MPIR_ThreadInfo.global_mutex, &err);
-                        MPIU_THREAD_CHECK_END
+                        MPIR_THREAD_CHECK_END
         #endif
                         do {
                             ret = ibv_get_cq_event(
@@ -897,9 +897,9 @@ int MPIDI_nem_ib_cq_poll(vbuf **vbuf_handle,
                             }
                         } while (ret && errno == EINTR);
         #if (MPICH_THREAD_LEVEL == MPI_THREAD_MULTIPLE)
-                        MPIU_THREAD_CHECK_BEGIN
+                        MPIR_THREAD_CHECK_BEGIN
                         MPID_Thread_mutex_lock(&MPIR_ThreadInfo.global_mutex, &err);
-                        MPIU_THREAD_CHECK_END
+                        MPIR_THREAD_CHECK_END
         #endif
 
                     if (num_cqs == 1) {
@@ -1178,7 +1178,7 @@ fn_exit:
 #define FUNCNAME MPIDI_nem_ib_request_adjust_iov
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDI_nem_ib_request_adjust_iov(MPID_Request * req, MPIDI_msg_sz_t nb)
+int MPIDI_nem_ib_request_adjust_iov(MPIR_Request * req, intptr_t nb)
 {
     int offset = req->dev.iov_offset;
     const int count = req->dev.iov_count;
@@ -1187,15 +1187,14 @@ int MPIDI_nem_ib_request_adjust_iov(MPID_Request * req, MPIDI_msg_sz_t nb)
     MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_NEM_IB_REQUEST_ADJUST_IOV);
 
     while (offset < count) {
-        if (req->dev.iov[offset].MPL_IOV_LEN <= (unsigned int) nb) {
-            nb -= req->dev.iov[offset].MPL_IOV_LEN;
+        if (req->dev.iov[offset].iov_len <= (unsigned int) nb) {
+            nb -= req->dev.iov[offset].iov_len;
             ++offset;
         } else {
-            req->dev.iov[offset].MPL_IOV_BUF =
-                ((char *) req->dev.iov[offset].MPL_IOV_BUF) + nb;
-            req->dev.iov[offset].MPL_IOV_LEN -= nb;
+            req->dev.iov[offset].iov_base =
+                ((char *) req->dev.iov[offset].iov_base) + nb;
+            req->dev.iov[offset].iov_len -= nb;
             req->dev.iov_offset = offset;
-            MPIDI_DBG_PRINTF((60, FCNAME, "adjust_iov returning FALSE"));
             MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_NEM_IB_REQUEST_ADJUST_IOV);
             return FALSE;
         }
@@ -1203,7 +1202,6 @@ int MPIDI_nem_ib_request_adjust_iov(MPID_Request * req, MPIDI_msg_sz_t nb)
 
     req->dev.iov_offset = 0;
 
-    MPIDI_DBG_PRINTF((60, FCNAME, "adjust_iov returning TRUE"));
     MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_NEM_IB_REQUEST_ADJUST_IOV);
     return TRUE;
 }

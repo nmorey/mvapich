@@ -20,38 +20,66 @@
 #include "mpidi_ch3_impl.h"
 #include "rdma_impl.h"
 #include "mem_hooks.h"
-#include "debug_utils.h"
+#include "mv2_debug_utils.h"
 #include "upmi.h"
-#include "coll_shmem.h"
+#include "mv2_ch3_shmem.h"
 #include "hwloc_bind.h"
 #include "cm.h"
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_Flush
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
+#if ENABLE_PVAR_MV2
+#include "mv2_mpit_cvars.h"
+extern void free_cvar_handles();
+#endif
+
+void mv2_free_hca_handle();
+void mv2_free_arch_handle();
+
 int MPIDI_CH3_Flush() 
 {
-  MPIDI_STATE_DECL(MPIDI_CH3_FLUSH);
-  MPIDI_FUNC_ENTER(MPIDI_CH3_FLUSH);
+  MPIR_FUNC_VERBOSE_STATE_DECL(MPIDI_CH3_FLUSH);
+  MPIR_FUNC_VERBOSE_ENTER(MPIDI_CH3_FLUSH);
 #ifdef MPIDI_CH3I_MRAILI_FLUSH
     MPIDI_CH3I_MRAILI_Flush();
 #endif
-    MPIDI_FUNC_EXIT(MPIDI_CH3_FLUSH);
+    MPIR_FUNC_VERBOSE_EXIT(MPIDI_CH3_FLUSH);
     return MPI_SUCCESS;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_Finalize
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_Finalize()
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPIDI_CH3_FINALIZE);
-    MPIDI_FUNC_ENTER(MPIDI_CH3_FINALIZE);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPIDI_CH3_FINALIZE);
+    MPIR_FUNC_VERBOSE_ENTER(MPIDI_CH3_FINALIZE);
 
-    MPIDI_DBG_PRINTF((50, FCNAME, "entering"));
+    mv2_is_in_finalize = 1;
+
+    MPL_DBG_MSG_S(MPIDI_CH3_DBG_CHANNEL,VERBOSE,"entering %s", __func__);
+
+#if ENABLE_PVAR_MV2
+    mv2_free_cvar_handles();
+    mv2_free_hca_handle();
+    mv2_free_arch_handle();
+#endif
+
+    MPIR_T_MV2_cvar_finalize();
+
+#ifdef _ENABLE_CUDA_
+    if (mv2_enable_device) {
+        device_cleanup();
+    }
+#endif
+
+#ifdef _ENABLE_XRC_
+    xrc_rdmafp_init = 0;
+    if (USE_XRC) {
+        mpi_errno = UPMI_BARRIER ();
+        if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+    }
+#endif
+
+    /* Let the lower layer flush out. */
+    MPIDI_CH3_Flush();
+
 
     if (!SMP_ONLY) 
     {
@@ -81,7 +109,7 @@ int MPIDI_CH3_Finalize()
 #if defined(RDMA_CM)
         if (ip_address_enabled_devices) {
             /* This is used by both rdma_cm code and the mcast code */
-            MPIU_Free(ip_address_enabled_devices);
+            MPL_free(ip_address_enabled_devices);
         }
 #endif /*defined(RDMA_CM)*/
     }
@@ -118,9 +146,42 @@ int MPIDI_CH3_Finalize()
 
     /* Clear functions used for OFED abstraction */
     mv2_dlopen_finalize();
+
+    /* Deallocate hwloc topology and remove corresponding files */
+    smpi_destroy_hwloc_topology();
+
+#if defined(_ENABLE_CUDA_)
+    /* Release any COLL SRbuf pool storage */
+    if (MPIDI_CH3U_COLL_SRBuf_pool) {
+        MPIDI_CH3U_COLL_SRBuf_element_t *p, *pNext;
+        p = MPIDI_CH3U_COLL_SRBuf_pool;
+        while (p) {
+            pNext = p->next;
+            MV2_MPIDI_Free_Device_Pinned_Host(p->buf);
+            MPL_free(p);
+            p = pNext;
+        }
+    }
+
+    /*free cuda resources allocated in Alltoall*/
+    MPIR_Alltoall_CUDA_cleanup();
+
+    /* Release any CUDA SRbuf storage */
+    if (MPIDI_CH3U_CUDA_SRBuf_pool) {
+        MPIDI_CH3U_CUDA_SRBuf_element_t *p, *pNext;
+        p = MPIDI_CH3U_CUDA_SRBuf_pool;
+        while (p) {
+            pNext = p->next;
+            MV2_MPIDI_Free_Device(p->buf);
+            MPL_free(p);
+            p = pNext;
+        }
+    }
+#endif
+
 fn_exit:
-    MPIDI_DBG_PRINTF((50, FCNAME, "exiting"));
-    MPIDI_FUNC_EXIT(MPIDI_CH3_FINALIZE);
+    MPL_DBG_MSG_S(MPIDI_CH3_DBG_CHANNEL,VERBOSE,"exiting %s", __func__);
+    MPIR_FUNC_VERBOSE_EXIT(MPIDI_CH3_FINALIZE);
     return mpi_errno;
 
 fn_fail:

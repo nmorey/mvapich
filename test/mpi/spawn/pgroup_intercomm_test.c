@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /** PGROUP Creation (Intercommunicator Method)
@@ -19,6 +18,7 @@
 #include <assert.h>
 
 #include <mpi.h>
+#include "mpitest.h"
 
 #define INTERCOMM_TAG 0
 
@@ -91,8 +91,7 @@ void pgroup_create(int grp_size, int *pid_list, MPI_Comm * group_out)
             MPI_Intercomm_create(pgroup, 0, MPI_COMM_WORLD, pid_list[(gid + 1) * merge_size],
                                  INTERCOMM_TAG, &inter_pgroup);
             MPI_Intercomm_merge(inter_pgroup, 0 /* LOW */ , &pgroup);
-        }
-        else {
+        } else {
             MPI_Intercomm_create(pgroup, 0, MPI_COMM_WORLD, pid_list[(gid - 1) * merge_size],
                                  INTERCOMM_TAG, &inter_pgroup);
             MPI_Intercomm_merge(inter_pgroup, 1 /* HIGH */ , &pgroup);
@@ -113,7 +112,7 @@ int main(int argc, char **argv)
     int gsize, *glist;
     MPI_Comm group;
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
 
     MPI_Comm_rank(MPI_COMM_WORLD, &me);
     MPI_Comm_size(MPI_COMM_WORLD, &nproc);
@@ -146,9 +145,6 @@ int main(int argc, char **argv)
 
     free(glist);
 
-    if (me == 0)
-        printf(" No Errors\n");
-
-    MPI_Finalize();
-    return 0;
+    MTest_Finalize(0);
+    return MTestReturnValue(0);
 }

@@ -148,7 +148,7 @@ int mv2_take_timestamp (const char * label, void * data)
 /* 
  * basic mpi reduction 
  */
-static int reduce_timestamps (MPID_Comm * comm_ptr, int pg_rank, int pg_size)
+static int reduce_timestamps (MPIR_Comm * comm_ptr, int pg_rank, int pg_size)
 {
     if (!mv2_enable_startup_profiling) {
         return 0;
@@ -252,7 +252,7 @@ static int process_timestamps (void)
  */
 int mv2_print_timestamps (FILE * fd)
 {
-    MPID_Comm * comm_ptr = NULL;
+    MPIR_Comm * comm_ptr = NULL;
     size_t counter = 1;
     int pg_rank = 0;
 
@@ -261,7 +261,7 @@ int mv2_print_timestamps (FILE * fd)
     }
 
     PMPI_Comm_rank(MPI_COMM_WORLD, &pg_rank);
-    MPID_Comm_get_ptr(MPI_COMM_WORLD, comm_ptr);
+    MPIR_Comm_get_ptr(MPI_COMM_WORLD, comm_ptr);
 
     /* feel like we should destroy the hash table if this fails */
     if (process_timestamps()) {

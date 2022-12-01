@@ -1,18 +1,8 @@
-!  
-!  (C) 2004 by Argonne National Laboratory.
-!      See COPYRIGHT in top-level directory.
 !
-! Thanks to 
-! William R. Magro
-! for this test
+! Copyright (C) by Argonne National Laboratory
+!     See COPYRIGHT in top-level directory
 !
-! It has been modifiedly slightly to work with the automated MPI
-! tests.
-!  WDG.
-!
-! It was further modified to use MPI_Get_address instead of MPI_Address
-! for MPICH, and to fit in the MPICH test harness - WDG
-!
+
       program bustit
       use mpi
       implicit none
@@ -37,7 +27,7 @@
 
       errs = 0
 !     Enroll in MPI
-      call mpi_init(ierr)
+      call mtest_init(ierr)
 
 !     get my rank
       call mpi_comm_rank(MPI_COMM_WORLD, me, ierr)
@@ -98,16 +88,6 @@
       endif
 !
 !     Sum up errs and report the result
-      call mpi_reduce( errs, toterrs, 1, MPI_INTEGER, MPI_SUM, 0,         &
-     &                 MPI_COMM_WORLD, ierr )
-      if (me .eq. 0) then
-         if (toterrs .eq. 0) then
-            print *, " No Errors"
-         else
-            print *, " Found ", toterrs, " errors"
-         endif
-      endif
-
-      call mpi_finalize(ierr)
+      call mtest_finalize(errs)
 
       end

@@ -1,8 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2006 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include <stdio.h>
 #include "mpi.h"
 #include "mpitest.h"
@@ -26,13 +26,12 @@ int main(int argc, char *argv[])
 
     MTest_Init(&argc, &argv);
 
-    MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
+    MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     if (rank == 0) {
         ierr = MTest_Bcast(buf, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    }
-    else {
+    } else {
         ierr = MTest_Bcast(buf, 10, MPI_INT, 0, MPI_COMM_WORLD);
     }
     if (ierr == MPI_SUCCESS) {
@@ -43,8 +42,7 @@ int main(int argc, char *argv[])
             errs++;
             printf("Did not detect mismatched length (long) on process %d\n", rank);
         }
-    }
-    else {
+    } else {
         if (verbose) {
             MPI_Error_string(ierr, str, &slen);
             printf("Found expected error; message is: %s\n", str);
@@ -53,8 +51,7 @@ int main(int argc, char *argv[])
 
     if (rank == 0) {
         ierr = MTest_Bcast(buf, 10, MPI_INT, 0, MPI_COMM_WORLD);
-    }
-    else {
+    } else {
         ierr = MTest_Bcast(buf, 1, MPI_INT, 0, MPI_COMM_WORLD);
     }
     if (ierr == MPI_SUCCESS) {
@@ -65,17 +62,15 @@ int main(int argc, char *argv[])
             errs++;
             printf("Did not detect mismatched length (short) on process %d\n", rank);
         }
-    }
-    else {
+    } else {
         if (verbose) {
             MPI_Error_string(ierr, str, &slen);
             printf("Found expected error; message is: %s\n", str);
         }
     }
 
-    MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_ARE_FATAL);
+    MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_ARE_FATAL);
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

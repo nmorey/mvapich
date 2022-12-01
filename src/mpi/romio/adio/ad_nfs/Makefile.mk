@@ -1,8 +1,6 @@
-## -*- Mode: Makefile; -*-
-## vim: set ft=automake :
 ##
-## (C) 2011 by Argonne National Laboratory.
-##     See COPYRIGHT in top-level directory.
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
 ##
 
 if BUILD_AD_NFS
@@ -25,4 +23,3 @@ romio_other_sources +=            \
     adio/ad_nfs/ad_nfs_features.c
 
 endif BUILD_AD_NFS
-

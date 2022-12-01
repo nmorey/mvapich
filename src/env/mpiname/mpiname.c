@@ -14,22 +14,22 @@
 #include <unistd.h>
 #include <stdio.h>
 
-extern const char MPIR_Version_string[];
-extern const char MPIR_Version_date[];
-extern const char MPIR_Version_configure[];
-extern const char MPIR_Version_device[];
-extern const char MPIR_Version_CC[];
-extern const char MPIR_Version_CXX[];
-extern const char MPIR_Version_F77[];
-extern const char MPIR_Version_FC[];
-#define MPINAME_VERSION MPIR_Version_string
-#define MPINAME_RELEASE_DATE MPIR_Version_date
-#define MPINAME_OPTIONS MPIR_Version_configure
-#define MPINAME_DEVICE MPIR_Version_device
-#define MPINAME_CC MPIR_Version_CC
-#define MPINAME_CXX MPIR_Version_CXX
-#define MPINAME_F77 MPIR_Version_F77
-#define MPINAME_FC MPIR_Version_FC
+extern const char MPII_Version_string[];
+extern const char MPII_Version_date[];
+extern const char MPII_Version_configure[];
+extern const char MPII_Version_device[];
+extern const char MPII_Version_CC[];
+extern const char MPII_Version_CXX[];
+extern const char MPII_Version_F77[];
+extern const char MPII_Version_FC[];
+#define MPINAME_VERSION MPII_Version_string
+#define MPINAME_RELEASE_DATE MPII_Version_date
+#define MPINAME_OPTIONS MPII_Version_configure
+#define MPINAME_DEVICE MPII_Version_device
+#define MPINAME_CC MPII_Version_CC
+#define MPINAME_CXX MPII_Version_CXX
+#define MPINAME_F77 MPII_Version_F77
+#define MPINAME_FC MPII_Version_FC
 #define MPINAME_NAME "MVAPICH2"
 
 #define PRINT_DEVICE 8

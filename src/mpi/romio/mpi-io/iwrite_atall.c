@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2014 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpioimpl.h"
@@ -17,8 +16,8 @@
 /* end of weak pragmas */
 #elif defined(HAVE_WEAK_ATTRIBUTE)
 int MPI_File_iwrite_at_all(MPI_File fh, MPI_Offset offset, const void *buf, int count,
-                           MPI_Datatype datatype, MPI_Request *request)
-    __attribute__((weak,alias("PMPI_File_iwrite_at_all")));
+                           MPI_Datatype datatype, MPI_Request * request)
+    __attribute__ ((weak, alias("PMPI_File_iwrite_at_all")));
 #endif
 
 /* Include mapping from MPI->PMPI */
@@ -46,8 +45,7 @@ Output Parameters:
 .N fortran
 @*/
 int MPI_File_iwrite_at_all(MPI_File fh, MPI_Offset offset, ROMIO_CONST void *buf,
-                           int count, MPI_Datatype datatype,
-                           MPI_Request *request)
+                           int count, MPI_Datatype datatype, MPI_Request * request)
 {
     int error_code;
     static char myname[] = "MPI_FILE_IWRITE_AT_ALL";
@@ -58,11 +56,10 @@ int MPI_File_iwrite_at_all(MPI_File fh, MPI_Offset offset, ROMIO_CONST void *buf
 #endif /* MPI_hpux */
 
     error_code = MPIOI_File_iwrite_all(fh, offset, ADIO_EXPLICIT_OFFSET,
-				      buf, count, datatype, myname, request);
+                                       buf, count, datatype, myname, request);
 
 #ifdef MPI_hpux
     HPMP_IO_END(fl_xmpi, fh, datatype, count);
 #endif /* MPI_hpux */
     return error_code;
 }
-

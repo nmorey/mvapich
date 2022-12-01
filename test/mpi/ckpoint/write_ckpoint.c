@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpi.h"
@@ -9,6 +8,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include "mpitest.h"
 
 int main(int argc, char *argv[])
 {
@@ -16,6 +16,7 @@ int main(int argc, char *argv[])
     int namelen;
     char processor_name[MPI_MAX_PROCESSOR_NAME];
     struct stat fileStat;
+    int errs = 0;
 
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
@@ -30,15 +31,15 @@ int main(int argc, char *argv[])
     if (myid == 0) {
         if (stat("/tmp/context-num2-0-0", &fileStat) < 0) {
             printf("failed to find ckpoint file\n");
-        }
-        else if (fileStat.st_size == 0) {
+            errs++;
+        } else if (fileStat.st_size == 0) {
             printf("ckpoint file is empty\n");
-        }
-        else {
+            errs++;
+        } else {
             printf("No Errors\n");
         }
     }
 
     MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

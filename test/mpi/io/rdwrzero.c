@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,8 +50,7 @@ int main(int argc, char *argv[])
     if (rc) {
         MTestPrintErrorMsg("File_write_ordered", rc);
         errs++;
-    }
-    else {
+    } else {
         MPI_Get_count(&status, MPI_INT, &count);
         if (count != 1) {
             errs++;
@@ -116,6 +114,5 @@ int main(int argc, char *argv[])
 
   fn_fail:
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

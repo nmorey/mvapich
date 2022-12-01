@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
-/* 
- *
- *   Copyright (C) 1997 University of Chicago. 
- *   See COPYRIGHT notice in top-level directory.
+/*
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpioimpl.h"
@@ -18,7 +16,8 @@
 #pragma _CRI duplicate MPI_File_get_position as PMPI_File_get_position
 /* end of weak pragmas */
 #elif defined(HAVE_WEAK_ATTRIBUTE)
-int MPI_File_get_position(MPI_File fh, MPI_Offset *offset) __attribute__((weak,alias("PMPI_File_get_position")));
+int MPI_File_get_position(MPI_File fh, MPI_Offset * offset)
+    __attribute__ ((weak, alias("PMPI_File_get_position")));
 #endif
 
 /* Include mapping from MPI->PMPI */
@@ -27,7 +26,7 @@ int MPI_File_get_position(MPI_File fh, MPI_Offset *offset) __attribute__((weak,a
 #endif
 
 /*@
-    MPI_File_get_position - Returns the current position of the 
+    MPI_File_get_position - Returns the current position of the
                 individual file pointer in etype units relative to
                 the current view
 
@@ -39,7 +38,7 @@ Output Parameters:
 
 .N fortran
 @*/
-int MPI_File_get_position(MPI_File fh, MPI_Offset *offset)
+int MPI_File_get_position(MPI_File fh, MPI_Offset * offset)
 {
     int error_code;
     ADIO_File adio_fh;
@@ -54,6 +53,6 @@ int MPI_File_get_position(MPI_File fh, MPI_Offset *offset)
 
     ADIOI_Get_position(adio_fh, offset);
 
-fn_exit:
+  fn_exit:
     return MPI_SUCCESS;
 }

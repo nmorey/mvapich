@@ -1,13 +1,14 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2014 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include "mpitest.h"
 #include <stdio.h>
 #include <string.h>
 #include "dtypes.h"
+#include "mpitest.h"
 
 /*
    This program is derived from one in the MPICH-1 test suite.  It
@@ -65,8 +66,7 @@ int main(int argc, char **argv)
             if (rank == 0) {
                 partner = np - 1;
                 MPI_Send(inbufs[j], counts[j], types[j], partner, tag, comm);
-            }
-            else if (rank == np - 1) {
+            } else if (rank == np - 1) {
                 partner = 0;
                 obuf = outbufs[j];
                 for (k = 0; k < bytesize[j]; k++)
@@ -103,6 +103,5 @@ int main(int argc, char **argv)
 
     MTestDatatype2Free(types, inbufs, outbufs, counts, bytesize, ntype);
     MTest_Finalize(err);
-    MPI_Finalize();
     return MTestReturnValue(err);
 }

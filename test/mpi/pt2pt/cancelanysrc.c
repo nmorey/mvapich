@@ -1,12 +1,13 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2014 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include "mpi.h"
+#include "mpitest.h"
 
 int main(int argc, char **argv)
 {
@@ -14,7 +15,7 @@ int main(int argc, char **argv)
     MPI_Request request;
     MPI_Status status;
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -36,15 +37,11 @@ int main(int argc, char **argv)
         MPI_Irecv(&msg, 1, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &request);
         MPI_Wait(&request, &status);
         assert(msg == 42);
-    }
-    else {
+    } else {
         MPI_Barrier(MPI_COMM_WORLD);
         msg = 42;
         MPI_Send(&msg, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
     }
 
-    if (rank == 0)
-        printf(" No Errors\n");
-
-    MPI_Finalize();
+    MTest_Finalize(0);
 }

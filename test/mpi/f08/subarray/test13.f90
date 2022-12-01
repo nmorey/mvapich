@@ -1,8 +1,8 @@
-!   -*- Mode: Fortran; -*-
 !
-!   (C) 2014 by Argonne National Laboratory.
-!   See COPYRIGHT in top-level directory.
+! Copyright (C) by Argonne National Laboratory
+!     See COPYRIGHT in top-level directory
 !
+
 program main
 use mpi_f08
 implicit none
@@ -215,5 +215,4 @@ else
 endif
 
 call MTest_Finalize(errs)
-call MPI_Finalize(ierr)
 end program

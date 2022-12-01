@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2008 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 /*
  * This (is a placeholder for a) test that creates 4 threads, each of which
  * does a concurrent spawn of 4 more processes, for a total of 17 MPI processes
@@ -62,7 +61,7 @@ int main(int argc, char *argv[])
     int err;
     MPI_Comm parentcomm;
 
-    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+    MTest_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -73,7 +72,6 @@ int main(int argc, char *argv[])
                 ("MPI_Init_thread must return MPI_THREAD_MULTIPLE in order for this test to run.\n");
             fflush(stdout);
         }
-        MPI_Finalize();
         return -1;
     }
 
@@ -85,7 +83,6 @@ int main(int argc, char *argv[])
         if (err) {
             printf("barrier_init failed\n");
             fflush(stdout);
-            MPI_Finalize();
             return 1;
         }
 
@@ -103,11 +100,10 @@ int main(int argc, char *argv[])
         if (err) {
             printf("barrier_free failed\n");
             fflush(stdout);
-            MPI_Finalize();
             return 1;
         }
 
-        /* The master thread (this thread) checks the created communicators */
+        /* The parent thread (this thread) checks the created communicators */
         for (i = 0; i < NTHREADS; i++) {
             MPI_Bcast(&i, 1, MPI_INT, MPI_ROOT, intercomms[i]);
         }
@@ -116,8 +112,7 @@ int main(int argc, char *argv[])
         for (i = 0; i < NTHREADS; i++) {
             MPI_Comm_disconnect(&intercomms[i]);
         }
-    }
-    else {
+    } else {
         int num, threadnum;
 
         /* I'm the created process */
@@ -134,12 +129,12 @@ int main(int argc, char *argv[])
 
         /* Let the parent free the intercomms */
         MPI_Comm_disconnect(&parentcomm);
-
     }
 
     if (wasParent)
         MTest_Finalize(0);
+    else
+        MPI_Finalize();
 
-    MPI_Finalize();
     return 0;
 }

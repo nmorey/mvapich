@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2014 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include <mpi.h>
@@ -10,6 +9,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <assert.h>
+#include "mpitest.h"
 
 //#define NUM_X 536870911
 #define NUM_X 536870912
@@ -32,7 +32,7 @@ int main(int argc, char **argv)
     int block_len[2];
     MPI_Datatype type[2];
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
 
     if (sizeof(MPI_Aint) <= sizeof(int)) {
         /* can't test on this platform... */
@@ -73,7 +73,7 @@ int main(int argc, char **argv)
     disp[1] = BIGDT;
 
     /* combine both types */
-    MPI_Type_struct(2, block_len, disp, type, &mem_type);
+    MPI_Type_create_struct(2, block_len, disp, type, &mem_type);
 
     MPI_Type_commit(&mem_type);
     MPI_Type_free(&rem_type);
@@ -135,8 +135,7 @@ int main(int argc, char **argv)
     MPI_Type_free(&file_type);
 
   exit:
-    MPI_Finalize();
-    printf(" No Errors\n");
+    MTest_Finalize(0);
 
     return 0;
 }

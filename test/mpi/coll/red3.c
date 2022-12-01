@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -76,8 +75,7 @@ static void initMat(MPI_Comm comm, int mat[])
                 mat[((i + size - 1) % size) + i * size] = 1;
             else
                 mat[i + i * size] = 1;
-        }
-        else {
+        } else {
             mat[i + i * size] = 1;
         }
     }
@@ -98,8 +96,7 @@ static int isIdentity(MPI_Comm comm, int mat[])
                 if (mat[j + i * size] != 1) {
                     errs++;
                 }
-            }
-            else {
+            } else {
                 if (mat[j + i * size] != 0) {
                     errs++;
                 }
@@ -124,8 +121,7 @@ static int isShiftLeft(MPI_Comm comm, int mat[])
                 if (mat[j + i * size] != 1) {
                     errs++;
                 }
-            }
-            else {
+            } else {
                 if (mat[j + i * size] != 0) {
                     errs++;
                 }
@@ -182,8 +178,7 @@ int main(int argc, char *argv[])
             initMat(comm, bufout);
             if (rank == root) {
                 MPI_Reduce(MPI_IN_PLACE, bufout, count, mattype, op, root, comm);
-            }
-            else {
+            } else {
                 MPI_Reduce(bufout, NULL, count, mattype, op, root, comm);
             }
             if (rank == root) {
@@ -202,6 +197,5 @@ int main(int argc, char *argv[])
     MPI_Op_free(&op);
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

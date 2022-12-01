@@ -15,9 +15,9 @@
 #include <unistd.h>
 #include <string.h>
 #include "mpichconf.h"
-#include "mpimem.h"
+#include "mpir_mem.h"
 #include "mv2_ud.h"
-#include "debug_utils.h"
+#include "mv2_debug_utils.h"
 #include "rdma_impl.h"
 
 extern mv2_MPIDI_CH3I_RDMA_Process_t mv2_MPIDI_CH3I_RDMA_Process;
@@ -107,7 +107,7 @@ mv2_ud_ctx_t* mv2_ud_create_ctx (mv2_ud_qp_info_t *qp_info, int hca_index)
 {
     mv2_ud_ctx_t *ctx;
 
-    ctx = MPIU_Malloc( sizeof(mv2_ud_ctx_t) );
+    ctx = MPL_malloc(sizeof(mv2_ud_ctx_t), MPL_MEM_OTHER);
     if (!ctx){
         fprintf( stderr, "%s:no memory!\n", __func__ );
         return NULL;
@@ -129,6 +129,6 @@ void mv2_ud_destroy_ctx (mv2_ud_ctx_t *ctx)
     if (ctx->qp) {
         ibv_ops.destroy_qp(ctx->qp);
     }
-    MPIU_Free(ctx);
+    MPL_free(ctx);
 }
 

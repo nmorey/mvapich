@@ -1,8 +1,6 @@
-## -*- Mode: Makefile; -*-
-## vim: set ft=automake :
 ##
-## (C) 2011 by Argonne National Laboratory.
-##     See COPYRIGHT in top-level directory.
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
 ##
 
 mpi_core_sources +=                          \
@@ -28,6 +26,8 @@ mpi_core_sources +=                          \
     src/mpid/ch3/src/ch3u_eagersync.c                      \
     src/mpid/ch3/src/ch3u_win_fns.c                        \
     src/mpid/ch3/src/mpid_abort.c                          \
+    src/mpid/ch3/src/mpid_datatype.c                       \
+    src/mpid/ch3/src/mpid_op.c                             \
     src/mpid/ch3/src/mpid_cancel_recv.c                    \
     src/mpid/ch3/src/mpid_cancel_send.c                    \
     src/mpid/ch3/src/mpid_comm_disconnect.c                \
@@ -62,5 +62,3 @@ mpi_core_sources +=                          \
     src/mpid/ch3/src/mpidi_isend_self.c                    \
     src/mpid/ch3/src/mpidi_pg.c                            \
     src/mpid/ch3/src/mpidi_printf.c
-
-AM_CPPFLAGS += -I${master_top_srcdir}/src/mpid/ch3/channels/common/include

@@ -12,7 +12,7 @@
 #include "upmi.h"
 #include <stdlib.h>
 #include <pthread.h>
-#include <mpimem.h>
+#include <mpir_mem.h>
 #include <unistd.h>
 #include <sys/types.h>
 
@@ -383,7 +383,7 @@ int UPMI_IALLGATHER( const char value[] ) {
         if (UPMI_SUCCESS == rc) {
             if (NULL == _iallgather_data) {
                 _iallgather_data_size = _size * PMI2_MAX_VALLEN * sizeof(char);
-                _iallgather_data = MPIU_Malloc(_iallgather_data_size);
+                _iallgather_data = MPL_malloc(_iallgather_data_size);
             }
 
             if (NULL == _iallgather_data) {
@@ -444,7 +444,7 @@ int UPMI_IALLGATHER_FREE( void ) {
         /* nothing to do */
 #   elif defined(HAVE_PMI2_IALLGATHER) && defined(HAVE_PMI2_IALLGATHER_WAIT)
         if (NULL != _iallgather_data) {
-            MPIU_Free(_iallgather_data);
+            MPL_free(_iallgather_data);
         }
 #   endif
 #endif

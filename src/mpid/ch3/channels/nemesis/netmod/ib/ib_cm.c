@@ -109,7 +109,7 @@ static struct ibv_qp *create_qp(struct ibv_pd *pd,
 {
     struct ibv_qp_init_attr boot_attr;
 
-    MPIU_Memset(&boot_attr, 0, sizeof boot_attr);
+    MPIR_Memset(&boot_attr, 0, sizeof boot_attr);
     boot_attr.cap.max_send_wr   = 128;
     boot_attr.cap.max_recv_wr   = 128;
     boot_attr.cap.max_send_sge  = rdma_default_max_sg_list;
@@ -207,7 +207,7 @@ int MPID_nem_ib_init_connection(int rank, int size)
 
     conn_info.size = size;
     conn_info.rank = rank;
-    conn_info.connections = (MPID_nem_ib_connection_t *)MPIU_Malloc(size * sizeof(MPID_nem_ib_connection_t));
+    conn_info.connections = (MPID_nem_ib_connection_t *)MPL_malloc(size * sizeof(MPID_nem_ib_connection_t));
     memset(conn_info.connections, 0, size * sizeof(MPID_nem_ib_connection_t));
 
     MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_INIT_CONN_INFO);
@@ -254,19 +254,19 @@ int MPID_nem_ib_free_conn_info(int size) {
     int i;
 
     for(i=0;i<size;i++){
-        MPIU_Free(conn_info.init_info->qp_num_rdma[i]);
-        MPIU_Free(conn_info.init_info->lid[i]);
-        MPIU_Free(conn_info.init_info->gid[i]);
-        MPIU_Free(conn_info.init_info->hostid[i]);
+        MPL_free(conn_info.init_info->qp_num_rdma[i]);
+        MPL_free(conn_info.init_info->lid[i]);
+        MPL_free(conn_info.init_info->gid[i]);
+        MPL_free(conn_info.init_info->hostid[i]);
     }
-    MPIU_Free(conn_info.init_info->lid);
-    MPIU_Free(conn_info.init_info->gid);
-    MPIU_Free(conn_info.init_info->hostid);
-    MPIU_Free(conn_info.init_info->qp_num_rdma);
-    MPIU_Free(conn_info.init_info->arch_hca_type);
-    MPIU_Free(conn_info.init_info->vc_addr);
+    MPL_free(conn_info.init_info->lid);
+    MPL_free(conn_info.init_info->gid);
+    MPL_free(conn_info.init_info->hostid);
+    MPL_free(conn_info.init_info->qp_num_rdma);
+    MPL_free(conn_info.init_info->arch_hca_type);
+    MPL_free(conn_info.init_info->vc_addr);
 
-    MPIU_Free( conn_info.init_info );
+    MPL_free( conn_info.init_info );
     conn_info.init_info = NULL;
 
     if(size > 1) {
@@ -297,19 +297,19 @@ int MPID_nem_ib_alloc_process_init_info()
     int size = conn_info.size;
     int rails = rdma_num_rails;
 
-    info = MPIU_Malloc(sizeof *info);
+    info = MPL_malloc(sizeof *info);
     if (!info) {
         return 1;
     }
 
-    info->lid = (uint16_t **) MPIU_Malloc(size * sizeof(uint16_t *));
+    info->lid = (uint16_t **) MPL_malloc(size * sizeof(uint16_t *));
     info->gid = (union ibv_gid **)
-                    MPIU_Malloc(size * sizeof(union ibv_gid *));
-    info->hostid = (int **) MPIU_Malloc(size * sizeof(int *));
+                    MPL_malloc(size * sizeof(union ibv_gid *));
+    info->hostid = (int **) MPL_malloc(size * sizeof(int *));
     info->qp_num_rdma = (uint32_t **)
-                            MPIU_Malloc(size * sizeof(uint32_t *));
-    info->arch_hca_type = (mv2_arch_hca_type *) MPIU_Malloc(size * sizeof(mv2_arch_hca_type));
-    info->vc_addr  = (uint64_t *) MPIU_Malloc(size * sizeof(uint64_t));
+                            MPL_malloc(size * sizeof(uint32_t *));
+    info->arch_hca_type = (mv2_arch_hca_type *) MPL_malloc(size * sizeof(mv2_arch_hca_type));
+    info->vc_addr  = (uint64_t *) MPL_malloc(size * sizeof(uint64_t));
 
     if (!info->lid
         || !info->gid
@@ -321,11 +321,11 @@ int MPID_nem_ib_alloc_process_init_info()
 
     for (i = 0; i < size; ++i) {
         info->qp_num_rdma[i] = (uint32_t *)
-                                    MPIU_Malloc(rails * sizeof(uint32_t));
-        info->lid[i] = (uint16_t *) MPIU_Malloc(rails * sizeof(uint16_t));
+                                    MPL_malloc(rails * sizeof(uint32_t));
+        info->lid[i] = (uint16_t *) MPL_malloc(rails * sizeof(uint16_t));
         info->gid[i] = (union ibv_gid *)
-                         MPIU_Malloc(rails * sizeof(union ibv_gid));
-        info->hostid[i] = (int *) MPIU_Malloc(rails * sizeof(int));
+                         MPL_malloc(rails * sizeof(union ibv_gid));
+        info->hostid[i] = (int *) MPL_malloc(rails * sizeof(int));
         if (!info->lid[i]
                 || !info->gid[i]
                 || !info->hostid[i]
@@ -380,9 +380,9 @@ int MPID_nem_ib_setup_conn(MPIDI_PG_t *pg)
          */
         MPIDI_PG_Get_vc_set_active(pg, curRank, &vc);
 
-        conn_info.connections[curRank].rails = MPIU_Malloc
+        conn_info.connections[curRank].rails = MPL_malloc
             (sizeof *conn_info.connections->rails * rdma_num_rails);
-        conn_info.connections[curRank].srp.credits = MPIU_Malloc(sizeof *(conn_info.connections->srp.credits) * rdma_num_rails);
+        conn_info.connections[curRank].srp.credits = MPL_malloc(sizeof *(conn_info.connections->srp.credits) * rdma_num_rails);
         if (!conn_info.connections[curRank].rails
                 || !conn_info.connections[curRank].srp.credits) {
             MPIR_ERR_SETFATALANDSTMT1(mpi_errno, MPI_ERR_OTHER, goto fn_fail,
@@ -526,8 +526,8 @@ int MPID_nem_ib_pmi_exchange()
         buf += 16;
 
         /* put the kvs into PMI */
-        MPIU_Strncpy(mv2_pmi_key, rdmakey, mv2_pmi_max_keylen);
-        MPIU_Strncpy(mv2_pmi_val, rdmavalue, mv2_pmi_max_vallen);
+        MPL_strncpy(mv2_pmi_key, rdmakey, mv2_pmi_max_keylen);
+        MPL_strncpy(mv2_pmi_val, rdmavalue, mv2_pmi_max_vallen);
 	    MPIDI_PG_GetConnKVSname( &kvsname );
         DEBUG_PRINT(stderr, "rdmavalue %s\n", pmi_val);
 
@@ -574,7 +574,7 @@ int MPID_nem_ib_pmi_exchange()
 
         /* Generate the key */
         MPL_snprintf(rdmakey, 512, "%08x-%08x", i, conn_info.rank);
-        MPIU_Strncpy(mv2_pmi_key, rdmakey, mv2_pmi_max_keylen);
+        MPL_strncpy(mv2_pmi_key, rdmakey, mv2_pmi_max_keylen);
 
         error = UPMI_KVS_GET(kvsname, mv2_pmi_key, mv2_pmi_val, mv2_pmi_max_vallen);
         if (error != UPMI_SUCCESS) {
@@ -582,7 +582,7 @@ int MPID_nem_ib_pmi_exchange()
                     "**pmi_kvs_get", "**pmi_kvs_get %d", error);
         }
 
-        MPIU_Strncpy(rdmavalue, mv2_pmi_val, mv2_pmi_max_vallen);
+        MPL_strncpy(rdmavalue, mv2_pmi_val, mv2_pmi_max_vallen);
         buf = rdmavalue;
 
         for (rail_index = 0; rail_index < rdma_num_rails; rail_index++) {
@@ -627,8 +627,8 @@ int MPID_nem_ib_pmi_exchange()
 
         DEBUG_PRINT("put rdma value %s\n", rdmavalue);
         /* Put the kvs into PMI */
-        MPIU_Strncpy(mv2_pmi_key, rdmakey, mv2_pmi_max_keylen);
-        MPIU_Strncpy(mv2_pmi_val, rdmavalue, mv2_pmi_max_vallen);
+        MPL_strncpy(mv2_pmi_key, rdmakey, mv2_pmi_max_keylen);
+        MPL_strncpy(mv2_pmi_val, rdmavalue, mv2_pmi_max_vallen);
 	    MPIDI_PG_GetConnKVSname( &kvsname );
 
         error = UPMI_KVS_PUT(kvsname, mv2_pmi_key, mv2_pmi_val);
@@ -658,13 +658,13 @@ int MPID_nem_ib_pmi_exchange()
 
         /* Generate the key */
         MPL_snprintf(rdmakey, 512, "1-%08x-%08x", i, conn_info.rank);
-        MPIU_Strncpy(mv2_pmi_key, rdmakey, mv2_pmi_max_keylen);
+        MPL_strncpy(mv2_pmi_key, rdmakey, mv2_pmi_max_keylen);
         error = UPMI_KVS_GET(kvsname, mv2_pmi_key, mv2_pmi_val, mv2_pmi_max_vallen);
         if (error != UPMI_SUCCESS) {
             MPIR_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_OTHER,
                     "**pmi_kvs_get", "**pmi_kvs_get %d", error);
         }
-        MPIU_Strncpy(rdmavalue, mv2_pmi_val, mv2_pmi_max_vallen);
+        MPL_strncpy(rdmavalue, mv2_pmi_val, mv2_pmi_max_vallen);
 
         buf = rdmavalue;
         DEBUG_PRINT("get rdmavalue %s\n", rdmavalue);
@@ -1034,7 +1034,7 @@ int rdma_ring_boot_exchange(MPIDI_PG_t *pg, int pg_rank)
     int pg_size = MPIDI_PG_Get_size(pg);
 
     int mpi_errno = MPI_SUCCESS;
-    addr_pool = MPIU_Malloc(MPD_WINDOW * addr_packet_size(pg_size));
+    addr_pool = MPL_malloc(MPD_WINDOW * addr_packet_size(pg_size));
     addr_hndl = ibv_reg_mr(hca_list[0].ptag,
             addr_pool, MPD_WINDOW * addr_packet_size(pg_size),
             IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE);
@@ -1052,7 +1052,7 @@ int rdma_ring_boot_exchange(MPIDI_PG_t *pg, int pg_rank)
         MPIR_ERR_POP(mpi_errno);
     }
     ibv_dereg_mr(addr_hndl);
-    MPIU_Free(addr_pool);
+    MPL_free(addr_pool);
 
 fn_exit:
     return mpi_errno;
@@ -1253,12 +1253,12 @@ static int _rdma_pmi_exchange_addresses(int pg_rank, int pg_size,
     CHECK_UNEXP((len_local > mv2_pmi_max_vallen), "local address length is larger then string length");
 
     /* Be sure to use different keys for different processes */
-    MPIU_Memset(attr_buff, 0, IBA_PMI_ATTRLEN * sizeof(char));
+    MPIR_Memset(attr_buff, 0, IBA_PMI_ATTRLEN * sizeof(char));
     snprintf(attr_buff, IBA_PMI_ATTRLEN, "MVAPICH2-%04d", pg_rank);
 
     /* put the kvs into PMI */
-    MPIU_Strncpy(mv2_pmi_key, attr_buff, mv2_pmi_max_keylen);
-    MPIU_Strncpy(mv2_pmi_val, temp_localaddr, mv2_pmi_max_vallen);
+    MPL_strncpy(mv2_pmi_key, attr_buff, mv2_pmi_max_keylen);
+    MPL_strncpy(mv2_pmi_val, temp_localaddr, mv2_pmi_max_vallen);
     MPIDI_PG_GetConnKVSname( &kvsname );
     ret = UPMI_KVS_PUT(kvsname, mv2_pmi_key, mv2_pmi_val);
 
@@ -1277,14 +1277,14 @@ static int _rdma_pmi_exchange_addresses(int pg_rank, int pg_size,
         /* get lhs and rhs processes' data */
         j = (i == 0) ? lhs : rhs;
         /* Use the key to extract the value */
-        MPIU_Memset(attr_buff, 0, IBA_PMI_ATTRLEN * sizeof(char));
-        MPIU_Memset(val_buff, 0, IBA_PMI_VALLEN * sizeof(char));
+        MPIR_Memset(attr_buff, 0, IBA_PMI_ATTRLEN * sizeof(char));
+        MPIR_Memset(val_buff, 0, IBA_PMI_VALLEN * sizeof(char));
         snprintf(attr_buff, IBA_PMI_ATTRLEN, "MVAPICH2-%04d", j);
-        MPIU_Strncpy(mv2_pmi_key, attr_buff, mv2_pmi_max_keylen);
+        MPL_strncpy(mv2_pmi_key, attr_buff, mv2_pmi_max_keylen);
 
         ret = UPMI_KVS_GET(kvsname, mv2_pmi_key, mv2_pmi_val, mv2_pmi_max_vallen);
         CHECK_UNEXP((ret != 0), "UPMI_KVS_GET error \n");
-        MPIU_Strncpy(val_buff, mv2_pmi_val, mv2_pmi_max_vallen);
+        MPL_strncpy(val_buff, mv2_pmi_val, mv2_pmi_max_vallen);
 
         /* Simple sanity check before stashing it to the alladdrs */
         len_remote = strlen(val_buff);
@@ -1331,7 +1331,7 @@ static int _setup_ib_boot_ring(struct init_addr_inf * neighbor_addr,
     CHECK_RETURN(ret, "Could not modify boot qp to INIT");
 
     /**********************  INIT --> RTR  ************************/
-    MPIU_Memset(&qp_attr, 0, sizeof qp_attr);
+    MPIR_Memset(&qp_attr, 0, sizeof qp_attr);
     qp_attr.qp_state    =   IBV_QPS_RTR;
     qp_attr.rq_psn      =   rdma_default_psn;
     qp_attr.max_dest_rd_atomic  =   rdma_default_max_rdma_dst_ops;
@@ -1404,7 +1404,7 @@ static int _setup_ib_boot_ring(struct init_addr_inf * neighbor_addr,
     }
 
     /************** RTS *******************/
-    MPIU_Memset(&qp_attr, 0, sizeof qp_attr);
+    MPIR_Memset(&qp_attr, 0, sizeof qp_attr);
     qp_attr.qp_state        = IBV_QPS_RTS;
     qp_attr.sq_psn          = rdma_default_psn;
     qp_attr.timeout         = rdma_default_time_out;
@@ -1596,7 +1596,7 @@ int rdma_ring_based_allgather(void *sbuf, int data_size,
         char* rbufProxy = (char*) rbuf;
 
         /* copy self data*/
-        MPIU_Memcpy(rbufProxy+data_size*pg_rank, sbuf, data_size);
+        MPIR_Memcpy(rbufProxy+data_size*pg_rank, sbuf, data_size);
 
         /* post receive*/
         for(i = 0; i < MPD_WINDOW; i++) {
@@ -1687,7 +1687,7 @@ int rdma_ring_based_allgather(void *sbuf, int data_size,
                 if (rc.wr_id < pg_size) {
                     /*recv completion*/
                     recv_comp_index = round_left(recv_comp_index,pg_size);
-                    MPIU_Assert(recv_comp_index == rc.wr_id);
+                    MPIR_Assert(recv_comp_index == rc.wr_id);
                     if (recv_post_index != pg_rank) {
                         rr.wr_id   = recv_post_index;
                         rr.num_sge = 1;
@@ -1780,8 +1780,8 @@ int mv2_allocate_pmi_keyval(void)
         UPMI_KVS_GET_VALUE_LENGTH_MAX(&mv2_pmi_max_vallen);
     }
 
-    mv2_pmi_key = MPIU_Malloc(mv2_pmi_max_keylen+1);
-    mv2_pmi_val = MPIU_Malloc(mv2_pmi_max_vallen+1);
+    mv2_pmi_key = MPL_malloc(mv2_pmi_max_keylen+1);
+    mv2_pmi_val = MPL_malloc(mv2_pmi_max_vallen+1);
 
     if (mv2_pmi_key==NULL || mv2_pmi_val==NULL) {
         mv2_free_pmi_keyval();
@@ -1793,12 +1793,12 @@ int mv2_allocate_pmi_keyval(void)
 void mv2_free_pmi_keyval(void)
 {
     if (mv2_pmi_key!=NULL) {
-        MPIU_Free(mv2_pmi_key);
+        MPL_free(mv2_pmi_key);
         mv2_pmi_key = NULL;
     }
 
     if (mv2_pmi_val!=NULL) {
-        MPIU_Free(mv2_pmi_val);
+        MPL_free(mv2_pmi_val);
         mv2_pmi_val = NULL;
     }
 }

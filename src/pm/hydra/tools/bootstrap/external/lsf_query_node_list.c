@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2010 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "hydra.h"
@@ -23,9 +22,8 @@ HYD_status HYDT_bscd_lsf_query_node_list(struct HYD_node **node_list)
     if (hosts == NULL) {
         *node_list = NULL;
         HYDU_ERR_SETANDJUMP(status, HYD_INTERNAL_ERROR, "No LSF node list found\n");
-    }
-    else {
-        hosts = HYDU_strdup(hosts);
+    } else {
+        hosts = MPL_strdup(hosts);
         thosts = hosts;
 
         hostname = strtok(hosts, " ");
@@ -46,8 +44,7 @@ HYD_status HYDT_bscd_lsf_query_node_list(struct HYD_node **node_list)
             hostname = strtok(NULL, " ");
         }
 
-        if (thosts)
-            HYDU_FREE(thosts);
+        MPL_free(thosts);
     }
 
   fn_exit:

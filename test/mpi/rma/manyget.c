@@ -1,14 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2015 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
-/* This test triggers a limitation in the Portals4 netmod where
- * too many large messages can overflow the available ME entries
- * (PTL_NO_SPACE). Our approach is to queue the entire send message
- * in the Rportals layer until we know there is ME space available.
- */
 #include <stdlib.h>
 #include <stdio.h>
 #include <mpi.h>
@@ -22,7 +16,7 @@ int main(int argc, char *argv[])
     int *buf;
     MPI_Win win;
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
 
     buf = malloc(BUFSIZE);
     MTEST_VG_MEM_INIT(buf, BUFSIZE);
@@ -50,11 +44,8 @@ int main(int argc, char *argv[])
     MPI_Win_fence(0, win);
     MPI_Win_free(&win);
 
-    if (rank == 0)
-        printf(" No Errors\n");
-
     free(buf);
-    MPI_Finalize();
+    MTest_Finalize(0);
 
     return 0;
 }

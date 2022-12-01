@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
-/* 
- *
- *   Copyright (C) 1997 University of Chicago. 
- *   See COPYRIGHT notice in top-level directory.
+/*
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "adio.h"
@@ -14,16 +12,20 @@
 #if defined(HAVE_WEAK_SYMBOLS)
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(FORTRANCAPS)
-extern FORTRAN_API void FORT_CALL MPI_FILE_GET_POSITION_SHARED( MPI_Fint *, MPI_Offset*, MPI_Fint * );
+extern FORTRAN_API void FORT_CALL MPI_FILE_GET_POSITION_SHARED(MPI_Fint *, MPI_Offset *,
+                                                               MPI_Fint *);
 #pragma weak MPI_FILE_GET_POSITION_SHARED = PMPI_FILE_GET_POSITION_SHARED
 #elif defined(FORTRANDOUBLEUNDERSCORE)
-extern FORTRAN_API void FORT_CALL mpi_file_get_position_shared__( MPI_Fint *, MPI_Offset*, MPI_Fint * );
+extern FORTRAN_API void FORT_CALL mpi_file_get_position_shared__(MPI_Fint *, MPI_Offset *,
+                                                                 MPI_Fint *);
 #pragma weak mpi_file_get_position_shared__ = pmpi_file_get_position_shared__
 #elif !defined(FORTRANUNDERSCORE)
-extern FORTRAN_API void FORT_CALL mpi_file_get_position_shared( MPI_Fint *, MPI_Offset*, MPI_Fint * );
+extern FORTRAN_API void FORT_CALL mpi_file_get_position_shared(MPI_Fint *, MPI_Offset *,
+                                                               MPI_Fint *);
 #pragma weak mpi_file_get_position_shared = pmpi_file_get_position_shared
 #else
-extern FORTRAN_API void FORT_CALL mpi_file_get_position_shared_( MPI_Fint *, MPI_Offset*, MPI_Fint * );
+extern FORTRAN_API void FORT_CALL mpi_file_get_position_shared_(MPI_Fint *, MPI_Offset *,
+                                                                MPI_Fint *);
 #pragma weak mpi_file_get_position_shared_ = pmpi_file_get_position_shared_
 #endif
 
@@ -90,13 +92,14 @@ extern FORTRAN_API void FORT_CALL mpi_file_get_position_shared_( MPI_Fint *, MPI
 #endif
 
 /* Prototype to keep compiler happy */
-FORTRAN_API void FORT_CALL mpi_file_get_position_shared_(MPI_Fint *fh, MPI_Offset *offset, 
-				   MPI_Fint *ierr );
+FORTRAN_API void FORT_CALL mpi_file_get_position_shared_(MPI_Fint * fh, MPI_Offset * offset,
+                                                         MPI_Fint * ierr);
 
-FORTRAN_API void FORT_CALL mpi_file_get_position_shared_(MPI_Fint *fh, MPI_Offset *offset, MPI_Fint *ierr )
+FORTRAN_API void FORT_CALL mpi_file_get_position_shared_(MPI_Fint * fh, MPI_Offset * offset,
+                                                         MPI_Fint * ierr)
 {
     MPI_File fh_c;
-    
+
     fh_c = MPI_File_f2c(*fh);
     *ierr = MPI_File_get_position_shared(fh_c, offset);
 }

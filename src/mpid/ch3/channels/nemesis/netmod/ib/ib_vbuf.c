@@ -31,10 +31,9 @@
 #include <infiniband/verbs.h>
 
 #include "mpidimpl.h"
-#include <mpimem.h>
+#include <mpir_mem.h>
 #include "upmi.h"
 #include "ib_vbuf.h"
-#include "mpiutil.h"
 #include "ib_process.h"
 #include "ib_send.h"
 /* add ib_vc.h for MRAILI_Release_recv_rdma */
@@ -153,9 +152,9 @@ void deallocate_vbuf_region()
 
     while (curr) {
         next = curr->next;
-        MPIU_Memalign_Free(curr->malloc_start);
-        MPIU_Memalign_Free(curr->malloc_buf_start);
-        MPIU_Free(curr);
+        MPL_free(curr->malloc_start);
+        MPL_free(curr->malloc_buf_start);
+        MPL_free(curr);
         curr = next;
     }
 }
@@ -193,7 +192,7 @@ static int allocate_vbuf_region(int nvbufs)
         }
     }
 
-    reg = (struct vbuf_region *) MPIU_Malloc (sizeof(struct vbuf_region));
+    reg = (struct vbuf_region *) MPL_malloc (sizeof(struct vbuf_region));
 
     if (NULL == reg)
     {
@@ -399,7 +398,7 @@ void MRAILI_Release_vbuf(vbuf* v)
 
     DEBUG_PRINT("release_vbuf: releasing %p previous head = %p, padding %d\n", v, free_vbuf_head, v->padding);
 
-    MPIU_Assert(v != free_vbuf_head);
+    MPIR_Assert(v != free_vbuf_head);
     v->desc.next = free_vbuf_head;
 
     if (v->padding != NORMAL_VBUF_FLAG
@@ -542,7 +541,7 @@ void vbuf_init_send(vbuf* v, unsigned long len, int rail)
 #define FCNAME MPL_QUOTE(FUNCNAME)
 void vbuf_init_recv(vbuf* v, unsigned long len, int rail)
 {
-    MPIU_Assert(v != NULL);
+    MPIR_Assert(v != NULL);
     int hca_num = rail / (rdma_num_rails / ib_hca_num_hcas);
 
     MPIDI_STATE_DECL(MPID_STATE_VBUF_INIT_RECV);

@@ -1,8 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2008 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <pthread.h>
 #include <signal.h>
@@ -71,8 +71,7 @@ int main(int argc, char **argv)
         installExitHandler(globalFname);
 
         comm = startComm;
-    }
-    else {
+    } else {
         char *readPort;
         readPort = getPortFromFile("%s.%d", fname, expectedRank);
         strncpy(portName, readPort, MPI_MAX_PORT_NAME);

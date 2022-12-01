@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2012 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include <stdio.h>
@@ -20,13 +18,13 @@ int main(int argc, char **argv)
     int i, j, rank, nproc;
     int shm_rank, shm_nproc;
     MPI_Info alloc_shared_info;
-    int errors = 0, all_errors = 0;
+    int errors = 0;
     int disp_unit;
     int *my_base, my_size;
     MPI_Win shm_win;
     MPI_Comm shm_comm;
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
 
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &nproc);
@@ -72,8 +70,7 @@ int main(int argc, char **argv)
                            base[j], i, j, j);
                 }
             }
-        }
-        else {
+        } else {
             assert(size == 0);
             assert(base == NULL);
         }
@@ -84,12 +81,7 @@ int main(int argc, char **argv)
 
     MPI_Info_free(&alloc_shared_info);
 
-    MPI_Reduce(&errors, &all_errors, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+    MTest_Finalize(errors);
 
-    if (rank == 0 && all_errors == 0)
-        printf(" No Errors\n");
-
-    MPI_Finalize();
-
-    return 0;
+    return MTestReturnValue(errors);
 }

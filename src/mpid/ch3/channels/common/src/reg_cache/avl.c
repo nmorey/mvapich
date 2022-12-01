@@ -28,7 +28,7 @@
 #include "mpichconf.h"
 #endif
 #include <mpiimpl.h>
-#include <mpimem.h>
+#include <mpir_mem.h>
 #include <stdio.h>
 #include "avl.h"	/* public types for avl trees */ 
 #include "avl_typs.h"  /* private types for avl trees */
@@ -92,7 +92,7 @@ PRIVATE  char *
 ckalloc(size)
    unsigned int size;
 {
-   char *ptr = MPIU_Malloc((size_t) size);
+   char *ptr = MPL_malloc((size_t) size, MPL_MEM_OTHER);
 
    if (ptr == NULL)
    {
@@ -128,7 +128,7 @@ new_node(data, size)
    root = (AVLtree) ckalloc(sizeof (AVLnode));
    root->data = (void *) ckalloc(size);
 #endif /* !defined(DISABLE_PTMALLOC) */
-   MPIU_Memcpy(root->data, data, size);
+   MPIR_Memcpy(root->data, data, size);
    root->bal = BALANCED;
    root->subtree[LEFT]  = root->subtree[RIGHT] = NULL_TREE;
 
@@ -146,14 +146,14 @@ free_node(rootp)
 {
 #if !defined(DISABLE_PTMALLOC)
    if(g_is_dreg_finalize == 1) {
-     MPIU_Free((*rootp)->data);
-     MPIU_Free(*rootp);
+     MPL_free((*rootp)->data);
+     MPL_free(*rootp);
    } else { 
       ADD_AVL_FREE_LIST(&avl_free_list, *rootp);
    }
 #else /* !defined(DISABLE_PTMALLOC) */
-   MPIU_Free((*rootp)->data);
-   MPIU_Free(*rootp);
+   MPL_free((*rootp)->data);
+   MPL_free(*rootp);
 #endif /* !defined(DISABLE_PTMALLOC) */
    *rootp = NULL_TREE;
 }/* free_node */
@@ -584,7 +584,7 @@ avl_delete(data, rootp, compar)
           * OK for us, since our data size is max 8 bytes
           * long.
           */
-         MPIU_Memcpy(scratch_space, successor_data, sizeof(void *));
+         MPIR_Memcpy(scratch_space, successor_data, sizeof(void *));
 
          decrease = avl_delete(&((*rootp)->data),
                                &((*rootp)->subtree[RIGHT]),
@@ -596,7 +596,7 @@ avl_delete(data, rootp, compar)
 
          /* Restore the data in the pointer from what
           * was freed */
-         MPIU_Memcpy((*rootp)->data, scratch_space, sizeof(void *));
+         MPIR_Memcpy((*rootp)->data, scratch_space, sizeof(void *));
 
       default:
          break;
@@ -817,19 +817,19 @@ avldispose(treeptr, action, sibling_order)
 
    GET_AVL_FREE_LIST(&avl_free_list, &root);
    while(NULL != root) {
-       MPIU_Free(root->data);
-       MPIU_Free(root);
+       MPL_free(root->data);
+       MPL_free(root);
        GET_AVL_FREE_LIST(&avl_free_list, &root);
    }
 #endif
 
    avl_desc = (AVLdescriptor *) *treeptr;
    if(&(avl_desc->root) == NULL) {
-       MPIU_Free(treeptr);
+       MPL_free(treeptr);
        return;
    } 
    avl_free(&(avl_desc->root), action, sibling_order, 1);
-   MPIU_Free(treeptr);
+   MPL_free(treeptr);
 }/* avldispose */
 
 

@@ -1,8 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2010 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 /*
  * Test of reduce scatter with large data (needed in MPICH to trigger the
  * long-data algorithm)
@@ -20,7 +20,7 @@
 
 int main(int argc, char **argv)
 {
-    int err = 0;
+    int errs = 0;
     int *sendbuf, *recvbuf;
     int size, rank, i, j, idx, mycount, sumval;
     MPI_Comm comm;
@@ -56,9 +56,11 @@ int main(int argc, char **argv)
     /* recvbuf should be size * (rank + i) */
     for (i = 0; i < mycount; i++) {
         if (recvbuf[i] != sumval) {
-            err++;
-            fprintf(stdout, "Did not get expected value for reduce scatter\n");
-            fprintf(stdout, "[%d] Got %d expected %d\n", rank, recvbuf[i], sumval);
+            errs++;
+            if (errs < 10) {
+                fprintf(stdout, "Did not get expected value for reduce scatter\n");
+                fprintf(stdout, "[%d] Got %d expected %d\n", rank, recvbuf[i], sumval);
+            }
         }
     }
 
@@ -68,18 +70,19 @@ int main(int argc, char **argv)
     /* recv'ed values for my process should be size * (rank + i) */
     for (i = 0; i < mycount; i++) {
         if (sendbuf[i] != sumval) {
-            err++;
-            fprintf(stdout, "Did not get expected value for reduce scatter (in place)\n");
-            fprintf(stdout, "[%d] Got %d expected %d\n", rank, sendbuf[i], sumval);
+            errs++;
+            if (errs < 10) {
+                fprintf(stdout, "Did not get expected value for reduce scatter (in place)\n");
+                fprintf(stdout, "[%d] Got %d expected %d\n", rank, sendbuf[i], sumval);
+            }
         }
     }
 
     free(sendbuf);
     free(recvbuf);
 
-    MTest_Finalize(err);
+    MTest_Finalize(errs);
 
-    MPI_Finalize();
 
-    return 0;
+    return MTestReturnValue(errs);
 }

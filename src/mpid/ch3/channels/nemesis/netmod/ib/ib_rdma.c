@@ -61,23 +61,23 @@ int vbuf_fast_rdma_alloc (MPIDI_VC_t * c, int dir)
     if (num_rdma_buffer) {
 
     /* allocate vbuf struct buffers */
-        if(MPIU_Memalign((void **) &vbuf_ctrl_buf, vbuf_alignment,
-            sizeof(struct vbuf) * num_rdma_buffer)) {
+        if(!(vbuf_ctrl_buf = MPL_aligned_alloc(vbuf_alignment,
+                    sizeof(struct vbuf) * num_rdma_buffer), MPL_MEM_BUFFER)) {
             DEBUG_PRINT("malloc failed: vbuf in vbuf_fast_rdma_alloc\n");
             goto fn_fail;
         }
 
-        MPIU_Memset(vbuf_ctrl_buf, 0,
+        MPIR_Memset(vbuf_ctrl_buf, 0,
                 sizeof(struct vbuf) * num_rdma_buffer);
 
         /* allocate vbuf RDMA buffers */
-        if(MPIU_Memalign((void **)&vbuf_rdma_buf, pagesize,
-            rdma_fp_buffer_size * num_rdma_buffer)) {
+        if(!(vbuf_rdma_buf = MPL_aligned_alloc(pagesize,
+                    rdma_fp_buffer_size * num_rdma_buffer), MPL_MEM_BUFFER) ) {
             DEBUG_PRINT("malloc failed: vbuf DMA in vbuf_fast_rdma_alloc");
             goto fn_exit;
         }
 
-        MPIU_Memset(vbuf_rdma_buf, 0, rdma_fp_buffer_size * num_rdma_buffer);
+        MPIR_Memset(vbuf_rdma_buf, 0, rdma_fp_buffer_size * num_rdma_buffer);
 
         /* REGISTER RDMA SEND BUFFERS */
         for ( i = 0 ; i < ib_hca_num_hcas; i ++ ) {
@@ -135,10 +135,10 @@ fn_exit:
     return mpi_errno;
 fn_fail:
     if (vbuf_rdma_buf) {
-        MPIU_Memalign_Free(vbuf_rdma_buf);
+        MPL_free(vbuf_rdma_buf);
     }
     if (vbuf_ctrl_buf) {
-        MPIU_Memalign_Free(vbuf_ctrl_buf);
+        MPL_free(vbuf_ctrl_buf);
     }
     mpi_errno = -1;
     goto fn_exit;

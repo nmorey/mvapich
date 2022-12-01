@@ -19,8 +19,7 @@
 #include "upmi.h"
 #include "mpiimpl.h"
 #include "rdma_impl.h"
-#include "mpiutil.h"
-#include <debug_utils.h>
+#include "mv2_debug_utils.h"
 #if defined(_MCST_SUPPORT_)
 #include "ibv_mcast.h"
 #endif
@@ -56,21 +55,19 @@ static int curr_cqe[MAX_NUM_HCAS] = { 0 };
 static struct ibv_wc wc[MAX_NUM_HCAS][RDMA_MAX_CQE_ENTRIES_PER_POLL] = { 0 };
 static unsigned long nspin = 0;
 
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_vbuf_allocated);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_vbuf_freed);
-MPIR_T_PVAR_ULONG_LEVEL_DECL_EXTERN(MV2, mv2_vbuf_available);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_ud_vbuf_allocated);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_ud_vbuf_freed);
-MPIR_T_PVAR_ULONG_LEVEL_DECL_EXTERN(MV2, mv2_ud_vbuf_available);
+extern unsigned long PVAR_COUNTER_mv2_vbuf_allocated;
+extern unsigned long PVAR_COUNTER_mv2_vbuf_freed;
+extern unsigned long PVAR_LEVEL_mv2_vbuf_available;
+extern unsigned long PVAR_COUNTER_mv2_ud_vbuf_allocated;
+extern unsigned long PVAR_COUNTER_mv2_ud_vbuf_freed;
+extern unsigned long PVAR_LEVEL_mv2_ud_vbuf_available;
 
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_rdmafp_ctrl_packet_count);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2,
-        mv2_rdmafp_out_of_order_packet_count);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_rdmafp_exact_recv_count);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_ibv_channel_ctrl_packet_count);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2,
-        mv2_ibv_channel_out_of_order_packet_count);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_ibv_channel_exact_recv_count);
+extern unsigned long PVAR_COUNTER_mv2_rdmafp_ctrl_packet_count;
+extern unsigned long PVAR_COUNTER_mv2_rdmafp_out_of_order_packet_count;
+extern unsigned long PVAR_COUNTER_mv2_rdmafp_exact_recv_count;
+extern unsigned long PVAR_COUNTER_mv2_ibv_channel_ctrl_packet_count;
+extern unsigned long PVAR_COUNTER_mv2_ibv_channel_out_of_order_packet_count;
+extern unsigned long PVAR_COUNTER_mv2_ibv_channel_exact_recv_count;
 
 /* Utility function to print detailed messages for failed work completions.
  * Thanks to IBM and RDMAmojo.com for the detailed descriptions.
@@ -254,20 +251,12 @@ void init_apm_lock()
     pthread_spin_init(&g_apm_lock, 0);
 }
 
-#undef FUNCNAME
-#define FUNCNAME lock_apm
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 static void lock_apm()
 {
     pthread_spin_lock(&g_apm_lock);
     return;
 }
 
-#undef FUNCNAME
-#define FUNCNAME unlock_apm 
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 static void unlock_apm()
 {
     pthread_spin_unlock(&g_apm_lock);
@@ -346,10 +335,6 @@ static inline int PKT_IS_NOOP(void* v)
     return ((MPIDI_CH3I_MRAILI_Pkt_comm_header*) ((vbuf*) v)->pheader)->type == MPIDI_CH3_PKT_NOOP;
 }
 
-#undef FUNCNAME
-#define FUNCNAME GetSeqNumVbuf
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 /*FIXME: Ideally this functionality should be provided by higher levels*/
 static inline int GetSeqNumVbuf(vbuf * buf)
 {
@@ -508,9 +493,6 @@ static inline int handle_cqe(vbuf **vbuf_handle, MPIDI_VC_t * vc_req,
 #endif /* _ENABLE_WC_DRV1_ */
 #ifdef _ENABLE_WC_DRV2_
                           wc.opcode == IBV_WC_DRIVER2 ||
-#endif /* _ENABLE_WC_DRV2_ */
-#ifdef _ENABLE_WC_DRV3_
-                          wc.opcode == IBV_WC_DRIVER3 ||
 #endif /* _ENABLE_WC_DRV2_ */
                           wc.opcode == IBV_WC_COMP_SWAP);
 
@@ -750,10 +732,6 @@ fn_exit:
     return type;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_RDMA_cq_poll_iwarp
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3I_MRAILI_Cq_poll_iwarp(vbuf **vbuf_handle, 
         MPIDI_VC_t * vc_req, int receiving, int is_blocking)
 {
@@ -764,8 +742,8 @@ int MPIDI_CH3I_MRAILI_Cq_poll_iwarp(vbuf **vbuf_handle,
     int type = T_CHANNEL_NO_ARRIVE;
     struct ibv_cq *chosen_cq = NULL;
 
-    MPIDI_STATE_DECL(MPID_GEN2_MRAILI_CQ_POLL_IWARP);
-    MPIDI_FUNC_ENTER(MPID_GEN2_MRAILI_CQ_POLL_IWARP);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_GEN2_MRAILI_CQ_POLL_IWARP);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_GEN2_MRAILI_CQ_POLL_IWARP);
 
     *vbuf_handle = NULL;
 
@@ -848,22 +826,18 @@ int MPIDI_CH3I_MRAILI_Cq_poll_iwarp(vbuf **vbuf_handle,
         }
     }
 fn_exit:
-    MPIDI_FUNC_EXIT(MPID_GEN2_MRAILI_CQ_POLL_IWARP);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_GEN2_MRAILI_CQ_POLL_IWARP);
     return type;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_MRAILI_Get_next_vbuf
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3I_MRAILI_Get_next_vbuf(MPIDI_VC_t** vc_ptr, vbuf** vbuf_ptr) 
 {
     *vc_ptr = NULL;
     *vbuf_ptr = NULL;
     VBUF_FLAG_TYPE size;
     int type;
-    MPIDI_STATE_DECL(MPID_GEN2_MPIDI_CH3I_MRAILI_GET_NEXT_VBUF);
-    MPIDI_FUNC_ENTER(MPID_GEN2_MPIDI_CH3I_MRAILI_GET_NEXT_VBUF);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_GEN2_MPIDI_CH3I_MRAILI_GET_NEXT_VBUF);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_GEN2_MPIDI_CH3I_MRAILI_GET_NEXT_VBUF);
 
     int i = 0;
     MPIDI_VC_t* vc = NULL;
@@ -980,14 +954,10 @@ out_of_order_handling:
     }
 
 fn_exit:
-    MPIDI_FUNC_EXIT(MPID_GEN2_MPIDI_CH3I_MRAILI_GET_NEXT_VBUF);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_GEN2_MPIDI_CH3I_MRAILI_GET_NEXT_VBUF);
     return type;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_MRAILI_Waiting_msg
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3I_MRAILI_Waiting_msg(MPIDI_VC_t * vc, vbuf ** vbuf_handle, int blocking) 
 {
     MRAILI_Channel_manager * cmanager = &vc->mrail.cmanager;
@@ -996,8 +966,8 @@ int MPIDI_CH3I_MRAILI_Waiting_msg(MPIDI_VC_t * vc, vbuf ** vbuf_handle, int bloc
     int seq;
     int seq_expected = vc->mrail.seqnum_next_torecv;
     int type = T_CHANNEL_NO_ARRIVE;
-    MPIDI_STATE_DECL(MPID_GEN2_MPIDI_CH3I_MRAILIWAITING_MSG);
-    MPIDI_FUNC_ENTER(MPID_GEN2_MPIDI_CH3I_MRAILIWAITING_MSG);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_GEN2_MPIDI_CH3I_MRAILIWAITING_MSG);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_GEN2_MPIDI_CH3I_MRAILIWAITING_MSG);
 
     *vbuf_handle = NULL;
 
@@ -1086,7 +1056,7 @@ int MPIDI_CH3I_MRAILI_Waiting_msg(MPIDI_VC_t * vc, vbuf ** vbuf_handle, int bloc
 fn_exit:
     PRINT_DEBUG((blocking&&DEBUG_CHM_verbose), "{return} solve_out_of_order, type %d, next expected %d\n", 
                 type, vc->mrail.seqnum_next_torecv);
-    MPIDI_FUNC_EXIT(MPID_GEN2_MPIDI_CH3I_MRAILIWAITING_MSG);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_GEN2_MPIDI_CH3I_MRAILIWAITING_MSG);
     return type;
 }
 
@@ -1099,9 +1069,9 @@ static inline int perform_blocking_progress_for_ib(int hca_num, int num_cqs)
     /* Okay ... spun long enough, now time to go to sleep! */
 
 #if (MPICH_THREAD_LEVEL == MPI_THREAD_MULTIPLE)
-    MPIU_THREAD_CHECK_BEGIN
-    MPID_Thread_mutex_unlock(&MPIR_ThreadInfo.global_mutex, &err);
-    MPIU_THREAD_CHECK_END
+    MPIR_THREAD_CHECK_BEGIN
+    MPID_Thread_mutex_unlock(&MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX, &err);
+    MPIR_THREAD_CHECK_END
 #endif
     do {    
         if (unlikely(ibv_req_notify_cq(
@@ -1118,9 +1088,9 @@ static inline int perform_blocking_progress_for_ib(int hca_num, int num_cqs)
         }       
     } while (ret && errno == EINTR); 
 #if (MPICH_THREAD_LEVEL == MPI_THREAD_MULTIPLE)
-    MPIU_THREAD_CHECK_BEGIN
-    MPID_Thread_mutex_lock(&MPIR_ThreadInfo.global_mutex, &err);
-    MPIU_THREAD_CHECK_END
+    MPIR_THREAD_CHECK_BEGIN
+    MPID_Thread_mutex_lock(&MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX, &err);
+    MPIR_THREAD_CHECK_END
 #endif
 
 	if (unlikely(ev_cq != mv2_MPIDI_CH3I_RDMA_Process.cq_hndl[hca_num])) {
@@ -1142,9 +1112,9 @@ static inline int perform_blocking_progress_for_iwarp(int hca_num, int num_cqs)
     /* Okay ... spun long enough, now time to go to sleep! */
 
 #if (MPICH_THREAD_LEVEL == MPI_THREAD_MULTIPLE)
-    MPIU_THREAD_CHECK_BEGIN
-    MPID_Thread_mutex_unlock(&MPIR_ThreadInfo.global_mutex, &err);
-    MPIU_THREAD_CHECK_END
+    MPIR_THREAD_CHECK_BEGIN
+    MPID_Thread_mutex_unlock(&MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX, &err);
+    MPIR_THREAD_CHECK_END
 #endif
     do {    
         if (num_cqs == 1) {
@@ -1174,9 +1144,9 @@ static inline int perform_blocking_progress_for_iwarp(int hca_num, int num_cqs)
         }       
     } while (ret && errno == EINTR); 
 #if (MPICH_THREAD_LEVEL == MPI_THREAD_MULTIPLE)
-    MPIU_THREAD_CHECK_BEGIN
-    MPID_Thread_mutex_lock(&MPIR_ThreadInfo.global_mutex, &err);
-    MPIU_THREAD_CHECK_END
+    MPIR_THREAD_CHECK_BEGIN
+    MPID_Thread_mutex_lock(&MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX, &err);
+    MPIR_THREAD_CHECK_END
 #endif
 
     if (num_cqs == 1) {
@@ -1201,10 +1171,6 @@ static inline int perform_blocking_progress_for_iwarp(int hca_num, int num_cqs)
     return 0;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_RDMA_cq_poll_ib
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3I_MRAILI_Cq_poll_ib(vbuf **vbuf_handle, 
         MPIDI_VC_t * vc_req, int receiving, int is_blocking)
 {
@@ -1215,8 +1181,8 @@ int MPIDI_CH3I_MRAILI_Cq_poll_ib(vbuf **vbuf_handle,
     int type = T_CHANNEL_NO_ARRIVE;
     struct ibv_cq *chosen_cq = NULL;
 
-    MPIDI_STATE_DECL(MPID_GEN2_MRAILI_CQ_POLL_IB);
-    MPIDI_FUNC_ENTER(MPID_GEN2_MRAILI_CQ_POLL_IB);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_GEN2_MRAILI_CQ_POLL_IB);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_GEN2_MRAILI_CQ_POLL_IB);
 
     *vbuf_handle = NULL;
 
@@ -1292,7 +1258,7 @@ get_blocking_message:
     }
 fn_exit:
 
-    MPIDI_FUNC_EXIT(MPID_GEN2_MRAILI_CQ_POLL_IB);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_GEN2_MRAILI_CQ_POLL_IB);
     return type;
 }
 
@@ -1553,8 +1519,8 @@ int reload_alternate_path(struct ibv_qp *qp)
     lock_apm();
 
     /* For Sanity */
-    MPIU_Memset(&attr, 0, sizeof attr);
-    MPIU_Memset(&init_attr, 0, sizeof init_attr);
+    MPIR_Memset(&attr, 0, sizeof attr);
+    MPIR_Memset(&init_attr, 0, sizeof init_attr);
 
     attr_mask = 0;
 
@@ -1617,8 +1583,8 @@ int perform_manual_apm(struct ibv_qp* qp)
     }
     
     /* For Sanity */    
-    MPIU_Memset(&attr, 0, sizeof attr);
-    MPIU_Memset(&init_attr, 0, sizeof init_attr);
+    MPIR_Memset(&attr, 0, sizeof attr);
+    MPIR_Memset(&init_attr, 0, sizeof init_attr);
     attr_mask = 0;
     lock_apm();
     ibv_ops.query_qp(qp, &attr,
@@ -1627,7 +1593,7 @@ int perform_manual_apm(struct ibv_qp* qp)
     if (IBV_MIG_ARMED == attr.path_mig_state)
     {
         attr.path_mig_state = IBV_MIG_MIGRATED;
-        MPIU_Assert(attr.qp_state == IBV_QPS_RTS);
+        MPIR_Assert(attr.qp_state == IBV_QPS_RTS);
         ibv_ops.modify_qp(qp, &attr,
                     IBV_QP_PATH_MIG_STATE);
     }

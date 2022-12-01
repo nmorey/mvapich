@@ -11,17 +11,16 @@
  */
 
 #include "mpidi_ch3_impl.h"
-#include "mpiutil.h"
 #include "rdma_impl.h"
 #include "ibv_cuda_util.h"
 #include "dreg.h"
 
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_vbuf_allocated);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_vbuf_freed);
-MPIR_T_PVAR_ULONG_LEVEL_DECL_EXTERN(MV2, mv2_vbuf_available);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_ud_vbuf_allocated);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_ud_vbuf_freed);
-MPIR_T_PVAR_ULONG_LEVEL_DECL_EXTERN(MV2, mv2_ud_vbuf_available);
+extern unsigned long PVAR_COUNTER_mv2_vbuf_allocated;
+extern unsigned long PVAR_COUNTER_mv2_vbuf_freed;
+extern unsigned long PVAR_LEVEL_mv2_vbuf_available;
+extern unsigned long PVAR_COUNTER_mv2_ud_vbuf_allocated;
+extern unsigned long PVAR_COUNTER_mv2_ud_vbuf_freed;
+extern unsigned long PVAR_LEVEL_mv2_ud_vbuf_available;
 
 #ifdef _ENABLE_CUDA_
 void *cuda_event_region = NULL;
@@ -69,12 +68,12 @@ void allocate_cuda_events()
     int i;
     cudaError_t result;
     mv2_device_event_t *curr;
-    cuda_event_region = (void *) MPIU_Malloc(sizeof(mv2_device_event_t)
+    cuda_event_region = (void *) MPL_malloc(sizeof(mv2_device_event_t)
                                               * mv2_device_event_count);
     if (stream_d2h == 0 && stream_h2d == 0) {
         allocate_cuda_rndv_streams();
     }
-    MPIU_Assert(free_cuda_event_list_head == NULL);
+    MPIR_Assert(free_cuda_event_list_head == NULL);
     free_cuda_event_list_head = cuda_event_region;
     curr = (mv2_device_event_t *) cuda_event_region;
     for (i = 1; i <= mv2_device_event_count; i++) {
@@ -101,14 +100,14 @@ void allocate_cuda_events()
 void deallocate_cuda_events()
 {
     mv2_device_event_t *curr_event = free_cuda_event_list_head;
-    MPIU_Assert(busy_cuda_event_list_head == NULL);
+    MPIR_Assert(busy_cuda_event_list_head == NULL);
     while(curr_event) {
         cudaEventDestroy(curr_event->event);
         curr_event = curr_event->next;
     }
 
     if (cuda_event_region != NULL) {
-        MPIU_Free(cuda_event_region);
+        MPL_free(cuda_event_region);
         cuda_event_region = NULL;
     }
     /* Free IPC event pool */
@@ -116,14 +115,14 @@ void deallocate_cuda_events()
         curr_event = free_cudaipc_event_list_head;
         cudaEventDestroy(curr_event->event);
         free_cudaipc_event_list_head = free_cudaipc_event_list_head->next;
-        MPIU_Free(curr_event);
+        MPL_free(curr_event);
     }
 }
 
 int allocate_cuda_event(mv2_device_event_t **cuda_event)
 {
     cudaError_t result;
-    *cuda_event = (mv2_device_event_t *) MPIU_Malloc(sizeof(mv2_device_event_t));
+    *cuda_event = (mv2_device_event_t *) MPL_malloc(sizeof(mv2_device_event_t));
     result = cudaEventCreateWithFlags(&((*cuda_event)->event), cudaEventDisableTiming
 #if defined(HAVE_CUDA_IPC)
             | cudaEventInterprocess
@@ -131,7 +130,7 @@ int allocate_cuda_event(mv2_device_event_t **cuda_event)
             );
     /* if OOM for allocating CUDA event, return NULL and we will try it later */
     if (cudaErrorMemoryAllocation == result) {
-        MPIU_Free(*cuda_event);
+        MPL_free(*cuda_event);
         *cuda_event = NULL;
         return 0;
     }
@@ -147,7 +146,7 @@ int allocate_cuda_event(mv2_device_event_t **cuda_event)
 void deallocate_cuda_event(mv2_device_event_t **cuda_event)
 {
     CUDA_CHECK(cudaEventDestroy((*cuda_event)->event));
-    MPIU_Free(*cuda_event);
+    MPL_free(*cuda_event);
     *cuda_event = NULL;
 }
 
@@ -180,7 +179,7 @@ void release_cudaipc_event(mv2_device_event_t *event)
 void process_cuda_event_op(mv2_device_event_t * event)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Request *req = event->req;
+    MPIR_Request *req = event->req;
     MPIDI_VC_t *vc = (MPIDI_VC_t *) event->vc;
     vbuf *cuda_vbuf = event->device_vbuf_head;
     int displacement = event->displacement;
@@ -321,7 +320,7 @@ void process_cuda_event_op(mv2_device_event_t * event)
                 ibv_error_abort(IBV_RETURN_ERR,
                         "MPIDI_CH3U_Handle_recv_req returned error");
             }
-            MPIU_Assert(complete == TRUE);
+            MPIR_Assert(complete == TRUE);
             vc->ch.recv_active = NULL;
         }
 #if defined(HAVE_CUDA_IPC)
@@ -362,13 +361,13 @@ void process_cuda_event_op(mv2_device_event_t * event)
                 req->mrail.rndv_buf != NULL) { 
             /* a temporary host rndv buffer would have been allocated only when the 
                sender buffers is noncontiguous and is in the host memory */
-            MPIU_Assert(req->mrail.device_transfer_mode == HOST_TO_DEVICE);
-            MPIU_Free_Device_Pinned_Host(req->mrail.rndv_buf);
+            MPIR_Assert(req->mrail.device_transfer_mode == HOST_TO_DEVICE);
+            MV2_MPIDI_Free_Device_Pinned_Host(req->mrail.rndv_buf);
             req->mrail.rndv_buf_alloc = 0;
             req->mrail.rndv_buf = NULL;
         }
         MPIDI_CH3U_Handle_send_req(vc, req, &complete);
-        MPIU_Assert(complete == TRUE);
+        MPIR_Assert(complete == TRUE);
         if (event->flags == CUDA_EVENT_DEDICATED) {
             deallocate_cuda_event(&req->mrail.device_event);
         }
@@ -380,7 +379,7 @@ void process_cuda_event_op(mv2_device_event_t * event)
             ibv_error_abort(IBV_RETURN_ERR,
                     "MPIDI_CH3U_Handle_recv_req returned error");
         }
-        MPIU_Assert(complete == TRUE);
+        MPIR_Assert(complete == TRUE);
         if (event->flags == CUDA_EVENT_DEDICATED) {
             deallocate_cuda_event(&req->mrail.device_event);
         }
@@ -414,8 +413,8 @@ void progress_cuda_events()
         if (cudaSuccess == result || curr_event->is_query_done) {
             curr_event->is_query_done = 1;
             if ((SEND == curr_event->op_type) &&
-                ((1 != ((MPID_Request *) curr_event->req)->mrail.cts_received)
-                || !((MPID_Request *) curr_event->req)->mrail.
+                ((1 != ((MPIR_Request *) curr_event->req)->mrail.cts_received)
+                || !((MPIR_Request *) curr_event->req)->mrail.
                 num_remote_device_pending)) {
                 curr_event = curr_event->next;
             } else {

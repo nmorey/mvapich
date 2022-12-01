@@ -1,9 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *   Copyright (C) 1997 University of Chicago.
- *   Copyright (C) 2017 DataDirect Networks.
- *   See COPYRIGHT notice in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "ad_ime.h"
@@ -13,7 +10,7 @@
 
 struct ADIOI_Fns_struct ADIO_IME_operations = {
     ADIOI_IME_Open,     /* Open */
-    ADIOI_GEN_OpenColl, /* OpenColl */
+    ADIOI_SCALEABLE_OpenColl, /* OpenColl */ /*XXX*/
     ADIOI_IME_ReadContig,   /* ReadContig */
     ADIOI_IME_WriteContig,      /* WriteContig */
     ADIOI_GEN_ReadStridedColl,  /* ReadStridedColl */
@@ -37,4 +34,9 @@ struct ADIOI_Fns_struct ADIO_IME_operations = {
     ADIOI_IME_Delete,   /* Delete */
     ADIOI_IME_Feature,
     ADIOI_IME_PREFIX,
+#if defined(F_SETLKW64)
+    ADIOI_GEN_SetLock   /* SetLock */
+#else
+    ADIOI_GEN_SetLock64 /* SetLock */
+#endif
 };

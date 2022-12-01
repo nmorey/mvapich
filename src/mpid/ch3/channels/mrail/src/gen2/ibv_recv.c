@@ -12,7 +12,6 @@
 
 #include "rdma_impl.h"
 #include "upmi.h"
-#include "mpiutil.h"
 #include "cm.h"
 #ifdef _ENABLE_UD_
 #include "mv2_ud.h"
@@ -109,13 +108,13 @@ int MPIDI_CH3I_MRAILI_Recv_addr_reply(MPIDI_VC_t * vc, void *vstart)
             }
             /* deallocate recv RDMA buffers */
             if (vc->mrail.rfp.RDMA_recv_buf_DMA) {
-                MPIU_Memalign_Free(vc->mrail.rfp.RDMA_recv_buf_DMA);
+                MPL_free(vc->mrail.rfp.RDMA_recv_buf_DMA);
                 vc->mrail.rfp.RDMA_recv_buf_DMA = NULL;
             }
 
             /* deallocate vbuf struct buffers */
             if (vc->mrail.rfp.RDMA_recv_buf) {
-                MPIU_Memalign_Free(vc->mrail.rfp.RDMA_recv_buf);
+                MPL_free(vc->mrail.rfp.RDMA_recv_buf);
                 vc->mrail.rfp.RDMA_recv_buf = NULL;
             }
         } else {
@@ -137,7 +136,7 @@ int MPIDI_CH3I_MRAILI_Recv_addr_reply(MPIDI_VC_t * vc, void *vstart)
         vc->mrail.rfp.p_RDMA_recv_tail = num_rdma_buffer - 1;
 
         /* Add the connection to the RDMA polling list */
-        MPIU_Assert(mv2_MPIDI_CH3I_RDMA_Process.polling_group_size < rdma_polling_set_limit);
+        MPIR_Assert(mv2_MPIDI_CH3I_RDMA_Process.polling_group_size < rdma_polling_set_limit);
 
         mv2_MPIDI_CH3I_RDMA_Process.polling_set
             [mv2_MPIDI_CH3I_RDMA_Process.polling_group_size] = vc;

@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2008 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "hydra.h"
@@ -17,8 +16,7 @@ HYD_status HYDT_bsci_query_proxy_id(int *proxy_id)
     if (HYDT_bsci_fns.query_proxy_id) {
         status = HYDT_bsci_fns.query_proxy_id(proxy_id);
         HYDU_ERR_POP(status, "launcher returned error while querying proxy ID\n");
-    }
-    else {
+    } else {
         /* We don't know anything about proxy IDs by default. */
         *proxy_id = -1;
     }

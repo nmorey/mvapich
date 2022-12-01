@@ -1,11 +1,9 @@
-# -*- Mode: Makefile; -*-
-# vim: set ft=automake :
-#
-# (C) 2011 by Argonne National Laboratory.
-#     See COPYRIGHT in top-level directory.
-#
+##
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
+##
 
-include $(top_srcdir)/Makefile.mtest
+include $(top_srcdir)/Makefile_single.mtest
 
 EXTRA_DIST = testlist
 
@@ -25,7 +23,7 @@ noinst_PROGRAMS =         \
     spaconacc2            \
     selfconacc            \
     spawnmult2            \
-    taskmaster            \
+    taskmanager           \
     join                  \
     disconnect_reconnect  \
     disconnect_reconnect2 \
@@ -40,6 +38,6 @@ noinst_PROGRAMS =         \
     pgroup_connect_test   \
     pgroup_intercomm_test \
     concurrent_spawns     \
-    spawn-rootargs
+    spawn_rootargs
 
 join_LDADD = $(LDADD) @socklib@ @nslib@

@@ -179,7 +179,7 @@ int MPID_nem_ib_pmi_init()
     }
 
     /* This memory will be freed by the PG_Destroy if there is an error */
-    pg_id = MPIU_Malloc(pg_id_sz + 1);
+    pg_id = MPL_malloc(pg_id_sz + 1);
     if (pg_id == NULL) {
         MPIR_ERR_SETANDJUMP(mpi_errno,MPI_ERR_OTHER, "**nomem");
     }
@@ -234,11 +234,11 @@ MPID_nem_ib_allocate_memory(int pg_rank, int pg_size)
 
     if (rdma_polling_set_limit > 0)
     {
-        process_info.polling_set = (MPIDI_VC_t**) MPIU_Malloc(rdma_polling_set_limit * sizeof(MPIDI_VC_t*));
+        process_info.polling_set = (MPIDI_VC_t**) MPL_malloc(rdma_polling_set_limit * sizeof(MPIDI_VC_t*));
     }
     else
     {
-        process_info.polling_set = (MPIDI_VC_t**) MPIU_Malloc(pg_size * sizeof(MPIDI_VC_t*));
+        process_info.polling_set = (MPIDI_VC_t**) MPL_malloc(pg_size * sizeof(MPIDI_VC_t*));
     }
 
     if (!process_info.polling_set)
@@ -314,7 +314,7 @@ int MPID_nem_ib_init (MPIDI_PG_t *pg_p,
     MPIDI_FUNC_ENTER(MPID_STATE_MPID_IB_INIT);
 
     /* Make sure that our private fields in vc fit into the area provided. */
-    MPIU_Assert(sizeof(MPID_nem_ib_vc_area) <= MPIDI_NEM_VC_NETMOD_AREA_LEN);
+    MPIR_Assert(sizeof(MPID_nem_ib_vc_area) <= MPIDI_NEM_VC_NETMOD_AREA_LEN);
 
 
     /* Allocate and initialize conn mgmt related info  */
@@ -541,7 +541,7 @@ static int ib_ckpt_restart(void)
     /* publish business card */
     mpi_errno = MPIDI_PG_SetConnInfo(MPIDI_Process.my_pg_rank, (const char *)publish_bc_orig);
     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-    MPIU_Free(publish_bc_orig);
+    MPL_free(publish_bc_orig);
 
     for (i = 0; i < MPIDI_Process.my_pg->size; ++i) {
         MPIDI_VC_t *vc;
@@ -592,7 +592,7 @@ static int ib_ckpt_continue(void)
     /* publish business card */
     mpi_errno = MPIDI_PG_SetConnInfo(MPIDI_Process.my_pg_rank, (const char *)publish_bc_orig);
     if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-    MPIU_Free(publish_bc_orig);
+    MPL_free(publish_bc_orig);
 
     for (i = 0; i < MPIDI_Process.my_pg->size; ++i) {
         MPIDI_VC_t *vc;
@@ -675,20 +675,20 @@ static int ib_ckpt_release_network(void)
         }
 
         if (VC_FIELD(vc, connection)->rfp.RDMA_send_buf_DMA)
-            MPIU_Free(VC_FIELD(vc, connection)->rfp.RDMA_send_buf_DMA);
+            MPL_free(VC_FIELD(vc, connection)->rfp.RDMA_send_buf_DMA);
         if (VC_FIELD(vc, connection)->rfp.RDMA_recv_buf_DMA)
-            MPIU_Free(VC_FIELD(vc, connection)->rfp.RDMA_recv_buf_DMA);
+            MPL_free(VC_FIELD(vc, connection)->rfp.RDMA_recv_buf_DMA);
         if (VC_FIELD(vc, connection)->rfp.RDMA_send_buf)
-            MPIU_Free(VC_FIELD(vc, connection)->rfp.RDMA_send_buf);
+            MPL_free(VC_FIELD(vc, connection)->rfp.RDMA_send_buf);
         if (VC_FIELD(vc, connection)->rfp.RDMA_recv_buf)
-            MPIU_Free(VC_FIELD(vc, connection)->rfp.RDMA_recv_buf);
+            MPL_free(VC_FIELD(vc, connection)->rfp.RDMA_recv_buf);
 
 #ifndef MV2_DISABLE_HEADER_CACHING 
         if( NULL != VC_FIELD(vc, connection)) {
-        MPIU_Free(VC_FIELD(vc, connection)->rfp.cached_incoming);
-        MPIU_Free(VC_FIELD(vc, connection)->rfp.cached_outgoing);
-        MPIU_Free(VC_FIELD(vc, connection)->rfp.cached_incoming_iheader);
-        MPIU_Free(VC_FIELD(vc, connection)->rfp.cached_outgoing_iheader);
+        MPL_free(VC_FIELD(vc, connection)->rfp.cached_incoming);
+        MPL_free(VC_FIELD(vc, connection)->rfp.cached_outgoing);
+        MPL_free(VC_FIELD(vc, connection)->rfp.cached_incoming_iheader);
+        MPL_free(VC_FIELD(vc, connection)->rfp.cached_outgoing_iheader);
         }
 #endif
 
@@ -708,9 +708,9 @@ static int ib_ckpt_release_network(void)
             MPL_error_printf("Failed to destroy QP (%d)\n", err);
         }
 
-        MPIU_Free(conn_info.connections[i].rails);
-        MPIU_Free(cmanagers[i].msg_channels);
-        MPIU_Free(conn_info.connections[i].srp.credits);
+        MPL_free(conn_info.connections[i].rails);
+        MPL_free(cmanagers[i].msg_channels);
+        MPL_free(conn_info.connections[i].srp.credits);
     }
     /* STEP 3: release all the cq resource,
      *         release all the unpinned buffers, 
@@ -782,16 +782,16 @@ static int ib_ckpt_release_network(void)
     }
 
     if(process_info.polling_set != NULL) {
-      MPIU_Free(process_info.polling_set);
+      MPL_free(process_info.polling_set);
     }
 
     if(cmanagers != NULL) {
-        MPIU_Free(cmanagers);
+        MPL_free(cmanagers);
     }
 
 
     if(conn_info.connections != NULL) {
-        MPIU_Free(conn_info.connections);
+        MPL_free(conn_info.connections);
     }
 
     return err;

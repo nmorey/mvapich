@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /* This test checks an oddball case for generalized active target
@@ -81,8 +80,7 @@ int main(int argc, char **argv)
         /* Write to my slot at each target */
         for (i = 0; i < odd_nproc; i++)
             MPI_Put(&rank, 1, MPI_INT, odd_ranks[i], rank, 1, MPI_INT, win);
-    }
-    else {
+    } else {
         MPI_Win_post(even_group, 0, win);       /* Odd procs are targeted by even procs */
         MPI_Win_start(even_group, 0, win);      /* Odd-numbered procs target even procs */
 
@@ -104,8 +102,7 @@ int main(int argc, char **argv)
         /* Write to my slot at each target */
         for (i = 0; i < even_nproc; i++)
             MPI_Put(&rank, 1, MPI_INT, even_ranks[i], rank, 1, MPI_INT, win);
-    }
-    else {
+    } else {
         MPI_Win_post(odd_group, 0, win);        /* Odd procs are targeted by odd procs */
         MPI_Win_start(odd_group, 0, win);       /* Odd-numbered procs target odd procs */
 
@@ -140,6 +137,5 @@ int main(int argc, char **argv)
     free(even_ranks);
 
     MTest_Finalize(errors);
-    MPI_Finalize();
     return MTestReturnValue(errors);
 }

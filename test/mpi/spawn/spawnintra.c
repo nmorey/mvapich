@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include "mpitest.h"
@@ -34,8 +33,7 @@ int main(int argc, char *argv[])
             /* Create 2 more processes */
             MPI_Comm_spawn((char *) "./spawnintra", MPI_ARGV_NULL, np,
                            MPI_INFO_NULL, 0, MPI_COMM_WORLD, &intercomm, errcodes);
-        }
-        else
+        } else
             intercomm = parentcomm;
 
         /* We now have a valid intercomm */
@@ -45,7 +43,7 @@ int main(int argc, char *argv[])
         MPI_Comm_rank(intercomm, &rank);
 
         if (parentcomm == MPI_COMM_NULL) {
-            /* Master */
+            /* Parent */
             if (rsize != np) {
                 errs++;
                 printf("Did not create %d processes (got %d)\n", np, rsize);
@@ -55,8 +53,7 @@ int main(int argc, char *argv[])
                     MPI_Send(&i, 1, MPI_INT, i, 0, intercomm);
                 }
             }
-        }
-        else {
+        } else {
             /* Child */
             isChild = 1;
             if (size != np) {
@@ -95,8 +92,7 @@ int main(int argc, char *argv[])
                     printf("Intracomm rank %d (from child) should have rank %d\n",
                            icrank, psize + wrank);
                 }
-            }
-            else {
+            } else {
                 if (icrank != wrank) {
                     errs++;
                     printf("Intracomm rank %d (from parent) should have rank %d\n", icrank, wrank);
@@ -128,8 +124,7 @@ int main(int argc, char *argv[])
                     printf("(2)Intracomm rank %d (from child) should have rank %d\n",
                            icrank, wrank);
                 }
-            }
-            else {
+            } else {
                 int csize;
                 MPI_Comm_remote_size(intercomm, &csize);
                 if (icrank != wrank + csize) {
@@ -162,10 +157,9 @@ int main(int argc, char *argv[])
 
         /* Update error count */
         if (isChild) {
-            /* Send the errs back to the master process */
+            /* Send the errs back to the parent process */
             MPI_Ssend(&errs, 1, MPI_INT, 0, 1, intercomm);
-        }
-        else {
+        } else {
             if (rank == 0) {
                 /* We could use intercomm reduce to get the errors from the
                  * children, but we'll use a simpler loop to make sure that
@@ -190,12 +184,12 @@ int main(int argc, char *argv[])
          * if both call MTest_Finalize */
         if (parentcomm == MPI_COMM_NULL) {
             MTest_Finalize(errs);
+        } else {
+            MPI_Finalize();
         }
-    }
-    else {
+    } else {
         MTest_Finalize(errs);
     }
 
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

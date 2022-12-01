@@ -1,8 +1,8 @@
-C -*- Mode: Fortran; -*- 
 C
-C (C) 2012 by Argonne National Laboratory.
-C     See COPYRIGHT in top-level directory.
+C Copyright (C) by Argonne National Laboratory
+C     See COPYRIGHT in top-level directory
 C
+
 C A simple test for Fortran support of the MPI_IN_PLACE value in Alltoall[vw].
 C
        program main
@@ -104,6 +104,5 @@ C          Alltoallw's displs[] are in bytes not in type extents.
        enddo
 
        call mtest_finalize( errs )
-       call mpi_finalize( ierr )
 
        end

@@ -1,8 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include "mpitest.h"
 #include <stdlib.h>
@@ -30,12 +30,12 @@ int main(int argc, char **argv)
     int *sbuf, *rbuf;
     int rank, size, lsize, asize;
     int *sendcounts, *recvcounts, *rdispls, *sdispls;
-    int i, j, *p, err;
+    int i, j, *p, errs;
     MPI_Datatype *sendtypes, *recvtypes;
     int leftGroup;
 
     MTest_Init(&argc, &argv);
-    err = 0;
+    errs = 0;
 
     while (MTestGetIntercomm(&comm, &leftGroup, 4)) {
         if (comm == MPI_COMM_NULL)
@@ -89,7 +89,7 @@ int main(int argc, char **argv)
                 if (p[j] != i * 100 + (rank * (rank + 1)) / 2 + j) {
                     fprintf(stderr, "[%d] got %d expected %d for %dth\n",
                             rank, p[j], (i * (i + 1)) / 2 + j, j);
-                    err++;
+                    errs++;
                 }
             }
         }
@@ -105,7 +105,6 @@ int main(int argc, char **argv)
         MTestFreeComm(&comm);
     }
 
-    MTest_Finalize(err);
-    MPI_Finalize();
-    return 0;
+    MTest_Finalize(errs);
+    return MTestReturnValue(errs);
 }

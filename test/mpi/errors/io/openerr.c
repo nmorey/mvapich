@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2012 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include "mpitestconf.h"
 #include <stdio.h>
@@ -25,9 +24,9 @@ int main(int argc, char *argv[])
     char emsg[MPI_MAX_ERROR_STRING];
     int emsglen, err, ec, errs = 0;
     int amode, rank;
-    char *name = 0;
+    const char *name = 0;
     MPI_Status st;
-    int outbuf[BUFLEN], inbuf[BUFLEN];
+    char outbuf[BUFLEN], inbuf[BUFLEN];
 
     MTest_Init(&argc, &argv);
 
@@ -41,8 +40,7 @@ int main(int argc, char *argv[])
         printf("Did not return error when opening a file that does not exist\n");
         MPI_File_close(&fh);
         MPI_File_delete(name, MPI_INFO_NULL);
-    }
-    else {
+    } else {
         MPI_Error_class(err, &ec);
         MPI_Error_string(err, emsg, &emsglen);
         MTestPrintfMsg(2, "Error msg from open: %s\n", emsg);
@@ -63,8 +61,7 @@ int main(int argc, char *argv[])
     if (err) {
         errs++;
         MTestPrintErrorMsg("Unable to open file for writing", err);
-    }
-    else {
+    } else {
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
         memset(outbuf, 'A' + rank, BUFLEN);
 
@@ -83,8 +80,7 @@ int main(int argc, char *argv[])
     if (err) {
         errs++;
         MTestPrintErrorMsg("Unable to reopen file for reading", err);
-    }
-    else {
+    } else {
         /* Try to read it */
 
         /* Clear buffer before reading into it */
@@ -102,8 +98,7 @@ int main(int argc, char *argv[])
         if (err == MPI_SUCCESS) {
             errs++;
             printf("Write operation succeeded to read-only file\n");
-        }
-        else {
+        } else {
             /* Look at error class */
             MPI_Error_class(err, &ec);
             if (ec != MPI_ERR_READ_ONLY && ec != MPI_ERR_ACCESS) {
@@ -131,8 +126,7 @@ int main(int argc, char *argv[])
             errs++;
             printf("File was not deleted!\n");
             MPI_File_close(&fh);
-        }
-        else {
+        } else {
             MPI_Error_class(err, &ec);
             if (ec != MPI_ERR_NO_SUCH_FILE && ec != MPI_ERR_IO) {
                 errs++;
@@ -145,7 +139,6 @@ int main(int argc, char *argv[])
 
     /* Find out how many errors we saw */
     MTest_Finalize(errs);
-    MPI_Finalize();
 
-    return 0;
+    return MTestReturnValue(errs);
 }

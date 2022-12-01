@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2011 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /* A simple test of the proposed MPI_T_ interface that assumes the
@@ -86,15 +84,12 @@ int main(int argc, char **argv)
 
         if (0 == strcmp(name, "posted_recvq_length")) {
             pq_idx = i;
-        }
-        else if (0 == strcmp(name, "unexpected_recvq_length")) {
+        } else if (0 == strcmp(name, "unexpected_recvq_length")) {
             uq_idx = i;
-        }
-        else if (0 == strcmp(name, "posted_recvq_match_attempts")) {
+        } else if (0 == strcmp(name, "posted_recvq_match_attempts")) {
             pqm_idx = i;
             pqm_writable = !readonly;
-        }
-        else if (0 == strcmp(name, "unexpected_recvq_match_attempts")) {
+        } else if (0 == strcmp(name, "unexpected_recvq_match_attempts")) {
             uqm_idx = i;
             uqm_writable = !readonly;
         }

@@ -1,8 +1,8 @@
-C -*- Mode: Fortran; -*- 
 C
-C  (C) 2011 by Argonne National Laboratory.
-C      See COPYRIGHT in top-level directory.
+C Copyright (C) by Argonne National Laboratory
+C     See COPYRIGHT in top-level directory
 C
+
       program main
       implicit none
       include 'mpif.h'
@@ -141,6 +141,5 @@ C
       call mpi_comm_free( comm, ierr )
 
       call mtest_finalize( errs )
-      call mpi_finalize( ierr )
       end
       

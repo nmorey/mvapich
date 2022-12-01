@@ -11,15 +11,88 @@
  */
 
 #include "mpichconf.h"
-#include <mpimem.h>
+#include <mpir_mem.h>
 #include <errno.h>
 #include <string.h>
 #include <inttypes.h>
 #include "cm.h"
 #include "rdma_cm.h"
-#include "mpiutil.h"
 #include "upmi.h"
 #include "ibv_send_inline.h"
+
+/*
+=== BEGIN_MPI_T_MV2_CVAR_INFO_BLOCK ===
+
+cvars:
+    - name        : MV2_CM_MAX_SPIN_COUNT
+      category    : CH3
+      type        : int
+      default     : 5000
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_CM_RECV_BUFFERS
+      category    : CH3
+      type        : int
+      default     : 1024
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This defines the number of buffers used by connection manager
+        to establish new connections. These buffers are quite small
+        and are shared for all connections, so this value may be
+        increased to 8192 for large clusters to avoid retries in case
+        of packet drops.
+
+    - name        : MV2_CM_SEND_DEPTH
+      category    : CH3
+      type        : int
+      default     : 10
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_CM_TIMEOUT
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This is the timeout value associated with connection
+        management messages via UD channel. Decreasing this value may
+        lead to faster retries but at the cost of generating duplicate
+        messages.
+
+    - name        : MV2_CM_UD_PSN
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_CM_THREAD_STACKSIZE
+      category    : CH3
+      type        : int
+      default     : (1024*1024)
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+=== END_MPI_T_MV2_CVAR_INFO_BLOCK ===
+*/
 
 #define CM_MSG_TYPE_REQ     0
 #define CM_MSG_TYPE_REP     1
@@ -150,7 +223,7 @@ extern int *rdma_cm_host_list;
 extern int g_atomics_support;
 extern int mv2_my_cpu_id;
 extern int mv2_in_blocking_progress;
-extern int MPIDI_Get_num_nodes();
+extern int MPIDI_MV2_Get_num_nodes();
 
 int mv2_pmi_max_keylen=0;
 int mv2_pmi_max_vallen=0;
@@ -229,7 +302,7 @@ void clear_xrc_hash(void)
         iter = xrc_hash[i];
         while (iter) {
             next = iter->next;
-            MPIU_Free(iter);
+            MPL_free(iter);
             iter = next;
         }
     }
@@ -240,7 +313,7 @@ void remove_vc_xrc_hash(MPIDI_VC_t * vc)
     int hash;
     xrc_hash_t *iter, *tmp;
 
-    MPIU_Assert(VC_XST_ISUNSET(vc, XF_SMP_VC) &&
+    MPIR_Assert(VC_XST_ISUNSET(vc, XF_SMP_VC) &&
                 VC_XST_ISUNSET(vc, XF_INDIRECT_CONN));
     hash = compute_xrc_hash(vc->smp.hostid);
     iter = xrc_hash[hash];
@@ -250,13 +323,13 @@ void remove_vc_xrc_hash(MPIDI_VC_t * vc)
 
     if (iter->vc == vc) {
         xrc_hash[hash] = iter->next;
-        MPIU_Free(iter);
+        MPL_free(iter);
     } else {
         while (iter->next) {
             if (iter->next->vc == vc) {
                 tmp = iter->next;
                 iter->next = iter->next->next;
-                MPIU_Free(tmp);
+                MPL_free(tmp);
                 PRINT_DEBUG(DEBUG_XRC_verbose > 0, "Removed vc from hash\n");
                 return;
             }
@@ -264,9 +337,9 @@ void remove_vc_xrc_hash(MPIDI_VC_t * vc)
         }
         fprintf(stderr, "[%s %d] Error vc not found.\n", __FILE__, __LINE__);
         exit(EXIT_FAILURE);
-        /* MPIU_Assert (0); */
+        /* MPIR_Assert (0); */
     }
-    MPIU_Assert(iter != NULL);
+    MPIR_Assert(iter != NULL);
     return;
 }
 
@@ -274,8 +347,9 @@ void add_vc_xrc_hash(MPIDI_VC_t * vc)
 {
     int hash = compute_xrc_hash(vc->smp.hostid);
 
-    xrc_hash_t *iter, *node = (xrc_hash_t *) MPIU_Malloc(xrc_hash_s);
-    memset(node, 0, xrc_hash_s);
+    xrc_hash_t *iter, *node = (xrc_hash_t *) MPL_malloc(xrc_hash_s, 
+                                                        MPL_MEM_OTHER);
+    MPIR_Memset(node, 0, xrc_hash_s);
     node->vc = vc;
     node->xrc_qp_dst = vc->pg_rank;
 
@@ -331,7 +405,7 @@ static inline struct ibv_ah *cm_create_ah(struct ibv_pd *pd, uint32_t lid,
 {
     struct ibv_ah_attr ah_attr;
 
-    MPIU_Memset(&ah_attr, 0, sizeof(ah_attr));
+    MPIR_Memset(&ah_attr, 0, sizeof(ah_attr));
 
     if (use_iboeth || (mv2_MPIDI_CH3I_RDMA_Process.link_layer[0][0] == IBV_LINK_LAYER_ETHERNET)) {
         ah_attr.grh.dgid.global.subnet_prefix = 0;
@@ -356,7 +430,7 @@ static inline struct ibv_ah *cm_create_ah(struct ibv_pd *pd, uint32_t lid,
      * needed. For DPM, we may end up creating moer number of AH than necessary. */
     if (!MPIDI_CH3I_Process.has_dpm) {
         mv2_num_ud_cm_ah_created++;
-        MPIU_Assert(mv2_num_ud_cm_ah_created <= MAX_NUM_HCAS * MPIDI_Get_num_nodes());
+        MPIR_Assert(mv2_num_ud_cm_ah_created <= MAX_NUM_HCAS * MPIDI_MV2_Get_num_nodes());
     }
 
     return ibv_ops.create_ah(pd, &ah_attr);
@@ -367,8 +441,9 @@ static inline struct ibv_ah *cm_create_ah(struct ibv_pd *pd, uint32_t lid,
  */
 static cm_pending *cm_pending_create(void)
 {
-    cm_pending *temp = (cm_pending *) MPIU_Malloc(sizeof(cm_pending));
-    MPIU_Memset(temp, 0, sizeof(cm_pending));
+    cm_pending *temp = (cm_pending *) MPL_malloc(sizeof(cm_pending), 
+                                                    MPL_MEM_OTHER);
+    MPIR_Memset(temp, 0, sizeof(cm_pending));
     return temp;
 }
 
@@ -419,8 +494,9 @@ static int cm_pending_init(cm_pending * pending, MPIDI_PG_t * pg, cm_msg * msg,
         pending->has_pg = 0;
     }
 
-    pending->packet = (cm_packet *) MPIU_Malloc(sizeof(cm_packet));
-    MPIU_Memcpy(&(pending->packet->payload), msg, sizeof(cm_msg));
+    pending->packet = (cm_packet *) MPL_malloc(sizeof(cm_packet), 
+                                                MPL_MEM_OTHER);
+    MPIR_Memcpy(&(pending->packet->payload), msg, sizeof(cm_msg));
 #ifdef _ENABLE_XRC_
     pending->attempts = 0;
 #endif
@@ -465,12 +541,12 @@ static inline int cm_pending_append(cm_pending * node)
 
 static inline int cm_pending_remove_and_destroy(cm_pending * node)
 {
-    MPIU_Free(node->packet);
+    MPL_free(node->packet);
     node->next->prev = node->prev;
     node->prev->next = node->next;
     if (node->data.nopg.ah && node->has_pg == 0)
         ibv_ops.destroy_ah(node->data.nopg.ah);
-    MPIU_Free(node);
+    MPL_free(node);
     --cm_pending_num;
     return MPI_SUCCESS;
 }
@@ -493,8 +569,8 @@ static int cm_pending_list_finalize(void)
     while (cm_pending_head->next != cm_pending_head) {
         cm_pending_remove_and_destroy(cm_pending_head->next);
     }
-    MPIU_Assert(cm_pending_num == 0);
-    MPIU_Free(cm_pending_head);
+    MPIR_Assert(cm_pending_num == 0);
+    MPL_free(cm_pending_head);
     cm_pending_head = NULL;
     return MPI_SUCCESS;
 }
@@ -522,21 +598,17 @@ static int cm_compare_peer(MPIDI_PG_t * r_pg, MPIDI_PG_t * my_pg,
 /*
  * Supporting functions to send ud packets
  */
-#undef FUNCNAME
-#define FUNCNAME cm_post_ud_recv
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int cm_post_ud_recv(void *buf, int size)
 {
     struct ibv_sge list;
     struct ibv_recv_wr wr;
     struct ibv_recv_wr *bad_wr;
 
-    MPIU_Memset(&list, 0, sizeof(struct ibv_sge));
+    MPIR_Memset(&list, 0, sizeof(struct ibv_sge));
     list.addr = (uintptr_t) buf;
     list.length = size + 40;
     list.lkey = cm_ud_mr->lkey;
-    MPIU_Memset(&wr, 0, sizeof(struct ibv_recv_wr));
+    MPIR_Memset(&wr, 0, sizeof(struct ibv_recv_wr));
     wr.next = NULL;
     wr.wr_id = CM_UD_RECV_WR_ID;
     wr.sg_list = &list;
@@ -557,13 +629,13 @@ static int __cm_post_ud_packet(cm_msg * msg, struct ibv_ah *ah, uint32_t qpn)
     PRINT_DEBUG(DEBUG_CM_verbose > 0,
                 "cm_post_ud_packet, post message type %d\n", msg->msg_type);
 
-    MPIU_Memcpy((char *) cm_ud_send_buf + 40, msg, sizeof(cm_msg));
-    MPIU_Memset(&list, 0, sizeof(struct ibv_sge));
+    MPIR_Memcpy((char *) cm_ud_send_buf + 40, msg, sizeof(cm_msg));
+    MPIR_Memset(&list, 0, sizeof(struct ibv_sge));
     list.addr = (uintptr_t) cm_ud_send_buf + 40;
     list.length = sizeof(cm_msg);
     list.lkey = cm_ud_mr->lkey;
 
-    MPIU_Memset(&wr, 0, sizeof(struct ibv_send_wr));
+    MPIR_Memset(&wr, 0, sizeof(struct ibv_send_wr));
     wr.wr_id = CM_UD_SEND_WR_ID;
     wr.sg_list = &list;
     wr.num_sge = 1;
@@ -602,10 +674,6 @@ static int __cm_post_ud_packet(cm_msg * msg, struct ibv_ah *ah, uint32_t qpn)
     return MPI_SUCCESS;
 }
 
-#undef FUNCNAME
-#define FUNCNAME cm_resolve_conn_info
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 static int cm_resolve_conn_info(MPIDI_PG_t * pg, int peer)
 {
     int mpi_errno = MPI_SUCCESS;
@@ -614,7 +682,7 @@ static int cm_resolve_conn_info(MPIDI_PG_t * pg, int peer)
     union ibv_gid null_gid;
     uint32_t hostid;
     int offset = 0, idx = 0, found_index = 0;
-    MPID_Node_id_t node_id;
+    int node_id;
     struct ibv_ah *ah = NULL;
     char string[128];
 
@@ -624,8 +692,8 @@ static int cm_resolve_conn_info(MPIDI_PG_t * pg, int peer)
                                   "No connection info available");
     }
 
-    MPIU_Memset(&null_gid, 0, sizeof(union ibv_gid));
-    MPIU_Assert(peer >= 0);
+    MPIR_Memset(&null_gid, 0, sizeof(union ibv_gid));
+    MPIR_Assert(peer >= 0);
     /* Get the peer information first */
     if (mv2_on_demand_ud_info_exchange) {
         mpi_errno = MPIDI_CH3I_PMI_Get_Init_Info(pg, peer, NULL);
@@ -688,8 +756,8 @@ static int cm_resolve_conn_info(MPIDI_PG_t * pg, int peer)
     }
 
     /* Sanity checks */
-    MPIU_Assert(offset < (MPIDI_Get_num_nodes() * MAX_NUM_HCAS));
-    MPIU_Assert(offset <= ((node_id+1) * MAX_NUM_HCAS));
+    MPIR_Assert(offset < (MPIDI_MV2_Get_num_nodes() * MAX_NUM_HCAS));
+    MPIR_Assert(offset <= ((node_id+1) * MAX_NUM_HCAS));
     /* We only need one address handle per target LID */
     if (found_index >= 0) {
         /* Reuse existing AH */
@@ -700,7 +768,7 @@ static int cm_resolve_conn_info(MPIDI_PG_t * pg, int peer)
         PRINT_DEBUG(DEBUG_CM_verbose > 0, "No AH exists for node_id %d for peer %d. Creating.\n",
                     node_id, peer);
         /* Checking to make sure that we are not overwriting an existing AH */
-        MPIU_Assert(pg->ch.mrail->cm_ah[offset] == NULL);
+        MPIR_Assert(pg->ch.mrail->cm_ah[offset] == NULL);
     }
 
     if (ah == NULL) {
@@ -727,7 +795,7 @@ static int cm_resolve_conn_info(MPIDI_PG_t * pg, int peer)
         /* Store the LID */
         pg->ch.mrail->cm_lid[offset] = pg->ch.mrail->cm_shmem.ud_cm[peer].cm_lid;
         /* Store the GID */
-        MPIU_Memcpy(&pg->ch.mrail->cm_gid[offset],
+        MPIR_Memcpy(&pg->ch.mrail->cm_gid[offset],
                     &pg->ch.mrail->cm_shmem.ud_cm[peer].cm_gid, sizeof(union ibv_gid));
     }
     /* Store the UD_AH in array of size pg->size for easy accessibility */
@@ -868,30 +936,30 @@ int cm_rcv_qp_create(MPIDI_VC_t * vc, uint32_t * qpn)
     struct ibv_qp_attr attr;
     int rail_index, hca_index, port_index;
 
-    memset(&init_attr, 0, sizeof(struct ibv_qp_init_attr));
-    memset(&attr, 0, sizeof(struct ibv_qp_attr));
+    MPIR_Memset(&init_attr, 0, sizeof(struct ibv_qp_init_attr));
+    MPIR_Memset(&attr, 0, sizeof(struct ibv_qp_attr));
 
     vc->mrail.num_rails = rdma_num_rails;
     if (!vc->mrail.rails) {
-        vc->mrail.rails = MPIU_Malloc
-            (sizeof *vc->mrail.rails * vc->mrail.num_rails);
+        vc->mrail.rails = MPL_malloc
+            (sizeof *vc->mrail.rails * vc->mrail.num_rails, MPL_MEM_OTHER);
 
         if (!vc->mrail.rails) {
             ibv_error_abort(GEN_EXIT_ERR,
                             "Fail to allocate resources for multirails\n");
         }
-        MPIU_Memset(vc->mrail.rails, 0,
+        MPIR_Memset(vc->mrail.rails, 0,
                     (sizeof *vc->mrail.rails * vc->mrail.num_rails));
     }
 
     if (!vc->mrail.srp.credits) {
-        vc->mrail.srp.credits = MPIU_Malloc(sizeof *vc->mrail.srp.credits *
-                                            vc->mrail.num_rails);
+        vc->mrail.srp.credits = MPL_malloc(sizeof *vc->mrail.srp.credits *
+                                            vc->mrail.num_rails, MPL_MEM_OTHER);
         if (!vc->mrail.srp.credits) {
             ibv_error_abort(GEN_EXIT_ERR,
                             "Fail to allocate resources for credits array\n");
         }
-        MPIU_Memset(vc->mrail.srp.credits, 0,
+        MPIR_Memset(vc->mrail.srp.credits, 0,
                     (sizeof(*vc->mrail.srp.credits) * vc->mrail.num_rails));
     }
 
@@ -925,7 +993,7 @@ int cm_rcv_qp_create(MPIDI_VC_t * vc, uint32_t * qpn)
         vc->mrail.rails[rail_index].lid =
             mv2_MPIDI_CH3I_RDMA_Process.lids[hca_index][port_index];
 
-        MPIU_Memcpy(&vc->mrail.rails[rail_index].gid,
+        MPIR_Memcpy(&vc->mrail.rails[rail_index].gid,
                     &mv2_MPIDI_CH3I_RDMA_Process.
                     gids[hca_index][port_index], sizeof(union ibv_gid));
 
@@ -963,17 +1031,13 @@ int cm_rcv_qp_create(MPIDI_VC_t * vc, uint32_t * qpn)
 /*
  * Higher level cm supporting functions *
  */
-#undef FUNCNAME
-#define FUNCNAME cm_accept
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 static int cm_accept(MPIDI_PG_t * pg, cm_msg * msg)
 {
     cm_msg msg_send;
     MPIDI_VC_t *vc;
     int i = 0;
-    MPIDI_STATE_DECL(MPID_GET2_CM_ACCEPT);
-    MPIDI_FUNC_ENTER(MPID_GET2_CM_ACCEPT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_GET2_CM_ACCEPT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_GET2_CM_ACCEPT);
 
     PRINT_DEBUG(DEBUG_CM_verbose > 0, "cm_accept Enter\n");
 
@@ -984,7 +1048,7 @@ static int cm_accept(MPIDI_PG_t * pg, cm_msg * msg)
     vc->mrail.num_rails = msg->nrails;
 
     /*Prepare rep msg */
-    MPIU_Memcpy((void *)&msg_send, msg, sizeof(cm_msg));
+    MPIR_Memcpy((void *)&msg_send, msg, sizeof(cm_msg));
 
 #ifdef _ENABLE_XRC_
     if (USE_XRC) {
@@ -998,7 +1062,7 @@ static int cm_accept(MPIDI_PG_t * pg, cm_msg * msg)
                         msg->lids[i], msg->qpns[i]);
             PRINT_DEBUG(DEBUG_XRC_verbose > 0, "RQP for %d, LID: %d\n",
                         vc->pg_rank, msg_send.lids[i]);
-            MPIU_Memcpy(&msg_send.gids[i], &vc->mrail.rails[i].gid,
+            MPIR_Memcpy(&msg_send.gids[i], &vc->mrail.rails[i].gid,
                         sizeof(union ibv_gid));
             msg_send.qpns[i] = msg_send.xrc_rqpn[i];
         }
@@ -1013,13 +1077,13 @@ static int cm_accept(MPIDI_PG_t * pg, cm_msg * msg)
 
         for (i = 0; i < msg_send.nrails; ++i) {
             msg_send.lids[i] = vc->mrail.rails[i].lid;
-            MPIU_Memcpy(&msg_send.gids[i], &vc->mrail.rails[i].gid,
+            MPIR_Memcpy(&msg_send.gids[i], &vc->mrail.rails[i].gid,
                         sizeof(union ibv_gid));
             msg_send.qpns[i] = vc->mrail.rails[i].qp_hndl->qp_num;
         }
     }
     msg_send.vc_addr = (uintptr_t) vc;
-    MPIU_Strncpy(msg_send.pg_id, MPIDI_Process.my_pg->id, MAX_PG_ID_SIZE);
+    MPL_strncpy(msg_send.pg_id, MPIDI_Process.my_pg->id, MAX_PG_ID_SIZE);
 
 #if defined(CKPT)
     if (msg->msg_type == CM_MSG_TYPE_REACTIVATE_REQ) {
@@ -1030,7 +1094,7 @@ static int cm_accept(MPIDI_PG_t * pg, cm_msg * msg)
             /*Adding the reactivation done message to the msg_log_queue */
             MPIDI_CH3I_CR_msg_log_queue_entry_t *entry =
                 (MPIDI_CH3I_CR_msg_log_queue_entry_t *)
-                MPIU_Malloc(sizeof(MPIDI_CH3I_CR_msg_log_queue_entry_t));
+                MPL_malloc(sizeof(MPIDI_CH3I_CR_msg_log_queue_entry_t), MPL_MEM_OTHER);
 
             vbuf *v = NULL;
             MPIDI_CH3I_MRAILI_Pkt_comm_header *p = NULL;
@@ -1074,23 +1138,19 @@ static int cm_accept(MPIDI_PG_t * pg, cm_msg * msg)
     }
 
     PRINT_DEBUG(DEBUG_CM_verbose > 0, "cm_accept exit\n");
-    MPIDI_FUNC_EXIT(MPID_GET2_CM_ACCEPT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_GET2_CM_ACCEPT);
     return MPI_SUCCESS;
 }
 
 
 
-#undef FUNCNAME
-#define FUNCNAME cm_accept_and_cancel
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 static int cm_accept_and_cancel(MPIDI_PG_t * pg, cm_msg * msg)
 {
     cm_msg msg_send;
     MPIDI_VC_t *vc;
     int i = 0;
-    MPIDI_STATE_DECL(MPID_GEN2_CM_ACCEPT_AND_CANCEL);
-    MPIDI_FUNC_ENTER(MPID_GEN2_CM_ACCEPT_AND_CANCEL);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_GEN2_CM_ACCEPT_AND_CANCEL);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_GEN2_CM_ACCEPT_AND_CANCEL);
     PRINT_DEBUG(DEBUG_CM_verbose > 0, "cm_accept_and_cancel Enter\n");
     PRINT_DEBUG(DEBUG_XRC_verbose > 0, "accept_and_cancel\n");
     /* Prepare QP */
@@ -1100,15 +1160,15 @@ static int cm_accept_and_cancel(MPIDI_PG_t * pg, cm_msg * msg)
     cm_qp_move_to_rtr(vc, msg->lids, msg->gids, msg->qpns, 0, NULL, 0);
 
     /*Prepare rep msg */
-    MPIU_Memcpy((void *)&msg_send, msg, sizeof(cm_msg));
+    MPIR_Memcpy((void *)&msg_send, msg, sizeof(cm_msg));
     for (; i < msg_send.nrails; ++i) {
         msg_send.lids[i] = vc->mrail.rails[i].lid;
-        MPIU_Memcpy(&msg_send.gids[i], &vc->mrail.rails[i].gid,
+        MPIR_Memcpy(&msg_send.gids[i], &vc->mrail.rails[i].gid,
                     sizeof(union ibv_gid));
         msg_send.qpns[i] = vc->mrail.rails[i].qp_hndl->qp_num;
     }
     msg_send.vc_addr = (uintptr_t) vc;
-    MPIU_Strncpy(msg_send.pg_id, MPIDI_Process.my_pg->id, MAX_PG_ID_SIZE);
+    MPL_strncpy(msg_send.pg_id, MPIDI_Process.my_pg->id, MAX_PG_ID_SIZE);
 
 #if defined(CKPT)
     if (msg->msg_type == CM_MSG_TYPE_REACTIVATE_REQ) {
@@ -1119,7 +1179,7 @@ static int cm_accept_and_cancel(MPIDI_PG_t * pg, cm_msg * msg)
             /*Adding the reactivation done message to the msg_log_queue */
             MPIDI_CH3I_CR_msg_log_queue_entry_t *entry =
                 (MPIDI_CH3I_CR_msg_log_queue_entry_t *)
-                MPIU_Malloc(sizeof(MPIDI_CH3I_CR_msg_log_queue_entry_t));
+                MPL_malloc(sizeof(MPIDI_CH3I_CR_msg_log_queue_entry_t), MPL_MEM_OTHER);
 
             vbuf *v = NULL;
             MPIDI_CH3I_MRAILI_Pkt_comm_header *p = NULL;
@@ -1166,14 +1226,10 @@ static int cm_accept_and_cancel(MPIDI_PG_t * pg, cm_msg * msg)
     }
     PRINT_DEBUG(DEBUG_CM_verbose > 0, "cm_accept_and_cancel Exit\n");
 
-    MPIDI_FUNC_EXIT(MPID_GEN2_CM_ACCEPT_AND_CANCEL);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_GEN2_CM_ACCEPT_AND_CANCEL);
     return MPI_SUCCESS;
 }
 
-#undef FUNCNAME
-#define FUNCNAME cm_accept_nopg
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 static int cm_accept_nopg(MPIDI_VC_t * vc, cm_msg * msg)
 {
     cm_msg msg_send;
@@ -1185,8 +1241,8 @@ static int cm_accept_nopg(MPIDI_VC_t * vc, cm_msg * msg)
     uint32_t hostid;
 #endif
     int i;
-    MPIDI_STATE_DECL(MPID_GEN2_CM_ACCEPT_NOPG);
-    MPIDI_FUNC_ENTER(MPID_GEN2_CM_ACCEPT_NOPG);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_GEN2_CM_ACCEPT_NOPG);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_GEN2_CM_ACCEPT_NOPG);
     PRINT_DEBUG(DEBUG_CM_verbose > 0, "cm_accept_nopg Enter\n");
 
     PRINT_DEBUG(DEBUG_XRC_verbose > 0, "cm_accept_nopg\n");
@@ -1198,10 +1254,10 @@ static int cm_accept_nopg(MPIDI_VC_t * vc, cm_msg * msg)
     cm_qp_move_to_rtr(vc, msg->lids, msg->gids, msg->qpns, 0, NULL, 1);
 
     /*Prepare rep msg */
-    MPIU_Memcpy((void *)&msg_send, msg, sizeof(cm_msg));
+    MPIR_Memcpy((void *)&msg_send, msg, sizeof(cm_msg));
     for (i = 0; i < msg_send.nrails; ++i) {
         msg_send.lids[i] = vc->mrail.rails[i].lid;
-        MPIU_Memcpy(&msg_send.gids[i], &vc->mrail.rails[i].gid,
+        MPIR_Memcpy(&msg_send.gids[i], &vc->mrail.rails[i].gid,
                     sizeof(union ibv_gid));
         msg_send.qpns[i] = vc->mrail.rails[i].qp_hndl->qp_num;
     }
@@ -1243,7 +1299,7 @@ static int cm_accept_nopg(MPIDI_VC_t * vc, cm_msg * msg)
     }
 
     PRINT_DEBUG(DEBUG_CM_verbose > 0, "cm_accept_nopg Exit\n");
-    MPIDI_FUNC_EXIT(MPID_GEN2_CM_ACCEPT_NOPG);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_GEN2_CM_ACCEPT_NOPG);
     return MPI_SUCCESS;
 }
 
@@ -1268,7 +1324,7 @@ void cm_xrc_send_enable(MPIDI_VC_t * vc)
                     iter->vc->pg_rank);
         cm_qp_reuse(iter->vc, vc);
         VC_XST_CLR(iter->vc, XF_REUSE_WAIT);
-        MPIU_Free(iter);
+        MPL_free(iter);
         iter = tmp;
     }
     vc->ch.xrc_conn_queue = NULL;
@@ -1276,15 +1332,11 @@ void cm_xrc_send_enable(MPIDI_VC_t * vc)
 #endif
 
 
-#undef FUNCNAME
-#define FUNCNAME cm_enable
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 static int cm_enable(MPIDI_PG_t * pg, cm_msg * msg)
 {
     MPIDI_VC_t *vc;
-    MPIDI_STATE_DECL(MPID_GEN2_CM_ENABLE);
-    MPIDI_FUNC_ENTER(MPID_GEN2_CM_ENABLE);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_GEN2_CM_ENABLE);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_GEN2_CM_ENABLE);
     PRINT_DEBUG(DEBUG_CM_verbose > 0, "cm_enable Enter\n");
 
     MPIDI_PG_Get_vc(pg, msg->server_rank, &vc);
@@ -1324,7 +1376,7 @@ static int cm_enable(MPIDI_PG_t * pg, cm_msg * msg)
             /*Adding the reactivation done message to the msg_log_queue */
             MPIDI_CH3I_CR_msg_log_queue_entry_t *entry =
                 (MPIDI_CH3I_CR_msg_log_queue_entry_t *)
-                MPIU_Malloc(sizeof(MPIDI_CH3I_CR_msg_log_queue_entry_t));
+                MPL_malloc(sizeof(MPIDI_CH3I_CR_msg_log_queue_entry_t), MPL_MEM_OTHER);
 
             vbuf *v = NULL;
             MPIDI_CH3I_MRAILI_Pkt_comm_header *p = NULL;
@@ -1381,7 +1433,7 @@ static int cm_enable(MPIDI_PG_t * pg, cm_msg * msg)
     }
 
     PRINT_DEBUG(DEBUG_CM_verbose > 0, "cm_enable Exit\n");
-    MPIDI_FUNC_EXIT(MPID_GEN2_CM_ENABLE);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_GEN2_CM_ENABLE);
     return MPI_SUCCESS;
 }
 
@@ -1422,17 +1474,13 @@ static int cm_enable_nopg(MPIDI_VC_t * vc, cm_msg * msg)
     return MPI_SUCCESS;
 }
 
-#undef FUNCNAME
-#define FUNCNAME cm_handle_msg
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 static int cm_handle_msg(cm_msg * msg)
 {
     MPIDI_PG_t *pg;
     MPIDI_VC_t *vc;
     int my_rank;
-    MPIDI_STATE_DECL(MPID_GEN2_CM_HANDLE_MSG);
-    MPIDI_FUNC_ENTER(MPID_GEN2_CM_HANDLE_MSG);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_GEN2_CM_HANDLE_MSG);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_GEN2_CM_HANDLE_MSG);
     PRINT_DEBUG(DEBUG_CM_verbose > 0,
                 "##### Handle cm_msg: msg_type: %d, client_rank %d, server_rank"
                 "%d rails:%d\n", msg->msg_type, msg->client_rank,
@@ -1448,7 +1496,7 @@ static int cm_handle_msg(cm_msg * msg)
         case CM_MSG_TYPE_XRC_REQ:
             {
                 int rail_index, hca_index;
-                MPIU_Assert(USE_XRC != 0);
+                MPIR_Assert(USE_XRC != 0);
                 MPICM_lock();
                 if (cm_is_finalizing) {
                     MPICM_unlock();
@@ -1471,9 +1519,9 @@ static int cm_handle_msg(cm_msg * msg)
                 VC_SET_ACTIVE(vc);
                 MV2_HYBRID_SET_RC_CONN_INITIATED(vc);
 
-                MPIU_Memcpy((void *)&rep, msg, sizeof(cm_msg));
+                MPIR_Memcpy((void *)&rep, msg, sizeof(cm_msg));
                 rep.vc_addr = (uintptr_t) vc;
-                MPIU_Strncpy(rep.pg_id, MPIDI_Process.my_pg->id,
+                MPL_strncpy(rep.pg_id, MPIDI_Process.my_pg->id,
                              MAX_PG_ID_SIZE);
                 rep.msg_type = CM_MSG_TYPE_XRC_REP;
 
@@ -1530,7 +1578,7 @@ static int cm_handle_msg(cm_msg * msg)
                     MPICM_unlock();
                     return MPI_SUCCESS;
                 }
-                MPIU_Assert(USE_XRC != 0);
+                MPIR_Assert(USE_XRC != 0);
                 PRINT_DEBUG(DEBUG_XRC_verbose > 0,
                             "CM_MSG_TYPE_XRC_REP from %d\n", msg->server_rank);
 
@@ -1731,7 +1779,7 @@ static int cm_handle_msg(cm_msg * msg)
                 MPICM_unlock();
                 MPIDI_VC_t *vc;
 
-                vc = MPIU_Malloc(sizeof(MPIDI_VC_t));
+                vc = MPL_malloc(sizeof(MPIDI_VC_t), MPL_MEM_OBJECT);
                 if (!vc) {
                     CM_ERR_ABORT("No memory for creating new vc");
                 }
@@ -1878,14 +1926,10 @@ static int cm_handle_msg(cm_msg * msg)
             CM_ERR_ABORT("Unknown msg type: %d", msg->msg_type);
     }
     PRINT_DEBUG(DEBUG_CM_verbose > 0, "cm_handle_msg Exit\n");
-    MPIDI_FUNC_EXIT(MPID_GEN2_CM_HANDLE_MSG);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_GEN2_CM_HANDLE_MSG);
     return MPI_SUCCESS;
 }
 
-#undef FUNCNAME
-#define FUNCNAME cm_timeout_handler
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 void *cm_timeout_handler(void *arg)
 {
     struct timeval now;
@@ -1893,8 +1937,8 @@ void *cm_timeout_handler(void *arg)
     int ret;
     cm_pending *next_p, *curr_p;
     struct timespec remain;
-    MPIDI_STATE_DECL(MPID_GEN2_CM_TIMEOUT_HANDLER);
-    MPIDI_FUNC_ENTER(MPID_GEN2_CM_TIMEOUT_HANDLER);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_GEN2_CM_TIMEOUT_HANDLER);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_GEN2_CM_TIMEOUT_HANDLER);
     while (1) {
         MPICM_lock();
         while (cm_pending_num == 0) {
@@ -1961,7 +2005,7 @@ void *cm_timeout_handler(void *arg)
         }
         MPICM_unlock();
     }
-    MPIDI_FUNC_EXIT(MPID_GEN2_CM_TIMEOUT_HANDLER);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_GEN2_CM_TIMEOUT_HANDLER);
 #if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
 #pragma error_messages(off, E_STATEMENT_NOT_REACHED)
 #endif /* defined(__SUNPRO_C) || defined(__SUNPRO_CC) */
@@ -2061,18 +2105,14 @@ void *cm_completion_handler(void *arg)
 #endif /* defined(__SUNPRO_C) || defined(__SUNPRO_CC) */
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPICM_Init_UD_CM
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPICM_Init_UD_CM(uint32_t * ud_qpn)
 {
     int i = 0;
     char *value;
     int mpi_errno = MPI_SUCCESS;
     int result = 0;
-    MPIDI_STATE_DECL(MPID_GEN2_MPICM_INIT_UD);
-    MPIDI_FUNC_ENTER(MPID_GEN2_MPICM_INIT_UD);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_GEN2_MPICM_INIT_UD);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_GEN2_MPICM_INIT_UD);
 
     cm_is_finalizing = 0;
     cm_req_id_global = 0;
@@ -2092,37 +2132,17 @@ int MPICM_Init_UD_CM(uint32_t * ud_qpn)
         MPIR_ERR_POP(mpi_errno);
     }
 
-    if ((value = getenv("MV2_CM_SEND_DEPTH")) != NULL) {
-        cm_send_depth = atoi(value);
-    } else {
-        cm_send_depth = DEFAULT_CM_SEND_DEPTH;
-    }
+    cm_send_depth = MV2_CM_SEND_DEPTH;
 
-    if ((value = getenv("MV2_CM_RECV_BUFFERS")) != NULL) {
-        cm_recv_buffer_size = atoi(value);
-    } else {
-        cm_recv_buffer_size = DEFAULT_CM_MSG_RECV_BUFFER_SIZE;
-    }
+    cm_recv_buffer_size = MV2_CM_RECV_BUFFERS;
 
-    if ((value = getenv("MV2_CM_UD_PSN")) != NULL) {
-        cm_ud_psn = atoi(value);
-    } else {
-        cm_ud_psn = CM_UD_DEFAULT_PSN;
-    }
+    cm_ud_psn = MV2_CM_UD_PSN;
 
-    if ((value = getenv("MV2_CM_MAX_SPIN_COUNT")) != NULL) {
-        cm_max_spin_count = atoi(value);
-    } else {
-        cm_max_spin_count = DEFAULT_CM_MAX_SPIN_COUNT;
-    }
+    cm_max_spin_count = MV2_CM_MAX_SPIN_COUNT;
 
-    if ((value = getenv("MV2_CM_THREAD_STACKSIZE")) != NULL) {
-        cm_thread_stacksize = atoi(value);
-    } else {
-        cm_thread_stacksize = DEFAULT_CM_THREAD_STACKSIZE;
-    }
+    cm_thread_stacksize = MV2_CM_THREAD_STACKSIZE;
 
-    if ((value = getenv("MV2_CM_TIMEOUT")) != NULL) {
+    if (MV2_CM_TIMEOUT != -1) {
         cm_timeout_usec = atoi(value) * 1000;
     } else {
         cm_timeout_usec = CM_DEFAULT_TIMEOUT;
@@ -2135,17 +2155,19 @@ int MPICM_Init_UD_CM(uint32_t * ud_qpn)
     cm_timeout.tv_sec = cm_timeout_usec / 1000000;
     cm_timeout.tv_nsec = (cm_timeout_usec - cm_timeout.tv_sec * 1000000) * 1000;
 #ifdef USE_MEMORY_TRACING
-    cm_ud_buf = MPIU_Malloc((sizeof(cm_msg) + 40) * (cm_recv_buffer_size + 1));
+    cm_ud_buf = MPL_malloc((sizeof(cm_msg) + 40) * (cm_recv_buffer_size + 1), 
+                            MPL_MEM_BUFFER);
 #else
-    result = MPIU_Memalign(&cm_ud_buf, page_size,
-                            (sizeof(cm_msg) + 40) * (cm_recv_buffer_size + 1));
+    cm_ud_buf = MPL_aligned_alloc(page_size,
+                            (sizeof(cm_msg) + 40) * (cm_recv_buffer_size + 1),
+                            MPL_MEM_OTHER);
 #endif
     if (result != 0 || cm_ud_buf == NULL) {
         MPIR_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**nomem",
                                   "**nomem %s", "cm_ud_buf");
     }
 
-    MPIU_Memset(cm_ud_buf, 0,
+    MPIR_Memset(cm_ud_buf, 0,
                 (sizeof(cm_msg) + 40) * (cm_recv_buffer_size + 1));
     cm_ud_send_buf = cm_ud_buf;
     cm_ud_recv_buf = (char *) cm_ud_buf + sizeof(cm_msg) + 40;
@@ -2186,7 +2208,7 @@ int MPICM_Init_UD_CM(uint32_t * ud_qpn)
 
     {
         struct ibv_qp_init_attr attr;
-        MPIU_Memset(&attr, 0, sizeof(struct ibv_qp_init_attr));
+        MPIR_Memset(&attr, 0, sizeof(struct ibv_qp_init_attr));
         attr.send_cq = cm_ud_send_cq;
         attr.recv_cq = cm_ud_recv_cq;
         attr.cap.max_send_wr = cm_send_depth;
@@ -2205,7 +2227,7 @@ int MPICM_Init_UD_CM(uint32_t * ud_qpn)
     *ud_qpn = cm_ud_qp->qp_num;
     {
         struct ibv_qp_attr attr;
-        MPIU_Memset(&attr, 0, sizeof(struct ibv_qp_attr));
+        MPIR_Memset(&attr, 0, sizeof(struct ibv_qp_attr));
 
         attr.qp_state = IBV_QPS_INIT;
         attr.pkey_index = 0;
@@ -2222,7 +2244,7 @@ int MPICM_Init_UD_CM(uint32_t * ud_qpn)
     }
     {
         struct ibv_qp_attr attr;
-        MPIU_Memset(&attr, 0, sizeof(struct ibv_qp_attr));
+        MPIR_Memset(&attr, 0, sizeof(struct ibv_qp_attr));
 
         attr.qp_state = IBV_QPS_RTR;
         if (ibv_ops.modify_qp(cm_ud_qp, &attr, IBV_QP_STATE)) {
@@ -2234,7 +2256,7 @@ int MPICM_Init_UD_CM(uint32_t * ud_qpn)
 
     {
         struct ibv_qp_attr attr;
-        MPIU_Memset(&attr, 0, sizeof(struct ibv_qp_attr));
+        MPIR_Memset(&attr, 0, sizeof(struct ibv_qp_attr));
 
         attr.qp_state = IBV_QPS_RTS;
         attr.sq_psn = cm_ud_psn;
@@ -2263,30 +2285,26 @@ int MPICM_Init_UD_CM(uint32_t * ud_qpn)
     cm_pending_list_init();
 
   fn_exit:
-    MPIDI_FUNC_EXIT(MPID_GEN2_MPICM_INIT_UD);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_GEN2_MPICM_INIT_UD);
     return mpi_errno;
 
   fn_fail:
     goto fn_exit;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPICM_Init_Local_UD_struct
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPICM_Init_Local_UD_struct(MPIDI_PG_t * pg)
 {
     int rank        = -1;
     int offset      = 0;
     int mpi_errno   = MPI_SUCCESS;
-    MPID_Node_id_t  node_id;
+    int  node_id;
 
-    MPIDI_STATE_DECL(MPID_GEN2_MPICM_INIT_LOCAL_UD_STRUCT);
-    MPIDI_FUNC_ENTER(MPID_GEN2_MPICM_INIT_LOCAL_UD_STRUCT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_GEN2_MPICM_INIT_LOCAL_UD_STRUCT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_GEN2_MPICM_INIT_LOCAL_UD_STRUCT);
 
     UPMI_GET_RANK(&rank);
 
-    MPIU_Assert(pg->ch.mrail->cm_shmem.ud_cm[rank].xrc_hostid >= 0);
+    MPIR_Assert(pg->ch.mrail->cm_shmem.ud_cm[rank].xrc_hostid >= 0);
     /* Get the unique node_id for the process */
     node_id = pg->ch.mrail->cm_shmem.ud_cm[rank].xrc_hostid;
     /* Get the offset into the ud_ah array for the peer process */
@@ -2306,21 +2324,17 @@ int MPICM_Init_Local_UD_struct(MPIDI_PG_t * pg)
     /* Store the LID */
     pg->ch.mrail->cm_lid[offset] = pg->ch.mrail->cm_shmem.ud_cm[rank].cm_lid;
     /* Store the GID */
-    MPIU_Memcpy(&pg->ch.mrail->cm_gid[offset],
+    MPIR_Memcpy(&pg->ch.mrail->cm_gid[offset],
                 &pg->ch.mrail->cm_shmem.ud_cm[rank].cm_gid, sizeof(union ibv_gid));
 
     PRINT_DEBUG(DEBUG_CM_verbose, "Created AH for self (peer: %d, node_id: %d)\n",
                 rank, node_id);
 
   fn_fail:
-    MPIDI_FUNC_EXIT(MPID_GEN2_MPICM_INIT_LOCAL_UD_STRUCT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_GEN2_MPICM_INIT_LOCAL_UD_STRUCT);
     return mpi_errno;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPICM_Init_UD_struct
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPICM_Init_UD_struct(MPIDI_PG_t * pg)
 {
     int i           = 0;
@@ -2329,16 +2343,16 @@ int MPICM_Init_UD_struct(MPIDI_PG_t * pg)
     int found_index = 0;
     int mpi_errno   = MPI_SUCCESS;
     union ibv_gid null_gid;
-    MPID_Node_id_t  node_id;
+    int  node_id;
 
-    MPIDI_STATE_DECL(MPID_GEN2_MPICM_INIT_UD_STRUCT);
-    MPIDI_FUNC_ENTER(MPID_GEN2_MPICM_INIT_UD_STRUCT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_GEN2_MPICM_INIT_UD_STRUCT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_GEN2_MPICM_INIT_UD_STRUCT);
 
-    MPIU_Memset(&null_gid, 0, sizeof(union ibv_gid));
+    MPIR_Memset(&null_gid, 0, sizeof(union ibv_gid));
 
     /*Create address handles */
     for (i = 0; i < pg->size; ++i) {
-        MPIU_Assert(pg->ch.mrail->cm_shmem.ud_cm[i].xrc_hostid >= 0);
+        MPIR_Assert(pg->ch.mrail->cm_shmem.ud_cm[i].xrc_hostid >= 0);
         /* Get the unique node_id for the process */
         node_id = pg->ch.mrail->cm_shmem.ud_cm[i].xrc_hostid;
         /* Get the offset into the ud_ah array for the peer process */
@@ -2374,12 +2388,12 @@ int MPICM_Init_UD_struct(MPIDI_PG_t * pg)
 
         /* We only need one address handle per target LID */
         if (found_index == -1) {
-            MPIU_Assert(offset < (MPIDI_Get_num_nodes() * MAX_NUM_HCAS));
-            MPIU_Assert(offset <= ((node_id+1) * MAX_NUM_HCAS));
+            MPIR_Assert(offset < (MPIDI_MV2_Get_num_nodes() * MAX_NUM_HCAS));
+            MPIR_Assert(offset <= ((node_id+1) * MAX_NUM_HCAS));
             /* Store the LID */
             pg->ch.mrail->cm_lid[offset] = pg->ch.mrail->cm_shmem.ud_cm[i].cm_lid;
             /* Store the GID */
-            MPIU_Memcpy(&pg->ch.mrail->cm_gid[offset],
+            MPIR_Memcpy(&pg->ch.mrail->cm_gid[offset],
                         &pg->ch.mrail->cm_shmem.ud_cm[i].cm_gid,
                         sizeof(union ibv_gid));
             /* Store the UD_AH */
@@ -2404,7 +2418,7 @@ int MPICM_Init_UD_struct(MPIDI_PG_t * pg)
     }
 
   fn_fail:
-    MPIDI_FUNC_EXIT(MPID_GEN2_MPICM_INIT_UD_STRUCT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_GEN2_MPICM_INIT_UD_STRUCT);
     return mpi_errno;
 }
 
@@ -2423,10 +2437,6 @@ void *cm_finalize_handler(void *arg)
 #endif /* defined(__SUNPRO_C) || defined(__SUNPRO_CC) */
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPICM_Create_finalize_thread
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPICM_Create_finalize_thread()
 {
     int ret;
@@ -2459,10 +2469,6 @@ int MPICM_Create_finalize_thread()
     goto fn_exit;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPICM_Create_UD_threads
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPICM_Create_UD_threads()
 {
     int ret;
@@ -2501,10 +2507,6 @@ int MPICM_Create_UD_threads()
     goto fn_exit;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPICM_Finalize_UD
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPICM_Finalize_UD()
 {
     cm_msg msg;
@@ -2512,10 +2514,10 @@ int MPICM_Finalize_UD()
     struct ibv_sge list;
     struct ibv_send_wr wr;
     struct ibv_send_wr *bad_wr;
-    MPID_Node_id_t node_id;
+    int node_id;
     MPIDI_PG_t *pg = MPIDI_Process.my_pg;
-    MPIDI_STATE_DECL(MPID_GEN2_MPICM_FINALIZE_UD);
-    MPIDI_FUNC_ENTER(MPID_GEN2_MPICM_FINALIZE_UD);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_GEN2_MPICM_FINALIZE_UD);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_GEN2_MPICM_FINALIZE_UD);
 
     int i = 0;
 
@@ -2537,13 +2539,13 @@ int MPICM_Finalize_UD()
 
     /*Cancel cm thread */
     msg.msg_type = CM_MSG_TYPE_FIN_SELF;
-    MPIU_Memcpy((char *) cm_ud_send_buf + 40, (const void *) &msg, sizeof(cm_msg));
-    MPIU_Memset(&list, 0, sizeof(struct ibv_sge));
+    MPIR_Memcpy((char *) cm_ud_send_buf + 40, (const void *) &msg, sizeof(cm_msg));
+    MPIR_Memset(&list, 0, sizeof(struct ibv_sge));
     list.addr = (uintptr_t) cm_ud_send_buf + 40;
     list.length = sizeof(cm_msg);
     list.lkey = cm_ud_mr->lkey;
 
-    MPIU_Memset(&wr, 0, sizeof(struct ibv_send_wr));
+    MPIR_Memset(&wr, 0, sizeof(struct ibv_send_wr));
     wr.wr_id = CM_UD_SEND_WR_ID;
     wr.sg_list = &list;
     wr.num_sge = 1;
@@ -2618,18 +2620,14 @@ int MPICM_Finalize_UD()
     }
 
     if (cm_ud_buf) {
-        MPIU_Free(cm_ud_buf);
+        MPL_free(cm_ud_buf);
     }
 
     PRINT_DEBUG(DEBUG_CM_verbose > 0, "MPICM_Finalize_UD done\n");
-    MPIDI_FUNC_EXIT(MPID_GEN2_MPICM_FINALIZE_UD);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_GEN2_MPICM_FINALIZE_UD);
     return MPI_SUCCESS;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_CM_Connect_self
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3I_CM_Connect_self(MPIDI_VC_t * vc)
 {
     int i;
@@ -2664,7 +2662,7 @@ int MPIDI_CH3I_CM_Connect_self(MPIDI_VC_t * vc)
         /*move to rtr*/
         for (i = 0; i < vc->mrail.num_rails; ++i) {
             msg.lids[i] = vc->mrail.rails[i].lid;
-            MPIU_Memcpy(&msg.gids[i], &vc->mrail.rails[i].gid,
+            MPIR_Memcpy(&msg.gids[i], &vc->mrail.rails[i].gid,
                     sizeof(union ibv_gid));
             msg.qpns[i] = vc->mrail.rails[i].qp_hndl->qp_num;
         }
@@ -2684,17 +2682,13 @@ int MPIDI_CH3I_CM_Connect_self(MPIDI_VC_t * vc)
     return MPI_SUCCESS;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_CM_Connect
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3I_CM_Connect(MPIDI_VC_t * vc)
 {
     cm_msg msg;
     int i = 0;
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_GEN2_CH3I_CM_CONNECT);
-    MPIDI_FUNC_ENTER(MPID_GEN2_CH3I_CM_CONNECT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_GEN2_CH3I_CM_CONNECT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_GEN2_CH3I_CM_CONNECT);
 
     MPICM_lock();
 
@@ -2749,13 +2743,13 @@ int MPIDI_CH3I_CM_Connect(MPIDI_VC_t * vc)
 #endif
         if (!vc->mrail.rails) {
             vc->mrail.num_rails = rdma_num_rails;
-            vc->mrail.rails = MPIU_Malloc
-                (sizeof *vc->mrail.rails * vc->mrail.num_rails);
+            vc->mrail.rails = MPL_malloc
+                (sizeof *vc->mrail.rails * vc->mrail.num_rails, MPL_MEM_OTHER);
             if (!vc->mrail.rails) {
                 ibv_error_abort(GEN_EXIT_ERR,
                                 "Fail to allocate resources for multirails\n");
             }
-            MPIU_Memset(vc->mrail.rails, 0,
+            MPIR_Memset(vc->mrail.rails, 0,
                         (sizeof *vc->mrail.rails * vc->mrail.num_rails));
         }
 
@@ -2784,7 +2778,7 @@ int MPIDI_CH3I_CM_Connect(MPIDI_VC_t * vc)
     msg.nrails = vc->mrail.num_rails;
     for (i = 0; i < msg.nrails; ++i) {
         msg.lids[i] = vc->mrail.rails[i].lid;
-        MPIU_Memcpy(&msg.gids[i], &vc->mrail.rails[i].gid,
+        MPIR_Memcpy(&msg.gids[i], &vc->mrail.rails[i].gid,
                     sizeof(union ibv_gid));
         msg.qpns[i] = vc->mrail.rails[i].qp_hndl->qp_num;
         PRINT_DEBUG(DEBUG_XRC_verbose > 0, "Created SQP: %d LID: %d\n",
@@ -2795,7 +2789,7 @@ int MPIDI_CH3I_CM_Connect(MPIDI_VC_t * vc)
         MPIR_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_OTHER,
                                   "**fail", "**fail %s", "pg id too long");
     }
-    MPIU_Strncpy(msg.pg_id, MPIDI_Process.my_pg->id, MAX_PG_ID_SIZE);
+    MPL_strncpy(msg.pg_id, MPIDI_Process.my_pg->id, MAX_PG_ID_SIZE);
 
     mpi_errno = cm_send_ud_msg(vc->pg, &msg);
     if (mpi_errno) {
@@ -2806,17 +2800,13 @@ int MPIDI_CH3I_CM_Connect(MPIDI_VC_t * vc)
 
   fn_exit:
     MPICM_unlock();
-    MPIDI_FUNC_EXIT(MPID_GEN2_CH3I_CM_CONNECT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_GEN2_CH3I_CM_CONNECT);
     return mpi_errno;
 
   fn_fail:
     goto fn_exit;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_CM_Connect_raw_vc
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3I_CM_Connect_raw_vc(MPIDI_VC_t * vc, char *ifname)
 {
     struct ibv_ah *ah;
@@ -2889,10 +2879,6 @@ int MPIDI_CH3I_CM_Connect_raw_vc(MPIDI_VC_t * vc, char *ifname)
     return MPI_SUCCESS;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_CM_Establish
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 /* This function should be called when VC received the first message in on-demand case. */
 int MPIDI_CH3I_CM_Establish(MPIDI_VC_t * vc)
 {
@@ -2963,10 +2949,6 @@ int MPIDI_CH3I_CM_Establish(MPIDI_VC_t * vc)
     return MPI_SUCCESS;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_CM_Get_port_info
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3I_CM_Get_port_info(char *ifname, int max_len)
 {
     int mpi_errno = MPI_SUCCESS;
@@ -3000,10 +2982,6 @@ int MPIDI_CH3I_CM_Get_port_info(char *ifname, int max_len)
 }
 
 #ifdef _ENABLE_XRC_
-#undef FUNCNAME
-#define FUNCNAME cm_send_xrc_cm_msg
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int cm_send_xrc_cm_msg(MPIDI_VC_t * vc, MPIDI_VC_t * orig_vc)
 {
     cm_msg msg;
@@ -3024,7 +3002,7 @@ int cm_send_xrc_cm_msg(MPIDI_VC_t * vc, MPIDI_VC_t * orig_vc)
     msg.msg_type = CM_MSG_TYPE_XRC_REQ;
     msg.req_id = ++cm_req_id_global;
     msg.vc_addr = (uintptr_t) vc;
-    MPIU_Strncpy(msg.pg_id, MPIDI_Process.my_pg->id, MAX_PG_ID_SIZE);
+    MPL_strncpy(msg.pg_id, MPIDI_Process.my_pg->id, MAX_PG_ID_SIZE);
 
     mpi_errno = cm_send_ud_msg(vc->pg, &msg);
     if (mpi_errno) {
@@ -3059,7 +3037,7 @@ int MPIDI_CH3I_CM_Send_logged_msg(MPIDI_VC_t * vc)
         vbuf_init_send(v, entry->len, 0);
         post_send(vc, v, 0);
 
-        MPIU_Free(entry);
+        MPL_free(entry);
     }
     return 0;
 }
@@ -3072,12 +3050,12 @@ int cm_send_suspend_msg(MPIDI_VC_t * vc)
 
     if (SMP_INIT && (vc->smp.local_nodes >= 0)) {
         /* Use the shared memory channel to send Suspend message for SMP VCs */
-        MPID_Request *sreq = NULL;
-        extern int MPIDI_CH3_SMP_iStartMsg(MPIDI_VC_t *, void *, MPIDI_msg_sz_t,
-                                           MPID_Request **);
+        MPIR_Request *sreq = NULL;
+        extern int MPIDI_CH3_SMP_iStartMsg(MPIDI_VC_t *, void *, intptr_t,
+                                           MPIR_Request **);
 
         p = (MPIDI_CH3I_MRAILI_Pkt_comm_header *)
-            MPIU_Malloc(sizeof(MPIDI_CH3I_MRAILI_Pkt_comm_header));
+            MPL_malloc(sizeof(MPIDI_CH3I_MRAILI_Pkt_comm_header), MPL_MEM_OTHER);
         p->type = MPIDI_CH3_PKT_CM_SUSPEND;
         MPIDI_CH3_SMP_iStartMsg(vc, p,
                                 sizeof(MPIDI_CH3I_MRAILI_Pkt_comm_header),
@@ -3087,7 +3065,7 @@ int cm_send_suspend_msg(MPIDI_VC_t * vc)
 	vc->use_eager_fast_fn = 0;
         vc->ch.rput_stop = 1;
 
-        MPIU_Assert(NULL == sreq);
+        MPIR_Assert(NULL == sreq);
         /* sreq should be NULL because the msg has been sent out */
         vc->mrail.suspended_rails_send++;
 
@@ -3101,7 +3079,7 @@ int cm_send_suspend_msg(MPIDI_VC_t * vc)
                         MPIDI_Process.my_pg_rank, vc->pg_rank);
         }
 
-        MPIU_Free(p);
+        MPL_free(p);
         return (0);
     }
 
@@ -3129,24 +3107,24 @@ int cm_send_reactivate_msg(MPIDI_VC_t * vc)
     int i = 0;
 
     /* Use the SMP channel to send Reactivate message for SMP VCs */
-    MPID_Request *sreq = NULL;
+    MPIR_Request *sreq = NULL;
     MPIDI_CH3I_MRAILI_Pkt_comm_header *p;
-    extern int MPIDI_CH3_SMP_iStartMsg(MPIDI_VC_t *, void *, MPIDI_msg_sz_t,
-                                       MPID_Request **);
+    extern int MPIDI_CH3_SMP_iStartMsg(MPIDI_VC_t *, void *, intptr_t,
+                                       MPIR_Request **);
     if (SMP_INIT && (vc->smp.local_nodes >= 0)) {
         PRINT_DEBUG(DEBUG_CM_verbose > 0, "Sending CM_MSG_TYPE_REACTIVATE_REQ to rank %d\n", vc->pg_rank);
         p = (MPIDI_CH3I_MRAILI_Pkt_comm_header *)
-            MPIU_Malloc(sizeof(MPIDI_CH3I_MRAILI_Pkt_comm_header));
+            MPL_malloc(sizeof(MPIDI_CH3I_MRAILI_Pkt_comm_header), MPL_MEM_OTHER);
         p->type = MPIDI_CH3_PKT_CM_REACTIVATION_DONE;
         MPIDI_CH3_SMP_iStartMsg(vc, p,
                                 sizeof(MPIDI_CH3I_MRAILI_Pkt_comm_header),
                                 &sreq);
 
-        MPIU_Assert(NULL == sreq);
+        MPIR_Assert(NULL == sreq);
         /* sreq should be NULL because the msg has been sent out */
         vc->mrail.reactivation_done_send = 1;
 
-        MPIU_Free(p);
+        MPL_free(p);
         return (MPI_SUCCESS);
     }
 
@@ -3165,7 +3143,7 @@ int cm_send_reactivate_msg(MPIDI_VC_t * vc)
         MPICM_unlock();
         return MPI_SUCCESS;
     }
-    MPIU_Strncpy(msg.pg_id, MPIDI_Process.my_pg->id, MAX_PG_ID_SIZE);
+    MPL_strncpy(msg.pg_id, MPIDI_Process.my_pg->id, MAX_PG_ID_SIZE);
     msg.server_rank = vc->pg_rank;
     msg.client_rank = MPIDI_Process.my_pg_rank;
     msg.msg_type = CM_MSG_TYPE_REACTIVATE_REQ;
@@ -3185,23 +3163,19 @@ int cm_send_reactivate_msg(MPIDI_VC_t * vc)
     return MPI_SUCCESS;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_CM_Disconnect
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3I_CM_Disconnect(MPIDI_VC_t * vc)
 {
     /*To be implemented */
     int mpi_errno;
     /* all variable must be declared before the state declarations */
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_CM_DISCONNECT);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_CM_DISCONNECT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3I_CM_DISCONNECT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_CM_DISCONNECT);
 
     /* Insert implementation here */
     fprintf(stderr, "Function not implemented\n");
     exit(EXIT_FAILURE);
 
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_CM_DISCONNECT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_CM_DISCONNECT);
     return mpi_errno;
 }
 
@@ -3280,8 +3254,8 @@ int MPIDI_CH3I_CM_Suspend(MPIDI_VC_t ** vc_vector)
             /*assert ext send queue and backlog queue empty */
             for (rail = 0; rail < vc->mrail.num_rails; ++rail) {
                 ibv_backlog_queue_t q = vc->mrail.srp.credits[rail].backlog;
-                MPIU_Assert(q.len == 0);
-                MPIU_Assert(vc->mrail.rails[rail].ext_sendq_head == NULL);
+                MPIR_Assert(q.len == 0);
+                MPIR_Assert(vc->mrail.rails[rail].ext_sendq_head == NULL);
             }
         }
     }
@@ -3349,7 +3323,7 @@ int MPIDI_CH3I_CM_Reactivate(MPIDI_VC_t ** vc_vector)
                     continue;
                 }
                 ///
-                MPIU_Assert(vc->mrail.sreq_to_update >= 0);
+                MPIR_Assert(vc->mrail.sreq_to_update >= 0);
                 if (!vc->mrail.reactivation_done_send
                     || !vc->mrail.reactivation_done_recv)
                     //|| vc->mrail.sreq_to_update>0)//some rndv(sender) haven't been updated yet
@@ -3495,8 +3469,8 @@ int mv2_allocate_pmi_keyval(void)
         UPMI_KVS_GET_VALUE_LENGTH_MAX(&mv2_pmi_max_vallen);
     }
 
-    mv2_pmi_key = MPIU_Malloc(mv2_pmi_max_keylen+1);
-    mv2_pmi_val = MPIU_Malloc(mv2_pmi_max_vallen+1);
+    mv2_pmi_key = MPL_malloc(mv2_pmi_max_keylen+1, MPL_MEM_OTHER);
+    mv2_pmi_val = MPL_malloc(mv2_pmi_max_vallen+1, MPL_MEM_OTHER);
 
     if (mv2_pmi_key==NULL || mv2_pmi_val==NULL) {
         mv2_free_pmi_keyval();
@@ -3508,12 +3482,12 @@ int mv2_allocate_pmi_keyval(void)
 void mv2_free_pmi_keyval(void)
 {
     if (mv2_pmi_key!=NULL) {
-        MPIU_Free(mv2_pmi_key);
+        MPL_free(mv2_pmi_key);
         mv2_pmi_key = NULL;
     }
 
     if (mv2_pmi_val!=NULL) {
-        MPIU_Free(mv2_pmi_val);
+        MPL_free(mv2_pmi_val);
         mv2_pmi_val = NULL;
     }
 }

@@ -1,11 +1,9 @@
-# -*- Mode: Makefile; -*-
-# vim: set ft=automake :
-#
-# (C) 2011 by Argonne National Laboratory.
-#     See COPYRIGHT in top-level directory.
-#
+##
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
+##
 
-include $(top_srcdir)/Makefile.mtest
+include $(top_srcdir)/Makefile_single.mtest
 
 EXTRA_DIST = testlist.in
 
@@ -32,13 +30,10 @@ noinst_PROGRAMS =      \
     alltoallw1         \
     alltoallw2         \
     alltoallw_zeros    \
-    bcast_full         \
-    bcast_min_datatypes \
-    bcast_comm_world   \
     bcasttest          \
     bcastzerotype      \
     coll2              \
-    coll3              \
+    gatherv            \
     coll4              \
     coll5              \
     coll6              \
@@ -46,7 +41,6 @@ noinst_PROGRAMS =      \
     coll8              \
     coll9              \
     coll10             \
-    coll11             \
     coll12             \
     coll13             \
     exscan             \
@@ -73,6 +67,7 @@ noinst_PROGRAMS =      \
     nonblocking        \
     nonblocking2       \
     nonblocking3       \
+    op_coll            \
     op_commutative     \
     opband             \
     opbor              \
@@ -121,16 +116,16 @@ noinst_PROGRAMS =      \
     nbicgatherv        \
     nbicreduce         \
     nbicscatter        \
-    nbicscatterv
+    nbicscatterv       \
+    neighb_allgather   \
+    neighb_allgatherv  \
+    neighb_alltoall    \
+    neighb_alltoallv   \
+    neighb_alltoallw   \
+    bcast              \
+    bcast_comm_world_only
+
 allgatherv4_LDADD = $(LDADD) -lm
-
-bcast_full_SOURCES = bcast.c
-
-bcast_min_datatypes_CPPFLAGS = -DBCAST_MIN_DATATYPES_ONLY $(AM_CPPFLAGS)
-bcast_min_datatypes_SOURCES = bcast.c
-
-bcast_comm_world_CPPFLAGS = -DBCAST_COMM_WORLD_ONLY $(AM_CPPFLAGS)
-bcast_comm_world_SOURCES = bcast.c
 
 # Generate tests of the nonblocking collectives by reusing the blocking tests.
 nballtoall1_SOURCES = alltoall1.c
@@ -177,3 +172,9 @@ nbicscatter_SOURCES = icscatter.c
 nbicscatter_CPPFLAGS = -DUSE_MTEST_NBC $(AM_CPPFLAGS)
 nbicscatterv_SOURCES = icscatterv.c
 nbicscatterv_CPPFLAGS = -DUSE_MTEST_NBC $(AM_CPPFLAGS)
+
+bcast_CPPFLAGS = $(AM_CPPFLAGS)
+bcast_SOURCES = bcast.c
+
+bcast_comm_world_only_CPPFLAGS = -DBCAST_COMM_WORLD_ONLY $(AM_CPPFLAGS)
+bcast_comm_world_only_SOURCES = bcast.c

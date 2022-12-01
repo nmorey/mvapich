@@ -1,8 +1,13 @@
+/*
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
+ */
+
 /******************************************************************************
 		       Distributed Memory Implementation
 ******************************************************************************/
 
-struct MPID_Win
+struct MPIR_Win
 {
     /*** insert struct MPIR_Win here ***/
 
@@ -261,5 +266,3 @@ MPIDI_Win_acc_eager_hdlr(src, comm, (header,(data,data_sz)))
     dwin->rhc_processed++;
 }
 /* MPIDI_Win_acc_eager_hdlr() */
-
-

@@ -1,10 +1,9 @@
-/* This file created from test/mpi/f77/io/c2f2cio.c with f77tof90 */
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
+/* This file created from test/mpi/f77/io/c2f2cio.c with f77tof90 */
 /*
  * This file contains the C routines used in testing the c2f and f2c
  * handle conversion functions for MPI_File
@@ -75,7 +74,7 @@ int c2ffile_(int *file)
 
     MPI_Group_free(&group);
     MPI_Group_free(&wgroup);
-    return 0;
+    return MTestReturnValue(errs);
 }
 
 /*
@@ -90,8 +89,7 @@ void f2cfile_(int *file)
                        MPI_INFO_NULL, &cFile);
     if (rc) {
         *file = 0;
-    }
-    else {
+    } else {
         *file = MPI_File_c2f(cFile);
     }
 }

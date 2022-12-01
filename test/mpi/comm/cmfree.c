@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -81,8 +80,7 @@ int main(int argc, char *argv[])
             MPI_Comm_free(&tmpComm[i]);
         }
         free(buf);
-    }
-    else if (rank == source) {
+    } else if (rank == source) {
         buf = (int *) malloc(NELM * sizeof(int));
         for (i = 0; i < NELM; i++)
             buf[i] = i;
@@ -94,8 +92,7 @@ int main(int argc, char *argv[])
         MPI_Sendrecv(NULL, 0, MPI_INT, dest, 1, NULL, 0, MPI_INT, dest, 1, MPI_COMM_WORLD, &status);
         MPI_Send(buf, NELM, MPI_INT, dest, 0, comm);
         free(buf);
-    }
-    else {
+    } else {
         for (i = 0; i < NCOMM; i++) {
             MPI_Comm_split(MPI_COMM_WORLD, 0, size - rank, &tmpComm[i]);
         }
@@ -114,6 +111,5 @@ int main(int argc, char *argv[])
     }
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

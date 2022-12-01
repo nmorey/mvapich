@@ -1,8 +1,8 @@
-C -*- Mode: Fortran; -*- 
 C
-C  (C) 2003 by Argonne National Laboratory.
-C      See COPYRIGHT in top-level directory.
+C Copyright (C) by Argonne National Laboratory
+C     See COPYRIGHT in top-level directory
 C
+
       subroutine query_fn( extrastate, status, ierr )
       implicit none
       include 'mpif.h'
@@ -106,6 +106,5 @@ C      just remembering that extrastate was set in grequest_start
        endif
 C
        call MTest_Finalize( errs )
-       call mpi_finalize( ierr )
        end
 C

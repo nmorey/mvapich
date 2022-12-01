@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2013 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /* Interfaces in this file are intended to be used by modules other than
@@ -33,21 +32,21 @@ extern name2index_hash_t *cvar_hash;
 extern name2index_hash_t *pvar_hashs[MPIR_T_PVAR_CLASS_NUMBER];
 
 /* See description in mpit.c */
-extern void MPIR_T_enum_create(const char *name, MPI_T_enum *handle);
+extern void MPIR_T_enum_create(const char *name, MPI_T_enum * handle);
 extern void MPIR_T_enum_add_item(MPI_T_enum handle, const char *item_name, int item_value);
 extern int MPIR_T_cat_add_pvar(const char *cat_name, int pvar_index);
 extern int MPIR_T_cat_add_cvar(const char *cat_name, int cvar_index);
 extern int MPIR_T_cat_add_subcat(const char *parent_name, const char *child_name);
 extern int MPIR_T_cat_add_desc(const char *cat_name, const char *cat_desc);
 
-static inline cvar_table_entry_t * LOOKUP_CVAR_BY_NAME(const char* cvar_name)
+static inline cvar_table_entry_t *LOOKUP_CVAR_BY_NAME(const char *cvar_name)
 {
     unsigned cvar_idx;
     name2index_hash_t *hash_entry;
     HASH_FIND_STR(cvar_hash, cvar_name, hash_entry);
-    MPIU_Assert(hash_entry != NULL);
+    MPIR_Assert(hash_entry != NULL);
     cvar_idx = hash_entry->idx;
-    return (cvar_table_entry_t *)utarray_eltptr(cvar_table, cvar_idx);
+    return (cvar_table_entry_t *) utarray_eltptr(cvar_table, cvar_idx);
 }
 
 /* Helper macros for getting the default value of a cvar */
@@ -105,7 +104,7 @@ static inline cvar_table_entry_t * LOOKUP_CVAR_BY_NAME(const char* cvar_name)
 #define MPIR_T_CVAR_REGISTER_STATIC(dtype_, name_, addr_, count_, verb_, \
             scope_, default_, cat_, desc_) \
     do { \
-        MPIU_Assert(count_ > 0); \
+        MPIR_Assert(count_ > 0); \
         MPIR_T_CVAR_REGISTER_impl(dtype_, #name_, addr_, count_, MPI_T_ENUM_NULL, \
             verb_, MPI_T_BIND_NO_OBJECT, scope_, NULL, NULL, default_, cat_, desc_); \
     } while (0)
@@ -117,8 +116,8 @@ static inline cvar_table_entry_t * LOOKUP_CVAR_BY_NAME(const char* cvar_name)
 #define MPIR_T_CVAR_REGISTER_DYNAMIC(dtype_, name_, addr_, count_, etype_, \
             verb_, bind_, scope_, get_addr_, get_count_, default_, cat_, desc_) \
     do { \
-        MPIU_Assert(addr_ != NULL || get_addr_ != NULL); \
-        MPIU_Assert(count_ > 0 || get_count_ != NULL); \
+        MPIR_Assert(addr_ != NULL || get_addr_ != NULL); \
+        MPIR_Assert(count_ > 0 || get_count_ != NULL); \
         MPIR_T_CVAR_REGISTER_impl(dtype_, #name_, addr_, count_, etype_, \
             verb_, bind_, scope_, get_addr_, get_count_, default_, cat_, desc_); \
     } while (0)
@@ -132,15 +131,6 @@ static inline cvar_table_entry_t * LOOKUP_CVAR_BY_NAME(const char* cvar_name)
  */
 
 /* STATE */
-#define MPIR_T_PVAR_INT_STATE_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_INT_STATE_DECL_impl(name_))
-
-#define MPIR_T_PVAR_INT_STATE_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_INT_STATE_DECL_STATIC_impl(name_))
-
-#define MPIR_T_PVAR_INT_STATE_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_INT_STATE_DECL_EXTERN_impl(name_))
-
 #define MPIR_T_PVAR_STATE_SET_VAR(MODULE, ptr_, val_) \
     PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_STATE_SET_VAR_impl(ptr_, val_))
 /* Not gated by MODULE, since it is supposed to be a rvalue */
@@ -163,33 +153,6 @@ static inline cvar_table_entry_t * LOOKUP_CVAR_BY_NAME(const char* cvar_name)
             addr_, count_, etype_, verb_, bind_, flags_, get_value_, get_count_, cat_, desc_))
 
 /* LEVEL */
-#define MPIR_T_PVAR_UINT_LEVEL_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_UINT_LEVEL_DECL_impl(name_))
-#define MPIR_T_PVAR_ULONG_LEVEL_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG_LEVEL_DECL_impl(name_))
-#define MPIR_T_PVAR_ULONG2_LEVEL_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG2_LEVEL_DECL_impl(name_))
-#define MPIR_T_PVAR_DOUBLE_LEVEL_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_DOUBLE_LEVEL_DECL_impl(name_))
-
-#define MPIR_T_PVAR_UINT_LEVEL_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_UINT_LEVEL_DECL_STATIC_impl(name_))
-#define MPIR_T_PVAR_ULONG_LEVEL_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG_LEVEL_DECL_STATIC_impl(name_))
-#define MPIR_T_PVAR_ULONG2_LEVEL_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG2_LEVEL_DECL_STATIC_impl(name_))
-#define MPIR_T_PVAR_DOUBLE_LEVEL_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_DOUBLE_LEVEL_DECL_STATIC_impl(name_))
-
-#define MPIR_T_PVAR_UINT_LEVEL_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_UINT_LEVEL_DECL_EXTERN_impl(name_))
-#define MPIR_T_PVAR_ULONG_LEVEL_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG_LEVEL_DECL_EXTERN_impl(name_))
-#define MPIR_T_PVAR_ULONG2_LEVEL_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG2_LEVEL_DECL_EXTERN_impl(name_))
-#define MPIR_T_PVAR_DOUBLE_LEVEL_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_DOUBLE_LEVEL_DECL_EXTERN_impl(name_))
-
 #define MPIR_T_PVAR_LEVEL_SET_VAR(MODULE, ptr_, val_) \
     PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_LEVEL_SET_VAR_impl(ptr_, val_))
 #define MPIR_T_PVAR_LEVEL_GET_VAR(ptr_) \
@@ -219,33 +182,6 @@ static inline cvar_table_entry_t * LOOKUP_CVAR_BY_NAME(const char* cvar_name)
             addr_, count_, verb_, bind_, flags_, get_value_, get_count, cat_, desc_))
 
 /* SIZE */
-#define MPIR_T_PVAR_UINT_SIZE_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_UINT_SIZE_DECL_impl(name_))
-#define MPIR_T_PVAR_ULONG_SIZE_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG_SIZE_DECL_impl(name_))
-#define MPIR_T_PVAR_ULONG2_SIZE_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG2_SIZE_DECL_impl(name_))
-#define MPIR_T_PVAR_DOUBLE_SIZE_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_DOUBLE_SIZE_DECL_impl(name_))
-
-#define MPIR_T_PVAR_UINT_SIZE_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_UINT_SIZE_DECL_STATIC_impl(name_))
-#define MPIR_T_PVAR_ULONG_SIZE_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG_SIZE_DECL_STATIC_impl(name_))
-#define MPIR_T_PVAR_ULONG2_SIZE_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG2_SIZE_DECL_STATIC_impl(name_))
-#define MPIR_T_PVAR_DOUBLE_SIZE_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_DOUBLE_SIZE_DECL_STATIC_impl(name_))
-
-#define MPIR_T_PVAR_UINT_SIZE_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_UINT_SIZE_DECL_EXTERN_impl(name_))
-#define MPIR_T_PVAR_ULONG_SIZE_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG_SIZE_DECL_EXTERN_impl(name_))
-#define MPIR_T_PVAR_ULONG2_SIZE_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG2_SIZE_DECL_EXTERN_impl(name_))
-#define MPIR_T_PVAR_DOUBLE_SIZE_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_DOUBLE_SIZE_DECL_EXTERN_impl(name_))
-
 #define MPIR_T_PVAR_SIZE_SET_VAR(MODULE, ptr_, val_) \
     PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_SIZE_SET_VAR_impl(ptr_, val_))
 #define MPIR_T_PVAR_SIZE_GET_VAR(ptr_) \
@@ -267,15 +203,6 @@ static inline cvar_table_entry_t * LOOKUP_CVAR_BY_NAME(const char* cvar_name)
             addr_, count_, verb_, bind_, flags_, get_value_, get_count, cat_, desc_))
 
 /* PERCENTAGE */
-#define MPIR_T_PVAR_DOUBLE_PERCENTAGE_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_DOUBLE_PERCENTAGE_DECL_impl(name_))
-
-#define MPIR_T_PVAR_DOUBLE_PERCENTAGE_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_DOUBLE_PERCENTAGE_DECL_STATIC_impl(name_))
-
-#define MPIR_T_PVAR_DOUBLE_PERCENTAGE_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_DOUBLE_PERCENTAGE_DECL_EXTERN_impl(name_))
-
 #define MPIR_T_PVAR_PERCENTAGE_SET_VAR(MODULE, ptr_, val_) \
     PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_PERCENTAGE_SET_VAR_impl(ptr_, val_))
 #define MPIR_T_PVAR_PERCENTAGE_GET_VAR(MODULE, ptr_) \
@@ -296,32 +223,12 @@ static inline cvar_table_entry_t * LOOKUP_CVAR_BY_NAME(const char* cvar_name)
     PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_PERCENTAGE_REGISTER_DYNAMIC_impl(dtype_, name_, \
             addr_, count_, verb_, bind_, flags_, get_value_, get_count, cat_, desc_))
 
+/* TODO: Replace or reimplement these bucket macros */
 /* COUNTER */
-#define MPIR_T_PVAR_UINT_COUNTER_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_UINT_COUNTER_DECL_impl(name_))
-#define MPIR_T_PVAR_ULONG_COUNTER_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG_COUNTER_DECL_impl(name_))
-#define MPIR_T_PVAR_ULONG2_COUNTER_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG2_COUNTER_DECL_impl(name_))
-
-#define MPIR_T_PVAR_UINT_COUNTER_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_UINT_COUNTER_DECL_STATIC_impl(name_))
-#define MPIR_T_PVAR_ULONG_COUNTER_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG_COUNTER_DECL_STATIC_impl(name_))
-#define MPIR_T_PVAR_ULONG2_COUNTER_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG2_COUNTER_DECL_STATIC_impl(name_))
-
-#define MPIR_T_PVAR_ULONG2_COUNTER_BUCKET_DECL(MODULE, name_) \
-      PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG2_COUNTER_BUCKET_DECL_impl(name_))  
-#define MPIR_T_PVAR_ULONG2_COUNTER_BUCKET_DECL_EXTERN(MODULE, name_) \
-      PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG2_COUNTER_BUCKET_DECL_EXTERN_impl(name_))  \
-
-#define MPIR_T_PVAR_UINT_COUNTER_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_UINT_COUNTER_DECL_EXTERN_impl(name_))
-#define MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN_impl(name_))
-#define MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN_impl(name_))
+/* #define MPIR_T_PVAR_COUNTER_BUCKET_DECL(MODULE, name_) \                              */
+/*       PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_COUNTER_BUCKET_DECL_impl(name_))            */
+/* #define MPIR_T_PVAR_COUNTER_BUCKET_DECL_EXTERN(MODULE, name_) \                       */
+/*       PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_COUNTER_BUCKET_DECL_EXTERN_impl(name_))  \  */
 
 #define MPIR_T_PVAR_COUNTER_INIT_VAR(MODULE, ptr_) \
     PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_COUNTER_INIT_VAR_impl(ptr_))
@@ -361,27 +268,6 @@ static inline cvar_table_entry_t * LOOKUP_CVAR_BY_NAME(const char* cvar_name)
             addr_, count_, verb_, bind_, flags_, get_value_, get_count_, cat_, desc_))
 
 /* COUNTER ARRAY for user's convenience */
-#define MPIR_T_PVAR_UINT_COUNTER_ARRAY_DECL(MODULE, name_, len_) \
-    PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_UINT_COUNTER_ARRAY_DECL_impl(name_, len_))
-#define MPIR_T_PVAR_ULONG_COUNTER_ARRAY_DECL(MODULE, name_, len_) \
-    PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_ULONG_COUNTER_ARRAY_DECL_impl(name_, len_))
-#define MPIR_T_PVAR_ULONG2_COUNTER_ARRAY_DECL(MODULE, name_, len_) \
-    PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_ULONG2_COUNTER_ARRAY_DECL_impl(name_, len_))
-
-#define MPIR_T_PVAR_UINT_COUNTER_ARRAY_DECL_STATIC(MODULE, name_, len_) \
-    PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_UINT_COUNTER_ARRAY_DECL_STATIC_impl(name_, len_))
-#define MPIR_T_PVAR_ULONG_COUNTER_ARRAY_DECL_STATIC(MODULE, name_, len_) \
-    PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_ULONG_COUNTER_ARRAY_DECL_STATIC_impl(name_, len_))
-#define MPIR_T_PVAR_ULONG2_COUNTER_ARRAY_DECL_STATIC(MODULE, name_, len_) \
-    PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_ULONG2_COUNTER_ARRAY_DECL_STATIC_impl(name_, len_))
-
-#define MPIR_T_PVAR_UINT_COUNTER_ARRAY_DECL_EXTERN(MODULE, name_, len_) \
-    PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_UINT_COUNTER_ARRAY_DECL_EXTERN_impl(name_, len_))
-#define MPIR_T_PVAR_ULONG_COUNTER_ARRAY_DECL_EXTERN(MODULE, name_, len_) \
-    PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_ULONG_COUNTER_ARRAY_DECL_EXTERN_impl(name_, len_))
-#define MPIR_T_PVAR_ULONG2_COUNTER_ARRAY_DECL_EXTERN(MODULE, name_, len_) \
-    PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_ULONG2_COUNTER_ARRAY_DECL_EXTERN_impl(name_, len_))
-
 #define MPIR_T_PVAR_COUNTER_ARRAY_INIT_VAR(MODULE, ptr_, count_) \
     PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_COUNTER_ARRAY_INIT_VAR_impl(ptr_, count_))
 #define MPIR_T_PVAR_COUNTER_ARRAY_GET_VAR(ptr_, idx_) \
@@ -402,33 +288,6 @@ static inline cvar_table_entry_t * LOOKUP_CVAR_BY_NAME(const char* cvar_name)
             verb_, bind_, flags_, cat_, desc_))
 
 /* ARRGEGATE */
-#define MPIR_T_PVAR_UINT_AGGREGATE_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_UINT_AGGREGATE_DECL_impl(name_))
-#define MPIR_T_PVAR_ULONG_AGGREGATE_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG_AGGREGATE_DECL_impl(name_))
-#define MPIR_T_PVAR_ULONG2_AGGREGATE_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG2_AGGREGATE_DECL_impl(name_))
-#define MPIR_T_PVAR_ULONG2_AGGREGATE_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG2_AGGREGATE_DECL_impl(name_))
-
-#define MPIR_T_PVAR_UINT_AGGREGATE_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_UINT_AGGREGATE_DECL_STATIC_impl(name_))
-#define MPIR_T_PVAR_ULONG_AGGREGATE_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG_AGGREGATE_DECL_STATIC_impl(name_))
-#define MPIR_T_PVAR_ULONG2_AGGREGATE_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG2_AGGREGATE_DECL_STATIC_impl(name_))
-#define MPIR_T_PVAR_ULONG2_AGGREGATE_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG2_AGGREGATE_DECL_STATIC_impl(name_))
-
-#define MPIR_T_PVAR_UINT_AGGREGATE_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_UINT_AGGREGATE_DECL_EXTERN_impl(name_))
-#define MPIR_T_PVAR_ULONG_AGGREGATE_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG_AGGREGATE_DECL_EXTERN_impl(name_))
-#define MPIR_T_PVAR_ULONG2_AGGREGATE_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG2_AGGREGATE_DECL_EXTERN_impl(name_))
-#define MPIR_T_PVAR_ULONG2_AGGREGATE_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG2_AGGREGATE_DECL_EXTERN_impl(name_))
-
 #define MPIR_T_PVAR_AGGREGATE_INIT_VAR(MODULE, ptr_) \
     PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_AGGREGATE_INIT_VAR_impl(ptr_))
 #define MPIR_T_PVAR_AGGREGATE_GET_VAR(ptr_) \
@@ -461,15 +320,6 @@ static inline cvar_table_entry_t * LOOKUP_CVAR_BY_NAME(const char* cvar_name)
  same name, but in two MPI_T_PVAR classes (timer and counter) and two data types
  (double and unsigned long long) respectively.
 */
-#define MPIR_T_PVAR_DOUBLE_TIMER_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_DOUBLE_TIMER_DECL_impl(name_))
-
-#define MPIR_T_PVAR_DOUBLE_TIMER_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_DOUBLE_TIMER_DECL_STATIC_impl(name_))
-
-#define MPIR_T_PVAR_DOUBLE_TIMER_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_DOUBLE_TIMER_DECL_EXTERN_impl(name_))
-
 #define MPIR_T_PVAR_TIMER_INIT_VAR(MODULE, ptr_) \
     PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_TIMER_INIT_VAR_impl(ptr_))
 #define MPIR_T_PVAR_TIMER_GET_VAR(MODULE, ptr_, buf) \
@@ -502,32 +352,6 @@ static inline cvar_table_entry_t * LOOKUP_CVAR_BY_NAME(const char* cvar_name)
             verb_, bind_, flags_, cat_, desc_))
 
 /* HIGHWATERMARK */
-#define MPIR_T_PVAR_UINT_HIGHWATERMARK_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_UINT_HIGHWATERMARK_DECL_impl(name_))
-#define MPIR_T_PVAR_ULONG_HIGHWATERMARK_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG_HIGHWATERMARK_DECL_impl(name_))
-#define MPIR_T_PVAR_ULONG2_HIGHWATERMARK_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG2_HIGHWATERMARK_DECL_impl(name_))
-#define MPIR_T_PVAR_DOUBLE_HIGHWATERMARK_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_DOUBLE_HIGHWATERMARK_DECL_impl(name_))
-
-#define MPIR_T_PVAR_UINT_HIGHWATERMARK_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_UINT_HIGHWATERMARK_DECL_STATIC_impl(name_))
-#define MPIR_T_PVAR_ULONG_HIGHWATERMARK_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG_HIGHWATERMARK_DECL_STATIC_impl(name_))
-#define MPIR_T_PVAR_ULONG2_HIGHWATERMARK_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG2_HIGHWATERMARK_DECL_STATIC_impl(name_))
-#define MPIR_T_PVAR_DOUBLE_HIGHWATERMARK_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_DOUBLE_HIGHWATERMARK_DECL_STATIC_impl(name_))
-
-#define MPIR_T_PVAR_UINT_HIGHWATERMARK_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_UINT_HIGHWATERMARK_DECL_EXTERN_impl(name_))
-#define MPIR_T_PVAR_ULONG_HIGHWATERMARK_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG_HIGHWATERMARK_DECL_EXTERN_impl(name_))
-#define MPIR_T_PVAR_ULONG2_HIGHWATERMARK_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG2_HIGHWATERMARK_DECL_EXTERN_impl(name_))
-#define MPIR_T_PVAR_DOUBLE_HIGHWATERMARK_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_DOUBLE_HIGHWATERMARK_DECL_EXTERN_impl(name_))
 
 /* Embed type names in watermark operations because these operations need to
    know types of watermark to work, however we can't use typeof(ptr_) in C.
@@ -579,33 +403,6 @@ static inline cvar_table_entry_t * LOOKUP_CVAR_BY_NAME(const char* cvar_name)
             addr_, count_, verb_, bind_, flags_, get_value_, get_count_, cat_, desc_))
 
 /* LOWWATERMARK */
-#define MPIR_T_PVAR_UINT_LOWWATERMARK_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_UINT_LOWWATERMARK_DECL_impl(name_))
-#define MPIR_T_PVAR_ULONG_LOWWATERMARK_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG_LOWWATERMARK_DECL_impl(name_))
-#define MPIR_T_PVAR_ULONG2_LOWWATERMARK_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG2_LOWWATERMARK_DECL_impl(name_))
-#define MPIR_T_PVAR_DOUBLE_LOWWATERMARK_DECL(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_DOUBLE_LOWWATERMARK_DECL_impl(name_))
-
-#define MPIR_T_PVAR_UINT_LOWWATERMARK_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_UINT_LOWWATERMARK_DECL_STATIC_impl(name_))
-#define MPIR_T_PVAR_ULONG_LOWWATERMARK_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG_LOWWATERMARK_DECL_STATIC_impl(name_))
-#define MPIR_T_PVAR_ULONG2_LOWWATERMARK_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG2_LOWWATERMARK_DECL_STATIC_impl(name_))
-#define MPIR_T_PVAR_DOUBLE_LOWWATERMARK_DECL_STATIC(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_DOUBLE_LOWWATERMARK_DECL_STATIC_impl(name_))
-
-#define MPIR_T_PVAR_UINT_LOWWATERMARK_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_UINT_LOWWATERMARK_DECL_EXTERN_impl(name_))
-#define MPIR_T_PVAR_ULONG_LOWWATERMARK_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG_LOWWATERMARK_DECL_EXTERN_impl(name_))
-#define MPIR_T_PVAR_ULONG2_LOWWATERMARK_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_ULONG2_LOWWATERMARK_DECL_EXTERN_impl(name_))
-#define MPIR_T_PVAR_DOUBLE_LOWWATERMARK_DECL_EXTERN(MODULE, name_) \
-    PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_DOUBLE_LOWWATERMARK_DECL_EXTERN_impl(name_))
-
 #define MPIR_T_PVAR_UINT_LOWWATERMARK_INIT_VAR(MODULE, ptr_, val_) \
     PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_UINT_LOWWATERMARK_INIT_VAR_impl(ptr_, val_))
 #define MPIR_T_PVAR_ULONG_LOWWATERMARK_INIT_VAR(MODULE, ptr_, val_) \
@@ -651,4 +448,24 @@ static inline cvar_table_entry_t * LOOKUP_CVAR_BY_NAME(const char* cvar_name)
             addr_, count_, verb_, bind_, flags_, get_value_, get_count_, cat_, desc_) \
     PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_LOWWATERMARK_REGISTER_DYNAMIC_impl(dtype_, name_, \
             addr_, count_, verb_, bind_, flags_, get_value_, get_count_, cat_, desc_))
-#endif
+
+int MPIR_T_cvar_handle_alloc_impl(int cvar_index, void *obj_handle, MPI_T_cvar_handle * handle,
+                                  int *count);
+int MPIR_T_cvar_read_impl(MPI_T_cvar_handle handle, void *buf);
+int MPIR_T_cvar_write_impl(MPI_T_cvar_handle handle, const void *buf);
+int MPIR_T_pvar_session_create_impl(MPI_T_pvar_session * session);
+int MPIR_T_pvar_session_free_impl(MPI_T_pvar_session * session);
+int MPIR_T_pvar_handle_alloc_impl(MPI_T_pvar_session session, int pvar_index, void *obj_handle,
+                                  MPI_T_pvar_handle * handle, int *count);
+int MPIR_T_pvar_handle_free_impl(MPI_T_pvar_session session, MPI_T_pvar_handle * handle);
+int MPIR_T_pvar_start_impl(MPI_T_pvar_session session, MPI_T_pvar_handle handle);
+int MPIR_T_pvar_stop_impl(MPI_T_pvar_session session, MPI_T_pvar_handle handle);
+int MPIR_T_pvar_read_impl(MPI_T_pvar_session session, MPI_T_pvar_handle handle, void *buf);
+int MPIR_T_pvar_write_impl(MPI_T_pvar_session session, MPI_T_pvar_handle handle, const void *buf);
+int MPIR_T_pvar_reset_impl(MPI_T_pvar_session session, MPI_T_pvar_handle handle);
+int MPIR_T_pvar_readreset_impl(MPI_T_pvar_session session, MPI_T_pvar_handle handle, void *buf);
+int MPIR_T_category_get_cvars_impl(int cat_index, int len, int indices[]);
+int MPIR_T_category_get_pvars_impl(int cat_index, int len, int indices[]);
+int MPIR_T_category_get_categories_impl(int cat_index, int len, int indices[]);
+
+#endif /* MPIT_H_INCLUDED */

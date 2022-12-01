@@ -59,7 +59,7 @@ fn_fail:
 #define FUNCNAME MPID_nem_ib_pkt_unpause_handler
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPID_nem_ib_pkt_unpause_handler(MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, MPIDI_msg_sz_t *buflen, MPID_Request **rreqp)
+int MPID_nem_ib_pkt_unpause_handler(MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, intptr_t *buflen, MPIR_Request **rreqp)
 {
     int mpi_errno = MPI_SUCCESS;
     MPID_nem_ib_vc_area *vc_ib = VC_IB(vc);
@@ -99,7 +99,7 @@ int MPID_nem_ib_ckpt_continue_vc(MPIDI_VC_t *vc)
     int mpi_errno = MPI_SUCCESS;
 
     MPID_PKT_DECL_CAST(upkt, MPIDI_nem_ib_pkt_unpause_t, unpause_pkt);
-    MPID_Request *unpause_req;
+    MPIR_Request *unpause_req;
     MPIDI_STATE_DECL(MPID_STATE_MPID_NEM_IB_CKPT_CONTINUE_VC);
 
     MPIDI_FUNC_ENTER(MPID_STATE_MPID_NEM_IB_CKPT_CONTINUE_VC);
@@ -113,7 +113,7 @@ int MPID_nem_ib_ckpt_continue_vc(MPIDI_VC_t *vc)
     if (unpause_req)
     {
         if (unpause_req->status.MPI_ERROR) MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
-        MPID_Request_release(unpause_req);
+        MPIR_Request_free(unpause_req);
         if (mpi_errno) goto fn_fail;
     }
 
@@ -138,7 +138,7 @@ int MPID_nem_ib_ckpt_restart_vc(MPIDI_VC_t *vc)
     int mpi_errno = MPI_SUCCESS;
     MPIDI_CH3_Pkt_t upkt;
     MPIDI_nem_ib_pkt_unpause_t * const pkt = (MPIDI_nem_ib_pkt_unpause_t *)&upkt;
-    MPID_Request *sreq;
+    MPIR_Request *sreq;
     MPIDI_STATE_DECL(MPID_STATE_MPID_NEM_IB_CKPT_RESTART_VC);
 
     MPIDI_FUNC_ENTER(MPID_STATE_MPID_NEM_IB_CKPT_RESTART_VC);
@@ -152,10 +152,10 @@ int MPID_nem_ib_ckpt_restart_vc(MPIDI_VC_t *vc)
     if (sreq != NULL) {
         if (sreq->status.MPI_ERROR != MPI_SUCCESS) {
             mpi_errno = sreq->status.MPI_ERROR;
-            MPID_Request_release(sreq);
+            MPIR_Request_free(sreq);
             MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
         }
-        MPID_Request_release(sreq);
+        MPIR_Request_free(sreq);
     }
     
 fn_exit:

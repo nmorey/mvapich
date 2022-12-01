@@ -17,7 +17,7 @@
  */
 
 #include "mpichconf.h"
-#include <mpimem.h>
+#include <mpir_mem.h>
 #include "rdma_impl.h"
 #include "upmi.h"
 #include "vbuf.h"
@@ -34,6 +34,60 @@
 #define RDMA_MAX_PRIVATE_LENGTH     56
 #define MV2_RDMA_CM_MIN_PORT_LIMIT  1024
 #define MV2_RDMA_CM_MAX_PORT_LIMIT  65536
+
+/*
+=== BEGIN_MPI_T_MV2_CVAR_INFO_BLOCK ===
+
+cvars:
+    - name        : MV2_RDMA_CM_ARP_TIMEOUT
+      category    : CH3
+      type        : int
+      default     : 2000
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This parameter specifies the ARP timeout to be used by RDMA CM
+        module.
+
+    - name        : MV2_RDMA_CM_PORT
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_RDMA_CM_MAX_PORT
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This parameter specifies the upper limit of the port range to
+        be used by the RDMA CM module when choosing the port on which
+        it listens for connections. If not specified, defaults to
+        65536.
+
+    - name        : MV2_RDMA_CM_MIN_PORT
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This parameter specifies the lower limit of the port range to
+        be used by the RDMA CM module when choosing the port on which
+        it listens for connections. If not specified, defaults to
+        1024.
+
+=== END_MPI_T_MV2_CVAR_INFO_BLOCK ===
+*/
 
 int *rdma_base_listen_port = NULL;
 int *rdma_cm_host_list = NULL;
@@ -89,10 +143,6 @@ int init_messages(int *hosts, int pg_rank, int pg_size);
 
 /* RDMA_CM specific method implementations */
 
-#undef FUNCNAME
-#define FUNCNAME ib_cma_event_handler
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int static ib_cma_event_handler(struct rdma_cm_id *cma_id,
         struct rdma_cm_event *event)
 {
@@ -107,8 +157,8 @@ int static ib_cma_event_handler(struct rdma_cm_id *cma_id,
     MPIDI_PG_t *pg_tmp;
     struct rdma_conn_param conn_param;
 
-    MPIDI_STATE_DECL(MPIDI_STATE_IB_CMA_EVENT_HANDLER);
-    MPIDI_FUNC_ENTER(MPIDI_STATE_IB_CMA_EVENT_HANDLER);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPIDI_STATE_IB_CMA_EVENT_HANDLER);
+    MPIR_FUNC_VERBOSE_ENTER(MPIDI_STATE_IB_CMA_EVENT_HANDLER);
 
     UPMI_GET_RANK(&pg_rank);
     UPMI_GET_SIZE(&pg_size);
@@ -165,7 +215,7 @@ int static ib_cma_event_handler(struct rdma_cm_id *cma_id,
             rdma_cm_create_qp(vc, rail_index);
 
             /* Connect to remote node */
-            MPIU_Memset(&conn_param, 0, sizeof conn_param);
+            MPIR_Memset(&conn_param, 0, sizeof conn_param);
 #ifdef _ENABLE_XRC_
             if (mv2_MPIDI_CH3I_RDMA_Process.heterogeneity || USE_XRC)
 #else
@@ -201,7 +251,7 @@ int static ib_cma_event_handler(struct rdma_cm_id *cma_id,
             }
 
             PRINT_DEBUG(DEBUG_RDMACM_verbose,"allocating %d bytes for private_data\n", tmplen);
-            conn_param.private_data = MPIU_Malloc(tmplen);
+            conn_param.private_data = MPL_malloc(tmplen, MPL_MEM_OTHER);
 
             if (!conn_param.private_data) {
                 MPIR_ERR_SETFATALANDJUMP(mpi_errno, MPI_ERR_OTHER, "**nomem");
@@ -237,7 +287,7 @@ int static ib_cma_event_handler(struct rdma_cm_id *cma_id,
                         ret, connect_attempts);
             }
 
-            MPIU_Free(conn_param.private_data);
+            MPL_free(conn_param.private_data);
 
         break;
         case RDMA_CM_EVENT_CONNECT_REQUEST:
@@ -330,7 +380,7 @@ int static ib_cma_event_handler(struct rdma_cm_id *cma_id,
             }
             offset = private_data_start_offset;
             /* Accept remote connection - passive connect */
-            MPIU_Memset(&conn_param, 0, sizeof conn_param);
+            MPIR_Memset(&conn_param, 0, sizeof conn_param);
 #ifdef _ENABLE_XRC_
             if (mv2_MPIDI_CH3I_RDMA_Process.heterogeneity || USE_XRC)
 #else
@@ -346,14 +396,15 @@ int static ib_cma_event_handler(struct rdma_cm_id *cma_id,
             conn_param.retry_count = rdma_default_rnr_retry;
             conn_param.rnr_retry_count = rdma_default_rnr_retry;
             conn_param.private_data_len = tmplen;
-            conn_param.private_data = MPIU_Malloc(conn_param.private_data_len);
+            conn_param.private_data = MPL_malloc(conn_param.private_data_len, 
+                                                    MPL_MEM_OTHER);
             ((uint64_t *) conn_param.private_data)[offset] = (uint64_t) vc;
             ret = rdma_ops.accept(cma_id, &conn_param);
             if (ret) {
                 MPIR_ERR_SETANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**fail",
                         "rdma_accept error: %d\n", ret);
             }
-            MPIU_Free(conn_param.private_data);
+            MPL_free(conn_param.private_data);
 
         break;
         case RDMA_CM_EVENT_ESTABLISHED:
@@ -513,14 +564,10 @@ int static ib_cma_event_handler(struct rdma_cm_id *cma_id,
         break;
     }
 fn_fail:
-    MPIDI_FUNC_EXIT(MPIDI_STATE_IB_CMA_EVENT_HANDLER);
+    MPIR_FUNC_VERBOSE_EXIT(MPIDI_STATE_IB_CMA_EVENT_HANDLER);
     return ret;
 }
 
-#undef FUNCNAME
-#define FUNCNAME cm_thread
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 void *cm_thread(void *arg)
 {
     struct rdma_cm_event *event = NULL;
@@ -556,21 +603,16 @@ fn_fail:
     return NULL;
 }
 
-#undef FUNCNAME
-#define FUNCNAME get_base_listen_port
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 static int get_base_listen_port(int pg_rank, int* port)
 {
     int mpi_errno = MPI_SUCCESS;
-    char* cMaxPort = getenv("MV2_RDMA_CM_MAX_PORT");
     int maxPort = MV2_RDMA_CM_MAX_PORT_LIMIT;
-    MPIDI_STATE_DECL(MPID_STATE_GET_BASE_LISTEN_PORT);
-    MPIDI_FUNC_ENTER(MPID_STATE_GET_BASE_LISTEN_PORT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_GET_BASE_LISTEN_PORT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_GET_BASE_LISTEN_PORT);
 
-    if (cMaxPort)
+    if (MV2_RDMA_CM_MAX_PORT != -1)
     {
-        maxPort = atoi(cMaxPort);
+        maxPort = MV2_RDMA_CM_MAX_PORT;
 
         if (maxPort > MV2_RDMA_CM_MAX_PORT_LIMIT ||
             maxPort < MV2_RDMA_CM_MIN_PORT_LIMIT)
@@ -587,12 +629,11 @@ static int get_base_listen_port(int pg_rank, int* port)
         }
     }
 
-    char* cMinPort = getenv("MV2_RDMA_CM_MIN_PORT");
     int minPort = MV2_RDMA_CM_MIN_PORT_LIMIT;
 
-    if (cMinPort)
+    if (MV2_RDMA_CM_MIN_PORT != -1)
     {
-        minPort = atoi(cMinPort);
+        minPort = MV2_RDMA_CM_MIN_PORT;
 
         if (minPort > MV2_RDMA_CM_MAX_PORT_LIMIT ||
             minPort < MV2_RDMA_CM_MIN_PORT_LIMIT)
@@ -626,12 +667,11 @@ static int get_base_listen_port(int pg_rank, int* port)
 
     struct timeval seed;
     gettimeofday(&seed, NULL);
-    char* envPort = getenv("MV2_RDMA_CM_PORT");
     int rdma_cm_default_port;
 
-    if (envPort)
+    if (MV2_RDMA_CM_PORT != -1)
     {
-        rdma_cm_default_port = atoi(envPort);
+        rdma_cm_default_port = MV2_RDMA_CM_PORT;
 
         if (rdma_cm_default_port == -1)
         {
@@ -646,7 +686,7 @@ static int get_base_listen_port(int pg_rank, int* port)
                 MPI_ERR_OTHER,
                 "**rdmacminvalidport",
                 "**rdmacminvalidport %d",
-                atoi(envPort)
+                MV2_RDMA_CM_PORT
             );
         }
     }
@@ -659,22 +699,18 @@ static int get_base_listen_port(int pg_rank, int* port)
     *port = htons(rdma_cm_default_port);
 
 fn_fail:
-    MPIDI_FUNC_EXIT(MPID_STATE_GET_BASE_LISTEN_PORT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_GET_BASE_LISTEN_PORT);
     return mpi_errno;
 }
 
-#undef FUNCNAME
-#define FUNCNAME bind_listen_port
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 static int bind_listen_port(int pg_rank, int pg_size)
 {
     struct sockaddr_in sin;
     int ret, count = 0;
     mv2_MPIDI_CH3I_RDMA_Process_t *proc = &mv2_MPIDI_CH3I_RDMA_Process;
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_BIND_LISTEN_PORT);
-    MPIDI_FUNC_ENTER(MPID_STATE_BIND_LISTEN_PORT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_BIND_LISTEN_PORT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_BIND_LISTEN_PORT);
 
 #ifdef _MULTI_SUBNET_SUPPORT_
     if (mv2_rdma_cm_multi_subnet_support) {
@@ -687,7 +723,7 @@ static int bind_listen_port(int pg_rank, int pg_size)
                             "Could not convert local GID to IPv6 address\n");
         }
 
-        MPIU_Memset(&hints, 0, sizeof(hints));
+        MPIR_Memset(&hints, 0, sizeof(hints));
         hints.ai_family = AF_IB;
         hints.ai_port_space = RDMA_PS_TCP;
         hints.ai_flags = RAI_NUMERICHOST | RAI_FAMILY | RAI_PASSIVE;
@@ -712,7 +748,7 @@ static int bind_listen_port(int pg_rank, int pg_size)
             MPIR_ERR_POP(mpi_errno);
         }
 
-        MPIU_Memset(&sin, 0, sizeof(sin));
+        MPIR_Memset(&sin, 0, sizeof(sin));
         sin.sin_family = AF_INET;
         sin.sin_addr.s_addr = 0;
         sin.sin_port = rdma_base_listen_port[pg_rank];
@@ -747,22 +783,18 @@ static int bind_listen_port(int pg_rank, int pg_size)
     PRINT_DEBUG(DEBUG_RDMACM_verbose,"Listen port bind on %d\n", sin.sin_port);
 
 fn_fail:
-    MPIDI_FUNC_EXIT(MPID_STATE_BIND_LISTEN_PORT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_BIND_LISTEN_PORT);
     return mpi_errno;
 }
 
-#undef FUNCNAME
-#define FUNCNAME ib_init_rdma_cm
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int ib_init_rdma_cm(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
                 int pg_rank, int pg_size)
 {
     int i = 0, ret, num_interfaces;
     int mpi_errno = MPI_SUCCESS;
     char *value;
-    MPIDI_STATE_DECL(MPID_STATE_IB_INIT_RDMA_CM);
-    MPIDI_FUNC_ENTER(MPID_STATE_IB_INIT_RDMA_CM);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_IB_INIT_RDMA_CM);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_IB_INIT_RDMA_CM);
 
     if(sem_init(&(proc->rdma_cm), 0, 0)) {
         MPIR_ERR_SETFATALANDJUMP2(mpi_errno, MPI_ERR_OTHER, "**fail", "%s: %s",
@@ -787,21 +819,26 @@ int ib_init_rdma_cm(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
 
 #ifdef _MULTI_SUBNET_SUPPORT_
     if (mv2_rdma_cm_multi_subnet_support) {
-        rdma_base_listen_sid = (uint64_t*) MPIU_Malloc (pg_size * sizeof(uint64_t));
+        rdma_base_listen_sid = (uint64_t*) MPL_malloc (pg_size * 
+                                            sizeof(uint64_t), MPL_MEM_OTHER);
         if (!rdma_base_listen_sid) {
             MPIR_ERR_SETFATALANDJUMP(mpi_errno, MPI_ERR_OTHER, "**nomem");
         }
     } else
 #endif /*_MULTI_SUBNET_SUPPORT_*/
     {
-        rdma_base_listen_port = (int *) MPIU_Malloc (pg_size * sizeof(int));
+        rdma_base_listen_port = (int *) MPL_malloc (pg_size * 
+                                            sizeof(int), MPL_MEM_OTHER);
         if (!rdma_base_listen_port) {
             MPIR_ERR_SETFATALANDJUMP(mpi_errno, MPI_ERR_OTHER, "**nomem");
         }
     }
-    rdma_cm_connect_count = (int *) MPIU_Malloc (pg_size * sizeof(int));
-    rdma_cm_accept_count = (int *) MPIU_Malloc (pg_size * sizeof(int));
-    rdma_cm_iwarp_msg_count = (int *) MPIU_Malloc (pg_size * sizeof(int));
+    rdma_cm_connect_count = (int *) MPL_malloc (pg_size * sizeof(int), 
+                                                    MPL_MEM_OTHER);
+    rdma_cm_accept_count = (int *) MPL_malloc (pg_size * sizeof(int), 
+                                                    MPL_MEM_OTHER);
+    rdma_cm_iwarp_msg_count = (int *) MPL_malloc (pg_size * sizeof(int), 
+                                                    MPL_MEM_OTHER);
 
     if (!rdma_cm_connect_count
         || !rdma_cm_accept_count
@@ -821,12 +858,10 @@ int ib_init_rdma_cm(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
         proc->recv_cq_hndl[i] = NULL;
     }
 
-    if ((value = getenv("MV2_RDMA_CM_ARP_TIMEOUT")) != NULL) {
-        rdma_cm_arp_timeout = atoi(value);
-        if (rdma_cm_arp_timeout < 0) {
-            MPIR_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**fail",
-                 "**fail %s", "Invalid rdma cm arp timeout value specified\n");
-        }
+    rdma_cm_arp_timeout = MV2_RDMA_CM_ARP_TIMEOUT;
+    if (rdma_cm_arp_timeout < 0) {
+        MPIR_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**fail",
+                                  "**fail %s", "Invalid rdma cm arp timeout value specified\n");
     }
 
 #ifdef _MULTI_SUBNET_SUPPORT_
@@ -880,17 +915,13 @@ int ib_init_rdma_cm(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
     rdma_cm_init_pd_cq();
 
 fn_exit:
-    MPIDI_FUNC_EXIT(MPID_STATE_IB_INIT_RDMA_CM);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_IB_INIT_RDMA_CM);
     return mpi_errno;
 
 fn_fail:
     goto fn_exit;
 }
 
-#undef FUNCNAME
-#define FUNCNAME rdma_cm_connect_all
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int rdma_cm_connect_all(int pg_rank, MPIDI_PG_t *pg)
 {
     int i, j, k, rail_index, pg_size;
@@ -898,8 +929,8 @@ int rdma_cm_connect_all(int pg_rank, MPIDI_PG_t *pg)
     mv2_MPIDI_CH3I_RDMA_Process_t *proc = &mv2_MPIDI_CH3I_RDMA_Process;
     int max_num_ips = rdma_num_hcas * rdma_num_ports;
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_RDMA_CM_CONNECT_ALL);
-    MPIDI_FUNC_ENTER(MPID_STATE_RDMA_CM_CONNECT_ALL);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_RDMA_CM_CONNECT_ALL);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_RDMA_CM_CONNECT_ALL);
 
     if (!proc->use_rdma_cm_on_demand){
         pg_size = MPIDI_PG_Get_size(pg);
@@ -941,23 +972,19 @@ int rdma_cm_connect_all(int pg_rank, MPIDI_PG_t *pg)
     }
 
 fn_exit:
-    MPIDI_FUNC_EXIT(MPID_STATE_RDMA_CM_CONNECT_ALL);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_RDMA_CM_CONNECT_ALL);
     return mpi_errno;
 fn_fail:
    goto fn_exit;
 }
 
-#undef FUNCNAME
-#define FUNCNAME rdma_cm_get_contexts
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int rdma_cm_get_contexts() {
     int mpi_errno = MPI_SUCCESS;
     int i = 0, ret;
     struct sockaddr_in sin;
     mv2_MPIDI_CH3I_RDMA_Process_t *proc = &mv2_MPIDI_CH3I_RDMA_Process;
-    MPIDI_STATE_DECL(MPID_STATE_RDMA_CM_GET_CONTEXTS);
-    MPIDI_FUNC_ENTER(MPID_STATE_RDMA_CM_GET_CONTEXTS);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_RDMA_CM_GET_CONTEXTS);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_RDMA_CM_GET_CONTEXTS);
 
 #ifdef _MULTI_SUBNET_SUPPORT_
     if (mv2_rdma_cm_multi_subnet_support) {
@@ -979,7 +1006,7 @@ int rdma_cm_get_contexts() {
                             "Could not convert local GID to IPv6 address\n");
                 }
 
-                MPIU_Memset(&hints, 0, sizeof(hints));
+                MPIR_Memset(&hints, 0, sizeof(hints));
                 hints.ai_family = AF_IB;
                 hints.ai_port_space = RDMA_PS_TCP;
                 hints.ai_flags = RAI_NUMERICHOST | RAI_FAMILY;
@@ -1017,7 +1044,7 @@ int rdma_cm_get_contexts() {
                         "rdma_create_id error %d\n", ret);
             }
 
-            MPIU_Memset(&sin, 0, sizeof(sin));
+            MPIR_Memset(&sin, 0, sizeof(sin));
             sin.sin_family = AF_INET;
             sin.sin_addr.s_addr = rdma_cm_local_ips[i];
             ret = rdma_ops.resolve_addr(tmpcmid, NULL, (struct sockaddr *) &sin,
@@ -1038,22 +1065,18 @@ int rdma_cm_get_contexts() {
     }
 
 fn_fail:
-    MPIDI_FUNC_EXIT(MPID_STATE_RDMA_CM_GET_CONTEXTS);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_RDMA_CM_GET_CONTEXTS);
     return mpi_errno;
 }
 
-#undef FUNCNAME
-#define FUNCNAME rdma_cm_create_qp
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int rdma_cm_create_qp(MPIDI_VC_t *vc, int rail_index)
 {
     struct ibv_qp_init_attr init_attr;
     int hca_index, ret;
     mv2_MPIDI_CH3I_RDMA_Process_t *proc = &mv2_MPIDI_CH3I_RDMA_Process;
     struct rdma_cm_id *cmid;
-    MPIDI_STATE_DECL(MPID_STATE_RDMA_CM_CREATE_QP);
-    MPIDI_FUNC_ENTER(MPID_STATE_RDMA_CM_CREATE_QP);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_RDMA_CM_CREATE_QP);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_RDMA_CM_CREATE_QP);
 
     hca_index = rail_index / (rdma_num_ports * rdma_num_qp_per_port);
 
@@ -1061,7 +1084,7 @@ int rdma_cm_create_qp(MPIDI_VC_t *vc, int rail_index)
     cmid = vc->mrail.rails[rail_index].cm_ids;
 
     {
-        MPIU_Memset(&init_attr, 0, sizeof(init_attr));
+        MPIR_Memset(&init_attr, 0, sizeof(init_attr));
         init_attr.cap.max_recv_sge = rdma_default_max_sg_list;
         init_attr.cap.max_send_sge = rdma_default_max_sg_list;
         init_attr.cap.max_inline_data = rdma_max_inline_size;
@@ -1116,23 +1139,20 @@ int rdma_cm_create_qp(MPIDI_VC_t *vc, int rail_index)
     vc->mrail.rails[rail_index].hca_index = hca_index;
     vc->mrail.rails[rail_index].port = 1;
 
-    MPIDI_FUNC_EXIT(MPID_STATE_RDMA_CM_CREATE_QP);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_RDMA_CM_CREATE_QP);
     return ret;
 }
 
-#undef FUNCNAME
-#define FUNCNAME rdma_cm_exchange_hostid
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int rdma_cm_exchange_hostid(MPIDI_PG_t *pg, int pg_rank, int pg_size)
 {
     int *hostid_all;
     int i, mpi_errno = MPI_SUCCESS;
 
-    MPIDI_STATE_DECL(MPID_STATE_RDMA_CM_EXCHANGE_HOSTID);
-    MPIDI_FUNC_ENTER(MPID_STATE_RDMA_CM_EXCHANGE_HOSTID);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_RDMA_CM_EXCHANGE_HOSTID);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_RDMA_CM_EXCHANGE_HOSTID);
 
-    hostid_all = (int *) MPIU_Malloc (pg_size * sizeof(int));
+    hostid_all = (int *) MPL_malloc (pg_size * sizeof(int), 
+                                        MPL_MEM_OTHER);
     if (!hostid_all){
         MPIR_ERR_SETANDJUMP(mpi_errno, MPI_ERR_OTHER, "**nomem");
     }
@@ -1176,16 +1196,12 @@ int rdma_cm_exchange_hostid(MPIDI_PG_t *pg, int pg_rank, int pg_size)
     rdma_process_hostid(pg, hostid_all, pg_rank, pg_size);
 
 fn_fail:
-    MPIU_Free(hostid_all);
+    MPL_free(hostid_all);
 
-    MPIDI_FUNC_EXIT(MPID_STATE_RDMA_CM_EXCHANGE_HOSTID);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_RDMA_CM_EXCHANGE_HOSTID);
     return mpi_errno;
 }
 
-#undef FUNCNAME
-#define FUNCNAME rdma_cm_get_hostnames
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int rdma_cm_get_hostnames(int pg_rank, MPIDI_PG_t *pg)
 {
     int *hosts = NULL;
@@ -1198,27 +1214,29 @@ int rdma_cm_get_hostnames(int pg_rank, MPIDI_PG_t *pg)
     int pg_size = MPIDI_PG_Get_size(pg);
     int max_num_ips = rdma_num_hcas * rdma_num_ports;
 
-    MPIDI_STATE_DECL(MPID_STATE_RDMA_CM_GET_HOSTNAMES);
-    MPIDI_FUNC_ENTER(MPID_STATE_RDMA_CM_GET_HOSTNAMES);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_RDMA_CM_GET_HOSTNAMES);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_RDMA_CM_GET_HOSTNAMES);
 
 #ifdef _MULTI_SUBNET_SUPPORT_
     if (mv2_rdma_cm_multi_subnet_support) {
         rdma_cm_host_gid_list = (union ibv_gid*)
-                    MPIU_Malloc(pg_size * max_num_ips * sizeof(union ibv_gid));
+                    MPL_malloc(pg_size * max_num_ips * sizeof(union ibv_gid), 
+                                MPL_MEM_OTHER);
 
         length = 128*rdma_num_hcas*rdma_num_ports + 16;
-        buffer = MPIU_Malloc(sizeof(char)*length);
+        buffer = MPL_malloc(sizeof(char)*length, MPL_MEM_OTHER);
         if (!rdma_cm_host_gid_list || !buffer) {
             MPIR_ERR_SETFATALANDJUMP(mpi_errno, MPI_ERR_OTHER, "**nomem");
         }
     } else
 #endif /*_MULTI_SUBNET_SUPPORT_*/
     {
-        hosts = (int *) MPIU_Malloc (pg_size * max_num_ips * sizeof(int));
+        hosts = (int *) MPL_malloc (pg_size * max_num_ips * sizeof(int),
+                                        MPL_MEM_OTHER);
         rdma_cm_host_list = hosts;
 
         length = 32*rdma_num_hcas*rdma_num_ports;
-        buffer = MPIU_Malloc(sizeof(char)*length);
+        buffer = MPL_malloc(sizeof(char)*length, MPL_MEM_OTHER);
         if (!hosts || !buffer){
             MPIR_ERR_SETFATALANDJUMP(mpi_errno, MPI_ERR_OTHER, "**nomem");
         }
@@ -1234,7 +1252,7 @@ int rdma_cm_get_hostnames(int pg_rank, MPIDI_PG_t *pg)
                 sprintf(buffer+strlen(buffer), "-%016" SCNx64 ":%016" SCNx64,
                         mv2_MPIDI_CH3I_RDMA_Process.gids[i][j-1].global.subnet_prefix,
                         mv2_MPIDI_CH3I_RDMA_Process.gids[i][j-1].global.interface_id);
-                MPIU_Memcpy(&rdma_cm_host_gid_list[pg_rank*max_num_ips + k],
+                MPIR_Memcpy(&rdma_cm_host_gid_list[pg_rank*max_num_ips + k],
                             &mv2_MPIDI_CH3I_RDMA_Process.gids[i][j-1],
                             sizeof(union ibv_gid));
                 k++;
@@ -1252,8 +1270,8 @@ int rdma_cm_get_hostnames(int pg_rank, MPIDI_PG_t *pg)
 
     PRINT_DEBUG(DEBUG_RDMACM_verbose,"[%d] message to be sent: %s\n", pg_rank, buffer);
 
-    MPIU_Strncpy(mv2_pmi_key, rank, 16);
-    MPIU_Strncpy(mv2_pmi_val, buffer, length);
+    MPL_strncpy(mv2_pmi_key, rank, 16);
+    MPL_strncpy(mv2_pmi_val, buffer, length);
     mpi_errno = UPMI_KVS_PUT(pg->ch.kvs_name, mv2_pmi_key, mv2_pmi_val);
     if (mpi_errno != UPMI_SUCCESS) {
         MPIR_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**pmi_kvs_put",
@@ -1275,13 +1293,13 @@ int rdma_cm_get_hostnames(int pg_rank, MPIDI_PG_t *pg)
     for (i = 0; i < pg_size; i++) {
         if (i != pg_rank) {
             sprintf(rank, "ip-%d", i);
-            MPIU_Strncpy(mv2_pmi_key, rank, 16);
+            MPL_strncpy(mv2_pmi_key, rank, 16);
             mpi_errno = UPMI_KVS_GET(pg->ch.kvs_name, mv2_pmi_key, mv2_pmi_val, mv2_pmi_max_vallen);
             if (mpi_errno != UPMI_SUCCESS) {
                 MPIR_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**pmi_kvs_get",
                         "**pmi_kvs_get %d", mpi_errno);
             }
-            MPIU_Strncpy(buffer, mv2_pmi_val, length);
+            MPL_strncpy(buffer, mv2_pmi_val, length);
 
 #ifdef _MULTI_SUBNET_SUPPORT_
             if (mv2_rdma_cm_multi_subnet_support) {
@@ -1333,8 +1351,8 @@ int rdma_cm_get_hostnames(int pg_rank, MPIDI_PG_t *pg)
         g_num_smp_peers);
 
 fn_fail:
-    MPIDI_FUNC_EXIT(MPID_STATE_RDMA_CM_GET_HOSTNAMES);
-    MPIU_Free(buffer);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_RDMA_CM_GET_HOSTNAMES);
+    MPL_free(buffer);
 
     return mpi_errno;
 }
@@ -1344,10 +1362,6 @@ fn_fail:
  * and determine verbs capable ones
  * Exclude Loopback & down interfaces
  */
-#undef FUNCNAME
-#define FUNCNAME rdma_cm_get_verbs_ip
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int rdma_cm_get_verbs_ip(int *num_interfaces)
 {
     int index = 0;
@@ -1355,8 +1369,9 @@ int rdma_cm_get_verbs_ip(int *num_interfaces)
     char *value = getenv("MV2_IBA_HCA");
 
     *num_interfaces = num_ip_enabled_devices;
-    rdma_cm_local_ips = MPIU_Malloc((rdma_num_hcas*rdma_num_ports) * sizeof(int));
-    for(index = 0; index < (*num_interfaces); index++){
+    rdma_cm_local_ips = MPL_malloc((rdma_num_hcas*rdma_num_ports) * sizeof(int),
+                                    MPL_MEM_OTHER);
+    for(index = 0; index < (*num_interfaces, MPL_MEM_OTHER); index++){
         if (value != NULL && ip_address_enabled_devices != NULL &&
             strstr(value, ip_address_enabled_devices[index].device_name) == NULL) {
                 continue;
@@ -1379,10 +1394,6 @@ fn_fail:
 /*
  * TODO add error handling
  */
-#undef FUNCNAME
-#define FUNCNAME rdma_cm_get_local_ip
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int rdma_cm_get_local_ip(int *num_interfaces)
 {
     FILE *fp_port;
@@ -1391,8 +1402,8 @@ int rdma_cm_get_local_ip(int *num_interfaces)
     int i = 0;
     char *value;
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_RDMA_CM_GET_LOCAL_IP);
-    MPIDI_FUNC_ENTER(MPID_STATE_RDMA_CM_GET_LOCAL_IP);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_RDMA_CM_GET_LOCAL_IP);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_RDMA_CM_GET_LOCAL_IP);
 
     value = getenv("MV2_RDMA_CM_CONF_FILE_PATH");
 
@@ -1410,7 +1421,8 @@ int rdma_cm_get_local_ip(int *num_interfaces)
                     "trying to determine verbs capable IP\n", fname);
         mpi_errno = rdma_cm_get_verbs_ip(&i);
     } else {
-        rdma_cm_local_ips = MPIU_Malloc(rdma_num_hcas*rdma_num_ports*sizeof(int));
+        rdma_cm_local_ips = MPL_malloc(rdma_num_hcas * rdma_num_ports *
+                                        sizeof(int), MPL_MEM_OTHER);
 
         while ((fscanf(fp_port, "%s\n", ip)) != EOF && (i < (rdma_num_hcas*rdma_num_ports))){
             int success = inet_pton(AF_INET, ip, &rdma_cm_local_ips[i]);
@@ -1423,7 +1435,7 @@ int rdma_cm_get_local_ip(int *num_interfaces)
     *num_interfaces = i;
 
 fn_fail:
-    MPIDI_FUNC_EXIT(MPID_STATE_RDMA_CM_GET_LOCAL_IP);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_RDMA_CM_GET_LOCAL_IP);
     return mpi_errno;
 }
 
@@ -1453,7 +1465,7 @@ int rdma_cm_connect_to_server(MPIDI_VC_t *vc, int offset, int rail_index){
             MPIR_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**fail", "**fail %s",
                             "Could not convert local GID to IPv6 address\n");
         }
-        MPIU_Memset(&hints, 0, sizeof(hints));
+        MPIR_Memset(&hints, 0, sizeof(hints));
         hints.ai_family = AF_IB;
         hints.ai_port_space = RDMA_PS_TCP;
         hints.ai_flags = RAI_NUMERICHOST | RAI_FAMILY | RAI_PASSIVE;
@@ -1469,7 +1481,7 @@ int rdma_cm_connect_to_server(MPIDI_VC_t *vc, int offset, int rail_index){
             MPIR_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**fail", "**fail %s",
                             "Could not convert local GID to IPv6 address\n");
         }
-        MPIU_Memset(&hints, 0, sizeof(hints));
+        MPIR_Memset(&hints, 0, sizeof(hints));
         hints.ai_family = AF_IB;
         hints.ai_port_space = RDMA_PS_TCP;
         hints.ai_flags = RAI_NUMERICHOST | RAI_FAMILY;
@@ -1496,7 +1508,7 @@ int rdma_cm_connect_to_server(MPIDI_VC_t *vc, int offset, int rail_index){
 #endif /*_MULTI_SUBNET_SUPPORT_*/
     {
         /* Resolve addr */
-        MPIU_Memset(&sin, 0, sizeof(sin));
+        MPIR_Memset(&sin, 0, sizeof(sin));
         sin.sin_family = AF_INET;
         sin.sin_addr.s_addr = rdma_cm_host_list[offset];
         sin.sin_port = rdma_base_listen_port[vc->pg_rank];
@@ -1516,10 +1528,6 @@ fn_fail:
     return mpi_errno;
 }
 
-#undef FUNCNAME
-#define FUNCNAME rdma_cm_init_pd_cq
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int rdma_cm_init_pd_cq()
 {
     mv2_MPIDI_CH3I_RDMA_Process_t* proc = &mv2_MPIDI_CH3I_RDMA_Process;
@@ -1759,16 +1767,16 @@ void ib_finalize_rdma_cm(int pg_rank, MPIDI_PG_t *pg)
 
 #ifdef _MULTI_SUBNET_SUPPORT_
     if (mv2_rdma_cm_multi_subnet_support) {
-        MPIU_Free(rdma_base_listen_sid);
+        MPL_free(rdma_base_listen_sid);
     } else
 #endif /*_MULTI_SUBNET_SUPPORT_*/
     {
-        MPIU_Free(rdma_base_listen_port);
+        MPL_free(rdma_base_listen_port);
     }
-    MPIU_Free(rdma_cm_accept_count);
-    MPIU_Free(rdma_cm_connect_count);
-    MPIU_Free(rdma_cm_iwarp_msg_count);
-    MPIU_Free(rdma_cm_local_ips);
+    MPL_free(rdma_cm_accept_count);
+    MPL_free(rdma_cm_connect_count);
+    MPL_free(rdma_cm_iwarp_msg_count);
+    MPL_free(rdma_cm_local_ips);
     pg_size = MPIDI_PG_Get_size(pg);
 
     {

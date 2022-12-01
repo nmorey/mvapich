@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2014 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #define PATH_MAX 100
 
 #include "mpi.h"
@@ -41,7 +40,7 @@ int main(int argc, char **argv)
     MPI_Get_processor_name(processor_name, &namelen);
 
     char shell_cmd[100];
-    sprintf(shell_cmd, "cat /proc/%d/stat | awk '{print $39}'", getpid());
+    snprintf(shell_cmd, sizeof(shell_cmd), "cat /proc/%d/stat | awk '{print $39}'", getpid());
 
     if (rank == 0) {
         printf("----------------------\n");

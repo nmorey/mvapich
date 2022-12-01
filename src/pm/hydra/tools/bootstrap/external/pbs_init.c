@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2011 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "hydra.h"
@@ -24,8 +23,8 @@ HYD_status HYDT_bsci_launcher_pbs_init(void)
     HYDT_bsci_fns.wait_for_completion = HYDT_bscd_pbs_wait_for_completion;
     HYDT_bsci_fns.launcher_finalize = HYDT_bscd_pbs_launcher_finalize;
 
-    HYDU_MALLOC(HYDT_bscd_pbs_sys, struct HYDT_bscd_pbs_sys_s *,
-                sizeof(struct HYDT_bscd_pbs_sys_s), status);
+    HYDU_MALLOC_OR_JUMP(HYDT_bscd_pbs_sys, struct HYDT_bscd_pbs_sys_s *,
+                        sizeof(struct HYDT_bscd_pbs_sys_s), status);
 
     /* Initialize TM and Hydra's PBS data structure */
     err = tm_init(NULL, &tm_root);

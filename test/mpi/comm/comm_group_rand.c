@@ -1,13 +1,13 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>
 #include "mpitestconf.h"
+#include "mpitest.h"
 
 #define LOOPS 100
 
@@ -18,7 +18,7 @@ int main(int argc, char **argv)
     int *included, *ranks;
     MPI_Comm comm;
 
-    MPI_Init(NULL, NULL);
+    MTest_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
@@ -34,8 +34,7 @@ int main(int argc, char **argv)
             if (rand() % 2) {   /* randomly include a rank */
                 included[i] = 1;
                 ranks[count++] = i;
-            }
-            else
+            } else
                 included[i] = 0;
         }
 
@@ -52,12 +51,9 @@ int main(int argc, char **argv)
 
     MPI_Group_free(&full_group);
 
-    if (rank == 0)
-        printf(" No Errors\n");
-
     free(ranks);
     free(included);
-    MPI_Finalize();
+    MTest_Finalize(0);
 
     return 0;
 }

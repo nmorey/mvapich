@@ -1,8 +1,6 @@
-## -*- Mode: Makefile; -*-
-## vim: set ft=automake :
 ##
-## (C) 2011 by Argonne National Laboratory.
-##     See COPYRIGHT in top-level directory.
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
 ##
 
 if BUILD_F77_BINDINGS
@@ -65,4 +63,3 @@ romio_mpi_sources +=              \
     mpi-io/fortran/writef.c
 
 endif BUILD_F77_BINDINGS
-

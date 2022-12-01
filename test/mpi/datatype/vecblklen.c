@@ -1,8 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2014 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,7 +10,7 @@
 #include "mpitest.h"
 
 /* Inspired by the Intel MPI_Type_vector_blklen test.
-   Added to include a test of a dataloop optimization that failed.
+   Added to include a test of a typerep optimization that failed.
 */
 int main(int argc, char *argv[])
 {
@@ -83,7 +83,6 @@ int main(int argc, char *argv[])
     MPI_Type_free(&ot2);
     MPI_Type_free(&newtype);
     MTest_Finalize(errs);
-    MPI_Finalize();
 
-    return 0;
+    return MTestReturnValue(errs);
 }

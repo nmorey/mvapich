@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2008 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "hydra.h"
@@ -17,8 +16,7 @@ HYD_status HYDT_bsci_query_node_list(struct HYD_node **node_list)
     if (HYDT_bsci_fns.query_node_list) {
         status = HYDT_bsci_fns.query_node_list(node_list);
         HYDU_ERR_POP(status, "RMK returned error while querying node list\n");
-    }
-    else {
+    } else {
         /* We don't know anything about nodes or resources */
         *node_list = NULL;
     }

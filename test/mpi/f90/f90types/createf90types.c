@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,8 +50,7 @@ static int checkType(const char str[], int p, int r, int f90kind, int err, MPI_D
         if (combiner != f90kind) {
             errs++;
             printf("Wrong combiner type (got %d, should be %d) for %s\n", combiner, f90kind, str);
-        }
-        else {
+        } else {
             int parms[2];
             MPI_Datatype outtype;
             parms[0] = 0;
@@ -65,34 +63,33 @@ static int checkType(const char str[], int p, int r, int f90kind, int err, MPI_D
             }
             MPI_Type_get_contents(dtype, 2, 0, 1, parms, 0, &outtype);
             switch (combiner) {
-            case MPI_COMBINER_F90_REAL:
-            case MPI_COMBINER_F90_COMPLEX:
-                if (nints != 2) {
+                case MPI_COMBINER_F90_REAL:
+                case MPI_COMBINER_F90_COMPLEX:
+                    if (nints != 2) {
+                        errs++;
+                        printf("Returned %d integer values, 2 expected for %s\n", nints, str);
+                    }
+                    if (parms[0] != p || parms[1] != r) {
+                        errs++;
+                        printf("Returned (p=%d,r=%d); expected (p=%d,r=%d) for %s\n",
+                               parms[0], parms[1], p, r, str);
+                    }
+                    break;
+                case MPI_COMBINER_F90_INTEGER:
+                    if (nints != 1) {
+                        errs++;
+                        printf("Returned %d integer values, 1 expected for %s\n", nints, str);
+                    }
+                    if (parms[0] != p) {
+                        errs++;
+                        printf("Returned (p=%d); expected (p=%d) for %s\n", parms[0], p, str);
+                    }
+                    break;
+                default:
                     errs++;
-                    printf("Returned %d integer values, 2 expected for %s\n", nints, str);
-                }
-                if (parms[0] != p || parms[1] != r) {
-                    errs++;
-                    printf("Returned (p=%d,r=%d); expected (p=%d,r=%d) for %s\n",
-                           parms[0], parms[1], p, r, str);
-                }
-                break;
-            case MPI_COMBINER_F90_INTEGER:
-                if (nints != 1) {
-                    errs++;
-                    printf("Returned %d integer values, 1 expected for %s\n", nints, str);
-                }
-                if (parms[0] != p) {
-                    errs++;
-                    printf("Returned (p=%d); expected (p=%d) for %s\n", parms[0], p, str);
-                }
-                break;
-            default:
-                errs++;
-                printf("Unrecognized combiner for %s\n", str);
-                break;
+                    printf("Unrecognized combiner for %s\n", str);
+                    break;
             }
-
         }
     }
 
@@ -170,6 +167,5 @@ int main(int argc, char *argv[])
     }
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

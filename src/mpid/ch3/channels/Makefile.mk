@@ -1,8 +1,6 @@
-## -*- Mode: Makefile; -*-
-## vim: set ft=automake :
 ##
-## (C) 2011 by Argonne National Laboratory.
-##     See COPYRIGHT in top-level directory.
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
 ##
 ## Copyright (c) 2001-2022, The Ohio State University. All rights
 ## reserved.
@@ -18,7 +16,6 @@
 include $(top_srcdir)/src/mpid/ch3/channels/nemesis/Makefile.mk
 include $(top_srcdir)/src/mpid/ch3/channels/sock/Makefile.mk
 include $(top_srcdir)/src/mpid/ch3/channels/mrail/Makefile.mk
-include $(top_srcdir)/src/mpid/ch3/channels/psm/Makefile.mk
 include $(top_srcdir)/src/mpid/ch3/channels/common/Makefile.mk
 
 if BUILD_ROMIO

@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2006 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /* for ATTRIBUTE */
@@ -9,7 +8,7 @@
 #include "mpl.h"
 
 /* here to prevent "has no symbols" warnings from ranlib on OS X */
-static int dummy ATTRIBUTE((unused,used)) = 0;
+static int dummy ATTRIBUTE((unused)) MPL_USED = 0;
 
 #ifdef PAPI_MONITOR
 #include <papi.h>

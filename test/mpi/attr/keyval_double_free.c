@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2009 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include <mpi.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -38,6 +37,5 @@ int main(int argc, char **argv)
     MPI_Keyval_free(&keyval);   /* second MPI_Keyval_free */
     MPI_Keyval_free(&keyval_copy);      /* third MPI_Keyval_free */
     MTest_Finalize(errs);
-    MPI_Finalize();     /* fourth MPI_Keyval_free */
-    return 0;
+    return MTestReturnValue(errs);
 }

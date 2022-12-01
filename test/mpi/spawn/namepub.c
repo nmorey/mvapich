@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include <string.h>
@@ -51,8 +50,7 @@ int main(int argc, char *argv[])
             printf("Error in Unpublish name: \"%s\"\n", errmsg);
         }
 
-    }
-    else {
+    } else {
         MPI_Barrier(MPI_COMM_WORLD);
 
         merr = MPI_Lookup_name(serv_name, MPI_INFO_NULL, port_name_out);
@@ -60,8 +58,7 @@ int main(int argc, char *argv[])
             errs++;
             MPI_Error_string(merr, errmsg, &msglen);
             printf("Error in Lookup name: \"%s\"\n", errmsg);
-        }
-        else {
+        } else {
             if (strcmp(port_name, port_name_out)) {
                 errs++;
                 printf("Lookup name returned the wrong value (%s)\n", port_name_out);
@@ -78,8 +75,7 @@ int main(int argc, char *argv[])
     if (!merr) {
         errs++;
         printf("Lookup name returned name after it was unpublished\n");
-    }
-    else {
+    } else {
         /* Must be class MPI_ERR_NAME */
         MPI_Error_class(merr, &mclass);
         if (mclass != MPI_ERR_NAME) {
@@ -91,7 +87,5 @@ int main(int argc, char *argv[])
     }
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
-
+    return MTestReturnValue(errs);
 }

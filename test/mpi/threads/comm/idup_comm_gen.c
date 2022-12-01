@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2015 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /* This test tries to overlap multiple Comm_idups with other communicator
@@ -80,8 +79,7 @@ MTEST_THREAD_RETURN_TYPE test_idup(void *arg)
 
     if (rank % 2 == 0) {
         MPI_Comm_create_group(incomm, even_group, 0, &outcomm);
-    }
-    else {
+    } else {
         outcomm = MPI_COMM_NULL;
     }
     MPI_Group_free(&even_group);
@@ -92,11 +90,9 @@ MTEST_THREAD_RETURN_TYPE test_idup(void *arg)
     MPI_Comm_split(incomm, (rank < size / 2), rank, &local_comm);
     if (rank == 0) {
         rleader = size / 2;
-    }
-    else if (rank == size / 2) {
+    } else if (rank == size / 2) {
         rleader = 0;
-    }
-    else {
+    } else {
         rleader = -1;
     }
     isLeft = rank < size / 2;
@@ -126,7 +122,7 @@ int main(int argc, char **argv)
     int toterrs = 0;
     int size;
 
-    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+    MTest_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     if (provided < MPI_THREAD_MULTIPLE) {
@@ -152,6 +148,5 @@ int main(int argc, char **argv)
         toterrs += errs[i];
     }
     MTest_Finalize(toterrs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(toterrs);
 }

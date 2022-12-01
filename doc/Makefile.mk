@@ -1,8 +1,6 @@
-## -*- Mode: Makefile; -*-
-## vim: set ft=automake :
 ##
-## (C) 2011 by Argonne National Laboratory.
-##     See COPYRIGHT in top-level directory.
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
 ##
 
 DEVELOPER_SUBDIRS = doc/pmi doc/namepub
@@ -27,4 +25,3 @@ install-devdocs:
 	        export DEV_INSTALL_PREFIX ; \
 	        ( cd $$dir && $(MAKE) install-devdocs ) ; \
 	done
-

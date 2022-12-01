@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2014 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpiimpl.h"
@@ -15,7 +13,8 @@
 #elif defined(HAVE_PRAGMA_CRI_DUP)
 #pragma _CRI duplicate MPI_Aint_diff as PMPI_Aint_diff
 #elif defined(HAVE_WEAK_ATTRIBUTE)
-MPI_Aint MPI_Aint_diff(MPI_Aint addr1, MPI_Aint addr2) __attribute__((weak,alias("PMPI_Aint_diff")));
+MPI_Aint MPI_Aint_diff(MPI_Aint addr1, MPI_Aint addr2)
+    __attribute__ ((weak, alias("PMPI_Aint_diff")));
 #endif
 /* -- End Profiling Symbol Block */
 
@@ -27,8 +26,6 @@ MPI_Aint MPI_Aint_diff(MPI_Aint addr1, MPI_Aint addr2) __attribute__((weak,alias
 
 #endif
 
-#undef FUNCNAME
-#define FUNCNAME MPI_Aint_diff
 
 /*@
 MPI_Aint_diff - Returns the difference between addr1 and addr2
@@ -59,13 +56,13 @@ on the addresses initially passed to MPI_GET_ADDRESS.
 MPI_Aint MPI_Aint_diff(MPI_Aint addr1, MPI_Aint addr2)
 {
     MPI_Aint result;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_AINT_DIFF);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_AINT_DIFF);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
 
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_AINT_DIFF);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_AINT_DIFF);
     result = MPID_Aint_diff(addr1, addr2);
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_AINT_DIFF);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_AINT_DIFF);
 
     return result;
 }

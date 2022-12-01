@@ -1,19 +1,21 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include "mpitest.h"
 #include "stdlib.h"
+#include "dtpools.h"
 
 /*
 static char MTestDescrip[] = "Test freeing keyvals while still attached to \
 a datatype, then make sure that the keyval delete and copy code are still \
 executed";
 */
+
+
 
 /* Copy increments the attribute value */
 int copy_fn(MPI_Datatype oldtype, int keyval, void *extra_state,
@@ -41,18 +43,44 @@ int delete_fn(MPI_Datatype type, int keyval, void *attribute_val, void *extra_st
 
 int main(int argc, char *argv[])
 {
-    int errs = 0;
+    int err, errs = 0;
     int attrval;
-    int i, key[32], keyval, saveKeyval;
-    MPI_Datatype type, duptype;
-    MTestDatatype mstype, mrtype;
-    char typename[MPI_MAX_OBJECT_NAME];
+    int i, j, key[32], keyval, saveKeyval;
+    int seed, testsize;
+    int obj_idx;
+    MPI_Aint count, maxbufsize;
     int tnlen;
+    MPI_Datatype type, duptype;
+    DTP_pool_s dtp;
+    DTP_obj_s obj;
+    char *basic_type;
 
     MTest_Init(&argc, &argv);
 
-    while (MTestGetDatatypes(&mstype, &mrtype, 1)) {
-        type = mstype.datatype;
+    MTestArgList *head = MTestArgListCreate(argc, argv);
+    seed = MTestArgListGetInt(head, "seed");
+    testsize = MTestArgListGetInt(head, "testsize");
+    count = MTestArgListGetLong(head, "count");
+    basic_type = MTestArgListGetString(head, "type");
+
+    maxbufsize = MTestDefaultMaxBufferSize();
+
+    err = DTP_pool_create(basic_type, count, seed, &dtp);
+    if (err != DTP_SUCCESS) {
+        fprintf(stderr, "Error while creating pool (%s,%ld)\n", basic_type, count);
+        fflush(stderr);
+    }
+
+    MTestArgListDestroy(head);
+
+    for (obj_idx = 0; obj_idx < testsize; obj_idx++) {
+        err = DTP_obj_create(dtp, &obj, maxbufsize);
+        if (err != DTP_SUCCESS) {
+            errs++;
+            break;
+        }
+
+        type = obj.DTP_datatype;
         MPI_Type_create_keyval(copy_fn, delete_fn, &keyval, (void *) 0);
         saveKeyval = keyval;    /* in case we need to free explicitly */
         attrval = 1;
@@ -64,55 +92,62 @@ int main(int argc, char *argv[])
         /* We create some dummy keyvals here in case the same keyval
          * is reused */
         for (i = 0; i < 32; i++) {
-            MPI_Type_create_keyval(MPI_NULL_COPY_FN, MPI_NULL_DELETE_FN, &key[i], (void *) 0);
+            MPI_Type_create_keyval(MPI_TYPE_NULL_COPY_FN, MPI_TYPE_NULL_DELETE_FN, &key[i],
+                                   (void *) 0);
         }
 
         if (attrval != 1) {
             errs++;
-            MPI_Type_get_name(type, typename, &tnlen);
-            printf("attrval is %d, should be 1, before dup in type %s\n", attrval, typename);
+            char *desc;
+            DTP_obj_get_description(obj, &desc);
+            printf("attrval is %d, should be 1, before dup in type %s\n", attrval, desc);
+            free(desc);
         }
         MPI_Type_dup(type, &duptype);
         /* Check that the attribute was copied */
         if (attrval != 2) {
             errs++;
-            MPI_Type_get_name(type, typename, &tnlen);
-            printf("Attribute not incremented when type dup'ed (%s)\n", typename);
+            char *desc;
+            DTP_obj_get_description(obj, &desc);
+            printf("Attribute not incremented when type dup'ed (%s)\n", desc);
+            free(desc);
+            MPI_Abort(MPI_COMM_WORLD, 1);
         }
         MPI_Type_free(&duptype);
         if (attrval != 1) {
             errs++;
-            MPI_Type_get_name(type, typename, &tnlen);
-            printf("Attribute not decremented when duptype %s freed\n", typename);
+            char *desc;
+            DTP_obj_get_description(obj, &desc);
+            printf("Attribute not decremented when duptype %s freed\n", desc);
+            free(desc);
+            MPI_Abort(MPI_COMM_WORLD, 1);
         }
         /* Check that the attribute was freed in the duptype */
 
-        if (!mstype.isBasic) {
-            MPI_Type_get_name(type, typename, &tnlen);
-            MTestFreeDatatype(&mstype);
-            /* Check that the original attribute was freed */
+        if (obj.DTP_datatype != dtp.DTP_base_type) {
+            DTP_obj_free(obj);
             if (attrval != 0) {
                 errs++;
-                printf("Attribute not decremented when type %s freed\n", typename);
+                char *desc;
+                DTP_obj_get_description(obj, &desc);
+                fprintf(stderr, "Attribute not decremented when type %s freed\n", desc);
+                free(desc);
+                MPI_Abort(MPI_COMM_WORLD, 1);
             }
-        }
-        else {
-            /* Explicitly delete the attributes from world and self */
+        } else {
             MPI_Type_delete_attr(type, saveKeyval);
-            if (mstype.buf) {
-                free(mstype.buf);
-                mstype.buf = 0;
-            }
+            DTP_obj_free(obj);
         }
+
         /* Free those other keyvals */
         for (i = 0; i < 32; i++) {
             MPI_Type_free_keyval(&key[i]);
         }
-        MTestFreeDatatype(&mrtype);
     }
+
+    DTP_pool_free(dtp);
+
     MTest_Finalize(errs);
-    MPI_Finalize();
 
-    return 0;
-
+    return MTestReturnValue(errs);
 }

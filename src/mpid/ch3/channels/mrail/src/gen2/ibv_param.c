@@ -28,12 +28,1918 @@
 #ifdef HAVE_ROMIO
 #include "romioconf.h"
 #endif
-#include "coll_shmem.h"
+#include "mv2_ch3_shmem.h"
 
+/*
+=== BEGIN_MPI_T_MV2_CVAR_INFO_BLOCK ===
+
+cvars:
+    - name        : MV2_SMP_EAGERSIZE
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This parameter defines the size of shared buffer between every two
+        processes on the same node for transferring messages smaller than or
+        equal to MV2_SMP_EAGERSIZE. Note that this variable can be set with
+        suffixes such as 'K'/'k', 'M'/'m' or 'G'/'g' to denote Kilobyte,
+        Megabyte or Gigabyte respectively.
+
+    - name        : MV2_IBA_HCA
+      category    : CH3
+      type        : string
+      default     : NULL
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This specifies the HCA's to be used for performing network operations.
+
+    - name        : MV2_SMP_USE_CMA
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This parameter enables/disables CMA based intra-node communication at
+        run time. It does not take effect if MVAPICH2 is configured with
+        -without-cma. When -with-limic2 is included in the configure flags,
+        LiMIC2 is used in preference over CMA. Please set MV2_SMP_USE_LIMIC2
+        to 0 in order to choose CMA if MVAPICH2 is configured with -with-limic2.
+
+    - name        : MV2_SMP_USE_LIMIC2
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This parameter enables/disables LiMIC2 at run time. It does not take
+        effect if MVAPICH2 is not configured with -with-limic2.
+
+        Not used currently.
+
+    - name        : MV2_SMP_POLLING_THRESHOLD
+      category    : CH3
+      type        : int
+      default     : 200
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_SMP_CMA_MAX_SIZE
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_SMP_LIMIC2_MAX_SIZE
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_SMP_QUEUE_LENGTH
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This parameter defines the size of the shared buffer between
+        every two processes on the same node for transferring intra-node
+        messages smaller than or equal to MV2_SMP_EAGERSIZE. This variable
+        can be set with suffixes suck as 'K'/'k', 'M'/'m', or 'G'/'g' to 
+        denote Kilobyte, Megabyte, or Gigabyte respectively.
+
+    - name        : MV2_LIMIC_PUT_THRESHOLD
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_LIMIC_GET_THRESHOLD
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_R3_THRESHOLD
+      category    : CH3
+      type        : int
+      default     : 4096
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        The value of this variable controls what message sizes go over
+        the R3 rendezvous protocol. Messages above this message size use
+        MV2_RNDV_PROTOCOL.
+
+    - name        : MV2_INTRA_NODE_R3_THRESHOLD
+      category    : CH3
+      type        : int
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_INTER_NODE_R3_THRESHOLD
+      category    : CH3
+      type        : int
+      default     : 4096
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_R3_NOCACHE_THRESHOLD
+      category    : CH3
+      type        : int
+      default     : 32768
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        The value of this variable controls what message sizes go over the R3
+        rendezvous protocol when the registration cache is disabled
+        (MV2_USE_LAZY_MEM_UNREGISTER=0). Messages above this message size use
+        MV2_RNDV_PROTOCOL.
+
+    - name        : MV2_MAX_R3_PENDING_DATA
+      category    : CH3
+      type        : int
+      default     : (512 * 1024)
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_USE_LIMIC2_COLL
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_SMP_USE_MAX_SWITCH
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_CUDA_SMP_PIPELINE
+      category    : CH3
+      type        : int
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_SMP_DELAY_SHMEM_POOL_INIT
+      category    : CH3
+      type        : int
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_SMP_PRIORITY_POLLING
+      category    : CH3
+      type        : int
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_SMP_NUM_SEND_BUFFER
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This parameter defines the number of internal send buffers for sending
+        intra-node messages larger than MV2_SMP_EAGERSIZE.
+
+    - name        : MV2_SMP_BATCH_SIZE
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_SMP_SEND_BUF_SIZE
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This parameter defines the packet size when sending intra-node messages
+        larger than MV2_SMP_EAGERSIZE.
+
+    - name        : MV2_USE_OPT_EAGER_RECV
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_NUM_NODES_IN_JOB
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_USE_MCAST
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Set this to 1, to enable hardware multicast support in collective
+        communication.
+
+    - name        : MV2_USE_RDMA_CM_MCAST
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This parameter enables support for RDMA_CM based multicast group setup.
+        Requires the parameter MV2_USE_MCAST to be set to 1.
+
+    - name        : MV2_USE_QOS
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_3DTORUS_SUPPORT
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_PATH_SL_QUERY
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_NUM_SLS
+      category    : CH3
+      type        : int
+      default     : 8
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_NUM_SA_QUERY_RETRIES
+      category    : CH3
+      type        : int
+      default     : 20
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Number of times the MPI library will attempt to query the subnet to
+        obtain the path record information before giving up.
+
+    - name        : MV2_MAX_RDMA_CONNECT_ATTEMPTS
+      category    : CH3
+      type        : int
+      default     : 20
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_RDMA_CM_CONNECT_RETRY_INTERVAL
+      category    : CH3
+      type        : int
+      default     : 100
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_USE_HSAM
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This parameter is used for utilizing hot-spot avoidance with InfiniBand
+        clusters. To leverage this functionality, the subnet should be
+        configured with lmc greater than zero.
+
+    - name        : MV2_USE_APM
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This parameter is used for recovery from network faults using Automatic
+        Path Migration. This functionality is beneficial in the presence of
+        multiple paths in the network, which can be enabled by using lmc
+        mechanism.
+
+    - name        : MV2_USE_APM_TEST
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This parameter is used for testing the Automatic Path Migration
+        functionality. It periodically moves the alternate path as the primary
+        path of communication and re-loads another alternate path.
+
+    - name        : MV2_USE_IWARP_MODE
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This parameter enables the library to run in iWARP mode.
+
+    - name        : MV2_USE_RDMA_CM
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This parameter enables the use of RDMA CM for establishing the
+        connections.
+
+    - name        : MV2_RDMA_CM_MULTI_SUBNET_SUPPORT
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This parameter allows MPI jobs to be run across multiple subnets
+        interconnected by InfiniBand routers. Note that this requires RDMA_CM
+        support to be enabled at configure time and runtime. Note that, RDMA_CM
+        support is enabled by default at configure time.
+
+    - name        : MV2_SUPPORT_DPM
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This option enables the dynamic process management interface and
+        on-demand connection management.
+
+    - name        : MV2_ON_DEMAND_THRESHOLD
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This defines threshold for enabling on-demand connection management
+        scheme. When the size of the job is larger than the threshold value,
+        on-demand connection management will be used.
+
+    - name        : MV2_USE_XRC
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Use the XRC InfiniBand transport available since Mellanox ConnectX
+        adapters. This features requires OFED version later than 1.3. It also
+        automatically enables SRQ and ON-DEMAND connection management. Note
+        that the MVAPICH2 library needs to have been configured with
+        -enable-xrc=yes to use this feature.
+
+    - name        : MV2_USE_SRQ
+      category    : CH3
+      type        : int
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Setting this parameter enables MVAPICH2 to use shared receive queue.
+
+    - name        : MV2_IWARP_MULTIPLE_CQ_THRESHOLD
+      category    : CH3
+      type        : int
+      default     : 32
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This defines the process size beyond which we use multiple completion
+        queues for iWARP interface.
+
+    - name        : MV2_USE_LAZY_MEM_UNREGISTER
+      category    : CH3
+      type        : int
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Setting this parameter enables MVAPICH2 to use memory registration cache.
+
+    - name        : MV2_USE_RMA_FAST_PATH
+      category    : CH3
+      type        : int
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : TODO-DESC
+
+    - name        : MV2_FORCE_IB_ATOMIC
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : TODO-DESC
+
+    - name        : MV2_USE_RDMA_ONE_SIDED
+      category    : CH3
+      type        : int
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Setting this parameter allows MVAPICH2 to use optimized one sided
+        implementation based RDMA operations.
+
+    - name        : MV2_RNDV_EXT_SENDQ_SIZE
+      category    : CH3
+      type        : int
+      default     : 5
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_RDMA_NUM_EXTRA_POLLS
+      category    : CH3
+      type        : int
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_COALESCE_THRESHOLD
+      category    : CH3
+      type        : int
+      default     : 6
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+         This parameter determines the threshold for message coalescing.
+
+    - name        : MV2_USE_COALESCE
+      category    : CH3
+      type        : int
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Setting this parameter enables message coalescing to increase small
+        message throughput.
+
+    - name        : MV2_SPIN_COUNT
+      category    : CH3
+      type        : int
+      default     : 5000
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_PROCESS_TO_RAIL_MAPPING
+      category    : CH3
+      type        : string
+      default     : NULL
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        When MV2_RAIL_SHARING_POLICY is set to the value "FIXED_MAPPING" this
+        variable decides the manner in which the HCAs will be mapped to the
+        rails. The <CUSTOM LIST> is colon(:) separated list with the HCA ranks
+        specified. e.g. 0:1:1:0. This list must map equally to the number of
+        local processes on the nodes failing which, the default policy will be
+        used. Similarly the number of processes on each node must be the same.
+
+    - name        : MV2_SM_SCHEDULING
+      category    : CH3
+      type        : string
+      default     : USE_FIRST
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_SMALL_MSG_RAIL_SHARING_POLICY
+      category    : CH3
+      type        : string
+      default     : ROUND_ROBIN
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This specifies the policy that will be used to assign HCAs to each of
+        the processes with small message sizes.
+
+    - name        : MV2_MED_MSG_RAIL_SHARING_POLICY
+      category    : CH3
+      type        : string
+      default     : ROUND_ROBIN
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This specifies the policy that will be used to assign HCAs to each of
+        the processes with medium message sizes.
+
+    - name        : MV2_RAIL_SHARING_POLICY
+      category    : CH3
+      type        : string
+      default     : NULL
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This specifies the policy that will be used to assign HCAs to each of
+        the processes. In the previous versions of MVAPICH2 it was known as
+        MV2_SM_SCHEDULING.
+        Value Domain: USE_FIRST, ROUND_ROBIN, FIXED_MAPPING
+
+    - name        : MV2_RNDV_PROTOCOL
+      category    : CH3
+      type        : string
+      default     : NULL
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        The value of this variable can be set to choose different Rendezvous
+        protocols. RPUT (default RDMA-Write) RGET (RDMA Read based), R3
+        (send/recv based).
+
+    - name        : MV2_SMP_RNDV_PROTOCOL
+      category    : CH3
+      type        : string
+      default     : NULL
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : TODO-DESC
+
+    - name        : MV2_SUPPRESS_JOB_STARTUP_PERFORMANCE_WARNING
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : Set to 1 to suppress performance warnings.
+
+    - name        : MV2_USE_RDMA_FAST_PATH
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Setting this parameter enables MVAPICH2 to use adaptive RDMA fast path
+        features for OFA-IB-CH3 interface.
+
+    - name        : MV2_RDMA_FAST_PATH_BUF_SIZE
+      category    : CH3
+      type        : int
+      default     : 4096
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        The size of the buffer used in RDMA fast path communication.
+        This value will be ineffective if MV2_USE_RDMA_FAST_PATH is not set
+
+    - name        : MV2_POLLING_SET_LIMIT
+      category    : CH3
+      type        : int
+      default     : 64
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_POLLING_SET_THRESHOLD
+      category    : CH3
+      type        : int
+      default     : 256
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_RDMA_EAGER_LIMIT
+      category    : CH3
+      type        : int
+      default     : 32
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_NUM_RDMA_BUFFER
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        The number of RDMA buffers used for the RDMA fast path. This fast path
+        is used to reduce latency and overhead of small data and control
+        messages. This value will be ineffective if MV2_USE_RDMA_FAST_PATH is
+        not set.
+
+    - name        : MV2_RDMA_FAST_PATH_PREALLOCATE_BUFFERS
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_SYSREPORT
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_DEFAULT_MTU
+      category    : CH3
+      type        : string
+      default     : NULL
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        The internal MTU size. For OFA-IB-CH3, this parameter should be a
+        string instead of an integer. Valid values are: IBV_MTU_256,
+        IBV_MTU_512, IBV_MTU_1024, IBV_MTU_2048, IBV_MTU_4096.
+
+    - name        : MV2_NUM_CQES_PER_POLL
+      category    : CH3
+      type        : int
+      default     : 96
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Set this to 1, to enable hardware multicast support in collective
+        communication
+
+    - name        : MV2_NUM_PORTS
+      category    : CH3
+      type        : int
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This parameter indicates number of ports per InfiniBand adapter to be
+        used for communication per adapter on an end node.
+
+    - name        : MV2_NUM_QP_PER_PORT
+      category    : CH3
+      type        : int
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This parameter indicates number of queue pairs per port to be used for
+        communication on an end node. This is useful in the presence of multiple
+        send/recv engines available per port for data transfer.
+
+    - name        : MV2_PIN_POOL_SIZE
+      category    : CH3
+      type        : int
+      default     : (2 * 1024 * 1024)
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_DEFAULT_MAX_CQ_SIZE
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Setting this value forces a different CQ size. By default the value is
+        40000 or the max value supported by the hardware. A value of -1
+        indicates deferal to the hardware/default value.
+
+    - name        : MV2_IBA_EAGER_THRESHOLD
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This specifies the switch point between eager and rendezvous protocol in
+        MVAPICH2. For better performance, the value of
+        MPIR_CVAR_MV2_IBA_EAGER_THRESHOLD should be set the same as
+        MPIR_CVAR_MV2_VBUF_TOTAL_SIZE. The default value is architecture
+        dependent.
+
+    - name        : MV2_STRIPING_THRESHOLD
+      category    : CH3
+      type        : int
+      default     : 8192
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This parameter specifies the message size above which we begin the
+        stripe the message across multiple rails (if present).
+
+    - name        : MV2_RAIL_SHARING_MED_MSG_THRESHOLD
+      category    : CH3
+      type        : int
+      default     : 2048
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This specifies the threshold for the message size beyond which striping
+        will take place. In the previous versions of MVAPICH2 it was known as
+        MV2_STRIPING_THRESHOLD.
+
+    - name        : MV2_RAIL_SHARING_LARGE_MSG_THRESHOLD
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This specifies the threshold for the message size beyond which
+        striping will take place. In the previous versions of MVAPICH2
+        it was known as MV2_STRIPING_THRESHOLD
+
+
+    - name        : MV2_DEFAULT_PUT_GET_LIST_SIZE
+      category    : CH3
+      type        : int
+      default     : 200
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_EAGERSIZE_1SC
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_PUT_FALLBACK_THRESHOLD
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This defines the threshold beyond which the MPI_Put
+        implementation is based on direct one sided RDMA operations.
+
+    - name        : MV2_GET_FALLBACK_THRESHOLD
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_DEFAULT_QP_OUS_RD_ATOM
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        The maximum number of outstanding RDMA reads and atomic operations
+        per QP. Default value is 1 if supported. A value of -1 indicates
+        defering to the hardware support.
+
+    - name        : MV2_DEFAULT_MAX_RDMA_DST_OPS
+      category    : CH3
+      type        : int
+      default     : 4
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_DEFAULT_PSN
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_DEFAULT_PKEY
+      category    : CH3
+      type        : string
+      default     : NULL
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Select the partition to be used for the job.
+
+    - name        : MV2_DEFAULT_QKEY
+      category    : CH3
+      type        : string
+      default     : NULL
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_DEFAULT_MIN_RNR_TIMER
+      category    : CH3
+      type        : int
+      default     : 12
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_DEFAULT_SERVICE_LEVEL
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_DEFAULT_TIME_OUT
+      category    : CH3
+      type        : int
+      default     : 20
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_DEFAULT_STATIC_RATE
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_DEFAULT_SRC_PATH_BITS
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_DEFAULT_RETRY_COUNT
+      category    : CH3
+      type        : int
+      default     : 7
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_DEFAULT_RNR_RETRY
+      category    : CH3
+      type        : int
+      default     : 7
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_DEFAULT_MAX_SG_LIST
+      category    : CH3
+      type        : int
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_DEFAULT_MAX_SEND_WQE
+      category    : CH3
+      type        : int
+      default     : 64
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This specifies the maximum number of send WQEs on each
+        QP. Please note that for OFA-IB-CH3 and OFA-iWARP-CH3, the
+        default value of this parameter will be 16 if the number of
+        processes is larger than 256 for better memory scalability.
+
+
+    - name        : MV2_CM_WAIT_TIME
+      category    : CH3
+      type        : int
+      default     : 5
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_USE_UD_HYBRID
+      category    : CH3
+      type        : int
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Set this to Zero, to disable UD transport in hybrid configuration mode.
+
+    - name        : MV2_UD_MTU
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_HYBRID_MAX_RC_CONN
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Maximum number of RC or XRC connections created per
+        process. This limits the amount of connection memory and
+        prevents HCA QP cache thrashing. Default value is dependent
+        on the process count, setting this value to -1 will use 
+        the default value for the process count.
+
+    - name        : MV2_UD_NUM_MSG_LIMIT
+      category    : CH3
+      type        : int
+      default     : 100
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_UD_SENDWINDOW_SIZE
+      category    : CH3
+      type        : int
+      default     : 400
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_UD_RECVWINDOW_SIZE
+      category    : CH3
+      type        : int
+      default     : 2501
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_UD_RETRY_TIMEOUT
+      category    : CH3
+      type        : int
+      default     : 500000
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Time (usec) after which an unacknowledged message will be
+        retried.
+
+    - name        : MV2_UD_MAX_RETRY_TIMEOUT
+      category    : CH3
+      type        : int
+      default     : 20000000
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_UD_PROGRESS_SPIN
+      category    : CH3
+      type        : int
+      default     : 1200
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_UD_RETRY_COUNT
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Number of retries of a message before the job is aborted. This
+        is needed in case of HCA fails. The default value is based on 
+        the process count. Setting this to -1 will use the default for
+        the process count. 
+
+    - name        : MV2_UD_PROGRESS_TIMEOUT
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Time (usec) until ACK status is checked (and ACKs are sent if
+        needed). To avoid unnecessary retries, set this value less
+        than MV2_UD_RETRY_TIMEOUT. It is recommended to set this to
+        1/10 of MV2_UD_RETRY_TIMEOUT. The default value is based on 
+        the process count. Setting this to -1 will use the default for
+        the process count. 
+
+    - name        : MV2_UD_MAX_SEND_WQE
+      category    : CH3
+      type        : int
+      default     : 256
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_UD_MAX_RECV_WQE
+      category    : CH3
+      type        : int
+      default     : 4096
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_USE_UD_SRQ
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_UD_VBUF_POOL_SIZE
+      category    : CH3
+      type        : int
+      default     : 8192
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_UD_MAX_ACK_PENDING
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Maximum number of outstanding UD buffers waiting for ACK. Setting this
+        value to -1 will use the default value of MV2_UD_SENDWINDOW_SIZE / 4.
+
+    - name        : MV2_SHMEM_BACKED_UD_CM
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC - Not used currently.
+
+    - name        : MV2_USE_UD_ZCOPY
+      category    : CH3
+      type        : int
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Whether or not to use the zero-copy transfer mechanism to
+        transfer large messages on UD transport.
+
+    - name        : MV2_UD_ZCOPY_THRESHOLD
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Defines the threshold for transitioning to UD ZCOPY algorithm 
+        from R3 protocol for rndv messages. Defaults to
+        MV2_IBA_EAGER_THRESHOLD. Setting this value to -1 will
+        use the eager threshold (MV2_IBA_EAGER_THRESHOLD) as the default
+        value causing all rndv messages to use UD_ZCOPY.
+
+    - name        : MV2_UD_NUM_ZCOPY_RNDV_QPS
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Number of UD QPs to create for ZCOPY transfers. Setting this to -1
+        will use the default value of 64 * <number_of_hcas>.
+
+    - name        : MV2_UD_ZCOPY_RQ_SIZE
+      category    : CH3
+      type        : int
+      default     : 4096
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_UD_ZCOPY_NUM_RETRY
+      category    : CH3
+      type        : int
+      default     : 50000
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_UD_ZCOPY_ENABLE_POLLING
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_UD_ZCOPY_PUSH_SEGMENT
+      category    : CH3
+      type        : int
+      default     : 32
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_UD_DROP_PACKET_RATE
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_MCAST_ENABLE_REL
+      category    : CH3
+      type        : int
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_MCAST_USE_MCAST_NACK
+      category    : CH3
+      type        : int
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_MCAST_NUM_NODES_THRESHOLD
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This defines the threshold for enabling multicast support in
+        collective communication. When MV2_USE_MCAST is set to 1 and
+        the number of nodes in the job is greater than or equal to the
+        threshold value, it uses multicast support in collective
+        communication.
+
+    - name        : MV2_MCAST_MAX_RECV_WQE
+      category    : CH3
+      type        : int
+      default     : 2096
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_MCAST_WINDOW_SIZE
+      category    : CH3
+      type        : int
+      default     : 256
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_MCAST_DROP_PACKET_RATE
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_MCAST_RETRY_TIMEOUT
+      category    : CH3
+      type        : int
+      default     : 500000
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_MCAST_MAX_RETRY_TIMEOUT
+      category    : CH3
+      type        : int
+      default     : 20000000
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_MCAST_NSPIN_THRESHOLD
+      category    : CH3
+      type        : int
+      default     : 1200
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_MCAST_COMM_INIT_TIMEOUT
+      category    : CH3
+      type        : int
+      default     : 10000
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_MCAST_COMM_INIT_RETRIES
+      category    : CH3
+      type        : int
+      default     : 128
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_MCAST_SKIP_LOOPBACK
+      category    : CH3
+      type        : int
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_MCAST_BCAST_MIN_MSG
+      category    : CH3
+      type        : int
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_MCAST_BCAST_MAX_MSG
+      category    : CH3
+      type        : int
+      default     : 512 * 1042
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_DEFAULT_MAX_RECV_WQE
+      category    : CH3
+      type        : int
+      default     : 128
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This specifies the maximum number of receive WQEs on each QP
+        (maximum number of receives that can be posted on a single QP).
+
+    - name        : MV2_NDREG_ENTRIES_MAX
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_NDREG_ENTRIES
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This defines the total number of buffers that can be stored in
+        the registration cache. It has no effect if
+        MV2_USE_LAZY_MEM_UNREGISTER is not set. A larger value will
+        lead to less frequent lazy de-registration.
+
+    - name        : MV2_DREG_CACHE_LIMIT
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_USE_HWLOC_CPU_BINDING
+      category    : CH3
+      type        : int
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_THREAD_YIELD_SPIN_THRESHOLD
+      category    : CH3
+      type        : int
+      default     : 5
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_USE_THREAD_YIELD
+      category    : CH3
+      type        : int
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_NUM_SPINS_BEFORE_LOCK
+      category    : CH3
+      type        : int
+      default     : 2000
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_ASYNC_THREAD_STACK_SIZE
+      category    : CH3
+      type        : int
+      default     : (1 << 20)
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_USE_HUGEPAGES
+      category    : CH3
+      type        : int
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Set this to 0, to not use any HugePages.
+
+    - name        : MV2_MEMORY_OPTIMIZATION
+      category    : CH3
+      type        : int
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_SRQ_MAX_SIZE
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This is the maximum number of work requests allowed on the
+        Shared Receive Queue. Upon receiving a SRQ limit event, the
+        current value of MV2_SRQ_SIZE will be doubled or moved to the
+        maximum of MV2_SRQ_MAX_SIZE, whichever is smaller.
+
+        When using RDMA_CM, we cannot support very large SRQ. So, unless user
+        set it, reduce the max_srq_size to 4K.
+
+    - name        : MV2_SRQ_SIZE
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This is the initial number of work requests posted to the
+        Shared Receive Queue.
+
+    - name        : MV2_SRQ_LIMIT
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This is the low water-mark limit for the Shared Receive
+        Queue. If the number of available work entries on the SRQ
+        drops below this limit, the flow control will be activated.
+
+    - name        : MV2_UD_SRQ_MAX_SIZE
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_UD_SRQ_SIZE
+      category    : CH3
+      type        : int
+      default     : 4096
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_UD_SRQ_LIMIT
+      category    : CH3
+      type        : int
+      default     : 128
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_MAX_NUM_UD_VBUFS
+      category    : CH3
+      type        : int
+      default     : (INT_MAX)
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_MAX_INLINE_SIZE
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This defines the maximum inline size for data transfer. Please
+        note that the default value of this parameter will be 0 when
+        the number of processes is larger than 256 to improve memory
+        usage scalability.
+
+    - name        : MV2_VBUF_TOTAL_SIZE
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        The size of each vbuf, the basic communication buffer of
+        MVAPICH2. For better performance, the value of
+        MV2_IBA_EAGER_THRESHOLD should be set the same as
+        MV2_VBUF_TOTAL_SIZE.
+
+
+    - name        : MV2_VBUF_MAX
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Max (total) number of vbufs to allocate, after which process
+        terminates with a fatal error. -1 means no limit.
+
+    - name        : MV2_INITIAL_PREPOST_DEPTH
+      category    : CH3
+      type        : int
+      default     : 10
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This defines the initial number of pre-posted receive buffers
+        for each connection. If communication happen for a particular
+        connection, the number of buffers will be increased to
+        RDMA_PREPOST_DEPTH.
+
+    - name        : MV2_PREPOST_DEPTH
+      category    : CH3
+      type        : int
+      default     : 64
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This defines the number of buffers pre-posted for each
+        connection to handle send/receive operations.
+
+
+    - name        : MV2_VBUF_POOL_SIZE
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        The number of vbufs in the initial pool. This pool is shared
+        among all the connections.
+
+
+    - name        : MV2_MAX_NUM_VBUFS
+      category    : CH3
+      type        : int
+      default     : 8192
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_VBUF_SECONDARY_POOL_SIZE
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        The number of vbufs allocated each time when the global pool
+        is running out in the initial pool. This is also shared among
+        all the connections.
+        
+    - name        : MV2_CUDA_BLOCK_SIZE
+      category    : CH3
+      type        : int
+      default     : (256 * 1024)
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        The chunk size used in large message transfer from device
+        memory to host memory. The other suggested values for this
+        parameter are 131072 and 524288.
+
+
+    - name        : MV2_CUDA_NUM_RNDV_BLOCKS
+      category    : CH3
+      type        : int
+      default     : 8
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_MPIRUN_RSH_LAUNCH
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_USE_ROCE
+      alt-env     : MV2_USE_RoCE
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This parameter enables the use of RDMA over Ethernet for MPI
+        communication. The underlying HCA and network must support
+        this feature.
+
+
+    - name        : MV2_USE_ROCE_MODE
+      alt-env     : MV2_USE_RoCE_MODE
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_USE_RING_STARTUP
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Setting this parameter enables MVAPICH2 to use ring based
+        start up.
+
+    - name        : MV2_ON_DEMAND_UD_INFO_EXCHANGE
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Setting MV2_ON_DEMAND_UD_INFO_EXCHANGE to 1 will enable
+        on-demand Address Handle creation for hybrid mode.
+
+    - name        : MV2_USE_PMI_IBARRIER
+      category    : CH3
+      type        : int
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_USE_PMI_IALLGATHER
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_NUM_HCAS
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This parameter indicates number of InfiniBand adapters to be
+        used for communication on an end node.
+        Value is potentially computed.
+
+    - name        : MV2_HOMOGENEOUS_CLUSTER
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Set to 1 if using a homogeneous cluster.
+
+=== END_MPI_T_MV2_CVAR_INFO_BLOCK ===
+*/
 /* Extra buffer space for header(s); used to adjust the eager-threshold */
 #define EAGER_THRESHOLD_ADJUST    0
 #define INLINE_THRESHOLD_ADJUST  (40)
-extern const char MPIR_Version_string[];
+extern const char MPII_Version_string[];
 extern unsigned int mv2_enable_affinity;
 extern int g_mv2_num_cpus;
 extern int rdma_skip_network_card(mv2_iba_network_classes network_type,
@@ -111,8 +2017,8 @@ int rdma_eager_limit = 32;
 int rdma_iba_eager_threshold;
 char rdma_iba_hcas[MAX_NUM_HCAS][32];
 int rdma_max_inline_size;
-unsigned int rdma_ndreg_entries = 0;
-unsigned int rdma_ndreg_entries_max = RDMA_NDREG_ENTRIES_MAX; 
+int rdma_ndreg_entries = 0;
+int rdma_ndreg_entries_max = RDMA_NDREG_ENTRIES_MAX;
 int rdma_rndv_protocol = MV2_RNDV_PROTOCOL_RGET;
 int smp_rndv_protocol  = MV2_RNDV_PROTOCOL_RGET;
 int rdma_rndv_immediate = 1;
@@ -135,7 +2041,7 @@ int rdma_3dtorus_support = 0;
 #endif /* ENABLE_3DTORUS_SUPPORT */
 int rdma_path_sl_query = 0;
 int rdma_num_sa_query_retries = RDMA_DEFAULT_NUM_SA_QUERY_RETRIES;
-MPID_Node_id_t rdma_num_nodes_in_job = 0;
+int rdma_num_nodes_in_job = 0;
 int rdma_qos_num_sls = RDMA_QOS_DEFAULT_NUM_SLS;
 int max_rdma_connect_attempts = DEFAULT_RDMA_CONNECT_ATTEMPTS;
 #ifdef _MULTI_SUBNET_SUPPORT_
@@ -418,10 +2324,6 @@ static inline int log_2(int np)
     return lgN;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MV2_get_arch_hca_type
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 mv2_arch_hca_type MV2_get_arch_hca_type()
 {
     struct mv2_MPIDI_CH3I_RDMA_Process_t *proc = &mv2_MPIDI_CH3I_RDMA_Process;
@@ -455,10 +2357,6 @@ mv2_arch_hca_type MV2_get_arch_hca_type()
  *      Failure:    ERROR (-1).
  */
 #if defined(RDMA_CM)
-#undef FUNCNAME
-#define FUNCNAME rdma_cm_get_hca_type
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int rdma_cm_get_hca_type(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
 {
     int i = 0;
@@ -470,8 +2368,8 @@ int rdma_cm_get_hca_type(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
     char *dev_name = NULL, *value;
     struct ibv_context **ctx = rdma_ops.get_devices(&numdevices);
 
-    MPIDI_STATE_DECL(MPID_STATE_RDMA_CM_GET_HCA_TYPE);
-    MPIDI_FUNC_ENTER(MPID_STATE_RDMA_CM_GET_HCA_TYPE);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_RDMA_CM_GET_HCA_TYPE);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_RDMA_CM_GET_HCA_TYPE);
 
     for (i = 0; i < numdevices; ++i) {
         hca_type = mv2_get_hca_type(ctx[i]->device);
@@ -491,8 +2389,8 @@ int rdma_cm_get_hca_type(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
                                 "**ibv_get_device_name");
         }
 
-        if ((value = getenv("MV2_IBA_HCA")) != NULL) {
-            if(strstr(value, dev_name) == NULL) {
+        if (MV2_IBA_HCA != NULL) {
+            if(strstr(MV2_IBA_HCA, dev_name) == NULL) {
                 continue;
             }
         }
@@ -539,7 +2437,7 @@ int rdma_cm_get_hca_type(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
 
   fn_fail:
     rdma_ops.free_devices(ctx);
-    MPIDI_FUNC_EXIT(MPID_STATE_RDMA_CM_GET_HCA_TYPE);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_RDMA_CM_GET_HCA_TYPE);
     return mpi_errno;
 }
 
@@ -548,14 +2446,11 @@ int rdma_cm_get_hca_type(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
 /* The rdma_get_process_to_rail_mapping function is called from
  * ch3_smp_progress.c to set the mapping given by the user at run time
  */
-#undef FUNCNAME
-#define FUNCNAME rdma_get_process_to_rail_mapping
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int rdma_get_process_to_rail_mapping(int mrail_user_defined_p2r_type)
 {
     char *p2r_only_numbers =
-        (char *) MPIU_Malloc((mrail_p2r_length + 1) * sizeof(char));
+        (char *)MPL_malloc((mrail_p2r_length + 1) * sizeof(char),
+                           MPL_MEM_OTHER);
     int i, j = 0, k = 0;
     int num_total_devices = 0;
     int num_devices = 0, num_devices_on_my_numa = 0;
@@ -563,8 +2458,12 @@ int rdma_get_process_to_rail_mapping(int mrail_user_defined_p2r_type)
     char *cp = NULL;
     char tp_str[mrail_p2r_length + 1];
     struct ibv_device **dev_list = NULL;
-    struct ibv_device **usable_dev_list = MPIU_Malloc(sizeof(struct ibv_device *)*MAX_NUM_HCAS);
-    struct ibv_device **usable_devs_on_my_numa = MPIU_Malloc(sizeof(struct ibv_device *)*MAX_NUM_HCAS);
+    struct ibv_device **usable_dev_list =
+                    MPL_malloc(sizeof(struct ibv_device *) *
+                                    MAX_NUM_HCAS, MPL_MEM_OTHER);
+    struct ibv_device **usable_devs_on_my_numa =
+                    MPL_malloc(sizeof(struct ibv_device *) *
+                                    MAX_NUM_HCAS, MPL_MEM_OTHER);
     int bunch_hca_count;
 
     dev_list = ibv_ops.get_device_list(&num_total_devices);
@@ -645,24 +2544,20 @@ int rdma_get_process_to_rail_mapping(int mrail_user_defined_p2r_type)
     }
   fn_exit:
     /* Housekeeping operations */
-    MPIU_Free(usable_dev_list);
-    MPIU_Free(usable_devs_on_my_numa);
+    MPL_free(usable_dev_list);
+    MPL_free(usable_devs_on_my_numa);
     if (dev_list) {
         ibv_ops.free_device_list(dev_list);
     }
-    MPIU_Free(p2r_only_numbers);
-    MPIU_Free(mrail_p2r_string);
+    MPL_free(p2r_only_numbers);
+    MPL_free(mrail_p2r_string);
     mrail_p2r_string = NULL;
     p2r_only_numbers = NULL;
 
     return 0;
 }
 
-#undef FUNCNAME
-#define FUNCNAME rdma_get_rail_sharing_policy
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-int rdma_get_rail_sharing_policy(char *value)
+int rdma_get_rail_sharing_policy(const char *value)
 {
     int policy = FIXED_MAPPING;
 
@@ -701,10 +2596,6 @@ static void set_limic_thresholds(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
     }
 }
 
-#undef FUNCNAME
-#define FUNCNAME rdma_set_smp_parameters
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int rdma_set_smp_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
 {
     char *value = NULL;
@@ -713,25 +2604,24 @@ int rdma_set_smp_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
 
 #if defined(_SMP_CMA_) || defined(_SMP_LIMIC_)
 #if defined(_SMP_CMA_)
-    if ((value = getenv("MV2_SMP_USE_CMA")) != NULL) {
-        user_select_cma = g_smp_use_cma = !!atoi(value);
+    if (MV2_SMP_USE_CMA != -1) {
+        user_select_cma = MV2_SMP_USE_CMA;
     }
 #endif
 
 #if defined(_SMP_LIMIC_)
-    if ((value = getenv("MV2_SMP_USE_LIMIC2")) != NULL) {
-        user_select_limic = g_smp_use_limic2 = !!atoi(value);
-    }
-    if ((value = getenv("MV2_USE_LIMIC2_COLL")) != NULL) {
-        g_use_limic2_coll = atoi(value);
+    if (MV2_SMP_USE_LIMIC != -1) {
+        user_select_limic = g_smp_use_limic2 = MV2_SMP_USE_LIMIC;
+    } else {
+        MV2_SMP_USE_LIMIC = g_smp_use_limic2;
     }
 
-        if(!mv2_enable_affinity || !g_smp_use_limic2) {
-            g_use_limic2_coll = 0;
-        } else
-        {
-            g_use_limic2_coll = 0;
-        }
+    if(!mv2_enable_affinity || !g_smp_use_limic2) {
+        MV2_USE_LIMIC2_COLL = 0;
+    } else {
+        MV2_USE_LIMIC2_COLL = 0;
+    }
+    g_use_limic2_coll = MV2_USE_LIMIC2_COLL;
 
 #if defined(_SMP_CMA_)
     if(g_smp_use_cma && g_smp_use_limic2) {
@@ -761,9 +2651,8 @@ int rdma_set_smp_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
     mv2_iov_density_min = MPIDI_IOV_DENSITY_MIN;
 #endif /* _SMP_CMA_ || _SMP_LIMIC */
 
-    g_smp_max_switch = 
-        (value = getenv("MV2_SMP_USE_MAX_SWITCH")) !=
-        NULL ? !!atoi(value) : 0;
+
+    g_smp_max_switch = MV2_SMP_USE_MAX_SWITCH;
 
     if (!proc->arch_type) {
         proc->arch_type = mv2_get_arch_type();
@@ -884,6 +2773,9 @@ int rdma_set_smp_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
         case MV2_ARCH_AMD_EPYC_7763_128:
         /* lonestar6 */
 #if defined(_SMP_CMA_)
+            if (MV2_SMP_USE_CMA != -1) {
+                g_smp_use_cma = MV2_SMP_USE_CMA;
+            }
             if (g_smp_use_cma) {
                 g_smp_eagersize = 28672;
                 s_smp_cma_max_size = 4194304;
@@ -1208,7 +3100,7 @@ int rdma_set_smp_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
             s_smp_batch_size = 8;
             s_smp_block_size = 32768;
             break;
-        
+
 	case MV2_ARCH_ARM_CAVIUM_V8_2S_32:
 #if defined(_SMP_CMA_)
             if (g_smp_use_cma) {
@@ -1316,12 +3208,10 @@ int rdma_set_smp_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
         case MV2_ARCH_INTEL_XEON_PHI_7250:
 #if defined(_SMP_CMA_)
             /* Use CMA from 2 ppn onwards */
-            if (MPIDI_Num_local_processes(MPIDI_Process.my_pg) <= 2) {
+            if (MPIDI_MV2_Num_local_processes(MPIDI_Process.my_pg) <= 2) {
                 g_smp_use_cma = 0;
             }
-            if ((value = getenv("MV2_SMP_USE_CMA")) != NULL) {
-                g_smp_use_cma = atoi(value);
-            }
+            g_smp_use_cma = MV2_SMP_USE_CMA;
             if (g_smp_use_cma) {
                 g_smp_eagersize = 65536;
                 s_smp_cma_max_size = 4194304;
@@ -1393,7 +3283,7 @@ int rdma_set_smp_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
                     10 < MPIDI_Process.my_pg->ch.num_local_processes) {
                 /* if there are large number of processes per node, then
                  * reduce the eager threshold and queue length */
-                g_smp_eagersize     = 5120;   
+                g_smp_eagersize     = 5120;
                 s_smp_queue_length = 32768;
             }
 #endif
@@ -1486,11 +3376,11 @@ int rdma_set_smp_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
             s_smp_batch_size = 8;
             s_smp_block_size = 32768;
 #if defined(_SMP_CMA_)
-            if (mv2_enable_eager_threshold_reduction && g_smp_use_cma && 
+            if (mv2_enable_eager_threshold_reduction && g_smp_use_cma &&
                     14 < MPIDI_Process.my_pg->ch.num_local_processes) {
                 /* if there are large number of processes per node, then
                  * reduce the eager threshold and queue length */
-                g_smp_eagersize     = 5120;   
+                g_smp_eagersize     = 5120;
                 s_smp_queue_length = 32768;
             }
 #endif
@@ -1668,9 +3558,7 @@ int rdma_set_smp_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
 #if defined(_ENABLE_CUDA_)
     s_smp_h2h_block_size = s_smp_block_size;
 
-    if ((value = getenv("MV2_CUDA_SMP_PIPELINE")) != NULL) {
-        mv2_device_smp_pipeline = atoi(value);
-    }
+    mv2_device_smp_pipeline = MV2_CUDA_SMP_PIPELINE;
 
     if (rdma_enable_cuda && mv2_device_smp_pipeline) {
         s_smp_h2h_block_size = s_smp_block_size;
@@ -1680,8 +3568,8 @@ int rdma_set_smp_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
 #if defined(HAVE_CUDA_IPC)
     smp_device_region_size = g_smp_eagersize * 4;
 
-    if ((value = getenv("SMPI_CUDA_REGION_SIZE")) != NULL) {
-        smp_device_region_size = user_val_to_bytes(value,"SMPI_CUDA_REGION_SIZE");
+    if (SMPI_CUDA_REGION_SIZE != NULL) {
+        smp_device_region_size = user_val_to_bytes(SMPI_CUDA_REGION_SIZE,"SMPI_CUDA_REGION_SIZE");
     }
 
     if (smp_device_region_size <= g_smp_eagersize * 4) {
@@ -1694,53 +3582,61 @@ int rdma_set_smp_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
     set_limic_thresholds(proc);
 
     /* Reading SMP user parameters */
-    if ((value = getenv("MV2_SMP_DELAY_SHMEM_POOL_INIT")) != NULL) {
-        g_smp_delay_shmem_pool_init = atoi(value);
+    g_smp_delay_shmem_pool_init = MV2_SMP_DELAY_SHMEM_POOL_INIT;
+    g_smp_polling_th = MV2_SMP_POLLING_THRESHOLD;
+    g_smp_priority_polling = MV2_SMP_PRIORITY_POLLING;
+
+    if (MV2_SMP_CMA_MAX_SIZE != -1) {
+        s_smp_cma_max_size = MV2_SMP_CMA_MAX_SIZE;
+    } else {
+        MV2_SMP_CMA_MAX_SIZE = s_smp_cma_max_size;
     }
 
-    if ((value = getenv("MV2_SMP_POLLING_TH")) != NULL) {
-        g_smp_polling_th = user_val_to_bytes(value, "MV2_SMP_POLLING_TH");
+    if (MV2_SMP_LIMIC2_MAX_SIZE != -1) {
+        s_smp_limic2_max_size = MV2_SMP_LIMIC2_MAX_SIZE;
+    } else {
+        MV2_SMP_LIMIC2_MAX_SIZE = s_smp_limic2_max_size;
     }
 
-    if ((value = getenv("MV2_SMP_PRIORITY_POLLING")) != NULL) {
-        g_smp_priority_polling = atoi(value);
+    if (MV2_SMP_EAGERSIZE != -1) {
+        g_smp_eagersize = MV2_SMP_EAGERSIZE;
+    } else {
+        MV2_SMP_EAGERSIZE = g_smp_eagersize;
     }
 
-    if ((value = getenv("MV2_SMP_CMA_MAX_SIZE")) != NULL) {
-        s_smp_cma_max_size = user_val_to_bytes(value, "MV2_SMP_CMA_MAX_SIZE");
+    if (MV2_SMP_QUEUE_LENGTH != -1) {
+        s_smp_queue_length = MV2_SMP_QUEUE_LENGTH;
+    } else {
+        MV2_SMP_QUEUE_LENGTH = s_smp_queue_length;
     }
 
-    if ((value = getenv("MV2_SMP_LIMIC2_MAX_SIZE")) != NULL) {
-        s_smp_limic2_max_size = user_val_to_bytes(value, "MV2_SMP_LIMIC2_MAX_SIZE");
+    if (MV2_SMP_NUM_SEND_BUFFER != -1) {
+        s_smp_num_send_buffer = MV2_SMP_NUM_SEND_BUFFER;
+    } else {
+        MV2_SMP_NUM_SEND_BUFFER = s_smp_num_send_buffer;
     }
 
-    if ((value = getenv("MV2_SMP_EAGERSIZE")) != NULL) {
-        g_smp_eagersize = user_val_to_bytes(value, "MV2_SMP_EAGERSIZE");
+    if (MV2_SMP_BATCH_SIZE != -1) {
+        s_smp_batch_size = MV2_SMP_BATCH_SIZE;
+    } else {
+        MV2_SMP_BATCH_SIZE = s_smp_batch_size;
     }
 
-    if ((value = getenv("MV2_SMP_QUEUE_LENGTH")) != NULL) {
-        s_smp_queue_length = user_val_to_bytes(value, "MV2_SMP_QUEUE_LENGTH");
+    if (MV2_SMP_SEND_BUF_SIZE != -1) {
+        s_smp_block_size = MV2_SMP_SEND_BUF_SIZE;
+    } else {
+        MV2_SMP_SEND_BUF_SIZE = s_smp_block_size;
     }
 
-    if ((value = getenv("MV2_SMP_NUM_SEND_BUFFER")) != NULL) {
-        s_smp_num_send_buffer = atoi(value);
+    if (MV2_LIMIC_PUT_THRESHOLD != -1) {
+        limic_put_threshold = MV2_LIMIC_PUT_THRESHOLD;
+    } else {
+        MV2_LIMIC_PUT_THRESHOLD = limic_put_threshold;
     }
-
-    if ((value = getenv("MV2_SMP_BATCH_SIZE")) != NULL) {
-        s_smp_batch_size = atoi(value);
-    }
-
-    if ((value = getenv("MV2_SMP_SEND_BUF_SIZE")) != NULL) {
-        s_smp_block_size = atoi(value);
-    }
-
-    if ((value = getenv("MV2_LIMIC_PUT_THRESHOLD")) != NULL) {
-        limic_put_threshold =
-            user_val_to_bytes(value, "MV2_LIMIC_PUT_THRESHOLD");
-    }
-    if ((value = getenv("MV2_LIMIC_GET_THRESHOLD")) != NULL) {
-        limic_get_threshold =
-            user_val_to_bytes(value, "MV2_LIMIC_GET_THRESHOLD");
+    if (MV2_LIMIC_GET_THRESHOLD != -1) {
+        limic_get_threshold = MV2_LIMIC_GET_THRESHOLD;
+    } else {
+        MV2_LIMIC_GET_THRESHOLD = limic_get_threshold;
     }
 
     int use_cma, use_xpmem, use_limic;
@@ -1758,10 +3654,6 @@ int rdma_set_smp_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
     return 0;
 }
 
-#undef FUNCNAME
-#define FUNCNAME rdma_get_control_parameters
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int rdma_get_control_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
 {
     int size = -1;
@@ -1771,8 +3663,8 @@ int rdma_get_control_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
     int mpi_errno = MPI_SUCCESS;
     int mrail_user_defined_p2r_type = 0;
 
-    MPIDI_STATE_DECL(MPID_STATE_RDMA_GET_CONTROL_PARAMETERS);
-    MPIDI_FUNC_ENTER(MPID_STATE_RDMA_GET_CONTROL_PARAMETERS);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_RDMA_GET_CONTROL_PARAMETERS);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_RDMA_GET_CONTROL_PARAMETERS);
 
     proc->global_used_send_cq = 0;
     proc->global_used_recv_cq = 0;
@@ -1780,29 +3672,30 @@ int rdma_get_control_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
     UPMI_GET_SIZE(&pg_size);
     UPMI_GET_RANK(&my_rank);
 
-    if ((value = getenv("MV2_USE_OPT_EAGER_RECV")) != NULL) {
-        mv2_use_opt_eager_recv = !!atoi(value);
-        if (mv2_use_opt_eager_recv) {
-            rdma_use_coalesce = 0;
-        }
+
+    mv2_use_opt_eager_recv = !!MV2_USE_OPT_EAGER_RECV;
+    if (mv2_use_opt_eager_recv) {
+        rdma_use_coalesce = 0;
     }
-    if ((value = getenv("MV2_NUM_NODES_IN_JOB")) != NULL) {
-        rdma_num_nodes_in_job = atoi(value);
+
+    if (MV2_NUM_NODES_IN_JOB != -1) {
+        rdma_num_nodes_in_job = MV2_NUM_NODES_IN_JOB;
     } else {
         MPID_Get_max_node_id(NULL, &rdma_num_nodes_in_job);
+        MV2_NUM_NODES_IN_JOB = rdma_num_nodes_in_job;
     }
 
 #if defined(_MCST_SUPPORT_)
-    if ((value = getenv("MV2_USE_MCAST")) != NULL) {
-        rdma_enable_mcast = !!atoi(value);
+    if (MV2_USE_MCAST != -1) {
+        rdma_enable_mcast = !!MV2_USE_MCAST;
 #if defined(RDMA_CM)
-        if (rdma_enable_mcast == 0) {
+        if (MV2_USE_MCAST == 0) {
             rdma_use_rdma_cm_mcast = 0;
         }
 #endif /*defined(RDMA_CM)*/
     } else if (rdma_num_nodes_in_job < mcast_num_nodes_threshold) {
         /* Disable mcast by default when number of nodes less than 8 */
-        rdma_enable_mcast = 0;
+        MV2_USE_MCAST = 0;
 #if defined(RDMA_CM)
         rdma_use_rdma_cm_mcast = 0;
 #endif /*defined(RDMA_CM)*/
@@ -1810,84 +3703,79 @@ int rdma_get_control_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
                 " of nodes are less than %d. Set MV2_USE_MCAST=1 or "
                 " MV2_MCAST_NUM_NODES_THRESHOLD=%d to avoid this"
                 " behavior\n", mcast_num_nodes_threshold, mcast_num_nodes_threshold-1);
+    } else {
+        MV2_USE_MCAST = 1;
     }
+    rdma_enable_mcast = MV2_USE_MCAST;
 #if defined(RDMA_CM)
-    if ((value = getenv("MV2_USE_RDMA_CM_MCAST")) != NULL) {
+    if (MV2_USE_RDMA_CM_MCAST != -1) {
         /* Set both values so that user only has to set MV2_USE_RDMA_CM_MCAST */
-        rdma_enable_mcast = rdma_use_rdma_cm_mcast = !!atoi(value);
+        MV2_USE_MCAST = rdma_enable_mcast = !!MV2_USE_RDMA_CM_MCAST;
     } else if (rdma_num_nodes_in_job < mcast_num_nodes_threshold) {
         /* Disable mcast by default when number of nodes less than 8 */
-        rdma_enable_mcast = 0;
-        rdma_use_rdma_cm_mcast = 0;
+        MV2_USE_MCAST = rdma_enable_mcast = 0;
+        MV2_USE_RDMA_CM_MCAST = 0;
         PRINT_DEBUG(DEBUG_MCST_verbose,"Disabling mcast by default as the number"
                 " of nodes are less than %d. Set MV2_USE_RDMA_CM_MCAST=1 or "
                 " MV2_MCAST_NUM_NODES_THRESHOLD=%d to avoid this"
                 " behavior\n", mcast_num_nodes_threshold, mcast_num_nodes_threshold-1);
     }
+    rdma_use_rdma_cm_mcast = MV2_USE_RDMA_CM_MCAST;
 #endif /*defined(RDMA_CM)*/
 #endif /*defined(_MCST_SUPPORT_)*/
 
 #ifdef ENABLE_QOS_SUPPORT
-    if ((value = getenv("MV2_USE_QOS")) != NULL) {
-        rdma_use_qos = !!atoi(value);
+
+    rdma_use_qos = !!MV2_USE_QOS;
+
+    if (MV2_3DTORUS_SUPPORT != -1) {
+        rdma_3dtorus_support = !!MV2_3DTORUS_SUPPORT;
+    } else {
+        MV2_3DTORUS_SUPPORT = rdma_3dtorus_support;
     }
 
-    if ((value = getenv("MV2_3DTORUS_SUPPORT")) != NULL) {
-        rdma_3dtorus_support = !!atoi(value);
-    }
+    rdma_path_sl_query = !!MV2_PATH_SL_QUERY;
 
-    if ((value = getenv("MV2_PATH_SL_QUERY")) != NULL) {
-        rdma_path_sl_query = !!atoi(value);
+    rdma_qos_num_sls = MV2_NUM_SLS;
+    if (rdma_qos_num_sls <= 0 && rdma_qos_num_sls > RDMA_QOS_MAX_NUM_SLS) {
+        rdma_qos_num_sls = RDMA_QOS_DEFAULT_NUM_SLS;
     }
-
-    if ((value = getenv("MV2_NUM_SLS")) != NULL) {
-        rdma_qos_num_sls = atoi(value);
-        if (rdma_qos_num_sls <= 0 && rdma_qos_num_sls > RDMA_QOS_MAX_NUM_SLS) {
-            rdma_qos_num_sls = RDMA_QOS_DEFAULT_NUM_SLS;
-        }
-        /* User asked us to use multiple SL's without enabling QoS globally. */
-        if (rdma_use_qos == 0) {
-            rdma_use_qos = 1;
-        }
+    /* User asked us to use multiple SL's without enabling QoS globally. */
+    if (rdma_use_qos == 0) {
+        rdma_use_qos = 1;
     }
 #endif /* ENABLE_QOS_SUPPORT */
 
-    if ((value = getenv("MV2_NUM_SA_QUERY_RETRIES")) != NULL) {
-        rdma_num_sa_query_retries = atoi(value);
-        if (rdma_num_sa_query_retries < RDMA_DEFAULT_NUM_SA_QUERY_RETRIES) {
-            rdma_num_sa_query_retries = RDMA_DEFAULT_NUM_SA_QUERY_RETRIES;
-        }
+    rdma_num_sa_query_retries = MV2_NUM_SA_QUERY_RETRIES;
+    if (rdma_num_sa_query_retries < RDMA_DEFAULT_NUM_SA_QUERY_RETRIES) {
+        rdma_num_sa_query_retries = RDMA_DEFAULT_NUM_SA_QUERY_RETRIES;
     }
 
-    if ((value = getenv("MV2_MAX_RDMA_CONNECT_ATTEMPTS")) != NULL) {
-        max_rdma_connect_attempts = atoi(value);
-        if (max_rdma_connect_attempts <= 0) {
-            max_rdma_connect_attempts = DEFAULT_RDMA_CONNECT_ATTEMPTS;
-        }
+    if (MV2_MAX_RDMA_CONNECT_ATTEMPTS <= 0) {
+        MV2_MAX_RDMA_CONNECT_ATTEMPTS = DEFAULT_RDMA_CONNECT_ATTEMPTS;
     }
+    max_rdma_connect_attempts = MV2_MAX_RDMA_CONNECT_ATTEMPTS;
 
-    if ((value = getenv("MV2_RDMA_CM_CONNECT_RETRY_INTERVAL")) != NULL) {
-        rdma_cm_connect_retry_interval = atoi(value);
-        if (rdma_cm_connect_retry_interval <= 0) {
-            rdma_cm_connect_retry_interval = RDMA_DEFAULT_CONNECT_INTERVAL;
-        }
+    if (MV2_RDMA_CM_CONNECT_RETRY_INTERVAL <= 0) {
+        MV2_RDMA_CM_CONNECT_RETRY_INTERVAL = RDMA_DEFAULT_CONNECT_INTERVAL;
     }
+    rdma_cm_connect_retry_interval = MV2_RDMA_CM_CONNECT_RETRY_INTERVAL;
 
     /* Parameters to decide the p2r mapping
      * The check for this parameter should always be done before we check for
      * MV2_SM_SCHEDULING below as we find out if the user has specified a
      * mapping for the user defined scheme to take effect */
-    if ((value = getenv("MV2_PROCESS_TO_RAIL_MAPPING")) != NULL) {
-        mrail_p2r_length = strlen(value);
+    if (MV2_PROCESS_TO_RAIL_MAPPING != NULL) {
+        mrail_p2r_length = strlen(MV2_PROCESS_TO_RAIL_MAPPING);
 
         mrail_p2r_string =
-            (char *) MPIU_Malloc(mrail_p2r_length * sizeof(char));
+            (char *) MPL_malloc(mrail_p2r_length * sizeof(char), MPL_MEM_OTHER);
 
-        strcpy(mrail_p2r_string, value);
+        strcpy(mrail_p2r_string, MV2_PROCESS_TO_RAIL_MAPPING);
         mrail_p2r_string[mrail_p2r_length] = '\0';
-        if (!strcmp(value, "BUNCH")) {
+        if (!strcmp(MV2_PROCESS_TO_RAIL_MAPPING, "BUNCH")) {
             mrail_user_defined_p2r_type = MV2_UDEF_POLICY_BUNCH;
-        } else if (!strcmp(value, "SCATTER")) {
+        } else if (!strcmp(MV2_PROCESS_TO_RAIL_MAPPING, "SCATTER")) {
             mrail_user_defined_p2r_type = MV2_UDEF_POLICY_SCATTER;
         } else {
             mrail_user_defined_p2r_type = MV2_UDEF_POLICY_NONE;
@@ -1899,8 +3787,8 @@ int rdma_get_control_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
 
 #ifdef _ENABLE_HSAM_
     /* Start HSAM Parameters */
-    if ((value = getenv("MV2_USE_HSAM")) != NULL) {
-        proc->has_hsam = atoi(value);
+    if (MV2_USE_HSAM != -1) {
+        proc->has_hsam = MV2_USE_HSAM;
         if (proc->has_hsam) {
             check_hsam_parameters();
         }
@@ -1913,47 +3801,53 @@ int rdma_get_control_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
         proc->has_hsam = 0;
     }
     /* End : HSAM Parameters */
-
-    proc->has_apm = (value =
-                     getenv("MV2_USE_APM")) != NULL ? (int) atoi(value) : 0;
-    apm_tester = (value =
-                  getenv("MV2_USE_APM_TEST")) != NULL ? (int) atoi(value) : 0;
+    if (MV2_USE_APM != -1) {
+        proc->has_apm = MV2_USE_APM;
+    } else {
+        proc->has_apm = 0;
+    }
+    if (MV2_USE_APM_TEST != -1) {
+        apm_tester = MV2_USE_APM_TEST;
+    } else {
+        apm_tester = 0;
+    }
 
     /* Scheduling Parameters */
-    if ((value = getenv("MV2_SM_SCHEDULING")) != NULL) {
+    if (MV2_SM_SCHEDULING != NULL) {
         rdma_multirail_usage_policy = MV2_MRAIL_SHARING;
-        rdma_rail_sharing_policy = rdma_get_rail_sharing_policy(value);
+        rdma_rail_sharing_policy = rdma_get_rail_sharing_policy(MV2_SM_SCHEDULING);
     }
 
-    if ((value = getenv("MV2_SMALL_MSG_RAIL_SHARING_POLICY")) != NULL) {
+    if (MV2_SMALL_MSG_RAIL_SHARING_POLICY != NULL) {
         rdma_multirail_usage_policy = MV2_MRAIL_SHARING;
         rdma_small_msg_rail_sharing_policy =
-            rdma_get_rail_sharing_policy(value);
+            rdma_get_rail_sharing_policy(MV2_SMALL_MSG_RAIL_SHARING_POLICY);
     }
 
-    if ((value = getenv("MV2_MED_MSG_RAIL_SHARING_POLICY")) != NULL) {
+    if (MV2_MED_MSG_RAIL_SHARING_POLICY != NULL) {
         rdma_multirail_usage_policy = MV2_MRAIL_SHARING;
-        rdma_med_msg_rail_sharing_policy = rdma_get_rail_sharing_policy(value);
+        rdma_med_msg_rail_sharing_policy =
+            rdma_get_rail_sharing_policy(MV2_MED_MSG_RAIL_SHARING_POLICY);
     }
 
-    if ((value = getenv("MV2_RAIL_SHARING_POLICY")) != NULL) {
+    if (MV2_RAIL_SHARING_POLICY != NULL) {
         rdma_multirail_usage_policy = MV2_MRAIL_SHARING;
         rdma_rail_sharing_policy = rdma_med_msg_rail_sharing_policy =
             rdma_small_msg_rail_sharing_policy =
-            rdma_get_rail_sharing_policy(value);
+            rdma_get_rail_sharing_policy(MV2_RAIL_SHARING_POLICY);
     }
 #if defined(RDMA_CM)
-    if ((value = getenv("MV2_USE_IWARP_MODE")) != NULL) {
-        proc->use_rdma_cm = !!atoi(value);
-        proc->use_iwarp_mode = !!atoi(value);
+    if (MV2_USE_IWARP_MODE != -1) {
+        proc->use_rdma_cm = !!MV2_USE_IWARP_MODE;
+        proc->use_iwarp_mode = !!MV2_USE_IWARP_MODE;
     }
 
     if (!proc->use_rdma_cm) {
-        if ((value = getenv("MV2_USE_RDMA_CM")) != NULL) {
+        if (MV2_USE_RDMA_CM != -1) {
 #if !defined (ROMIO_IME)
-            proc->use_rdma_cm = !!atoi(value);
+            proc->use_rdma_cm = !!MV2_USE_RDMA_CM;
 #else
-            if (value && atoi(value) && (my_rank == 0)) {
+            if (MV2_USE_RDMA_CM && (my_rank == 0)) {
                 MPL_error_printf("Error: IME FS does not work with RDMA CM. "
                                  "Proceeding without RDMA support.\n");
             }
@@ -1965,15 +3859,13 @@ int rdma_get_control_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
     }
 
 #ifdef _MULTI_SUBNET_SUPPORT_
-    if ((value = getenv("MV2_RDMA_CM_MULTI_SUBNET_SUPPORT")) != NULL) {
-        mv2_rdma_cm_multi_subnet_support = !!atoi(value);
-        if (proc->use_rdma_cm == 0) {
-            proc->use_rdma_cm = mv2_rdma_cm_multi_subnet_support;
-        }
+    mv2_rdma_cm_multi_subnet_support = !!MV2_RDMA_CM_MULTI_SUBNET_SUPPORT;
+    if (proc->use_rdma_cm == 0) {
+        proc->use_rdma_cm = mv2_rdma_cm_multi_subnet_support;
     }
 #endif /* _MULTI_SUBNET_SUPPORT_ */
 
-    if ((value = getenv("MV2_SUPPORT_DPM")) && !!atoi(value)) {
+    if ((MV2_SUPPORT_DPM != -1 ) && !!MV2_SUPPORT_DPM) {
         proc->use_rdma_cm = 0;
         proc->use_iwarp_mode = 0;
         mv2_use_eager_fast_send = 0;
@@ -1990,8 +3882,11 @@ int rdma_get_control_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
             threshold = MPIDI_CH3I_RDMA_CM_DEFAULT_ON_DEMAND_THRESHOLD;
         }
 
-        if ((value = getenv("MV2_ON_DEMAND_THRESHOLD")) != NULL) {
-            threshold = atoi(value);
+        /* TODO: Cannot set the cvar here because check for defaults again 
+         * in CH3_Init. We need to adjust this logic so it does not cause
+         * issues */
+        if (MV2_ON_DEMAND_THRESHOLD != -1) {
+            threshold = MV2_ON_DEMAND_THRESHOLD;
         }
         if (pg_size > threshold) {
             proc->use_rdma_cm_on_demand = 1;
@@ -2001,9 +3896,8 @@ int rdma_get_control_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
 #ifdef _ENABLE_XRC_
         /* XRC will not work with RDMA_CM */
         USE_XRC = 0;
-        value = getenv("MV2_USE_XRC");
-        if (value && (my_rank == 0)) {
-            if (atoi(value)) {
+        if ((MV2_USE_XRC != -1) && (my_rank == 0)) {
+            if (MV2_USE_XRC) {
                 MPL_error_printf("Error: XRC does not work with RDMA CM. "
                                   "Proceeding without XRC support.\n");
             }
@@ -2123,14 +4017,12 @@ int rdma_get_control_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
     }
 #endif
 
-    proc->has_srq = (value = getenv("MV2_USE_SRQ")) != NULL ? !!atoi(value) : 1;
+    proc->has_srq = !!MV2_USE_SRQ;
 
-    if ((value = getenv("MV2_IWARP_MULTIPLE_CQ_THRESHOLD")) != NULL) {
-        rdma_iwarp_multiple_cq_threshold = atoi(value);
-        if (rdma_iwarp_multiple_cq_threshold < 0) {
-            rdma_iwarp_multiple_cq_threshold =
-                RDMA_IWARP_DEFAULT_MULTIPLE_CQ_THRESHOLD;
-        }
+    rdma_iwarp_multiple_cq_threshold = MV2_IWARP_MULTIPLE_CQ_THRESHOLD;
+    if (rdma_iwarp_multiple_cq_threshold < 0) {
+        rdma_iwarp_multiple_cq_threshold =
+            RDMA_IWARP_DEFAULT_MULTIPLE_CQ_THRESHOLD;
     }
 
     if (size > rdma_iwarp_multiple_cq_threshold) {
@@ -2139,7 +4031,7 @@ int rdma_get_control_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
 #ifdef _ENABLE_XRC_
     if (USE_XRC) {
         proc->has_srq = 1;
-        MPIU_Assert(MPIDI_CH3I_Process.cm_type == MPIDI_CH3I_CM_ON_DEMAND);
+        MPIR_Assert(MPIDI_CH3I_Process.cm_type == MPIDI_CH3I_CM_ON_DEMAND);
         MPIDI_CH3I_Process.cm_type = MPIDI_CH3I_CM_ON_DEMAND;
         rdma_use_coalesce = 0;
         rdma_use_blocking = 0;
@@ -2162,18 +4054,14 @@ int rdma_get_control_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
     }
 
 #if !defined(DISABLE_PTMALLOC)
-    proc->has_lazy_mem_unregister = (value =
-                                     getenv("MV2_USE_LAZY_MEM_UNREGISTER")) !=
-        NULL ? !!atoi(value) : 1;
+
+    proc->has_lazy_mem_unregister = !!MV2_USE_LAZY_MEM_UNREGISTER;
+
 #endif /* !defined(DISABLE_PTMALLOC) */
 
-    proc->enable_rma_fast_path = (value = 
-                              getenv("MV2_USE_RMA_FAST_PATH")) != 
-        NULL ? !! atoi(value) : 1;                    
+    proc->enable_rma_fast_path = !!MV2_USE_RMA_FAST_PATH;
+    proc->force_ib_atomic= !!MV2_FORCE_IB_ATOMIC;
 
-    proc->force_ib_atomic = (value = 
-                              getenv("MV2_FORCE_IB_ATOMIC")) != 
-        NULL ? !! atoi(value) : 0;                    
 #if defined(CKPT)
     {
         proc->has_one_sided = 0;
@@ -2190,33 +4078,27 @@ int rdma_get_control_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
     } else
 #endif
     {
-        proc->has_one_sided = (value =
-                               getenv("MV2_USE_RDMA_ONE_SIDED")) !=
-            NULL ? !!atoi(value) : 1;
+
+      proc->has_one_sided  = !!MV2_USE_RDMA_ONE_SIDED;
+
     }
 #endif /* defined(CKPT) */
 
-    if ((value = getenv("MV2_RNDV_EXT_SENDQ_SIZE")) != NULL) {
-        rdma_rndv_ext_sendq_size = atoi(value);
-        if (rdma_rndv_ext_sendq_size <= 1) {
-            MPL_usage_printf("Setting MV2_RNDV_EXT_SENDQ_SIZE smaller than 1 "
-                              "will severely limit the MPI bandwidth.\n");
-        }
+    rdma_rndv_ext_sendq_size = MV2_RNDV_EXT_SENDQ_SIZE;
+    if (rdma_rndv_ext_sendq_size <= 1) {
+        MPL_usage_printf("Setting MV2_RNDV_EXT_SENDQ_SIZE smaller than 1 "
+                         "will severely limit the MPI bandwidth.\n");
     }
 
-    if ((value = getenv("MV2_RDMA_NUM_EXTRA_POLLS")) != NULL) {
-        rdma_num_extra_polls = atoi(value);
-        if (rdma_num_extra_polls <= 0) {
-            rdma_num_extra_polls = 1;
-        }
+    rdma_num_extra_polls = MV2_RDMA_NUM_EXTRA_POLLS;
+    if (rdma_num_extra_polls <= 0) {
+        rdma_num_extra_polls = 1;
     }
 
-    if ((value = getenv("MV2_COALESCE_THRESHOLD")) != NULL) {
-        rdma_coalesce_threshold = atoi(value);
-        if (rdma_coalesce_threshold < 1) {
-            MPL_usage_printf("MV2_COALESCE_THRESHOLD must be >= 1\n");
-            rdma_coalesce_threshold = 1;
-        }
+    rdma_coalesce_threshold = MV2_COALESCE_THRESHOLD;
+    if (rdma_coalesce_threshold < 1) {
+        MPL_usage_printf("MV2_COALESCE_THRESHOLD must be >= 1\n");
+        rdma_coalesce_threshold = 1;
     }
 
     if (proc->hca_type == MV2_HCA_MLX_CX_SDR ||
@@ -2226,9 +4108,7 @@ int rdma_get_control_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
 #ifdef _ENABLE_XRC_
     if (!USE_XRC) {
 #endif
-        if ((value = getenv("MV2_USE_COALESCE")) != NULL) {
-            rdma_use_coalesce = !!atoi(value);
-        }
+        rdma_use_coalesce = !!MV2_USE_COALESCE;
 
         if (rdma_use_coalesce && mv2_use_opt_eager_recv) {
             PRINT_INFO((my_rank==0), "Optimized eager recv is"
@@ -2240,14 +4120,15 @@ int rdma_get_control_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
     }
 #endif
 
-    if ((value = getenv("MV2_SPIN_COUNT")) != NULL) {
-        rdma_blocking_spin_count_threshold = atol(value);
+    if (MV2_SPIN_COUNT < 1) {
+        MV2_SPIN_COUNT = DEFAULT_SPIN_COUNT;
     }
+    rdma_blocking_spin_count_threshold = MV2_SPIN_COUNT;
 
-    if ((value = getenv("MV2_RNDV_PROTOCOL")) != NULL) {
-        if (strncmp(value, "RPUT", 4) == 0) {
+    if (MV2_RNDV_PROTOCOL != NULL) {
+        if (strncmp(MV2_RNDV_PROTOCOL, "RPUT", 4) == 0) {
             rdma_rndv_protocol = MV2_RNDV_PROTOCOL_RPUT;
-        } else if (strncmp(value, "RGET", 4) == 0
+        } else if (strncmp(MV2_RNDV_PROTOCOL, "RGET", 4) == 0
 #ifdef _ENABLE_XRC_
                    && !USE_XRC
 #endif
@@ -2259,7 +4140,7 @@ int rdma_get_control_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
 #else /* defined(CKPT) */
             rdma_rndv_protocol = MV2_RNDV_PROTOCOL_RGET;
 #endif /* defined(CKPT) */
-        } else if (strncmp(value, "R3", 2) == 0) {
+        } else if (strncmp(MV2_RNDV_PROTOCOL, "R3", 2) == 0) {
             rdma_rndv_protocol = MV2_RNDV_PROTOCOL_R3;
         } else {
 #ifdef _ENABLE_XRC_
@@ -2271,12 +4152,12 @@ int rdma_get_control_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
         }
     }
 
-    if ((value = getenv("MV2_SMP_RNDV_PROTOCOL")) != NULL) {
-        if (strncmp(value, "RPUT", 4) == 0) {
+    if (MV2_SMP_RNDV_PROTOCOL != NULL) {
+        if (strncmp(MV2_SMP_RNDV_PROTOCOL , "RPUT", 4) == 0) {
             smp_rndv_protocol = MV2_RNDV_PROTOCOL_RPUT;
-        } else if (strncmp(value, "RGET", 4) == 0) {
+        } else if (strncmp(MV2_SMP_RNDV_PROTOCOL , "RGET", 4) == 0) {
             smp_rndv_protocol = MV2_RNDV_PROTOCOL_RGET;
-        } else if (strncmp(value, "R3", 2) == 0) {
+        } else if (strncmp(MV2_SMP_RNDV_PROTOCOL , "R3", 2) == 0) {
             smp_rndv_protocol = MV2_RNDV_PROTOCOL_R3;
         } else {
             MPL_usage_printf("MV2_SMP_RNDV_PROTOCOL "
@@ -2285,42 +4166,33 @@ int rdma_get_control_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
         }
     }
 
-    if ((value = getenv("MV2_R3_THRESHOLD")) != NULL) {
-        rdma_r3_threshold = user_val_to_bytes(value, "MV2_R3_THRESHOLD");
-        if (rdma_r3_threshold < 0) {
-            rdma_r3_threshold = 0;
-        }
+
+    rdma_r3_threshold = MV2_R3_THRESHOLD;
+    if (rdma_r3_threshold < 0) {
+      rdma_r3_threshold = 0;
     }
 
-    if ((value = getenv("MV2_INTRA_NODE_R3_THRESHOLD")) != NULL) {
-        rdma_intra_node_r3_threshold = user_val_to_bytes(value, "MV2_INTRA_NODE_R3_THRESHOLD");
-        if (rdma_intra_node_r3_threshold <= 0) {
-            rdma_intra_node_r3_threshold = RDMA_DEFAULT_R3_THRESHOLD;
-        }
+
+    rdma_intra_node_r3_threshold = MV2_INTRA_NODE_R3_THRESHOLD;
+    if (rdma_intra_node_r3_threshold <= 0) {
+        rdma_intra_node_r3_threshold = RDMA_DEFAULT_R3_THRESHOLD;
     }
 
-    if ((value = getenv("MV2_INTER_NODE_R3_THRESHOLD")) != NULL) {
-        rdma_inter_node_r3_threshold = user_val_to_bytes(value, "MV2_INTER_NODE_R3_THRESHOLD");
-        if (rdma_inter_node_r3_threshold <= 0) {
-            rdma_inter_node_r3_threshold = RDMA_DEFAULT_R3_THRESHOLD;
-        }
+    rdma_inter_node_r3_threshold = MV2_INTER_NODE_R3_THRESHOLD;
+    if (rdma_inter_node_r3_threshold <= 0) {
+      rdma_inter_node_r3_threshold = RDMA_DEFAULT_R3_THRESHOLD;
     }
 
-    if ((value = getenv("MV2_R3_NOCACHE_THRESHOLD")) != NULL) {
-        rdma_r3_threshold_nocache =
-            user_val_to_bytes(value, "MV2_R3_NOCACHE_THRESHOLD");
-        if (rdma_r3_threshold_nocache < 0) {
-            rdma_r3_threshold_nocache = 0;
-        }
+    rdma_r3_threshold_nocache = MV2_R3_NOCACHE_THRESHOLD;
+    if (rdma_r3_threshold_nocache < 0) {
+      rdma_r3_threshold_nocache = 0;
     }
 
-    if ((value = getenv("MV2_MAX_R3_PENDING_DATA")) != NULL) {
-        rdma_max_r3_pending_data =
-            user_val_to_bytes(value, "MV2_MAX_R3_PENDING_DATA");
-        if (rdma_max_r3_pending_data < 0) {
-            rdma_max_r3_pending_data = 0;
-        }
+    rdma_max_r3_pending_data = MV2_MAX_R3_PENDING_DATA;
+    if (rdma_max_r3_pending_data < 0) {
+        rdma_max_r3_pending_data = 0;
     }
+
 #if defined(RDMA_CM)
     if (proc->use_rdma_cm_on_demand) {
         proc->use_iwarp_mode = 1;
@@ -2328,7 +4200,7 @@ int rdma_get_control_parameters(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
 #endif /* defined(RDMA_CM) */
 
   fn_exit:
-    MPIDI_FUNC_EXIT(MPID_STATE_RDMA_GET_CONTROL_PARAMETERS);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_RDMA_GET_CONTROL_PARAMETERS);
     return mpi_errno;
 
   fn_fail:
@@ -2385,7 +4257,7 @@ static void rdma_set_params_based_on_cluster_size(int cluster_size,
 }
 
 /* Set thresholds for Nnum_rail=4 */
-static void rdma_set_default_parameters_numrail_4(struct 
+static void rdma_set_default_parameters_numrail_4(struct
                                                   mv2_MPIDI_CH3I_RDMA_Process_t *proc)
 {
     if (MV2_IS_ARCH_HCA_TYPE
@@ -2442,7 +4314,7 @@ static void rdma_set_default_parameters_numrail_4(struct
         rdma_put_fallback_threshold = 8 * 1024;
         rdma_get_fallback_threshold = 0;
     }
-    
+
     else if (MV2_IS_ARCH_HCA_TYPE
              (proc->arch_hca_type, MV2_ARCH_INTEL_PLATINUM_8280_2S_56,
               MV2_HCA_MLX_CX_EDR)) {
@@ -2728,7 +4600,7 @@ static void rdma_set_default_parameters_numrail_4(struct
         rdma_put_fallback_threshold = 8 * 1024;
         rdma_get_fallback_threshold = 0;
     }
-    
+
     else if (MV2_IS_ARCH_HCA_TYPE
              (proc->arch_hca_type, MV2_ARCH_ARM_CAVIUM_V8_2S_32,
               MV2_HCA_MLX_CX_FDR)) {
@@ -3068,7 +4940,7 @@ static void rdma_set_default_parameters_numrail_4(struct
 		rdma_iba_eager_threshold = VBUF_BUFFER_SIZE;
 		rdma_eagersize_1sc = 8 * 1024;
 		rdma_put_fallback_threshold = 8 * 1024;
-		rdma_get_fallback_threshold = 0;	
+		rdma_get_fallback_threshold = 0;
 	}
 
 	else if (MV2_IS_ARCH_HCA_TYPE
@@ -3079,7 +4951,7 @@ static void rdma_set_default_parameters_numrail_4(struct
 		rdma_iba_eager_threshold = VBUF_BUFFER_SIZE;
 		rdma_eagersize_1sc = 8 * 1024;
 		rdma_put_fallback_threshold = 8 * 1024;
-		rdma_get_fallback_threshold = 0;	
+		rdma_get_fallback_threshold = 0;
 	}
 
     else if (MV2_IS_ARCH_HCA_TYPE
@@ -3256,7 +5128,7 @@ static void rdma_set_default_parameters_numrail_3(struct
         rdma_put_fallback_threshold = 8 * 1024;
         rdma_get_fallback_threshold = 0;
     }
-    
+
     else if (MV2_IS_ARCH_HCA_TYPE
              (proc->arch_hca_type, MV2_ARCH_INTEL_PLATINUM_8280_2S_56,
               MV2_HCA_MLX_CX_EDR)) {
@@ -3553,7 +5425,7 @@ static void rdma_set_default_parameters_numrail_3(struct
         rdma_put_fallback_threshold = 8 * 1024;
         rdma_get_fallback_threshold = 0;
     }
-    
+
     else if (MV2_IS_ARCH_HCA_TYPE
              (proc->arch_hca_type, MV2_ARCH_ARM_CAVIUM_V8_2S_32,
               MV2_HCA_MLX_CX_FDR)) {
@@ -3893,7 +5765,7 @@ static void rdma_set_default_parameters_numrail_3(struct
 		rdma_iba_eager_threshold = VBUF_BUFFER_SIZE;
 		rdma_eagersize_1sc = 8 * 1024;
 		rdma_put_fallback_threshold = 8 * 1024;
-		rdma_get_fallback_threshold = 0;	
+		rdma_get_fallback_threshold = 0;
 	}
 
 	else if (MV2_IS_ARCH_HCA_TYPE
@@ -3904,7 +5776,7 @@ static void rdma_set_default_parameters_numrail_3(struct
 		rdma_iba_eager_threshold = VBUF_BUFFER_SIZE;
 		rdma_eagersize_1sc = 8 * 1024;
 		rdma_put_fallback_threshold = 8 * 1024;
-		rdma_get_fallback_threshold = 0;	
+		rdma_get_fallback_threshold = 0;
 	}
 
     else if (MV2_IS_ARCH_HCA_TYPE
@@ -4081,7 +5953,7 @@ static void rdma_set_default_parameters_numrail_2(struct
         rdma_put_fallback_threshold = 8 * 1024;
         rdma_get_fallback_threshold = 0;
     }
-    
+
     else if (MV2_IS_ARCH_HCA_TYPE
              (proc->arch_hca_type, MV2_ARCH_INTEL_PLATINUM_8280_2S_56,
               MV2_HCA_MLX_CX_EDR)) {
@@ -4223,7 +6095,7 @@ static void rdma_set_default_parameters_numrail_2(struct
         rdma_put_fallback_threshold = 8 * 1024;
         rdma_get_fallback_threshold = 0;
     }
-    
+
     else if (MV2_IS_ARCH_HCA_TYPE
              (proc->arch_hca_type, MV2_ARCH_INTEL_XEON_E5_2620_V4_2S_16,
               MV2_HCA_MLX_CX_FDR)) {
@@ -4717,7 +6589,7 @@ static void rdma_set_default_parameters_numrail_2(struct
 		rdma_iba_eager_threshold = VBUF_BUFFER_SIZE;
 		rdma_eagersize_1sc = 8 * 1024;
 		rdma_put_fallback_threshold = 8 * 1024;
-		rdma_get_fallback_threshold = 0;	
+		rdma_get_fallback_threshold = 0;
 	}
 
 	else if (MV2_IS_ARCH_HCA_TYPE
@@ -4728,7 +6600,7 @@ static void rdma_set_default_parameters_numrail_2(struct
 		rdma_iba_eager_threshold = VBUF_BUFFER_SIZE;
 		rdma_eagersize_1sc = 8 * 1024;
 		rdma_put_fallback_threshold = 8 * 1024;
-		rdma_get_fallback_threshold = 0;	
+		rdma_get_fallback_threshold = 0;
 	}
 
     else if (MV2_IS_ARCH_HCA_TYPE
@@ -4905,7 +6777,7 @@ static void rdma_set_default_parameters_numrail_1(struct
         rdma_put_fallback_threshold = 8 * 1024;
         rdma_get_fallback_threshold = 0;
     }
-    
+
     else if (MV2_IS_ARCH_HCA_TYPE
              (proc->arch_hca_type, MV2_ARCH_INTEL_PLATINUM_8280_2S_56,
               MV2_HCA_MLX_CX_EDR)) {
@@ -5124,7 +6996,7 @@ static void rdma_set_default_parameters_numrail_1(struct
         rdma_put_fallback_threshold = 8 * 1024;
         rdma_get_fallback_threshold = 0;
     }
-    
+
     else if (MV2_IS_ARCH_HCA_TYPE
              (proc->arch_hca_type, MV2_ARCH_INTEL_XEON_E5_2620_V4_2S_16,
               MV2_HCA_MLX_CX_FDR)) {
@@ -5256,7 +7128,7 @@ static void rdma_set_default_parameters_numrail_1(struct
         rdma_put_fallback_threshold = 8 * 1024;
         rdma_get_fallback_threshold = 0;
     }
-    
+
     else if (MV2_IS_ARCH_HCA_TYPE
              (proc->arch_hca_type, MV2_ARCH_INTEL_XEON_E5_2680_V3_2S_24,
               MV2_HCA_MLX_CX_FDR)) {
@@ -5541,7 +7413,7 @@ static void rdma_set_default_parameters_numrail_1(struct
 		rdma_iba_eager_threshold = VBUF_BUFFER_SIZE;
 		rdma_eagersize_1sc = 8 * 1024;
 		rdma_put_fallback_threshold = 8 * 1024;
-		rdma_get_fallback_threshold = 0;	
+		rdma_get_fallback_threshold = 0;
 	}
 
 	else if (MV2_IS_ARCH_HCA_TYPE
@@ -5552,7 +7424,7 @@ static void rdma_set_default_parameters_numrail_1(struct
 		rdma_iba_eager_threshold = VBUF_BUFFER_SIZE;
 		rdma_eagersize_1sc = 8 * 1024;
 		rdma_put_fallback_threshold = 8 * 1024;
-		rdma_get_fallback_threshold = 0;	
+		rdma_get_fallback_threshold = 0;
 	}
 
     else if (MV2_IS_ARCH_HCA_TYPE
@@ -5936,7 +7808,7 @@ static void rdma_set_default_parameters_numrail_unknwn(struct
         rdma_put_fallback_threshold = 8 * 1024;
         rdma_get_fallback_threshold = 0;
     }
-    
+
     else if (MV2_IS_ARCH_HCA_TYPE
              (proc->arch_hca_type, MV2_ARCH_INTEL_XEON_E5_2620_V4_2S_16,
               MV2_HCA_MLX_CX_FDR)) {
@@ -6342,7 +8214,7 @@ static void rdma_set_default_parameters_numrail_unknwn(struct
 		rdma_iba_eager_threshold = VBUF_BUFFER_SIZE;
 		rdma_eagersize_1sc = 8 * 1024;
 		rdma_put_fallback_threshold = 8 * 1024;
-		rdma_get_fallback_threshold = 0;	
+		rdma_get_fallback_threshold = 0;
 	}
 
 	else if (MV2_IS_ARCH_HCA_TYPE
@@ -6353,7 +8225,7 @@ static void rdma_set_default_parameters_numrail_unknwn(struct
 		rdma_iba_eager_threshold = VBUF_BUFFER_SIZE;
 		rdma_eagersize_1sc = 8 * 1024;
 		rdma_put_fallback_threshold = 8 * 1024;
-		rdma_get_fallback_threshold = 0;	
+		rdma_get_fallback_threshold = 0;
 	}
 
     else if (MV2_IS_ARCH_HCA_TYPE
@@ -6634,7 +8506,7 @@ void rdma_param_handle_heterogeneity(mv2_arch_hca_type arch_hca_type[],
             mv2_MPIDI_CH3I_RDMA_Process.heterogeneity = 1;
         }
 
-        PRINT_DEBUG(DEBUG_INIT_verbose, "rank %d, type %lu\n", i, 
+        PRINT_DEBUG(DEBUG_INIT_verbose, "rank %d, type %lu\n", i,
                     arch_hca_type[i]);
     }
 
@@ -6648,8 +8520,7 @@ void rdma_param_handle_heterogeneity(mv2_arch_hca_type arch_hca_type[],
         rdma_get_fallback_threshold = 192 * 1024;
         num_rdma_buffer = 16;
     } else {
-        if (!(((value = getenv("MV2_SUPPRESS_JOB_STARTUP_PERFORMANCE_WARNING")) != NULL)
-            && !!atoi(value))) {
+        if (MV2_SUPPRESS_JOB_STARTUP_PERFORMANCE_WARNING == 0) {
             PRINT_INFO((MPIDI_Process.my_pg_rank == 0),
                     "All nodes involved in the job were detected to be "
                     "homogeneous in terms of processors and interconnects. "
@@ -6672,8 +8543,9 @@ void rdma_set_rdma_fast_path_params(int num_proc)
     mv2_MPIDI_CH3I_RDMA_Process.has_adaptive_fast_path = 0;
     rdma_polling_set_limit = 0;
 #else /* defined(CKPT) */
-    if ((value = getenv("MV2_USE_RDMA_FAST_PATH")) != NULL) {
-        mv2_MPIDI_CH3I_RDMA_Process.has_adaptive_fast_path = !!atoi(value);
+    if (MV2_USE_RDMA_FAST_PATH != -1) {
+        mv2_MPIDI_CH3I_RDMA_Process.has_adaptive_fast_path =
+            !!MV2_USE_RDMA_FAST_PATH;
 
         if (!mv2_MPIDI_CH3I_RDMA_Process.has_adaptive_fast_path) {
             rdma_polling_set_limit = 0;
@@ -6704,35 +8576,26 @@ void rdma_set_rdma_fast_path_params(int num_proc)
 #endif
 
     if (mv2_MPIDI_CH3I_RDMA_Process.has_adaptive_fast_path) {
-        if ((value = getenv("MV2_RDMA_FAST_PATH_BUF_SIZE")) != NULL) {
-            rdma_fp_buffer_size = atoi(value);
+        rdma_fp_buffer_size = MV2_RDMA_FAST_PATH_BUF_SIZE;
+
+        if (MV2_POLLING_SET_LIMIT == -1) {
+            MV2_POLLING_SET_LIMIT = log_2(num_proc);
         }
-    
-        if ((value = getenv("MV2_POLLING_SET_LIMIT")) != NULL) {
-            rdma_polling_set_limit = atoi(value);
-            if (rdma_polling_set_limit == -1) {
-                rdma_polling_set_limit = log_2(num_proc);
-            }
+        rdma_polling_set_limit = MV2_POLLING_SET_LIMIT;
+
+        rdma_polling_set_threshold = MV2_POLLING_SET_THRESHOLD;
+
+        rdma_eager_limit = MV2_RDMA_EAGER_LIMIT;
+        if (rdma_eager_limit < 0) {
+            rdma_eager_limit = 0;
+        }
+        if (MV2_NUM_RDMA_BUFFER != -1) {
+            num_rdma_buffer = MV2_NUM_RDMA_BUFFER;
         } else {
-            rdma_polling_set_limit = RDMA_DEFAULT_POLLING_SET_LIMIT;
+            MV2_NUM_RDMA_BUFFER = num_rdma_buffer;
         }
-    
-        if ((value = getenv("MV2_POLLING_SET_THRESHOLD")) != NULL) {
-            rdma_polling_set_threshold = atoi(value);
-        }
-    
-        if ((value = getenv("MV2_RDMA_EAGER_LIMIT")) != NULL) {
-            rdma_eager_limit = atoi(value);
-            if (rdma_eager_limit < 0) {
-                rdma_eager_limit = 0;
-            }
-        }
-        if ((value = getenv("MV2_NUM_RDMA_BUFFER")) != NULL) {
-            num_rdma_buffer = atoi(value);
-        }
-        if ((value = getenv("MV2_RDMA_FAST_PATH_PREALLOCATE_BUFFERS")) != NULL) {
-            mv2_rdma_fast_path_preallocate_buffers = !!atoi(value);
-        }
+
+        mv2_rdma_fast_path_preallocate_buffers = !!MV2_RDMA_FAST_PATH_PREALLOCATE_BUFFERS;
     }
 
     return;
@@ -6743,9 +8606,7 @@ void rdma_get_user_parameters(int num_proc, int me)
     char *value;
 
     int dpm_support=0;
-    if((value=getenv("MV2_SUPPORT_DPM"))!=NULL) {
-	    dpm_support=atoi(value);
-    }
+    dpm_support = MV2_SUPPORT_DPM;
 
     if(!dpm_support) {
 	    /* Ensure BW tests have enough RFP buffers*/
@@ -6755,22 +8616,19 @@ void rdma_get_user_parameters(int num_proc, int me)
     }
 
     /* Check for a system report. See sysreport.h and sysreport.c */
-    value = getenv("MV2_SYSREPORT");
-    if (value != NULL) {
-        enable_sysreport = atoi(value);
-    }
+    enable_sysreport = MV2_SYSREPORT;
 
-    if ((value = getenv("MV2_DEFAULT_MTU")) != NULL) {
+    if (MV2_DEFAULT_MTU != NULL) {
 
-        if (strncmp(value, "IBV_MTU_256", 11) == 0) {
+        if (strncmp(MV2_DEFAULT_MTU, "IBV_MTU_256", 11) == 0) {
             rdma_default_mtu = IBV_MTU_256;
-        } else if (strncmp(value, "IBV_MTU_512", 11) == 0) {
+        } else if (strncmp(MV2_DEFAULT_MTU, "IBV_MTU_512", 11) == 0) {
             rdma_default_mtu = IBV_MTU_512;
-        } else if (strncmp(value, "IBV_MTU_1024", 12) == 0) {
+        } else if (strncmp(MV2_DEFAULT_MTU, "IBV_MTU_1024", 12) == 0) {
             rdma_default_mtu = IBV_MTU_1024;
-        } else if (strncmp(value, "IBV_MTU_2048", 12) == 0) {
+        } else if (strncmp(MV2_DEFAULT_MTU, "IBV_MTU_2048", 12) == 0) {
             rdma_default_mtu = IBV_MTU_2048;
-        } else if (strncmp(value, "IBV_MTU_4096", 12) == 0) {
+        } else if (strncmp(MV2_DEFAULT_MTU, "IBV_MTU_4096", 12) == 0) {
             rdma_default_mtu = IBV_MTU_4096;
         } else {
             rdma_default_mtu = IBV_MTU_1024;
@@ -6778,51 +8636,45 @@ void rdma_get_user_parameters(int num_proc, int me)
     }
 
     /* Number of CQE's retrieved per poll */
-    if ((value = getenv("MV2_NUM_CQES_PER_POLL")) != NULL) {
-        rdma_num_cqes_per_poll = atoi(value);
-        if (rdma_num_cqes_per_poll <= 0 ||
-            rdma_num_cqes_per_poll >= RDMA_MAX_CQE_ENTRIES_PER_POLL) {
-            rdma_num_cqes_per_poll = RDMA_MAX_CQE_ENTRIES_PER_POLL;
-        }
+    rdma_num_cqes_per_poll = MV2_NUM_CQES_PER_POLL;
+    if (rdma_num_cqes_per_poll <= 0 ||
+        rdma_num_cqes_per_poll >= RDMA_MAX_CQE_ENTRIES_PER_POLL) {
+        rdma_num_cqes_per_poll = RDMA_MAX_CQE_ENTRIES_PER_POLL;
     }
- 
+
     /* Get number of ports/HCA used by a process */
-    if ((value = getenv("MV2_NUM_PORTS")) != NULL) {
-        rdma_num_ports = atoi(value);
-        if (rdma_num_ports > MAX_NUM_PORTS) {
-            rdma_num_ports = MAX_NUM_PORTS;
-            MPL_usage_printf("Warning, max ports per hca is %d, change %s in "
-                              "ibv_param.h to override the option\n",
-                              MAX_NUM_PORTS, "MAX_NUM_PORTS");
-        }
+    rdma_num_ports = MV2_NUM_PORTS;
+    if (rdma_num_ports > MAX_NUM_PORTS) {
+        rdma_num_ports = MAX_NUM_PORTS;
+        MPL_usage_printf("Warning, max ports per hca is %d, change %s in "
+                         "ibv_param.h to override the option\n",
+                         MAX_NUM_PORTS, "MAX_NUM_PORTS");
     }
 
     /* Get number of qps/port used by a process */
-    if ((value = getenv("MV2_NUM_QP_PER_PORT")) != NULL) {
+    rdma_num_qp_per_port = MV2_NUM_QP_PER_PORT;
 
-        rdma_num_qp_per_port = atoi(value);
-
-        if (rdma_num_qp_per_port > MAX_NUM_QP_PER_PORT) {
-            rdma_num_qp_per_port = MAX_NUM_QP_PER_PORT;
-            MPL_usage_printf("Warning, max qps per port is %d, change %s in "
-                              "ibv_param.h to override the option\n",
-                              MAX_NUM_QP_PER_PORT, "MAX_NUM_QP_PER_PORT");
-        }
+    if (rdma_num_qp_per_port > MAX_NUM_QP_PER_PORT) {
+        rdma_num_qp_per_port = MAX_NUM_QP_PER_PORT;
+        MPL_usage_printf("Warning, max qps per port is %d, change %s in "
+                         "ibv_param.h to override the option\n",
+                         MAX_NUM_QP_PER_PORT, "MAX_NUM_QP_PER_PORT");
+    }
 #ifdef _ENABLE_UD_
-        if (rdma_enable_only_ud || rdma_enable_hybrid) {
-            rdma_num_qp_per_port = 1;
-            PRINT_INFO((me==0), "Cannot have more than one QP with UD_ONLY / Hybrid mode.\n");
-            PRINT_INFO((me==0), "Resetting MV2_NUM_QP_PER_PORT to 1.\n");
-        }
+    if (rdma_enable_only_ud || rdma_enable_hybrid) {
+        rdma_num_qp_per_port = 1;
+        PRINT_INFO((me==0), "Cannot have more than one QP with UD_ONLY / Hybrid mode.\n");
+        PRINT_INFO((me==0), "Resetting MV2_NUM_QP_PER_PORT to 1.\n");
+    }
 #endif /* _ENABLE_UD_ */
+    rdma_pin_pool_size = MV2_PIN_POOL_SIZE;
+
+    /* TODO: Cannot set the cvar here as we check a default status later.
+     *       Need to fix that logic */
+    if (MV2_DEFAULT_MAX_CQ_SIZE != -1) {
+        rdma_default_max_cq_size = MV2_DEFAULT_MAX_CQ_SIZE;
     }
 
-    if ((value = getenv("MV2_PIN_POOL_SIZE")) != NULL) {
-        rdma_pin_pool_size = atoi(value);
-    }
-    if ((value = getenv("MV2_DEFAULT_MAX_CQ_SIZE")) != NULL) {
-        rdma_default_max_cq_size = atoi(value);
-    }
     /* We have read the value of the rendezvous threshold, and the number of
      * rails used for communication, increase the striping threshold
      * accordingly */
@@ -6834,228 +8686,172 @@ void rdma_get_user_parameters(int num_proc, int me)
         rdma_vbuf_total_size * rdma_num_ports * rdma_num_qp_per_port *
         rdma_num_hcas;
 
-    if ((value = getenv("MV2_IBA_EAGER_THRESHOLD")) != NULL) {
-        rdma_iba_eager_threshold =
-            user_val_to_bytes(value, "MV2_IBA_EAGER_THRESHOLD");
+    if (MV2_IBA_EAGER_THRESHOLD != -1) {
+        rdma_iba_eager_threshold = MV2_IBA_EAGER_THRESHOLD;
+    } else {
+        MV2_IBA_EAGER_THRESHOLD = rdma_iba_eager_threshold;
     }
 
-    if ((value = getenv("MV2_STRIPING_THRESHOLD")) != NULL) {
-        striping_threshold = user_val_to_bytes(value, "MV2_STRIPING_THRESHOLD");
-        if (striping_threshold <= 0) {
-            /* Invalid value - set to computed value */
-            striping_threshold =
-                rdma_vbuf_total_size * rdma_num_ports * rdma_num_qp_per_port *
-                rdma_num_hcas;
-        }
-        if (striping_threshold < rdma_iba_eager_threshold) {
-            /* checking to make sure that the striping threshold is not less
-             * than the RNDV threshold since it won't work as expected.
-             */
-            striping_threshold = rdma_iba_eager_threshold;
-        }
+    if (MV2_STRIPING_THRESHOLD <= 0) {
+        /* Invalid value - set to computed value */
+        MV2_STRIPING_THRESHOLD =
+            rdma_vbuf_total_size * rdma_num_ports * rdma_num_qp_per_port *
+            rdma_num_hcas;
+    }
+    if (MV2_STRIPING_THRESHOLD < MV2_IBA_EAGER_THRESHOLD) {
+        /* checking to make sure that the striping threshold is not less
+         * than the RNDV threshold since it won't work as expected.
+         */
+        MV2_STRIPING_THRESHOLD = MV2_IBA_EAGER_THRESHOLD;
+    }
+    striping_threshold = MV2_STRIPING_THRESHOLD;
+
+    rdma_med_msg_rail_sharing_threshold =
+      MV2_RAIL_SHARING_MED_MSG_THRESHOLD;
+    if (rdma_med_msg_rail_sharing_threshold <= 0) {
+      rdma_med_msg_rail_sharing_threshold =
+	RDMA_DEFAULT_MED_MSG_RAIL_SHARING_THRESHOLD;
     }
 
-    if ((value = getenv("MV2_RAIL_SHARING_MED_MSG_THRESHOLD")) != NULL) {
-        rdma_med_msg_rail_sharing_threshold =
-            user_val_to_bytes(value, "MV2_RAIL_SHARING_MED_MSG_THRESHOLD");
-        if (rdma_med_msg_rail_sharing_threshold <= 0) {
-            rdma_med_msg_rail_sharing_threshold =
-                RDMA_DEFAULT_MED_MSG_RAIL_SHARING_THRESHOLD;
-        }
-    }
-
-    rdma_large_msg_rail_sharing_threshold = rdma_vbuf_total_size;
-
-    if ((value = getenv("MV2_RAIL_SHARING_LARGE_MSG_THRESHOLD")) != NULL) {
+    if (MV2_RAIL_SHARING_LARGE_MSG_THRESHOLD > 0) {
         rdma_large_msg_rail_sharing_threshold =
-            user_val_to_bytes(value, "MV2_RAIL_SHARING_LARGE_MSG_THRESHOLD");
-        if (rdma_large_msg_rail_sharing_threshold <= 0) {
-            rdma_large_msg_rail_sharing_threshold = rdma_vbuf_total_size;
-        }
+            MV2_RAIL_SHARING_LARGE_MSG_THRESHOLD;
+    } else {
+        rdma_large_msg_rail_sharing_threshold = rdma_vbuf_total_size;
+        MV2_RAIL_SHARING_LARGE_MSG_THRESHOLD =
+            rdma_large_msg_rail_sharing_threshold;
     }
 
-    if ((value = getenv("MV2_DEFAULT_PUT_GET_LIST_SIZE")) != NULL) {
-        rdma_default_put_get_list_size = atoi(value);
-    }
-    if ((value = getenv("MV2_EAGERSIZE_1SC")) != NULL) {
-        rdma_eagersize_1sc = atoi(value);
-    }
-    if ((value = getenv("MV2_PUT_FALLBACK_THRESHOLD")) != NULL) {
-        rdma_put_fallback_threshold = atoi(value);
-    }
-    if ((value = getenv("MV2_GET_FALLBACK_THRESHOLD")) != NULL) {
-        rdma_get_fallback_threshold =
-            user_val_to_bytes(value, "MV2_GET_FALLBACK_THRESHOLD");
-    }
-    if ((value = getenv("MV2_DEFAULT_PORT")) != NULL) {
-        rdma_default_port = atoi(value);
-    }
-    if ((value = getenv("MV2_DEFAULT_GID_INDEX")) != NULL) {
-        rdma_default_gid_index = atoi(value);
-    }
-    if ((value = getenv("MV2_DEFAULT_QP_OUS_RD_ATOM")) != NULL) {
-        rdma_default_qp_ous_rd_atom = (uint8_t) atoi(value);
-    }
-    if ((value = getenv("MV2_DEFAULT_MAX_RDMA_DST_OPS")) != NULL) {
-        rdma_default_max_rdma_dst_ops = (uint8_t) atoi(value);
-    }
-    if ((value = getenv("MV2_DEFAULT_PSN")) != NULL) {
-        rdma_default_psn = (uint32_t) atoi(value);
-    }
-    if ((value = getenv("MV2_DEFAULT_PKEY")) != NULL) {
-        rdma_default_pkey = (uint16_t)strtol(value, (char **) NULL,0) & PKEY_MASK;
-    }
-    if ((value = getenv("MV2_DEFAULT_QKEY")) != NULL) {
-        rdma_default_qkey = (uint32_t)strtol(value, (char **) NULL,0);
-    }
-    if ((value = getenv("MV2_DEFAULT_MIN_RNR_TIMER")) != NULL) {
-        rdma_default_min_rnr_timer = (uint8_t) atoi(value);
-    }
-    if ((value = getenv("MV2_DEFAULT_SERVICE_LEVEL")) != NULL) {
-        rdma_default_service_level = (uint8_t) atoi(value);
-    }
-    if ((value = getenv("MV2_DEFAULT_TIME_OUT")) != NULL) {
-        rdma_default_time_out = (uint8_t) atol(value);
-    }
-    if ((value = getenv("MV2_DEFAULT_STATIC_RATE")) != NULL) {
-        rdma_default_static_rate = (uint8_t) atol(value);
-    }
-    if ((value = getenv("MV2_DEFAULT_SRC_PATH_BITS")) != NULL) {
-        rdma_default_src_path_bits = (uint8_t) atoi(value);
-    }
-    if ((value = getenv("MV2_DEFAULT_RETRY_COUNT")) != NULL) {
-        rdma_default_retry_count = (uint8_t) atol(value);
-    }
-    if ((value = getenv("MV2_DEFAULT_RNR_RETRY")) != NULL) {
-        rdma_default_rnr_retry = (uint8_t) atol(value);
-    }
-    if ((value = getenv("MV2_DEFAULT_MAX_SG_LIST")) != NULL) {
-        rdma_default_max_sg_list = (uint32_t) atol(value);
-    }
-    if ((value = getenv("MV2_DEFAULT_MAX_SEND_WQE")) != NULL) {
-        rdma_default_max_send_wqe = atol(value);
-    }
-    if ((value = getenv("MV2_CM_WAIT_TIME")) != NULL) {
-        mv2_cm_wait_time = atoi(value);
-        if (mv2_cm_wait_time <= 0) {
-            mv2_cm_wait_time = DEF_MV2_CM_WAIT_TIME;
-        }
+    rdma_default_put_get_list_size = MV2_DEFAULT_PUT_GET_LIST_SIZE;
 
+    if (MV2_EAGERSIZE_1SC != -1) {
+        rdma_eagersize_1sc = MV2_EAGERSIZE_1SC;
+    } else {
+        MV2_EAGERSIZE_1SC = rdma_eagersize_1sc;
     }
+    if (MV2_PUT_FALLBACK_THRESHOLD != -1) {
+        rdma_put_fallback_threshold = MV2_PUT_FALLBACK_THRESHOLD;
+    } else {
+        MV2_PUT_FALLBACK_THRESHOLD = rdma_put_fallback_threshold;
+    }
+    if (MV2_GET_FALLBACK_THRESHOLD != NULL) {
+        rdma_get_fallback_threshold = MV2_GET_FALLBACK_THRESHOLD;
+    }
+
+    rdma_default_port = MV2_DEFAULT_PORT;
+    rdma_default_gid_index = MV2_DEFAULT_GID_INDEX;
+
+    if (MV2_DEFAULT_QP_OUS_RD_ATOM != -1) {
+        rdma_default_qp_ous_rd_atom = MV2_DEFAULT_QP_OUS_RD_ATOM;
+    }
+    rdma_default_max_rdma_dst_ops = MV2_DEFAULT_MAX_RDMA_DST_OPS;
+    rdma_default_psn = MV2_DEFAULT_PSN;
+    if (MV2_DEFAULT_PKEY != NULL) {
+        rdma_default_pkey = (uint16_t)strtol(MV2_DEFAULT_PKEY, (char **) NULL,0) & PKEY_MASK;
+    }
+    if (MV2_DEFAULT_QKEY != NULL) {
+        rdma_default_qkey = (uint32_t)strtol(MV2_DEFAULT_QKEY, (char **) NULL,0);
+    }
+    rdma_default_min_rnr_timer = MV2_DEFAULT_MIN_RNR_TIMER;
+    rdma_default_service_level = MV2_DEFAULT_SERVICE_LEVEL;
+    rdma_default_time_out = MV2_DEFAULT_TIME_OUT;
+    rdma_default_static_rate = MV2_DEFAULT_STATIC_RATE;
+    rdma_default_src_path_bits = MV2_DEFAULT_SRC_PATH_BITS;
+    rdma_default_retry_count = MV2_DEFAULT_RETRY_COUNT;
+    rdma_default_rnr_retry = MV2_DEFAULT_RNR_RETRY;
+    rdma_default_max_sg_list = MV2_DEFAULT_MAX_SG_LIST;
+    rdma_default_max_send_wqe = MV2_DEFAULT_MAX_SEND_WQE;
+
+    mv2_cm_wait_time = MV2_CM_WAIT_TIME;
+    if (mv2_cm_wait_time <= 0) {
+        mv2_cm_wait_time = DEF_MV2_CM_WAIT_TIME;
+    }
+
 
 #if defined(_ENABLE_UD_) || defined(_MCST_SUPPORT_)
-    if ((value = getenv("MV2_UD_MTU")) != NULL) {
-        rdma_default_ud_mtu = atol(value);
+
+    if (MV2_UD_MTU) {
+        rdma_default_ud_mtu = MV2_UD_MTU;
         if (rdma_default_ud_mtu < 256 || rdma_default_ud_mtu > 4096) {
-            MPL_usage_printf("Invalid value used for UD MTU (Min: 256; Max: 4K). Resetting to default value (2K)\n");
+            PRINT_INFO(!me, "Invalid value used for UD MTU (Min: 256; Max: 4K). "
+                            "Resetting to default value (2K)\n");
             rdma_default_ud_mtu = 2048;
         }
     }
+
 #endif /* #if defined(_ENABLE_UD_) || defined(_MCST_SUPPORT_)*/
 #ifdef _ENABLE_UD_
-    if ((value = getenv("MV2_HYBRID_MAX_RC_CONN")) != NULL) {
-        rdma_hybrid_max_rc_conn = atoi(value);
-        if (rdma_enable_only_ud && rdma_hybrid_max_rc_conn) {
+    if (MV2_HYBRID_MAX_RC_CONN != -1) {
+        if (rdma_enable_only_ud && MV2_HYBRID_MAX_RC_CONN) {
             PRINT_INFO((me == 0),
                        "User requested only UD. Resetting MV2_HYBRID_MAX_RC_CONN to 0.\n");
-            rdma_hybrid_max_rc_conn = 0;
+            MV2_HYBRID_MAX_RC_CONN = 0;
         }
+        rdma_hybrid_max_rc_conn = MV2_HYBRID_MAX_RC_CONN;
     } else {
         if (rdma_enable_only_ud) {
             rdma_hybrid_max_rc_conn = 0;
         }
+        MV2_HYBRID_MAX_RC_CONN = rdma_hybrid_max_rc_conn;
     }
-    if ((value = getenv("MV2_UD_NUM_MSG_LIMIT")) != NULL) {
-        rdma_ud_num_msg_limit = atoi(value);
-    }
-    if ((value = getenv("MV2_UD_SENDWINDOW_SIZE")) != NULL) {
-        rdma_default_ud_sendwin_size = atoi(value);
-    }
-    if ((value = getenv("MV2_UD_RECVWINDOW_SIZE")) != NULL) {
-        rdma_default_ud_recvwin_size = atoi(value);
-    }
-    if ((value = getenv("MV2_UD_RETRY_TIMEOUT")) != NULL) {
-        rdma_ud_retry_timeout = atoi(value);
-    }
-    if ((value = getenv("MV2_UD_MAX_RETRY_TIMEOUT")) != NULL) {
-        rdma_ud_max_retry_timeout = atoi(value);
-    }
-    if ((value = getenv("MV2_UD_PROGRESS_SPIN")) != NULL) {
-        rdma_ud_progress_spin = atoi(value);
-    }
-    if ((value = getenv("MV2_UD_RETRY_COUNT")) != NULL) {
-        rdma_ud_max_retry_count = atoi(value);
-    }
-    if ((value = getenv("MV2_UD_PROGRESS_TIMEOUT")) != NULL) {
-        rdma_ud_progress_timeout = atoi(value);
-    }
-    if ((value = getenv("MV2_UD_MAX_SEND_WQE")) != NULL) {
-        rdma_default_max_ud_send_wqe = atol(value);
-    }
-    if ((value = getenv("MV2_UD_MAX_RECV_WQE")) != NULL) {
-        rdma_default_max_ud_recv_wqe = atol(value);
-    }
-    if ((value = getenv("MV2_USE_UD_SRQ")) != NULL) {
-        rdma_use_ud_srq = !!atoi(value);
-    }
-    if ((value = getenv("MV2_UD_VBUF_POOL_SIZE")) != NULL) {
-        rdma_ud_vbuf_pool_size = atol(value);
-    } else if (rdma_use_ud_srq) {
-        rdma_ud_vbuf_pool_size = RDMA_UD_SRQ_VBUF_POOL_SIZE;
-    }
-    if ((value = getenv("MV2_UD_MAX_ACK_PENDING")) != NULL) {
-        rdma_ud_max_ack_pending = atoi(value);
+    rdma_ud_num_msg_limit = MV2_UD_NUM_MSG_LIMIT;
+    rdma_default_ud_sendwin_size = MV2_UD_SENDWINDOW_SIZE;
+    rdma_default_ud_recvwin_size = MV2_UD_RECVWINDOW_SIZE;
+    rdma_ud_retry_timeout = MV2_UD_RETRY_TIMEOUT;
+    rdma_ud_max_retry_timeout = MV2_UD_MAX_RETRY_TIMEOUT;
+    rdma_ud_progress_spin = MV2_UD_PROGRESS_SPIN;
+    if (MV2_UD_RETRY_COUNT != -1) {
+        rdma_ud_max_retry_count = MV2_UD_RETRY_COUNT;
     } else {
-        rdma_ud_max_ack_pending = (rdma_default_ud_sendwin_size / 4);
+        MV2_UD_RETRY_COUNT = rdma_ud_max_retry_count;
     }
-    if ((value = getenv("MV2_USE_UD_ZCOPY")) != NULL) {
-        rdma_use_ud_zcopy = atoi(value);
-    }
-    rdma_ud_zcopy_threshold = rdma_iba_eager_threshold;
-    if ((value = getenv("MV2_UD_ZCOPY_THRESHOLD")) != NULL) {
-        rdma_ud_zcopy_threshold = atoi(value);
-    }
-    if ((value = getenv("MV2_UD_NUM_ZCOPY_RNDV_QPS")) != NULL) {
-        rdma_ud_num_rndv_qps = atoi(value);
+    if (MV2_UD_PROGRESS_TIMEOUT != -1) {
+        rdma_ud_progress_timeout = MV2_UD_PROGRESS_TIMEOUT;
     } else {
-        rdma_ud_num_rndv_qps = RDMA_UD_DEFAULT_NUM_RNDV_QPS * rdma_num_hcas;
+        MV2_UD_PROGRESS_TIMEOUT = rdma_ud_progress_timeout;
     }
-    if ((value = getenv("MV2_UD_ZCOPY_RQ_SIZE")) != NULL) {
-        rdma_ud_zcopy_rq_size = atoi(value);
+    rdma_default_max_ud_send_wqe = MV2_UD_MAX_SEND_WQE;
+    rdma_default_max_ud_recv_wqe = MV2_UD_MAX_RECV_WQE;
+    rdma_use_ud_srq = !!MV2_USE_UD_SRQ;
+    rdma_ud_vbuf_pool_size = MV2_UD_VBUF_POOL_SIZE;
+
+    if (MV2_UD_MAX_ACK_PENDING < 0) {
+        MV2_UD_MAX_ACK_PENDING = (MV2_UD_SENDWINDOW_SIZE / 4);
     }
-    if ((value = getenv("MV2_UD_ZCOPY_NUM_RETRY")) != NULL) {
-        rdma_ud_zcopy_num_retry = atoi(value);
+    rdma_ud_max_ack_pending = MV2_UD_MAX_ACK_PENDING;
+    rdma_use_ud_zcopy = MV2_USE_UD_ZCOPY;
+    if (MV2_UD_ZCOPY_THRESHOLD < 0) {
+        MV2_UD_ZCOPY_THRESHOLD = MV2_IBA_EAGER_THRESHOLD;
     }
-    if ((value = getenv("MV2_UD_ZCOPY_ENABLE_POLLING")) != NULL) {
-        rdma_ud_zcopy_enable_polling = atoi(value);
+    rdma_ud_zcopy_threshold = MV2_UD_ZCOPY_THRESHOLD;
+
+    if (MV2_UD_NUM_ZCOPY_RNDV_QPS == -1) {
+        MV2_UD_NUM_ZCOPY_RNDV_QPS = RDMA_UD_DEFAULT_NUM_RNDV_QPS * rdma_num_hcas;
     }
-    if ((value = getenv("MV2_UD_ZCOPY_PUSH_SEGMENT")) != NULL) {
-        rdma_ud_zcopy_push_segment = atoi(value);
-        /* Push segment needs to be at least 2, or there will be error setting
-         * next of first entry to NULL */
-        if (rdma_ud_zcopy_push_segment < RDMA_DEFAULT_MIN_UD_ZCOPY_WQE+1) {
-            PRINT_INFO((MPIDI_Process.my_pg_rank == 0), "[Warning]:"
-                "MV2_UD_ZCOPY_PUSH_SEGMENT cannot be less than %d, setting it back to %d\n",
-                RDMA_DEFAULT_MIN_UD_ZCOPY_WQE+1, RDMA_DEFAULT_MIN_UD_ZCOPY_WQE+1);
-        }
+    rdma_ud_num_rndv_qps = MV2_UD_NUM_ZCOPY_RNDV_QPS;
+    rdma_ud_zcopy_rq_size = MV2_UD_ZCOPY_RQ_SIZE;
+    rdma_ud_zcopy_num_retry = MV2_UD_ZCOPY_NUM_RETRY;
+    rdma_ud_zcopy_enable_polling = MV2_UD_ZCOPY_ENABLE_POLLING;
+    rdma_ud_zcopy_push_segment = MV2_UD_ZCOPY_PUSH_SEGMENT;
+    /* Push segment needs to be at least 2, or there will be error setting
+     * next of first entry to NULL */
+    if (rdma_ud_zcopy_push_segment < RDMA_DEFAULT_MIN_UD_ZCOPY_WQE+1) {
+        PRINT_INFO((MPIDI_Process.my_pg_rank == 0), "[Warning]:"
+                   "MV2_UD_ZCOPY_PUSH_SEGMENT cannot be less than %d, setting it back to %d\n",
+                   RDMA_DEFAULT_MIN_UD_ZCOPY_WQE+1, RDMA_DEFAULT_MIN_UD_ZCOPY_WQE+1);
     }
+
 #ifdef _MV2_UD_DROP_PACKET_RATE_
-    if ((value = getenv("MV2_UD_DROP_PACKET_RATE")) != NULL) {
-        ud_drop_packet_rate = atoi(value);
-    }
+    ud_drop_packet_rate = MV2_UD_DROP_PACKET_RATE;
 #endif
 
 #endif
 
 #if defined(_MCST_SUPPORT_)
-    if ((value = getenv("MV2_MCAST_ENABLE_REL")) != NULL) {
-        mcast_enable_rel = atoi(value);
-    }
-    if ((value = getenv("MV2_MCAST_USE_MCAST_NACK")) != NULL) {
-        mcast_use_mcast_nack = atoi(value);
-    }
-    if ((value = getenv("MV2_MCAST_NUM_NODES_THRESHOLD")) != NULL) {
-        int env_num_threshold = atoi(value);
+    mcast_enable_rel = MV2_MCAST_ENABLE_REL;
+    mcast_use_mcast_nack = MV2_MCAST_USE_MCAST_NACK;
+    if (MV2_MCAST_NUM_NODES_THRESHOLD != -1) {
+        int env_num_threshold = MV2_MCAST_NUM_NODES_THRESHOLD;
         if (env_num_threshold < MCAST_MIN_THRESHOLD) {
             mcast_num_nodes_threshold = MCAST_MIN_THRESHOLD;
             PRINT_INFO((MPIDI_Process.my_pg_rank == 0), "[Warning]:"
@@ -7065,62 +8861,43 @@ void rdma_get_user_parameters(int num_proc, int me)
              mcast_num_nodes_threshold = env_num_threshold;
         }
     }
-    if ((value = getenv("MV2_MCAST_MAX_RECV_WQE")) != NULL) {
-        mcast_max_ud_recv_wqe = atoi(value);
-    }
-    if ((value = getenv("MV2_MCAST_WINDOW_SIZE")) != NULL) {
-        mcast_window_size = atoi(value);
-    }
-    if ((value = getenv("MV2_MCAST_DROP_PACKET_RATE")) != NULL) {
-        mcast_drop_packet_rate = atoi(value);
-    }
-    if ((value = getenv("MV2_MCAST_RETRY_TIMEOUT")) != NULL) {
-        mcast_retry_timeout = atoi(value);
-    }
-    if ((value = getenv("MV2_MCAST_MAX_RETRY_TIMEOUT")) != NULL) {
-        mcast_max_retry_timeout = atoi(value);
-    }
-    if ((value = getenv("MV2_MCAST_NSPIN_THRESHOLD")) != NULL) {
-        mcast_nspin_threshold = atoi(value);
-    }
-    if ((value = getenv("MV2_MCAST_COMM_INIT_TIMEOUT")) != NULL) {
-        mcast_comm_init_timeout = atoi(value);
-    }
-    if ((value = getenv("MV2_MCAST_COMM_INIT_RETRIES")) != NULL) {
-        mcast_comm_init_retries = atoi(value);
-    }
-    if ((value = getenv("MV2_MCAST_SKIP_LOOPBACK")) != NULL) {
-        mcast_skip_loopback = atoi(value);
-    }
-    if ((value = getenv("MV2_MCAST_BCAST_MIN_MSG")) != NULL) {
-        mcast_bcast_min_msg = atoi(value);
-    }
-    if ((value = getenv("MV2_MCAST_BCAST_MAX_MSG")) != NULL) {
-        mcast_bcast_max_msg = atoi(value);
-    }
+
+    mcast_max_ud_recv_wqe = MV2_MCAST_MAX_RECV_WQE;
+    mcast_window_size = MV2_MCAST_WINDOW_SIZE;
+    mcast_drop_packet_rate = MV2_MCAST_DROP_PACKET_RATE;
+    mcast_retry_timeout = MV2_MCAST_RETRY_TIMEOUT;
+    mcast_max_retry_timeout = MV2_MCAST_MAX_RETRY_TIMEOUT;
+    mcast_nspin_threshold = MV2_MCAST_NSPIN_THRESHOLD;
+    mcast_comm_init_timeout = MV2_MCAST_COMM_INIT_TIMEOUT;
+    mcast_comm_init_retries = MV2_MCAST_COMM_INIT_RETRIES;
+    mcast_skip_loopback = MV2_MCAST_SKIP_LOOPBACK;
+    mcast_bcast_min_msg = MV2_MCAST_BCAST_MIN_MSG;
+    mcast_bcast_max_msg = MV2_MCAST_BCAST_MAX_MSG;
+
 #endif
 
-    if ((value = getenv("MV2_DEFAULT_MAX_RECV_WQE")) != NULL) {
-        rdma_default_max_recv_wqe = atol(value);
+    rdma_default_max_recv_wqe = MV2_DEFAULT_MAX_RECV_WQE;
+    /* TODO: this should have a default but it is unclear */
+    if (MV2_NDREG_ENTRIES_MAX != -1) {
+        rdma_ndreg_entries_max = MV2_NDREG_ENTRIES_MAX;
+    } else {
+        MV2_NDREG_ENTRIES_MAX =rdma_ndreg_entries_max;
     }
-    if ((value = getenv("MV2_NDREG_ENTRIES_MAX")) != NULL) {
-        rdma_ndreg_entries_max = atol(value);
-    }
-    if ((value = getenv("MV2_NDREG_ENTRIES")) != NULL) {
-        rdma_ndreg_entries =
-           (((unsigned int)atoi(value) < rdma_ndreg_entries_max) ?
-            (unsigned int)atoi(value) : rdma_ndreg_entries_max);
+    if (MV2_NDREG_ENTRIES != -1) {
+        if (MV2_NDREG_ENTRIES > MV2_NDREG_ENTRIES_MAX) {
+            MV2_NDREG_ENTRIES = MV2_NDREG_ENTRIES_MAX;
+        }
+        rdma_ndreg_entries = MV2_NDREG_ENTRIES;
     } else {
         rdma_ndreg_entries =
-           ((RDMA_NDREG_ENTRIES + 2*num_proc < rdma_ndreg_entries_max) ?
-             RDMA_NDREG_ENTRIES + 2*num_proc : rdma_ndreg_entries_max);
+           ((RDMA_NDREG_ENTRIES + 2 * num_proc < rdma_ndreg_entries_max) ?
+             RDMA_NDREG_ENTRIES + 2 * num_proc : rdma_ndreg_entries_max);
         if (rdma_ndreg_entries < RDMA_NDREG_ENTRIES_MIN) {
             rdma_ndreg_entries = RDMA_NDREG_ENTRIES_MIN;
         }
+        MV2_NDREG_ENTRIES = rdma_ndreg_entries;
     }
-    if ((value = getenv("MV2_DREG_CACHE_LIMIT")) != NULL) {
-        rdma_dreg_cache_limit = atol(value);
-    }
+    rdma_dreg_cache_limit = MV2_DREG_CACHE_LIMIT;
 #if defined(_ENABLE_UD_)
     if (rdma_enable_only_ud) {
         rdma_vbuf_pool_size = 0;
@@ -7139,32 +8916,20 @@ void rdma_get_user_parameters(int num_proc, int me)
         rdma_prepost_depth + rdma_prepost_rendezvous_extra +
         rdma_prepost_noop_extra;
 
-    if ((value = getenv("MV2_USE_HWLOC_CPU_BINDING")) != NULL) {
-        use_hwloc_cpu_binding = atoi(value);
+    use_hwloc_cpu_binding = MV2_USE_HWLOC_CPU_BINDING;
+    rdma_polling_spin_count_threshold = MV2_THREAD_YIELD_SPIN_THRESHOLD;
+    mv2_use_thread_yield = MV2_USE_THREAD_YIELD;
+    mv2_spins_before_lock = MV2_NUM_SPINS_BEFORE_LOCK;
+    rdma_default_async_thread_stack_size = MV2_ASYNC_THREAD_STACK_SIZE;
+    if (rdma_default_async_thread_stack_size < 1 << 10) {
+        MPL_usage_printf
+            ("Warning! Too small stack size for async thread (%d).  "
+             "Reset to %d\n", rdma_vbuf_secondary_pool_size,
+             RDMA_DEFAULT_ASYNC_THREAD_STACK_SIZE);
+        rdma_default_async_thread_stack_size =
+            RDMA_DEFAULT_ASYNC_THREAD_STACK_SIZE;
     }
-    if ((value = getenv("MV2_THREAD_YIELD_SPIN_THRESHOLD")) != NULL) {
-        rdma_polling_spin_count_threshold = atol(value);
-    }
-    if ((value = getenv("MV2_USE_THREAD_YIELD")) != NULL) {
-        mv2_use_thread_yield = atoi(value);
-    }
-    if ((value = getenv("MV2_NUM_SPINS_BEFORE_LOCK")) != NULL) {
-        mv2_spins_before_lock = atoi(value);
-    }
-    if ((value = getenv("MV2_ASYNC_THREAD_STACK_SIZE")) != NULL) {
-        rdma_default_async_thread_stack_size = atoi(value);
-        if (rdma_default_async_thread_stack_size < 1 << 10) {
-            MPL_usage_printf
-                ("Warning! Too small stack size for async thread (%d).  "
-                 "Reset to %d\n", rdma_vbuf_secondary_pool_size,
-                 RDMA_DEFAULT_ASYNC_THREAD_STACK_SIZE);
-            rdma_default_async_thread_stack_size =
-                RDMA_DEFAULT_ASYNC_THREAD_STACK_SIZE;
-        }
-    }
-    if ((value = getenv("MV2_USE_HUGEPAGES")) != NULL) {
-        rdma_enable_hugepage = atoi(value);
-    }
+    rdma_enable_hugepage = MV2_USE_HUGEPAGES;
 
     /* Read VBUF related user parameters */
     rdma_get_vbuf_user_parameters(num_proc, me);
@@ -7185,10 +8950,7 @@ static inline void rdma_get_vbuf_user_parameters(int num_proc, int me)
     int my_rank = -1;
 
     UPMI_GET_RANK(&my_rank);
-
-    if ((value = getenv("MV2_MEMORY_OPTIMIZATION")) != NULL) {
-        rdma_memory_optimization = !!atoi(value);
-    }
+    rdma_memory_optimization = !!MV2_MEMORY_OPTIMIZATION;
 #ifdef _ENABLE_UD_
     if (!rdma_enable_only_ud && rdma_memory_optimization)
 #else
@@ -7202,8 +8964,8 @@ static inline void rdma_get_vbuf_user_parameters(int num_proc, int me)
         rdma_vbuf_secondary_pool_size = RDMA_OPT_VBUF_SECONDARY_POOL_SIZE;
     }
 
-    if ((value = getenv("MV2_SRQ_MAX_SIZE")) != NULL) {
-        mv2_srq_alloc_size = (uint32_t) atoi(value);
+    if (MV2_SRQ_MAX_SIZE > 0) {
+        mv2_srq_alloc_size = (uint32_t) MV2_SRQ_MAX_SIZE;
 #if defined(RDMA_CM)
     } else if (MPIDI_CH3I_Process.cm_type == MPIDI_CH3I_CM_RDMA_CM) {
         /* When using RDMA_CM, we cannot support very large SRQ. So, unless user
@@ -7212,21 +8974,26 @@ static inline void rdma_get_vbuf_user_parameters(int num_proc, int me)
 #endif /*defined(RDMA_CM)*/
     }
 
-    if ((value = getenv("MV2_SRQ_SIZE")) != NULL) {
-        mv2_srq_fill_size = (uint32_t) atoi(value);
+    if (MV2_SRQ_SIZE != -1) {
+        mv2_srq_fill_size = (uint32_t) MV2_SRQ_SIZE;
+    } else {
+        MV2_SRQ_SIZE = mv2_srq_fill_size;
     }
- 
-    if ((value = getenv("MV2_SRQ_LIMIT")) != NULL) {
-        mv2_srq_limit = (uint32_t) atoi(value);
- 
+
+    if (MV2_SRQ_LIMIT != -1) {
+        mv2_srq_limit = (uint32_t) MV2_SRQ_LIMIT;
+
         if (mv2_srq_limit > mv2_srq_fill_size) {
             MPL_usage_printf("SRQ limit shouldn't be greater than SRQ size\n");
         }
+    } else {
+        MV2_SRQ_LIMIT = mv2_srq_limit;
     }
- 
+
+
 #if defined(_ENABLE_UD_)
-    if ((value = getenv("MV2_UD_SRQ_MAX_SIZE")) != NULL) {
-        mv2_ud_srq_alloc_size = (uint32_t) atoi(value);
+    if (MV2_UD_SRQ_MAX_SIZE != -1) {
+        mv2_ud_srq_alloc_size = (uint32_t) MV2_UD_SRQ_MAX_SIZE;
 #if defined(RDMA_CM)
     } else if (MPIDI_CH3I_Process.cm_type == MPIDI_CH3I_CM_RDMA_CM) {
         /* When using RDMA_CM, we cannot support very large SRQ. So, unless user
@@ -7234,39 +9001,33 @@ static inline void rdma_get_vbuf_user_parameters(int num_proc, int me)
         mv2_ud_srq_alloc_size = 4096;
 #endif /*defined(RDMA_CM)*/
     }
+    MV2_UD_SRQ_MAX_SIZE = mv2_ud_srq_alloc_size;
 
-    if ((value = getenv("MV2_UD_SRQ_SIZE")) != NULL) {
-        mv2_ud_srq_fill_size = (uint32_t) atoi(value);
+    if (MV2_UD_SRQ_LIMIT > MV2_UD_SRQ_SIZE) {
+        MPL_usage_printf("UD SRQ limit shouldn't be greater than UD SRQ size\n");
+        MV2_UD_SRQ_LIMIT = MV2_UD_SRQ_SIZE;
     }
+    mv2_ud_srq_fill_size = (uint32_t)MV2_UD_SRQ_SIZE; 
+    mv2_ud_srq_limit = (uint32_t)MV2_UD_SRQ_LIMIT;
 
-    if ((value = getenv("MV2_UD_SRQ_LIMIT")) != NULL) {
-        mv2_ud_srq_limit = (uint32_t) atoi(value);
-
-        if (mv2_ud_srq_limit > mv2_ud_srq_fill_size) {
-            MPL_usage_printf("UD SRQ limit shouldn't be greater than UD SRQ size\n");
-        }
-    }
-    if ((value = getenv("MV2_MAX_NUM_UD_VBUFS")) != NULL) {
-        rdma_max_num_ud_vbufs = atoi(value);
-        if (rdma_max_num_ud_vbufs < 1) {
-            PRINT_INFO(!my_rank, "MV2_MAX_NUM_UD_VBFUS must be greater than 1\n"
-                                 "Setting MV2_MAX_NUM_UD_VBUFS to %d\n",
-                                 DEFAULT_MAX_NUM_UD_VBUFS);
-            rdma_max_num_ud_vbufs = DEFAULT_MAX_NUM_UD_VBUFS;
-        }
+    rdma_max_num_ud_vbufs = MV2_MAX_NUM_UD_VBUFS;
+    if (rdma_max_num_ud_vbufs < 1) {
+        PRINT_INFO(!my_rank, "MV2_MAX_NUM_UD_VBFUS must be greater than 1\n"
+                   "Setting MV2_MAX_NUM_UD_VBUFS to %d\n",
+                   DEFAULT_MAX_NUM_UD_VBUFS);
+        rdma_max_num_ud_vbufs = DEFAULT_MAX_NUM_UD_VBUFS;
     }
 #endif /*defined(_ENABLE_UD_)*/
 
-    if ((value = getenv("MV2_MAX_INLINE_SIZE")) != NULL) {
-        rdma_max_inline_size = atoi(value);
+    if (MV2_MAX_INLINE_SIZE != -1) {
+        rdma_max_inline_size = MV2_MAX_INLINE_SIZE;
+    } else {
+        MV2_MAX_INLINE_SIZE = rdma_max_inline_size;
     }
-    if ((value = getenv("MV2_VBUF_TOTAL_SIZE")) != NULL) {
+    if (MV2_VBUF_TOTAL_SIZE != -1) {
         if (rdma_memory_optimization) {
-            if (RDMA_OPT_MIN_VBUF_POOL_SIZE <
-                user_val_to_bytes(value, "MV2_VBUF_TOTAL_SIZE")) {
-                rdma_vbuf_total_size =
-                    user_val_to_bytes(value,
-                                      "MV2_VBUF_TOTAL_SIZE") +
+            if (RDMA_OPT_MIN_VBUF_POOL_SIZE < MV2_VBUF_TOTAL_SIZE) {
+                rdma_vbuf_total_size = MV2_VBUF_TOTAL_SIZE +
                     EAGER_THRESHOLD_ADJUST;
             } else {
                 /* We do not accept vbuf size < RDMA_MIN_VBUF_POOL_SIZE */
@@ -7277,11 +9038,8 @@ static inline void rdma_get_vbuf_user_parameters(int num_proc, int me)
                                   rdma_vbuf_total_size);
             }
         } else {
-            if (RDMA_MIN_VBUF_POOL_SIZE <
-                user_val_to_bytes(value, "MV2_VBUF_TOTAL_SIZE")) {
-                rdma_vbuf_total_size =
-                    user_val_to_bytes(value,
-                                      "MV2_VBUF_TOTAL_SIZE") +
+            if (RDMA_MIN_VBUF_POOL_SIZE < MV2_VBUF_TOTAL_SIZE) {
+                rdma_vbuf_total_size = MV2_VBUF_TOTAL_SIZE +
                     EAGER_THRESHOLD_ADJUST;
             } else {
                 /* We do not accept vbuf size < RDMA_MIN_VBUF_POOL_SIZE */
@@ -7293,27 +9051,25 @@ static inline void rdma_get_vbuf_user_parameters(int num_proc, int me)
             }
         }
     }
-    if ((value = getenv("MV2_VBUF_MAX")) != NULL) {
-        rdma_vbuf_max = atoi(value);
+
+    rdma_vbuf_max = MV2_VBUF_MAX;
+    rdma_initial_prepost_depth = MV2_INITIAL_PREPOST_DEPTH;
+    rdma_prepost_depth = MV2_PREPOST_DEPTH;
+
+    if (MV2_VBUF_POOL_SIZE != -1) {
+        rdma_vbuf_pool_size = MV2_VBUF_POOL_SIZE;
+    } else {
+        MV2_VBUF_POOL_SIZE = rdma_vbuf_pool_size;
     }
-    if ((value = getenv("MV2_INITIAL_PREPOST_DEPTH")) != NULL) {
-        rdma_initial_prepost_depth = atoi(value);
+
+    rdma_max_num_vbufs = MV2_MAX_NUM_VBUFS;
+    if (rdma_max_num_vbufs < 1) {
+        PRINT_INFO(!my_rank, "MV2_MAX_NUM_VBFUS must be greater than 1\n"
+                   "Setting MV2_MAX_NUM_VBUFS to %d\n",
+                   DEFAULT_MAX_NUM_VBUFS);
+        rdma_max_num_vbufs = DEFAULT_MAX_NUM_VBUFS;
     }
-    if ((value = getenv("MV2_PREPOST_DEPTH")) != NULL) {
-        rdma_prepost_depth = atoi(value);
-    }
-    if ((value = getenv("MV2_VBUF_POOL_SIZE")) != NULL) {
-        rdma_vbuf_pool_size = atoi(value);
-    }
-    if ((value = getenv("MV2_MAX_NUM_VBUFS")) != NULL) {
-        rdma_max_num_vbufs = atoi(value);
-        if (rdma_max_num_vbufs < 1) {
-            PRINT_INFO(!my_rank, "MV2_MAX_NUM_VBFUS must be greater than 1\n"
-                                 "Setting MV2_MAX_NUM_VBUFS to %d\n",
-                                 DEFAULT_MAX_NUM_UD_VBUFS);
-            rdma_max_num_vbufs = DEFAULT_MAX_NUM_VBUFS;
-        }
-    }
+
 #ifdef _ENABLE_UD_
     if (!rdma_enable_only_ud && rdma_vbuf_pool_size <= 10)
 #else
@@ -7332,8 +9088,10 @@ static inline void rdma_get_vbuf_user_parameters(int num_proc, int me)
                               RDMA_VBUF_POOL_SIZE);
         }
     }
-    if ((value = getenv("MV2_VBUF_SECONDARY_POOL_SIZE")) != NULL) {
-        rdma_vbuf_secondary_pool_size = atoi(value);
+    if (MV2_VBUF_SECONDARY_POOL_SIZE != -1) {
+        rdma_vbuf_secondary_pool_size = MV2_VBUF_SECONDARY_POOL_SIZE;
+    } else {
+        MV2_VBUF_SECONDARY_POOL_SIZE = rdma_vbuf_secondary_pool_size;
     }
     if (rdma_vbuf_secondary_pool_size <= 0) {
         if (rdma_memory_optimization) {
@@ -7354,12 +9112,8 @@ static inline void rdma_get_vbuf_user_parameters(int num_proc, int me)
     int alignment_dma = getpagesize();
 #ifdef _ENABLE_CUDA_
     if (mv2_enable_device) {
-        if ((value = getenv("MV2_CUDA_BLOCK_SIZE")) != NULL) {
-            mv2_device_stage_block_size = atoi(value);
-        }
-        if ((value = getenv("MV2_CUDA_NUM_RNDV_BLOCKS")) != NULL) {
-            mv2_device_num_rndv_blocks = atoi(value);
-        }
+        mv2_device_stage_block_size = MV2_CUDA_BLOCK_SIZE;
+        mv2_device_num_rndv_blocks = MV2_CUDA_NUM_RNDV_BLOCKS;
     }
 #endif /* defined(_ENABLE_CUDA_) */
 #if defined(_ENABLE_UD_)
@@ -7375,14 +9129,15 @@ static inline void rdma_get_vbuf_user_parameters(int num_proc, int me)
             int default_vbuf_secondary_count[] =
                 DEFAULT_CUDA_VBUF_SECONDARY_POOL_SIZE;
 
-            result = MPIU_Memalign((void**) &rdma_vbuf_pools, alignment_dma,
-                                    (sizeof(vbuf_pool_t) * rdma_num_vbuf_pools));
-            if ((result != 0) || (NULL == rdma_vbuf_pools)) {
+            rdma_vbuf_pools = MPL_aligned_alloc(alignment_dma,
+                                    (sizeof(vbuf_pool_t) * rdma_num_vbuf_pools),
+                                    MPL_MEM_OTHER);
+            if (NULL == rdma_vbuf_pools) {
                 ibv_error_abort(GEN_EXIT_ERR, "Unable to malloc vbuf_pool");
             }
-            MPIU_Memset(rdma_vbuf_pools, 0,
+            MPIR_Memset(rdma_vbuf_pools, 0,
                         sizeof(vbuf_pool_t) * rdma_num_vbuf_pools);
-            MPIU_Memset(&mv2_srq_repost_pool, 0, sizeof(vbuf_pool_t));
+            MPIR_Memset(&mv2_srq_repost_pool, 0, sizeof(vbuf_pool_t));
             mv2_srq_repost_pool.buf_size = rdma_vbuf_total_size;
             mv2_srq_repost_pool.index = MV2_RECV_VBUF_POOL_OFFSET;
 
@@ -7404,7 +9159,7 @@ static inline void rdma_get_vbuf_user_parameters(int num_proc, int me)
             /* If built with CUDA support, the last VBUF pool is for CUDA VBUF.
              * This last buffer is not needed if CUDA support is not enabled at runtime */
             rdma_num_vbuf_pools = MV2_MAX_NUM_VBUF_POOLS - 1;
-#else 
+#else
             rdma_num_vbuf_pools = MV2_MAX_NUM_VBUF_POOLS;
 #endif
 
@@ -7413,14 +9168,15 @@ static inline void rdma_get_vbuf_user_parameters(int num_proc, int me)
             int default_vbuf_secondary_count[] =
                 DEFAULT_VBUF_SECONDARY_POOL_SIZE;
 
-            result = MPIU_Memalign((void**) &rdma_vbuf_pools, alignment_dma,
-                                    (sizeof(vbuf_pool_t) * rdma_num_vbuf_pools));
-            if ((result != 0) || (NULL == rdma_vbuf_pools)) {
+            rdma_vbuf_pools = MPL_aligned_alloc(alignment_dma,
+                                    (sizeof(vbuf_pool_t) * rdma_num_vbuf_pools),
+                                    MPL_MEM_OTHER);
+            if (NULL == rdma_vbuf_pools) {
                 ibv_error_abort(GEN_EXIT_ERR, "Unable to malloc vbuf_pool");
             }
-            MPIU_Memset(rdma_vbuf_pools, 0,
+            MPIR_Memset(rdma_vbuf_pools, 0,
                         sizeof(vbuf_pool_t) * rdma_num_vbuf_pools);
-            MPIU_Memset(&mv2_srq_repost_pool, 0, sizeof(vbuf_pool_t));
+            MPIR_Memset(&mv2_srq_repost_pool, 0, sizeof(vbuf_pool_t));
             mv2_srq_repost_pool.buf_size = rdma_vbuf_total_size;
             mv2_srq_repost_pool.index = MV2_RECV_VBUF_POOL_OFFSET;
 
@@ -7436,7 +9192,7 @@ static inline void rdma_get_vbuf_user_parameters(int num_proc, int me)
                 rdma_vbuf_pools[i].index = i;
             }
         }
-    } 
+    }
 #if defined(_ENABLE_UD_) || defined(_MCST_SUPPORT_)
     if (rdma_enable_hybrid
 #if defined(_MCST_SUPPORT_)
@@ -7449,14 +9205,15 @@ static inline void rdma_get_vbuf_user_parameters(int num_proc, int me)
         int default_ud_vbuf_init_count[] = DEFAULT_UD_VBUF_POOL_SIZE;
         int default_ud_vbuf_secondary_count[] = DEFAULT_UD_VBUF_SECONDARY_POOL_SIZE;
 
-        result = MPIU_Memalign((void**) &rdma_ud_vbuf_pools, alignment_dma,
-                                (sizeof(vbuf_pool_t) * rdma_num_ud_vbuf_pools));
-        if ((result != 0) || (NULL == rdma_ud_vbuf_pools)) {
+        rdma_ud_vbuf_pools = MPL_aligned_alloc(alignment_dma,
+                                (sizeof(vbuf_pool_t) * rdma_num_ud_vbuf_pools),
+                                MPL_MEM_OTHER);
+        if (NULL == rdma_ud_vbuf_pools) {
             ibv_error_abort(GEN_EXIT_ERR, "Unable to malloc vbuf_pool");
         }
-        MPIU_Memset(rdma_ud_vbuf_pools, 0,
+        MPIR_Memset(rdma_ud_vbuf_pools, 0,
                     sizeof(vbuf_pool_t) * rdma_num_ud_vbuf_pools);
-        MPIU_Memset(&mv2_ud_srq_repost_pool, 0, sizeof(vbuf_pool_t));
+        MPIR_Memset(&mv2_ud_srq_repost_pool, 0, sizeof(vbuf_pool_t));
         mv2_ud_srq_repost_pool.buf_size = RDMA_MAX_UD_MTU;
         mv2_ud_srq_repost_pool.index = MV2_RECV_UD_VBUF_POOL_OFFSET;
 
@@ -7497,9 +9254,8 @@ static int check_hsam_parameters(void)
 
     /* If the user has not specified any value, then perform
      * this tuning */
-
-    if ((value = getenv("MV2_NUM_QP_PER_PORT")) != NULL) {
-        rdma_num_qp_per_port = atoi(value);
+    if (MV2_NUM_QP_PER_PORT != -1) {
+        rdma_num_qp_per_port = MV2_NUM_QP_PER_PORT;
         if (rdma_num_qp_per_port <= 2) {
             stripe_factor = 1;
         } else {
@@ -7518,7 +9274,7 @@ static int check_hsam_parameters(void)
             stripe_factor = 1;
         }
     }
-
+    MV2_NUM_QP_PER_PORT = rdma_num_qp_per_port;;
     return MPI_SUCCESS;
 }
 #endif /* _ENABLE_HSAM_ */
@@ -7529,18 +9285,21 @@ void rdma_get_pm_parameters(mv2_MPIDI_CH3I_RDMA_Process_t * proc)
     char *value;
     int my_rank = -1;
 
+    MPIR_T_MV2_cvar_init();
+
     UPMI_GET_RANK(&my_rank);
 
-    value = getenv("MPIRUN_RSH_LAUNCH");
-    if (value != NULL && (atoi(value) == 1)) {
-        using_mpirun_rsh = 1;
+    /* still required as this has not been correctly integrated */
+    if ((value = getenv("MPIRUN_RSH_LAUNCH")) != NULL) {
+        MV2_MPIRUN_RSH_LAUNCH = 1;
     }
+    using_mpirun_rsh = MV2_MPIRUN_RSH_LAUNCH;
 #if defined(RDMA_CM)
-    if ((value = getenv("MV2_USE_RDMA_CM")) != NULL) {
+    if (MV2_USE_RDMA_CM != -1) {
 #if !defined(ROMIO_IME)
-        proc->use_rdma_cm = !!atoi(value);
+        proc->use_rdma_cm = !!MV2_USE_RDMA_CM;
 #else
-        if (value && atoi(value) && (my_rank == 0)) {
+        if (MV2_USE_RDMA_CM && (my_rank == 0)) {
             MPL_error_printf("Error: IME FS does not work with RDMA CM. "
                              "Proceeding without RDMA support.\n");
         }
@@ -7549,9 +9308,8 @@ void rdma_get_pm_parameters(mv2_MPIDI_CH3I_RDMA_Process_t * proc)
         /* XRC will not work with RDMA_CM */
         if (proc->use_rdma_cm) {
             USE_XRC = 0;
-            value = getenv("MV2_USE_XRC");
-            if (value && (my_rank == 0)) {
-                if (atoi(value)) {
+            if ((MV2_USE_XRC != -1) && (my_rank == 0)) {
+                if (MV2_USE_XRC) {
                     MPL_error_printf("Error: XRC does not work with RDMA CM. "
                                       "Proceeding without XRC support.\n");
                 }
@@ -7561,25 +9319,23 @@ void rdma_get_pm_parameters(mv2_MPIDI_CH3I_RDMA_Process_t * proc)
     }
 #endif
 
-    if ((value = getenv("MV2_USE_RoCE")) != NULL ||
-        (value = getenv("MV2_USE_ROCE")) != NULL) {
-        use_iboeth = !!atoi(value);
-    }
+    if (MV2_USE_ROCE_MODE != -1) {
+        if (MV2_USE_ROCE_MODE != MV2_ROCE_MODE_V1 &&
+            MV2_USE_ROCE_MODE != MV2_ROCE_MODE_V2) {
 
-    if ((value = getenv("MV2_USE_RoCE_MODE")) != NULL ||
-        (value = getenv("MV2_USE_ROCE_MODE")) != NULL) {
-        mv2_use_roce_mode = atoi(value);
-        if (mv2_use_roce_mode != MV2_ROCE_MODE_V1 && 
-            mv2_use_roce_mode != MV2_ROCE_MODE_V2) {
-            
             PRINT_INFO(my_rank == 0,
-                    "Value for MV2_USE_RoCE_MODE must either be 1 or 2. Falling"
+                    "Value for MV2_USE_ROCE_MODE must either be 1 or 2. Falling"
                     " back to the latest RoCE version available on system.\n");
             /* Use RoCEv2 if avaiable. If not avaialble, we fall back to RoCEv1 */
-            mv2_use_roce_mode = MV2_ROCE_MODE_V2;
+            MV2_USE_ROCE_MODE = MV2_ROCE_MODE_V2;
         }
+        mv2_use_roce_mode = MV2_USE_ROCE_MODE;
         /* Automatically set use_iboeth = 1 if ROCE mode is set */
-        use_iboeth = 1;
+        MV2_USE_ROCE = use_iboeth = 1;
+    } else if (MV2_USE_ROCE) {
+        /* TODO: have a propper default setting */
+        use_iboeth = !!MV2_USE_ROCE;
+        MV2_USE_ROCE_MODE = mv2_use_roce_mode;
     }
 
     switch (MPIDI_CH3I_Process.cm_type) {
@@ -7596,9 +9352,11 @@ void rdma_get_pm_parameters(mv2_MPIDI_CH3I_RDMA_Process_t * proc)
                 }
 #endif
             }
-            proc->has_ring_startup = (value =
-                                      getenv("MV2_USE_RING_STARTUP")) !=
-                NULL ? !!atoi(value) : ring_setup;
+            if (MV2_USE_RING_STARTUP != -1 ) {
+                proc->has_ring_startup = !!MV2_USE_RING_STARTUP;
+            } else {
+                proc->has_ring_startup = ring_setup;
+            }
 #ifdef CKPT
             if (!using_mpirun_rsh)
                 proc->has_ring_startup = 0;
@@ -7606,9 +9364,11 @@ void rdma_get_pm_parameters(mv2_MPIDI_CH3I_RDMA_Process_t * proc)
 #endif /* CKPT */
             break;
         default:
-            proc->has_ring_startup = (value =
-                                      getenv("MV2_USE_RING_STARTUP")) !=
-                NULL ? !!atoi(value) : 0;
+          if (MV2_USE_RING_STARTUP != -1 ) {
+            proc->has_ring_startup = !!MV2_USE_RING_STARTUP;
+          } else {
+            proc->has_ring_startup = 0;
+          }
 #ifdef CKPT
             if (!using_mpirun_rsh)
                 proc->has_ring_startup = 0;
@@ -7622,35 +9382,27 @@ void rdma_get_pm_parameters(mv2_MPIDI_CH3I_RDMA_Process_t * proc)
         proc->has_ring_startup = 0;
     }
 #endif
-    if ((value = getenv("MV2_ON_DEMAND_UD_INFO_EXCHANGE")) != NULL) {
-        mv2_on_demand_ud_info_exchange = !!atoi(value);
-        if (mv2_on_demand_ud_info_exchange) {
-            proc->has_ring_startup = 0;
-        }
+    if(MV2_ON_DEMAND_UD_INFO_EXCHANGE != -1) {
+      mv2_on_demand_ud_info_exchange = !!MV2_ON_DEMAND_UD_INFO_EXCHANGE;
+      if (mv2_on_demand_ud_info_exchange) {
+        proc->has_ring_startup = 0;
+      }
     }
-
-#if (defined(HAVE_PMI2_KVS_IFENCE) && defined(HAVE_PMI2_KVS_WAIT)) \
-    || (defined(HAVE_PMI_IBARRIER) && defined(HAVE_PMI_WAIT))
-    mv2_use_pmi_ibarrier = 1; /* enable by default if available */
-
-    if ((value = getenv("MV2_USE_PMI_IBARRIER")) != NULL) {
-        mv2_use_pmi_ibarrier = !!atoi(value);
-    }
-
-    if (mv2_use_pmi_ibarrier) {
+    
+#if defined(HAVE_PMI2_IALLGATHER) && defined(HAVE_PMI2_IALLGATHER_WAIT)
+    /* prioritize Iallgather */
+    mv2_use_pmi_iallgather = !!MV2_USE_PMI_IALLGATHER;
+    if (mv2_use_pmi_iallgather) {
+        MV2_USE_PMI_IBARRIER = 0;
         mv2_on_demand_ud_info_exchange = 1;
         proc->has_ring_startup = 0;
     }
-
 #endif
-
-#if defined(HAVE_PMI2_IALLGATHER) && defined(HAVE_PMI2_IALLGATHER_WAIT)
-    if ((value = getenv("MV2_USE_PMI_IALLGATHER")) != NULL) {
-        mv2_use_pmi_iallgather = !!atoi(value);
-    }
-
-    if (mv2_use_pmi_iallgather) {
-        mv2_use_pmi_ibarrier = 0;
+#if (defined(HAVE_PMI2_KVS_IFENCE) && defined(HAVE_PMI2_KVS_WAIT)) \
+    || (defined(HAVE_PMI_IBARRIER) && defined(HAVE_PMI_WAIT))
+    /* on by default */
+    if (!!MV2_USE_PMI_IBARRIER && !MV2_USE_PMI_IALLGATHER) {
+        mv2_use_pmi_ibarrier = MV2_USE_PMI_IBARRIER = !!MV2_USE_PMI_IBARRIER;
         mv2_on_demand_ud_info_exchange = 1;
         proc->has_ring_startup = 0;
     }
@@ -7662,36 +9414,34 @@ void rdma_get_pm_parameters(mv2_MPIDI_CH3I_RDMA_Process_t * proc)
         mv2_on_demand_ud_info_exchange = 0;
     }
 
-    if ((value = getenv("MV2_NUM_HCAS")) != NULL) {
-        rdma_num_req_hcas = atoi(value);
+    if (MV2_NUM_HCAS) {
+      rdma_num_req_hcas = MV2_NUM_HCAS;
 
-        rdma_multirail_usage_policy = MV2_MRAIL_SHARING;
+      rdma_multirail_usage_policy = MV2_MRAIL_SHARING;
 
-        if (rdma_num_req_hcas > MAX_NUM_HCAS) {
-            rdma_num_req_hcas = MAX_NUM_HCAS;
+      if (rdma_num_req_hcas > MAX_NUM_HCAS) {
+        rdma_num_req_hcas = MAX_NUM_HCAS;
 
-            MPL_msg_printf("Warning, max hca is %d, change %s in ibv_param.h "
-                            "to override the option\n", MAX_NUM_HCAS,
-                            "MAX_NUM_HCAS");
-        }
+        MPL_msg_printf("Warning, max hca is %d, change %s in ibv_param.h "
+                       "to override the option\n", MAX_NUM_HCAS,
+                       "MAX_NUM_HCAS");
+      }
     }
 
     for (i = 0; i < MAX_NUM_HCAS; ++i) {
         strncpy(rdma_iba_hcas[i], RDMA_IBA_NULL_HCA, 32);
     }
 
-    if ((value = getenv("MV2_IBA_HCA")) != NULL) {
+    if (MV2_IBA_HCA != NULL) {
         rdma_multirail_usage_policy = MV2_MRAIL_SHARING;
         rdma_num_req_hcas = 0;
         {
             char *tok = NULL;
-            char *inp = value;
 
-            tok = strtok(inp, ":");
-            inp = NULL;
+            tok = strtok(MV2_IBA_HCA, ":");
             while (tok != NULL) {
                 strncpy(rdma_iba_hcas[rdma_num_req_hcas], tok, 32);
-                tok = strtok(inp, ":");
+                tok = strtok(NULL, ":");
                 DEBUG_PRINT("tok = %s, hca name = %s, hca num = %d\n", tok,
                             rdma_iba_hcas[rdma_num_req_hcas],
                             rdma_num_req_hcas);
@@ -7699,10 +9449,8 @@ void rdma_get_pm_parameters(mv2_MPIDI_CH3I_RDMA_Process_t * proc)
             }
         }
     }
-
-    if ((value = getenv("MV2_HOMOGENEOUS_CLUSTER")) != NULL) {
-        mv2_homogeneous_cluster = atoi(value);
-    }
+    
+    mv2_homogeneous_cluster = MV2_HOMOGENEOUS_CLUSTER;
 }
 
 void mv2_print_env_info(mv2_MPIDI_CH3I_RDMA_Process_t * proc, struct coll_info *colls_arch_hca)
@@ -7711,7 +9459,7 @@ void mv2_print_env_info(mv2_MPIDI_CH3I_RDMA_Process_t * proc, struct coll_info *
     mv2_arch_type arch_type = MV2_GET_ARCH(proc->arch_hca_type);
     mv2_hca_type hca_type = MV2_GET_HCA(proc->arch_hca_type);
     mv2_cpu_family_type family_type = mv2_get_cpu_family();
-    fprintf(stderr, "\n MVAPICH2-%s Parameters\n", MPIR_Version_string);
+    fprintf(stderr, "\n MVAPICH2-%s Parameters\n", MPII_Version_string);
     fprintf(stderr,
             "---------------------------------------------------------------------\n");
     fprintf(stderr, "\tPROCESSOR ARCH NAME            : %s\n",
@@ -7762,3 +9510,4 @@ void mv2_print_env_info(mv2_MPIDI_CH3I_RDMA_Process_t * proc, struct coll_info *
     }
 }
 /* vi:set sw=4 */
+

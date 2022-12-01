@@ -1,4 +1,9 @@
 #! /usr/bin/env perl
+##
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
+##
+
 use warnings;
 
 #
@@ -28,4 +33,3 @@ foreach $errname (sort(keys(%errkeys))) {
     }
     close FDG;
 }
-

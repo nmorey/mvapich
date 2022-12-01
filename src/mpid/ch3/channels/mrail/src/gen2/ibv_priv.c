@@ -85,17 +85,19 @@ int mv2_preallocate_rdma_fp_bufs()
     int pagesize = getpagesize();
 
     /* allocate vbuf struct buffers */
-    if(MPIU_Memalign((void **) &mv2_vbuf_ctrl_buf, 64, (sizeof(struct vbuf) *
-                    rdma_polling_set_limit * num_rdma_buffer))) {
+    if(!(mv2_vbuf_ctrl_buf = MPL_aligned_alloc(64, (sizeof(struct vbuf) *
+                                    rdma_polling_set_limit * num_rdma_buffer),
+                                    MPL_MEM_BUFFER))) {
         PRINT_ERROR("malloc failed: vbuf control struct\n");
         goto fn_fail;
     }
-    MPIU_Memset(mv2_vbuf_ctrl_buf, 0, (sizeof(struct vbuf) *
+    MPIR_Memset(mv2_vbuf_ctrl_buf, 0, (sizeof(struct vbuf) *
                 rdma_polling_set_limit * num_rdma_buffer));
 
     /* allocate vbuf RDMA buffers */
-    if(MPIU_Memalign((void **)&mv2_vbuf_rdma_buf, pagesize,
-                (rdma_fp_buffer_size * rdma_polling_set_limit * num_rdma_buffer))) {
+    if(!(mv2_vbuf_rdma_buf = MPL_aligned_alloc(pagesize, (rdma_fp_buffer_size *
+                                    rdma_polling_set_limit * num_rdma_buffer),
+                                    MPL_MEM_BUFFER))) {
         PRINT_ERROR("malloc failed: vbuf DMA buffers\n");
         goto fn_fail;
     }
@@ -105,7 +107,7 @@ int mv2_preallocate_rdma_fp_bufs()
                             rdma_polling_set_limit * num_rdma_buffer));
     }
 #endif
-    MPIU_Memset(mv2_vbuf_rdma_buf, 0, (rdma_fp_buffer_size *
+    MPIR_Memset(mv2_vbuf_rdma_buf, 0, (rdma_fp_buffer_size *
                 rdma_polling_set_limit * num_rdma_buffer));
 
     mv2_rdma_fp_dreg = dreg_register(mv2_vbuf_rdma_buf, (rdma_fp_buffer_size *
@@ -120,10 +122,10 @@ fn_exit:
 
 fn_fail:
     if (mv2_vbuf_ctrl_buf) {
-        MPIU_Memalign_Free(mv2_vbuf_ctrl_buf);
+        MPL_free(mv2_vbuf_ctrl_buf);
     }
     if (mv2_vbuf_rdma_buf) {
-        MPIU_Memalign_Free(mv2_vbuf_rdma_buf);
+        MPL_free(mv2_vbuf_rdma_buf);
     }
     mpi_errno = MPI_ERR_OTHER;
     goto fn_exit;
@@ -132,7 +134,7 @@ fn_fail:
 int mv2_free_prealloc_rdma_fp_bufs()
 {
     if (mv2_vbuf_ctrl_buf) {
-        MPIU_Memalign_Free(mv2_vbuf_ctrl_buf);
+        MPL_free(mv2_vbuf_ctrl_buf);
         mv2_vbuf_ctrl_buf = NULL;
     }
     if (mv2_vbuf_rdma_buf) {
@@ -143,7 +145,8 @@ int mv2_free_prealloc_rdma_fp_bufs()
             ibv_device_unregister(mv2_vbuf_rdma_buf);
         }
 #endif
-        MPIU_Memalign_Free(mv2_vbuf_rdma_buf);
+        MPL_free(mv2_vbuf_rdma_buf);
+        MPL_free(mv2_vbuf_rdma_buf);
         mv2_vbuf_rdma_buf = NULL;
     }
 
@@ -163,8 +166,8 @@ int vbuf_fast_rdma_alloc (MPIDI_VC_t * c, int dir)
     void *vbuf_ctrl_buf = NULL;
     void *vbuf_rdma_buf = NULL;
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_GEN2_VBUF_FAST_RDMA_ALLOC);
-    MPIDI_FUNC_ENTER(MPID_GEN2_VBUF_FAST_RDMA_ALLOC);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_GEN2_VBUF_FAST_RDMA_ALLOC);
+    MPIR_FUNC_TERSE_ENTER(MPID_GEN2_VBUF_FAST_RDMA_ALLOC);
 
     /* initialize revelant fields */
     c->mrail.rfp.rdma_credit = 0;
@@ -188,20 +191,21 @@ int vbuf_fast_rdma_alloc (MPIDI_VC_t * c, int dir)
         }
         mv2_rdma_fp_prealloc_buf_index++;
     } else {
-        /* allocate vbuf struct buffers */
-        if(MPIU_Memalign((void **) &vbuf_ctrl_buf, 64,
-            sizeof(struct vbuf) * num_rdma_buffer)) {
+	    /* allocate vbuf struct buffers */
+        if(!(vbuf_ctrl_buf = 
+                (void **)MPL_aligned_alloc(64, sizeof(struct vbuf) *
+                                           num_rdma_buffer, MPL_MEM_BUFFER))) {
             DEBUG_PRINT("malloc failed: vbuf in vbuf_fast_rdma_alloc\n");
             goto fn_fail;
         }
 
-        MPIU_Memset(vbuf_ctrl_buf, 0,
+        MPIR_Memset(vbuf_ctrl_buf, 0,
                 sizeof(struct vbuf) * num_rdma_buffer);
 
         int pagesize = getpagesize();
         /* allocate vbuf RDMA buffers */
-        if(MPIU_Memalign((void **)&vbuf_rdma_buf, pagesize,
-                            rdma_fp_buffer_size * num_rdma_buffer)) {
+        if(!(vbuf_rdma_buf = MPL_aligned_alloc(pagesize, rdma_fp_buffer_size *
+                                            num_rdma_buffer, MPL_MEM_BUFFER))) {
             DEBUG_PRINT("malloc failed: vbuf DMA in vbuf_fast_rdma_alloc");
             goto fn_exit;
         }
@@ -211,7 +215,7 @@ int vbuf_fast_rdma_alloc (MPIDI_VC_t * c, int dir)
         }
 #endif
 
-        MPIU_Memset(vbuf_rdma_buf, 0, rdma_fp_buffer_size * num_rdma_buffer);
+        MPIR_Memset(vbuf_rdma_buf, 0, rdma_fp_buffer_size * num_rdma_buffer);
 
         /* REGISTER RDMA SEND BUFFERS */
         for ( i = 0 ; i < rdma_num_hcas; i ++ ) {
@@ -267,15 +271,15 @@ int vbuf_fast_rdma_alloc (MPIDI_VC_t * c, int dir)
 
     }
 fn_exit:
-    MPIDI_FUNC_EXIT(MPID_GEN2_VBUF_FAST_RDMA_ALLOC);
+    MPIR_FUNC_TERSE_EXIT(MPID_GEN2_VBUF_FAST_RDMA_ALLOC);
     return mpi_errno;
 fn_fail:
     if (!mv2_rdma_fast_path_preallocate_buffers) {
         if (vbuf_rdma_buf) {
-            MPIU_Memalign_Free(vbuf_rdma_buf);
+            MPL_free(vbuf_rdma_buf);
         }
         if (vbuf_ctrl_buf) {
-            MPIU_Memalign_Free(vbuf_ctrl_buf);
+            MPL_free(vbuf_ctrl_buf);
         }
     }
     mpi_errno = MPI_ERR_INTERN;

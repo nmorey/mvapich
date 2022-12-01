@@ -88,7 +88,7 @@
  * copyright file COPYRIGHT in the top level MVAPICH2 directory.
  */
 
-#include <debug_utils.h>
+#include <mv2_debug_utils.h>
 #include <db/text.h>
 #include <suffixlist.h>
 

@@ -1,12 +1,12 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2014 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>
+#include "mpitest.h"
 
 #define NSIDE 5
 #define NBLOCK 3
@@ -47,13 +47,13 @@ int main(int argc, char *argv[])
     double *ldata, *pdata;
 
     int tsize, nelem;
-    char *filename;
+    const char *filename;
 
     MPI_File dfile;
 
     filename = (argc > 1) ? argv[1] : "testfile";
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
 
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -121,14 +121,11 @@ int main(int argc, char *argv[])
             }
         }
     }
-    MPI_Allreduce(&nerrors, &total_errors, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-    if (rank == 0 && total_errors == 0)
-        printf(" No Errors\n");
 
     free(ldata);
     free(pdata);
     MPI_Type_free(&darray);
-    MPI_Finalize();
+    MTest_Finalize(nerrors);
 
-    exit(total_errors);
+    return MTestReturnValue(total_errors);
 }

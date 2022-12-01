@@ -12,7 +12,7 @@
 
 #include "mpichconf.h"
 
-#include <mpimem.h>
+#include <mpir_mem.h>
 #include <netdb.h>
 #include <string.h>
 
@@ -26,6 +26,34 @@
 #define IBA_PMI_ATTRLEN (16)
 #define IBA_PMI_VALLEN  (4096)
 
+/*
+=== BEGIN_MPI_T_MV2_CVAR_INFO_BLOCK ===
+
+cvars:
+    - name        : MV2_DEFAULT_PORT
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        This parameter is to select the specific HCA port on a active multi
+        port InfiniBand adapter. A value of -1 indicates no user selection.
+
+    - name        : MV2_DEFAULT_GID_INDEX
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        In RoCE mode, this parameter allows to choose non-default GID index in
+        loss-less ethernet setup using VLANs.
+
+=== END_MPI_T_MV2_CVAR_INFO_BLOCK ===
+*/
 struct init_addr_inf {
     int    lid;
     int    qp_num[2];
@@ -49,7 +77,7 @@ struct addr_packet {
 
 static inline int addr_packet_size(int pg_size)
 {
-    return (sizeof(struct addr_packet) + 
+    return (sizeof(struct addr_packet) +
             pg_size * sizeof(struct host_addr_inf));
 }
 
@@ -103,7 +131,7 @@ static inline int is_A_on_left_of_B(int a, int b, int rank, int size)
  * processes.  It also provides a simple barrier sync.
  */
 static int _rdma_pmi_exchange_addresses(int pg_rank, int pg_size,
-                                       void *localaddr, int addrlen, 
+                                       void *localaddr, int addrlen,
                                        void *alladdrs)
 {
     int     ret, i, j, lhs, rhs, len_local, len_remote;
@@ -118,12 +146,12 @@ static int _rdma_pmi_exchange_addresses(int pg_rank, int pg_size,
     CHECK_UNEXP((len_local > mv2_pmi_max_vallen), "local address length is larger then string length");
 
     /* Be sure to use different keys for different processes */
-    MPIU_Memset(attr_buff, 0, IBA_PMI_ATTRLEN * sizeof(char));
+    MPIR_Memset(attr_buff, 0, IBA_PMI_ATTRLEN * sizeof(char));
     snprintf(attr_buff, IBA_PMI_ATTRLEN, "MVAPICH2-%04d", pg_rank);
 
     /* put the kvs into PMI */
-    MPIU_Strncpy(mv2_pmi_key, attr_buff, mv2_pmi_max_keylen);
-    MPIU_Strncpy(mv2_pmi_val, temp_localaddr, mv2_pmi_max_vallen);
+    MPL_strncpy(mv2_pmi_key, attr_buff, mv2_pmi_max_keylen);
+    MPL_strncpy(mv2_pmi_val, temp_localaddr, mv2_pmi_max_vallen);
     MPIDI_PG_GetConnKVSname( &kvsname );
     ret = UPMI_KVS_PUT(kvsname, mv2_pmi_key, mv2_pmi_val);
 
@@ -142,14 +170,14 @@ static int _rdma_pmi_exchange_addresses(int pg_rank, int pg_size,
         /* get lhs and rhs processes' data */
         j = (i == 0) ? lhs : rhs;
         /* Use the key to extract the value */
-        MPIU_Memset(attr_buff, 0, IBA_PMI_ATTRLEN * sizeof(char));
-        MPIU_Memset(val_buff, 0, IBA_PMI_VALLEN * sizeof(char));
+        MPIR_Memset(attr_buff, 0, IBA_PMI_ATTRLEN * sizeof(char));
+        MPIR_Memset(val_buff, 0, IBA_PMI_VALLEN * sizeof(char));
         snprintf(attr_buff, IBA_PMI_ATTRLEN, "MVAPICH2-%04d", j);
-        MPIU_Strncpy(mv2_pmi_key, attr_buff, mv2_pmi_max_keylen);
+        MPL_strncpy(mv2_pmi_key, attr_buff, mv2_pmi_max_keylen);
 
         ret = UPMI_KVS_GET(kvsname, mv2_pmi_key, mv2_pmi_val, mv2_pmi_max_vallen);
         CHECK_UNEXP((ret != 0), "UPMI_KVS_GET error \n");
-        MPIU_Strncpy(val_buff, mv2_pmi_val, mv2_pmi_max_vallen);
+        MPL_strncpy(val_buff, mv2_pmi_val, mv2_pmi_max_vallen);
 
         /* Simple sanity check before stashing it to the alladdrs */
         len_remote = strlen(val_buff);
@@ -166,13 +194,13 @@ static int _rdma_pmi_exchange_addresses(int pg_rank, int pg_size,
 }
 
 
-static struct ibv_qp *create_qp(struct ibv_pd *pd, 
+static struct ibv_qp *create_qp(struct ibv_pd *pd,
                                 struct ibv_cq *scq, struct ibv_cq *rcq)
 {
     struct ibv_qp_init_attr boot_attr;
-    struct ibv_qp *new_qp = NULL; 
+    struct ibv_qp *new_qp = NULL;
 
-    MPIU_Memset(&boot_attr, 0, sizeof boot_attr);
+    MPIR_Memset(&boot_attr, 0, sizeof boot_attr);
     boot_attr.cap.max_send_wr   = 128;
     boot_attr.cap.max_recv_wr   = 128;
     boot_attr.cap.max_send_sge  = rdma_default_max_sg_list;
@@ -183,16 +211,16 @@ static struct ibv_qp *create_qp(struct ibv_pd *pd,
 
     boot_attr.send_cq = scq;
     boot_attr.recv_cq = rcq;
-    
+
     new_qp = ibv_ops.create_qp(pd, &boot_attr);
-    if (new_qp) { 
+    if (new_qp) {
         rdma_max_inline_size = boot_attr.cap.max_inline_data;
     }
 
     return new_qp;
 }
 
-static int _find_active_port(struct ibv_context *context, int *mv2_port_is_ethernet) 
+static int _find_active_port(struct ibv_context *context, int *mv2_port_is_ethernet)
 {
     struct ibv_port_attr port_attr;
     int j;
@@ -252,7 +280,7 @@ static int _setup_ib_boot_ring(struct init_addr_inf * neighbor_addr,
     CHECK_RETURN(ret, "Could not modify boot qp to INIT");
 
     /**********************  INIT --> RTR  ************************/
-    MPIU_Memset(&qp_attr, 0, sizeof qp_attr);
+    MPIR_Memset(&qp_attr, 0, sizeof qp_attr);
     qp_attr.qp_state    =   IBV_QPS_RTR;
     qp_attr.rq_psn      =   rdma_default_psn;
     qp_attr.max_dest_rd_atomic  =   rdma_default_max_rdma_dst_ops;
@@ -316,7 +344,7 @@ static int _setup_ib_boot_ring(struct init_addr_inf * neighbor_addr,
     }
 
     /************** RTS *******************/
-    MPIU_Memset(&qp_attr, 0, sizeof qp_attr);
+    MPIR_Memset(&qp_attr, 0, sizeof qp_attr);
     qp_attr.qp_state        = IBV_QPS_RTS;
     qp_attr.sq_psn          = rdma_default_psn;
     qp_attr.timeout         = rdma_default_time_out;
@@ -341,16 +369,12 @@ static int _setup_ib_boot_ring(struct init_addr_inf * neighbor_addr,
     return MPI_SUCCESS;
 }
 
-#undef FUNCNAME
-#define FUNCNAME rdma_exchange_host_id
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int rdma_ring_exchange_host_id(MPIDI_PG_t * pg, int pg_rank, int pg_size)
 {
     int mpi_errno = MPI_SUCCESS;
     int *hostid_all;
 
-    hostid_all =  (int *) MPIU_Malloc(pg_size * sizeof(int));
+    hostid_all =  (int *) MPL_malloc(pg_size * sizeof(int), MPL_MEM_OTHER);
 
     int my_hostid =  gethostid();
     hostid_all[pg_rank] = my_hostid;
@@ -363,17 +387,13 @@ int rdma_ring_exchange_host_id(MPIDI_PG_t * pg, int pg_rank, int pg_size)
     rdma_process_hostid(pg, hostid_all, pg_rank, pg_size );
 
 fn_exit:
-    MPIU_Free(hostid_all);
+    MPL_free(hostid_all);
     return mpi_errno;
 
 fn_fail:
     goto fn_exit;
 }
 
-#undef FUNCNAME
-#define FUNCNAME ring_rdma_get_hca_context
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int ring_rdma_get_hca_context(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
 {
     proc->boot_ptag     = proc->ptag[0];
@@ -383,10 +403,6 @@ static inline int ring_rdma_get_hca_context(struct mv2_MPIDI_CH3I_RDMA_Process_t
     return 1;
 }
 
-#undef FUNCNAME
-#define FUNCNAME rdma_setup_startup_ring
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int rdma_setup_startup_ring(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc, int pg_rank,
                         int pg_size)
 {
@@ -403,13 +419,6 @@ int rdma_setup_startup_ring(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc, int pg_r
     if (!ring_rdma_get_hca_context(proc)) {
         MPIR_ERR_SETFATALANDSTMT1(mpi_errno, MPI_ERR_OTHER, goto out,
                 "**fail", "**fail %s", "cannot retrieve hca device");
-    }
-        
-    if ((value = getenv("MV2_DEFAULT_PORT")) != NULL) {
-        rdma_default_port = atoi(value);
-    }
-    if ((value = getenv("MV2_DEFAULT_GID_INDEX")) != NULL) {
-        rdma_default_gid_index = atoi(value);
     }
 
     port = _find_active_port(proc->boot_context, &mv2_port_is_ethernet);
@@ -443,14 +452,14 @@ int rdma_setup_startup_ring(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc, int pg_r
     if (use_iboeth || mv2_port_is_ethernet) {
         gid = get_local_gid(proc->boot_context, port);
         sprintf(ring_qp_out, "%016"SCNx64":%016"SCNx64":%08x:%08x:",
-                 (unsigned long) gid.global.subnet_prefix, 
+                 (unsigned long) gid.global.subnet_prefix,
                  (unsigned long) gid.global.interface_id,
                  proc->boot_qp_hndl[0]->qp_num,
                  proc->boot_qp_hndl[1]->qp_num
                );
-    
+
         PRINT_DEBUG(DEBUG_CM_verbose, "After setting GID: %"PRIx64":%"PRIx64", qp0: %x, qp1: %x\n",
-                (unsigned long) gid.global.subnet_prefix, 
+                (unsigned long) gid.global.subnet_prefix,
                 (unsigned long) gid.global.interface_id,
                 proc->boot_qp_hndl[0]->qp_num,
                 proc->boot_qp_hndl[1]->qp_num
@@ -462,7 +471,7 @@ int rdma_setup_startup_ring(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc, int pg_r
                  proc->boot_qp_hndl[0]->qp_num,
                  proc->boot_qp_hndl[1]->qp_num
                );
-    
+
         PRINT_DEBUG(DEBUG_CM_verbose, "After setting LID: %d, qp0: %x, qp1: %x\n",
                 get_local_lid(proc->boot_context,
                               port),
@@ -476,7 +485,7 @@ int rdma_setup_startup_ring(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc, int pg_r
             bootstrap_len, ring_qp_in);
 
     if (use_iboeth || mv2_port_is_ethernet) {
-        sscanf(&ring_qp_in[0], "%016"SCNx64":%016"SCNx64":%08x:%08x:", 
+        sscanf(&ring_qp_in[0], "%016"SCNx64":%016"SCNx64":%08x:%08x:",
                (unsigned long *) &neighbor_addr[0].gid.global.subnet_prefix,
                (unsigned long *) &neighbor_addr[0].gid.global.interface_id,
                &neighbor_addr[0].qp_num[0],
@@ -497,12 +506,12 @@ int rdma_setup_startup_ring(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc, int pg_r
                neighbor_addr[1].qp_num[0],
                neighbor_addr[1].qp_num[1]);
     } else {
-        sscanf(&ring_qp_in[0], "%08x:%08x:%08x:", 
-               &neighbor_addr[0].lid, 
+        sscanf(&ring_qp_in[0], "%08x:%08x:%08x:",
+               &neighbor_addr[0].lid,
                &neighbor_addr[0].qp_num[0],
                &neighbor_addr[0].qp_num[1]);
         sscanf(&ring_qp_in[27], "%08x:%08x:%08x:",
-               &neighbor_addr[1].lid, 
+               &neighbor_addr[1].lid,
                &neighbor_addr[1].qp_num[0],
                &neighbor_addr[1].qp_num[1]);
     }
@@ -515,16 +524,12 @@ out:
 }
 
 
-#undef FUNCNAME
-#define FUNCNAME rdma_cleanup_startup_ring
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int rdma_cleanup_startup_ring(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
 {
     int mpi_errno = MPI_SUCCESS;
 
     UPMI_BARRIER();
-    
+
     if(ibv_ops.destroy_qp(proc->boot_qp_hndl[0])) {
         MPIR_ERR_SETFATALANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**fail",
                 "**fail %s", "could not destroy lhs QP");
@@ -547,15 +552,11 @@ fn_fail:
     goto fn_exit;
 }
 
-#undef FUNCNAME
-#define FUNCNAME rdma_ring_based_allgather
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int rdma_ring_based_allgather(void *sbuf, int data_size,
         int pg_rank, void *rbuf, int pg_size,
         struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
 {
-    int i; 
+    int i;
     struct ibv_mr *addr_hndl = NULL;
     int mpi_errno = MPI_SUCCESS;
 
@@ -595,7 +596,7 @@ int rdma_ring_based_allgather(void *sbuf, int data_size,
         char* rbufProxy = (char*) rbuf;
 
         /* copy self data*/
-        MPIU_Memcpy(rbufProxy+data_size*pg_rank, sbuf, data_size);
+        MPIR_Memcpy(rbufProxy+data_size*pg_rank, sbuf, data_size);
 
         /* post receive*/
         for (i = 0; i < MPD_WINDOW; i++) {
@@ -685,7 +686,7 @@ int rdma_ring_based_allgather(void *sbuf, int data_size,
                 if (rc.wr_id < pg_size) {
                     /*recv completion*/
                     recv_comp_index = round_left(recv_comp_index,pg_size);
-                    MPIU_Assert(recv_comp_index == rc.wr_id);
+                    MPIR_Assert(recv_comp_index == rc.wr_id);
                     if (recv_post_index != pg_rank) {
                         rr.wr_id   = recv_post_index;
                         rr.num_sge = 1;
@@ -724,10 +725,6 @@ fn_fail:
     goto fn_exit;
 }
 
-#undef FUNCNAME
-#define FUNCNAME _ring_boot_exchange
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int _ring_boot_exchange(struct ibv_mr * addr_hndl, void * addr_pool,
         struct mv2_MPIDI_CH3I_RDMA_Process_t *proc, MPIDI_PG_t *pg, int pg_rank,
         struct process_init_info *info)
@@ -778,14 +775,14 @@ int _ring_boot_exchange(struct ibv_mr * addr_hndl, void * addr_pool,
     PRINT_DEBUG(DEBUG_CM_verbose, "Posting recvs\n");
     char* addr_poolProxy = (char*) addr_pool;
     pg_size = MPIDI_PG_Get_size(pg);
-    
+
     for(i = 1; i < MPD_WINDOW; i++) {
         rr.wr_id   = i;
         rr.num_sge = 1;
         rr.sg_list = &(sg_entry_r);
         rr.next    = NULL;
         sg_entry_r.lkey = addr_hndl->lkey;
-        sg_entry_r.addr = 
+        sg_entry_r.addr =
                 (uintptr_t)addr_packet_buffer(addr_poolProxy, i, pg_size);
         sg_entry_r.length = addr_packet_size(pg_size);
 
@@ -812,7 +809,7 @@ int _ring_boot_exchange(struct ibv_mr * addr_hndl, void * addr_pool,
     mpi_errno = getaddrinfo(hostname, NULL, &addr_hint, &res);
     if (mpi_errno) {
         MPIR_ERR_SETFATALANDJUMP2(mpi_errno, MPI_ERR_OTHER,
-                "**getaddrinfo", "**getaddrinfo %s %d", 
+                "**getaddrinfo", "**getaddrinfo %s %d",
                 strerror(mpi_errno), mpi_errno);
 
     }
@@ -835,7 +832,7 @@ int _ring_boot_exchange(struct ibv_mr * addr_hndl, void * addr_pool,
         send_packet->host_id = hostid;
 
         for(i = 0; i < pg_size; i++) {
-            MPIDI_PG_Get_vc(pg, i, &vc); 
+            MPIDI_PG_Get_vc(pg, i, &vc);
             if (!qp_required(vc, pg_rank, i)) {
                 send_packet->val[i].sr_qp_num = -1;
                 info->arch_hca_type[i] = mv2_MPIDI_CH3I_RDMA_Process.arch_hca_type;
@@ -859,8 +856,8 @@ int _ring_boot_exchange(struct ibv_mr * addr_hndl, void * addr_pool,
             sr.num_sge        = 1;
             sr.sg_list        = &sg_entry_s;
             sr.next           = NULL;
-            sg_entry_s.addr   = (uintptr_t)addr_packet_buffer(addr_poolProxy, 
-                                                              index_to_send, 
+            sg_entry_s.addr   = (uintptr_t)addr_packet_buffer(addr_poolProxy,
+                                                              index_to_send,
                                                               pg_size);
             sg_entry_s.length = addr_packet_size(pg_size);
             sg_entry_s.lkey   = addr_hndl->lkey;
@@ -988,10 +985,6 @@ fn_fail:
 
 }
 
-#undef FUNCNAME
-#define FUNCNAME rdma_ring_boot_exchange
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int rdma_ring_boot_exchange(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
                       MPIDI_PG_t *pg, int pg_rank, struct process_init_info *info)
 {
@@ -999,7 +992,8 @@ int rdma_ring_boot_exchange(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
     void * addr_pool;
     int pg_size = MPIDI_PG_Get_size(pg);
     int mpi_errno = MPI_SUCCESS;
-    addr_pool = MPIU_Malloc(MPD_WINDOW * addr_packet_size(pg_size));
+    addr_pool = MPL_malloc(MPD_WINDOW * addr_packet_size(pg_size),
+                            MPL_MEM_OTHER);
     addr_hndl = ibv_ops.reg_mr(proc->boot_ptag,
             addr_pool, MPD_WINDOW * addr_packet_size(pg_size),
             IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE);
@@ -1017,7 +1011,7 @@ int rdma_ring_boot_exchange(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
         MPIR_ERR_POP(mpi_errno);
     }
     ibv_ops.dereg_mr(addr_hndl);
-    MPIU_Free(addr_pool);
+    MPL_free(addr_pool);
 
 fn_exit:
     return mpi_errno;
@@ -1026,5 +1020,3 @@ fn_fail:
     goto fn_exit;
 
 }
-
-

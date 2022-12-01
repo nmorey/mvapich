@@ -33,7 +33,7 @@
 
 #define EAGER_THRESHOLD_ADJUST    0
 #define INLINE_THRESHOLD_ADJUST  (20)
-extern const char MPIR_Version_string[];
+extern const char MPII_Version_string[];
 
 /* Global variables */
 int rdma_num_hcas = 1;
@@ -300,7 +300,7 @@ int MPID_nem_ib_get_control_params_after_hcainit()
 #ifdef _ENABLE_XRC_
     if (USE_XRC) {
         process_info.has_srq = 1;
-        MPIU_Assert (MPIDI_CH3I_Process.cm_type == MPIDI_CH3I_CM_ON_DEMAND);
+        MPIR_Assert (MPIDI_CH3I_Process.cm_type == MPIDI_CH3I_CM_ON_DEMAND);
         MPIDI_CH3I_Process.cm_type = MPIDI_CH3I_CM_ON_DEMAND;
         rdma_use_coalesce = 0;
         rdma_use_blocking = 0;
@@ -1330,7 +1330,7 @@ void mv2_print_env_info()
     mv2_hca_type hca_type = MV2_GET_HCA(process_info.arch_hca_type);
     mv2_cpu_family_type family_type = mv2_get_cpu_family();
     
-    fprintf(stderr, "\n MVAPICH2-%s Parameters\n", MPIR_Version_string);
+    fprintf(stderr, "\n MVAPICH2-%s Parameters\n", MPII_Version_string);
     fprintf(stderr, "---------------------------------------------------------------------\n");
     fprintf(stderr, "\tPROCESSOR ARCH NAME            : %s\n", 
                             mv2_get_arch_name(arch_type));

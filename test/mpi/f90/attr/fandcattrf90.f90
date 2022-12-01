@@ -1,9 +1,8 @@
-! -*- Mode: Fortran; -*- 
 !
-!  (C) 2008 by Argonne National Laboratory.
-!      See COPYRIGHT in top-level directory.
+! Copyright (C) by Argonne National Laboratory
+!     See COPYRIGHT in top-level directory
 !
-!
+
 ! To do: Create a keyval from c, then change the attribute from Fortran,
 ! then dup.  The C attribute copy function should be passed a pointer to
 ! the Fortran attribute value (e.g., it should dereference it to check
@@ -48,13 +47,8 @@
       call mpi_type_free_keyval( ctype2_keyval, ierr )
       call mpi_win_free_keyval( cwin2_keyval, ierr )
 
-      if (errs .eq. 0) then
-         print *, ' No Errors'
-      else
-         print *, ' Found ', errs, ' errors'
-      endif
+      call mtest_finalize( errs )
 
-      call mpi_finalize(ierr)
       end
 !
       subroutine mycopyfn( oldcomm, keyval, extrastate, valin, valout, &

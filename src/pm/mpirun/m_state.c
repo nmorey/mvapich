@@ -11,7 +11,7 @@
  */
 
 #include <m_state.h>
-#include <debug_utils.h>
+#include <mv2_debug_utils.h>
 
 #include <stdlib.h>
 #include <pthread.h>

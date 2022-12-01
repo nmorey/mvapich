@@ -1,9 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *   Copyright (C) 1997 University of Chicago.
- *   Copyright (C) 2017 DataDirect Networks.
- *   See COPYRIGHT notice in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "ad_ime.h"
@@ -61,38 +58,24 @@ void ADIOI_IME_Init(int rank, int *error_code)
     MPI_Attr_put(MPI_COMM_SELF, ADIOI_IME_Initialized, (void *) 0);
 }
 
-/**
- * Return an IME-compatible filename
- * An absolute BFS path will get added the 'ime:' prefix.
- * A path on ime-fuse will be converted to a relative ime path,
- * with the ime:/ prefix
- * The returned filename must be free'd by the user
- */
-char *ADIOI_IME_Convert_filename(const char *filename)
+/* Return an IME-compatible filename (add 'ime:' prefix).
+ * New filename must be free'd by the user */
+char *ADIOI_IME_Add_prefix(const char *filename)
 {
-    static char myname[] = "ADIOI_IME_CONVERT_FILENAME";
-
-#if (IME_NATIVE_API_VERSION >= 131)
-    bool is_fuse = ime_native_is_fuse_path_and_convert(filename, NULL);
-    if (is_fuse) {
-        return ADIOI_Strdup(filename);
-    }
-#endif
-
+    static char myname[] = "ADIOI_IME_ADD_PREFIX";
     size_t f_len = strlen(filename) + 1;
-    char *ime_filename = ADIOI_Malloc(f_len + IME_FILE_PREFIX_LEN_NO_FWD_SLASH);
+    char *ime_filename = ADIOI_Malloc(f_len + ADIOI_IME_PREFIX_LEN);
+
     if (!ime_filename) {
+
         MPIO_Err_create_code(MPI_SUCCESS,
                              MPIR_ERR_FATAL,
-                             myname, __LINE__, MPI_ERR_UNKNOWN,
-                             "Error allocating memory", 0);
+                             myname, __LINE__, MPI_ERR_UNKNOWN, "Error allocating memory", 0);
 
         return NULL;
     }
 
-    ADIOI_Strncpy(ime_filename, DEFAULT_IME_PREFIX_NO_FWD_SLASH,
-                  IME_FILE_PREFIX_LEN_NO_FWD_SLASH);
-    ADIOI_Strncpy((ime_filename + IME_FILE_PREFIX_LEN_NO_FWD_SLASH),
-                  filename, f_len);
+    ADIOI_Strncpy(ime_filename, ADIOI_IME_PREFIX, ADIOI_IME_PREFIX_LEN);
+    ADIOI_Strncpy((ime_filename + ADIOI_IME_PREFIX_LEN), filename, f_len);
     return ime_filename;
 }

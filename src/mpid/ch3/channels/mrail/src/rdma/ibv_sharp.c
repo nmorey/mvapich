@@ -85,7 +85,7 @@ void  mv2_get_sharp_datatype(MPI_Datatype  mpi_datatype, struct
     int i = 0;
 
     struct sharp_reduce_datatyepe_size * dt_size = 
-        MPIU_Malloc(sizeof(struct sharp_reduce_datatyepe_size));
+        MPL_malloc(sizeof(struct sharp_reduce_datatyepe_size));
     dt_size->sharp_data_type = SHARP_DTYPE_NULL;
 
     for (i = 0; sharp_data_types[i].sharp_data_type != SHARP_DTYPE_NULL; i++) {
@@ -113,13 +113,13 @@ enum sharp_reduce_op mv2_get_sharp_reduce_op(MPI_Op mpi_op)
 int mv2_oob_bcast(void *comm_context, void *buf, int size, int root)
 {
     MPI_Comm comm;
-    MPID_Comm *comm_ptr = NULL;
+    MPIR_Comm *comm_ptr = NULL;
     MPIR_Errflag_t errflag = FALSE;
     int mpi_errno = MPI_SUCCESS;
 
     /* currently only comm_world has SHARP support */
     comm = MPI_COMM_WORLD;
-    MPID_Comm_get_ptr(comm, comm_ptr);
+    MPIR_Comm_get_ptr(comm, comm_ptr);
 
     if (comm_ptr->dev.ch.is_sharp_ok == 1 && comm_context != NULL) {
         comm = ((coll_sharp_module_t*) comm_context)->comm;
@@ -127,7 +127,7 @@ int mv2_oob_bcast(void *comm_context, void *buf, int size, int root)
         comm = MPI_COMM_WORLD;
     }
 
-    MPID_Comm_get_ptr(comm, comm_ptr);
+    MPIR_Comm_get_ptr(comm, comm_ptr);
     mpi_errno = MPIR_Bcast_impl(buf, size, MPI_BYTE, root, comm_ptr, &errflag);
     if (mpi_errno) {
         PRINT_ERROR("sharp mv2_oob_bcast failed\n");
@@ -144,13 +144,13 @@ fn_fail:
 int mv2_oob_barrier(void *comm_context)
 {
     MPI_Comm comm;
-    MPID_Comm *comm_ptr = NULL;
+    MPIR_Comm *comm_ptr = NULL;
     MPIR_Errflag_t errflag = FALSE;
     int mpi_errno = MPI_SUCCESS;
 
     /* currently only comm_world has SHARP support */
     comm = MPI_COMM_WORLD;
-    MPID_Comm_get_ptr(comm, comm_ptr);
+    MPIR_Comm_get_ptr(comm, comm_ptr);
 
     if (comm_ptr->dev.ch.is_sharp_ok == 1 && comm_context != NULL) {
         comm = ((coll_sharp_module_t*) comm_context)->comm;
@@ -158,7 +158,7 @@ int mv2_oob_barrier(void *comm_context)
         comm = MPI_COMM_WORLD;
     }
 
-    MPID_Comm_get_ptr(comm, comm_ptr);
+    MPIR_Comm_get_ptr(comm, comm_ptr);
     mpi_errno = MPIR_Barrier_impl(comm_ptr, &errflag);
     if (mpi_errno) {
         PRINT_ERROR("sharp mv2_oob_barrier failed\n");
@@ -176,20 +176,20 @@ fn_fail:
 int mv2_oob_gather(void *comm_context, int root, void *sbuf, void *rbuf, int len)
 {
     MPI_Comm comm;
-    MPID_Comm *comm_ptr = NULL;
+    MPIR_Comm *comm_ptr = NULL;
     MPIR_Errflag_t errflag = FALSE;
     int mpi_errno = MPI_SUCCESS;
 
     /* currently only comm_world has SHARP support */
     comm = MPI_COMM_WORLD;
-    MPID_Comm_get_ptr(comm, comm_ptr);
+    MPIR_Comm_get_ptr(comm, comm_ptr);
 
     if (comm_ptr->dev.ch.is_sharp_ok == 1 && comm_context != NULL) {
         comm = ((coll_sharp_module_t*) comm_context)->comm;
     } else {
         comm = MPI_COMM_WORLD;
     }
-    MPID_Comm_get_ptr(comm, comm_ptr);
+    MPIR_Comm_get_ptr(comm, comm_ptr);
 
     mpi_errno = MPIR_Gather_impl(sbuf, len, MPI_BYTE, rbuf, len, MPI_BYTE, root, comm_ptr, &errflag);
     if (mpi_errno) {
@@ -209,7 +209,7 @@ int mv2_sharp_coll_init(sharp_conf_t *sharp_conf, int rank, int local_rank)
 {
     int mpi_errno = SHARP_COLL_SUCCESS;
     struct sharp_coll_init_spec * init_spec = 
-        MPIU_Malloc(sizeof(struct sharp_coll_init_spec));
+        MPL_malloc(sizeof(struct sharp_coll_init_spec));
 
     init_spec->progress_func             = NULL;
     init_spec->job_id                    = atol(sharp_conf->jobid);
@@ -252,7 +252,7 @@ int mv2_sharp_coll_init(sharp_conf_t *sharp_conf, int rank, int local_rank)
     } 
 
 fn_exit:
-    MPIU_Free(init_spec);
+    MPL_free(init_spec);
     return (mpi_errno);
 
 fn_fail:
@@ -323,8 +323,8 @@ fn_fail:
 static char * sharp_get_kvs_id () 
 {
     int  i = 0;
-    char * id_str = MPIU_Malloc(100);
-    MPIU_Memset(id_str, 0, 100);
+    char * id_str = MPL_malloc(100);
+    MPIR_Memset(id_str, 0, 100);
     char KVSname[100] = {0};
     UPMI_KVS_GET_MY_NAME(KVSname, 100); /* set kvsname as job id */
     int kvs_offset = 4; //offset to skip kvs_
@@ -365,7 +365,7 @@ int mv2_setup_sharp_env(sharp_conf_t *sharp_conf, MPI_Comm comm)
     
     /* set device name list and port number which is used for SHArP in
      * HCA_NAME:PORT_NUM format */ 
-    dev_list = MPIU_Malloc(sizeof(sharp_conf->ib_devname) + 3); 
+    dev_list = MPL_malloc(sizeof(sharp_conf->ib_devname) + 3); 
     sprintf(dev_list, "%s:%d", sharp_conf->ib_devname, g_sharp_port);
     sharp_conf->ib_dev_list = dev_list;
     
@@ -392,7 +392,7 @@ int mv2_sharp_coll_comm_init(coll_sharp_module_t *sharp_module)
     int mpi_errno = SHARP_COLL_SUCCESS;
     MPI_Comm comm;
     struct sharp_coll_comm_init_spec * comm_spec =
-        MPIU_Malloc(sizeof (struct sharp_coll_comm_init_spec));
+        MPL_malloc(sizeof (struct sharp_coll_comm_init_spec));
     
     comm = sharp_module->comm; 
     sharp_module->is_leader = 1;
@@ -415,7 +415,7 @@ int mv2_sharp_coll_comm_init(coll_sharp_module_t *sharp_module)
     PRINT_DEBUG(DEBUG_Sharp_verbose, "sharp communicator was initialized successfully for rank %d \n", rank);
 
 fn_exit:
-    MPIU_Free(comm_spec);
+    MPL_free(comm_spec);
     return (mpi_errno);
 
 fn_fail:
@@ -432,14 +432,14 @@ char * sharp_create_hostlist(MPI_Comm comm)
     int offsets[size];
     MPIR_Errflag_t errflag = FALSE;
     int mpi_errno = MPI_SUCCESS;
-    MPID_Comm *comm_ptr = NULL;
+    MPIR_Comm *comm_ptr = NULL;
 
     MPI_Get_processor_name(name, &name_length);
     if (rank < size-1) {
         name[name_length++] = ',';
     }
     
-    MPID_Comm_get_ptr(comm, comm_ptr);
+    MPIR_Comm_get_ptr(comm, comm_ptr);
     mpi_errno = MPIR_Allgather_impl(&name_length, 1, MPI_INT, &name_len[0], 1, MPI_INT, comm_ptr, &errflag);
     if (mpi_errno) { 
         PRINT_ERROR ("collect hostname len from all ranks failed\n");
@@ -451,7 +451,7 @@ char * sharp_create_hostlist(MPI_Comm comm)
         bytes += name_len[i];
     }
     bytes++; 
-    char * receive_buffer = MPIU_Malloc(bytes);
+    char * receive_buffer = MPL_malloc(bytes);
     receive_buffer[bytes-1] = 0;
     mpi_errno = MPIR_Allgatherv_impl(&name[0], name_length, MPI_CHAR, &receive_buffer[0], &name_len[0], &offsets[0], MPI_CHAR, comm_ptr, &errflag);
 
@@ -496,24 +496,24 @@ int mv2_free_sharp_handlers (sharp_info_t * sharp_info)
     /* clean up */
     if (sharp_info != NULL) {    
         if (sharp_info->sharp_conf != NULL) {
-            MPIU_Free(sharp_info->sharp_conf->hostlist);
-            MPIU_Free(sharp_info->sharp_conf->jobid);
-            MPIU_Free(sharp_info->sharp_conf->ib_dev_list); 
+            MPL_free(sharp_info->sharp_conf->hostlist);
+            MPL_free(sharp_info->sharp_conf->jobid);
+            MPL_free(sharp_info->sharp_conf->ib_dev_list); 
             sharp_info->sharp_conf->ib_dev_list = NULL;
             sharp_info->sharp_conf->hostlist    = NULL;
             sharp_info->sharp_conf->jobid       = NULL;
-            MPIU_Free(sharp_info->sharp_conf);
+            MPL_free(sharp_info->sharp_conf);
             sharp_info->sharp_conf = NULL;
         }
         if (sharp_info->sharp_comm_module != NULL) {
-            MPIU_Free(sharp_info->sharp_comm_module);
+            MPL_free(sharp_info->sharp_comm_module);
             sharp_info->sharp_comm_module = NULL;
         }
 
-        MPIU_Free(sharp_info);
+        MPL_free(sharp_info);
     }
     if (mv2_sharp_hca_name != NULL) {
-        MPIU_Free(mv2_sharp_hca_name);
+        MPL_free(mv2_sharp_hca_name);
     }
 
     mpi_errno = MPI_SUCCESS;

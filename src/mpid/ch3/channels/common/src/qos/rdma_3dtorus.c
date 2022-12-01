@@ -75,7 +75,8 @@ int mv2_get_path_rec_sl(struct ibv_context *context_arg, struct ibv_pd *hca_pd,
             goto fn_fail;
     	}
 
-    	if ((cache = MPIU_Malloc(sizeof(struct openib_sa_qp_cache_t))) == NULL) {
+    	if ((cache = MPL_malloc(sizeof(struct openib_sa_qp_cache_t), 
+    	                            MPL_MEM_OTHER)) == NULL) {
             fprintf(stderr, "cannot posix_memalign SA cache\n");
             goto fn_fail;
     	}

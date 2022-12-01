@@ -222,7 +222,7 @@ int MPID_nem_ib_init_hca()
     }
 
     /* Runtime checks */
-    MPIU_Assert( num_devices<=MAX_NUM_HCAS );
+    MPIR_Assert( num_devices<=MAX_NUM_HCAS );
     if ( num_devices> MAX_NUM_HCAS) {
         MPL_error_printf( "WARNING: found %d IB devices, the maximum is %d (MAX_NUM_HCAS). ",
         		num_devices, MAX_NUM_HCAS);
@@ -235,8 +235,8 @@ int MPID_nem_ib_init_hca()
         ib_hca_num_hcas = num_devices;
     }
 
-    MPIU_DBG_MSG_P( CH3_CHANNEL, VERBOSE, "[HCA] Found %d HCAs\n", num_devices);
-    MPIU_DBG_MSG_P( CH3_CHANNEL, VERBOSE, "[HCA] User requested %d\n", ib_hca_num_hcas);
+    MPL_DBG_MSG_P( CH3_CHANNEL, VERBOSE, "[HCA] Found %d HCAs\n", num_devices);
+    MPL_DBG_MSG_P( CH3_CHANNEL, VERBOSE, "[HCA] User requested %d\n", ib_hca_num_hcas);
 
 
     /* Retrieve information for each found device */
@@ -268,7 +268,7 @@ int MPID_nem_ib_init_hca()
 		            "**fail %s", "No IB device found");
         }
 
-        MPIU_DBG_MSG_P( CH3_CHANNEL, VERBOSE, "[HCA] HCA device %d found\n", nHca);
+        MPL_DBG_MSG_P( CH3_CHANNEL, VERBOSE, "[HCA] HCA device %d found\n", nHca);
 
 
 

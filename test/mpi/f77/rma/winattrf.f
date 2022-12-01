@@ -1,8 +1,8 @@
-C -*- Mode: Fortran; -*- 
 C
-C  (C) 2003 by Argonne National Laboratory.
-C      See COPYRIGHT in top-level directory.
+C Copyright (C) by Argonne National Laboratory
+C     See COPYRIGHT in top-level directory
 C
+
       program main
       implicit none
       include 'mpif.h'
@@ -139,7 +139,6 @@ C as defined.  To test them, we simply call them here
 C
       call mpi_comm_free( comm, ierr )
       call mtest_finalize( errs )
-      call mpi_finalize( ierr )
       end
 C
 C Note that the copyfn is unused for MPI windows, since there is

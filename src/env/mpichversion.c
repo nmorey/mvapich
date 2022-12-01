@@ -1,14 +1,23 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
-/*  
- *  (C) 2004 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+/*
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpi.h"
-#include "mpiimpl.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+extern const char MPII_Version_string[];
+extern const char MPII_Version_date[];
+extern const char MPII_Version_ABI[];
+extern const char MPII_Version_configure[];
+extern const char MPII_Version_device[];
+extern const char MPII_Version_CC[];
+extern const char MPII_Version_CXX[];
+extern const char MPII_Version_F77[];
+extern const char MPII_Version_FC[];
+extern const char MPII_Version_custom[];
 
 /* FIXME: We really should consider internationalizing the output from this
    program */
@@ -26,10 +35,10 @@
  * shared library.
  */
 
-typedef enum { Version_number=0, Date=1, 
-	       Patches=2, Configure_args=3, Device=4,
-	       Compilers=5, LastField
-             } fields;
+typedef enum { Version_number = 0, Date = 1,
+    Patches = 2, Configure_args = 3, Device = 4,
+    Compilers = 5, Custom = 6, LastField
+} fields;
 
 /*D
   mpich2version - Report on the MVAPICH2 version
@@ -46,65 +55,75 @@ typedef enum { Version_number=0, Date=1,
   the whichever compiler command is used to create MVAPICH2 programs)
   D*/
 
-int main( int argc, char *argv[] )
+int main(int argc, char *argv[])
 {
     int i, flags[10];
-    
+    char version[MPI_MAX_LIBRARY_VERSION_STRING];
+    int versionlen;
+
+    /* FIXME: this is needed to avoid unresolved symbols issues when building with
+     * --disable-weak-symbols on some platforms. Ideally, we could use the output
+     * from this call instead of accessing internal library variables.
+     */
+    MPI_Get_library_version(version, &versionlen);
+
     if (argc <= 1) {
-	/* Show all values */
-	for (i=0; i<LastField; i++) flags[i] = 1;
-    }
-    else {
-	/* Show only requested values */
-	for (i=0; i<LastField; i++) flags[i] = 0;
-	for (i=1; i<argc; i++) {
-	    if (strcmp( argv[i], "-version" ) == 0 || 
-		strcmp( argv[i], "--version" ) == 0 || 
-		strcmp( argv[i], "-v" ) == 0) 
-		flags[Version_number] = 1;
-	    else if (strcmp( argv[i], "-date" ) == 0 ||
-		     strcmp( argv[i], "--date" ) == 0 ||
-		     strcmp( argv[i], "-D" ) == 0) 
-		flags[Date] = 1;
-	    else if (strcmp( argv[i], "-patches" ) == 0)
-		flags[Patches] = 1;
-	    else if (strcmp( argv[i], "-configure" ) == 0 ||
-		     strcmp( argv[i], "--configure" ) == 0 ||
-		     strcmp( argv[i], "-c" ) == 0) 
-		flags[Configure_args] = 1;
-	    else if (strcmp( argv[i], "-device" ) == 0 ||
-		     strcmp( argv[i], "--device" ) == 0 ||
-		     strcmp( argv[i], "-d" ) == 0)
-		flags[Device] = 1;
-	    else if (strcmp( argv[i], "-compiler" ) == 0 ||
-		     strcmp( argv[i], "--compiler" ) == 0 ||
-		     strcmp( argv[i], "-b" ) == 0)
-		flags[Compilers] = 1;
-	    else {
-		fprintf( stderr, "Unrecognized argument %s\n", argv[i] );
-		exit(1);
-	    }
-	}
+        /* Show all values */
+        for (i = 0; i < LastField; i++)
+            flags[i] = 1;
+    } else {
+        /* Show only requested values */
+        for (i = 0; i < LastField; i++)
+            flags[i] = 0;
+        for (i = 1; i < argc; i++) {
+            if (strcmp(argv[i], "-version") == 0 ||
+                strcmp(argv[i], "--version") == 0 || strcmp(argv[i], "-v") == 0)
+                flags[Version_number] = 1;
+            else if (strcmp(argv[i], "-date") == 0 ||
+                     strcmp(argv[i], "--date") == 0 || strcmp(argv[i], "-D") == 0)
+                flags[Date] = 1;
+            else if (strcmp(argv[i], "-patches") == 0)
+                flags[Patches] = 1;
+            else if (strcmp(argv[i], "-configure") == 0 ||
+                     strcmp(argv[i], "--configure") == 0 || strcmp(argv[i], "-c") == 0)
+                flags[Configure_args] = 1;
+            else if (strcmp(argv[i], "-device") == 0 ||
+                     strcmp(argv[i], "--device") == 0 || strcmp(argv[i], "-d") == 0)
+                flags[Device] = 1;
+            else if (strcmp(argv[i], "-compiler") == 0 ||
+                     strcmp(argv[i], "--compiler") == 0 || strcmp(argv[i], "-b") == 0)
+                flags[Compilers] = 1;
+            else if (strcmp(argv[i], "-custom") == 0 ||
+                     strcmp(argv[i], "--custom") == 0 || strcmp(argv[i], "-u") == 0)
+                flags[Custom] = 1;
+            else {
+                fprintf(stderr, "Unrecognized argument %s\n", argv[i]);
+                exit(1);
+            }
+        }
     }
 
     /* Print out the information, one item per line */
     if (flags[Version_number]) {
-	printf( "MVAPICH2 Version:     \t%s\n", MPIR_Version_string );
+	    printf( "MVAPICH2 Version:     \t%s\n", MPII_Version_string );
     }
     if (flags[Date]) {
-	printf( "MVAPICH2 Release date:\t%s\n", MPIR_Version_date );
+	    printf( "MVAPICH2 Release date:\t%s\n", MPII_Version_date );
     }
     if (flags[Device]) {
-	printf( "MVAPICH2 Device:      \t%s\n", MPIR_Version_device );
+	    printf( "MVAPICH2 Device:      \t%s\n", MPII_Version_device );
     }
     if (flags[Configure_args]) {
-	printf( "MVAPICH2 configure:   \t%s\n", MPIR_Version_configure );
+	    printf( "MVAPICH2 configure:   \t%s\n", MPII_Version_configure );
     }
     if (flags[Compilers]) {
-	printf( "MVAPICH2 CC:  \t%s\n", MPIR_Version_CC );
-	printf( "MVAPICH2 CXX: \t%s\n", MPIR_Version_CXX );
-	printf( "MVAPICH2 F77: \t%s\n", MPIR_Version_F77 );
-	printf( "MVAPICH2 FC:  \t%s\n", MPIR_Version_FC );
+	    printf( "MVAPICH2 CC:  \t%s\n", MPII_Version_CC );
+	    printf( "MVAPICH2 CXX: \t%s\n", MPII_Version_CXX );
+	    printf( "MVAPICH2 F77: \t%s\n", MPII_Version_F77 );
+	    printf( "MVAPICH2 FC:  \t%s\n", MPII_Version_FC );
+	}
+    if (flags[Custom]) {
+        printf("MVAPICH2 Custom Information: \t%s\n", MPII_Version_custom);
     }
 
     return 0;

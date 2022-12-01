@@ -1,11 +1,10 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
-#ifndef RIMSHOT_DRAW_H
-#define RIMSHOT_DRAW_H
+#ifndef RIMSHOT_DRAW_H_INCLUDED
+#define RIMSHOT_DRAW_H_INCLUDED
 
 #include "RimshotDoc.h"
 
@@ -14,16 +13,14 @@
 
 #define DRAW_COMPLETE_MSG     WM_USER + 1
 
-struct CursorRank
-{
+struct CursorRank {
     int rank;
     bool active;
     CRect rect;
 };
 
-struct RimshotDrawStruct
-{
-    CRimshotDoc* pDoc;
+struct RimshotDrawStruct {
+    CRimshotDoc *pDoc;
     CSize rect_size, copy_size;
     CSize max_rect_size, max_copy_size;
     HWND hWnd;
@@ -46,6 +43,6 @@ struct RimshotDrawStruct
     CBitmap *pCopyBitmap, *pCopyOriginalBmp;
 };
 
-void RimshotDrawThread(RimshotDrawStruct *pArg);
+void RimshotDrawThread(RimshotDrawStruct * pArg);
 
-#endif
+#endif /* RIMSHOT_DRAW_H_INCLUDED */

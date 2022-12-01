@@ -1,8 +1,6 @@
-## -*- Mode: Makefile; -*-
-## vim: set ft=automake :
 ##
-## (C) 2011 by Argonne National Laboratory.
-##     See COPYRIGHT in top-level directory.
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
 ##
 
 ## NOTE: this is subtly different from the simplemake strategy.  The simplemake
@@ -16,7 +14,7 @@ if BUILD_PM_GFORKER
 if PRIMARY_PM_GFORKER
 bin_PROGRAMS += src/pm/gforker/mpiexec
 src_pm_gforker_mpiexec_SOURCES = src/pm/gforker/mpiexec.c 
-src_pm_gforker_mpiexec_LDADD = src/pm/util/libmpiexec.la -l$(MPLLIBNAME)
+src_pm_gforker_mpiexec_LDADD = src/pm/util/libmpiexec.la $(mpllib)
 src_pm_gforker_mpiexec_LDFLAGS = $(mpllibdir)
 EXTRA_src_pm_gforker_mpiexec_DEPENDENCIES = $(mpllib)
 # we may not want to add AM_CPPFLAGS for this program
@@ -24,7 +22,7 @@ src_pm_gforker_mpiexec_CPPFLAGS = $(common_pm_includes) $(AM_CPPFLAGS)
 else !PRIMARY_PM_GFORKER
 bin_PROGRAMS += src/pm/gforker/mpiexec.gforker
 src_pm_gforker_mpiexec_gforker_SOURCES = src/pm/gforker/mpiexec.c 
-src_pm_gforker_mpiexec_gforker_LDADD = src/pm/util/libmpiexec.la -l$(MPLLIBNAME)
+src_pm_gforker_mpiexec_gforker_LDADD = src/pm/util/libmpiexec.la $(mpllib)
 src_pm_gforker_mpiexec_gforker_LDFLAGS = $(mpllibdir)
 EXTRA_src_pm_gforker_mpiexec_gforker_DEPENDENCIES = $(mpllib)
 # we may not want to add AM_CPPFLAGS for this program
@@ -35,8 +33,7 @@ endif BUILD_PM_GFORKER
 ## TODO convert these simplemake doc commands to the new scheme
 ##doc_sources = mpiexec.txt
 ##DOCDESTDIRS = html:www/www1,man:man/man1,latex:doc/refman
-##docargs_ADD       = ${master_top_srcdir}/doc/mansrc/cmdnotes
+##docargs_ADD       = ${main_top_srcdir}/doc/mansrc/cmdnotes
 ##doc_HTML_SOURCES  = ${doc_sources}
 ##doc_MAN_SOURCES   = ${doc_sources}
 ##doc_LATEX_SOURCES = ${doc_sources}
-

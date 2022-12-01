@@ -1,11 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2009 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
- *
- * Copyright © 2006-2011 Guillaume Mercier, Institut Polytechnique de
- * Bordeaux. All rights reserved. Permission is hereby granted to use,
- * reproduce, prepare derivative works, and to redistribute to others.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #ifndef TOPO_HWLOC_H_INCLUDED
@@ -15,7 +10,7 @@
 #include <assert.h>
 
 struct HYDT_topo_hwloc_info {
-    int num_bitmaps;
+    unsigned int num_bitmaps;
     hwloc_bitmap_t *bitmap;
     hwloc_membind_policy_t membind;
     int user_binding;

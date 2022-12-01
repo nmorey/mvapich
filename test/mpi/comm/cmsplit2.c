@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2011 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /* This test ensures that MPI_Comm_split breaks ties in key values by using the
@@ -14,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "mpi.h"
+#include "mpitest.h"
 
 #define ERRLIMIT (10)
 
@@ -39,7 +39,7 @@ int main(int argc, char **argv)
     MPI_Comm comm, splitcomm;
     MPI_Group wgroup, newgroup;
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
 
     if (getenv("MPITEST_VERBOSE"))
         verbose = 1;
@@ -125,13 +125,6 @@ int main(int argc, char **argv)
     if (identity != NULL)
         free(identity);
 
-    if (rank == 0) {
-        if (errs)
-            printf("found %d errors\n", errs);
-        else
-            printf(" No errors\n");
-    }
-
-    MPI_Finalize();
-    return 0;
+    MTest_Finalize(errs);
+    return MTestReturnValue(errs);
 }

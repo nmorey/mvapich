@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2012 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /* Copyright (c) 2001-2022, The Ohio State University. All rights
@@ -27,7 +25,8 @@
 #elif defined(HAVE_PRAGMA_CRI_DUP)
 #pragma _CRI duplicate MPI_Get_library_version as PMPI_Get_library_version
 #elif defined(HAVE_WEAK_ATTRIBUTE)
-int MPI_Get_library_version(char *version, int *resultlen) __attribute__((weak,alias("PMPI_Get_library_version")));
+int MPI_Get_library_version(char *version, int *resultlen)
+    __attribute__ ((weak, alias("PMPI_Get_library_version")));
 #endif
 /* -- End Profiling Symbol Block */
 
@@ -53,18 +52,15 @@ Output Parameters:
 .N Errors
 .N MPI_SUCCESS
 @*/
-#undef FUNCNAME
-#define FUNCNAME MPI_Get_library_version
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPI_Get_library_version(char *version, int *resultlen)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_GET_LIBRARY_VERSION);
+    int printed_len;
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_GET_LIBRARY_VERSION);
 
     /* Note that this routine may be called before MPI_Init */
 
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_GET_LIBRARY_VERSION);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_GET_LIBRARY_VERSION);
 
     /* Validate parameters and objects (post conversion) */
 #ifdef HAVE_ERROR_CHECKING
@@ -80,27 +76,31 @@ int MPI_Get_library_version(char *version, int *resultlen)
 
     /* ... body of routine ...  */
 
-    MPL_snprintf(version, MPI_MAX_LIBRARY_VERSION_STRING,
-                 "MVAPICH2 Version      :\t%s\n"
-                 "MVAPICH2 Release date :\t%s\n"
-                 "MVAPICH2 Device       :\t%s\n"
-                 "MVAPICH2 configure    :\t%s\n"
-                 "MVAPICH2 CC           :\t%s\n"
-                 "MVAPICH2 CXX          :\t%s\n"
-                 "MVAPICH2 F77          :\t%s\n"
-                 "MVAPICH2 FC           :\t%s\n",
-                 MPIR_Version_string, MPIR_Version_date, MPIR_Version_device,
-                 MPIR_Version_configure, MPIR_Version_CC, MPIR_Version_CXX,
-                 MPIR_Version_F77, MPIR_Version_FC);
+    printed_len = MPL_snprintf(version, MPI_MAX_LIBRARY_VERSION_STRING,
+                               "MVAPICH2 Version        :\t%s\n"
+                               "MVAPICH2 Release date   :\t%s\n"
+                               "MVAPICH2 ABI            :\t%s\n"
+                               "MVAPICH2 Device         :\t%s\n"
+                               "MVAPICH2 configure      :\t%s\n"
+                               "MVAPICH2 CC             :\t%s\n"
+                               "MVAPICH2 CXX            :\t%s\n"
+                               "MVAPICH2 F77            :\t%s\n"
+                               "MVAPICH2 FC             :\t%s\n",
+                               MPII_Version_string, MPII_Version_date, MPII_Version_ABI,
+                               MPII_Version_device, MPII_Version_configure, MPII_Version_CC,
+                               MPII_Version_CXX, MPII_Version_F77, MPII_Version_FC);
+    if (strlen(MPII_Version_custom) > 0)
+        MPL_snprintf(version + printed_len, MPI_MAX_LIBRARY_VERSION_STRING - printed_len,
+                     "MPICH Custom Information:\t%s\n", MPII_Version_custom);
 
-    *resultlen = (int)strlen(version);
+    *resultlen = (int) strlen(version);
 
     /* ... end of body of routine ... */
 
 #ifdef HAVE_ERROR_CHECKING
   fn_exit:
 #endif
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_GET_LIBRARY_VERSION);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_GET_LIBRARY_VERSION);
     return mpi_errno;
 
     /* --BEGIN ERROR HANDLING-- */
@@ -108,11 +108,11 @@ int MPI_Get_library_version(char *version, int *resultlen)
   fn_fail:
     {
         mpi_errno =
-            MPIR_Err_create_code(mpi_errno, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__,
+            MPIR_Err_create_code(mpi_errno, MPIR_ERR_RECOVERABLE, __func__, __LINE__,
                                  MPI_ERR_OTHER, "**mpi_get_library_version",
                                  "**mpi_get_library_version %p %p", version, resultlen);
     }
-    mpi_errno = MPIR_Err_return_comm(0, FCNAME, mpi_errno);
+    mpi_errno = MPIR_Err_return_comm(0, __func__, mpi_errno);
     goto fn_exit;
 #endif
     /* --END ERROR HANDLING-- */

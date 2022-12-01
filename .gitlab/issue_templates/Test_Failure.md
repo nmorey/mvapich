@@ -1,5 +1,8 @@
 #### Branch (master, master-x, next-gdr, etc)
 QA-PATCHES/
+
+#### Device (ch3:mrail, ch4:ofi, ch4:ucx)
+
 #### Commit Hash
 
 #### Issue Notes

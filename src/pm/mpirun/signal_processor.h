@@ -15,7 +15,7 @@
 
 #include <pthread.h>
 #include <signal.h>
-#include <debug_utils.h>
+#include "mv2_debug_utils.h"
 
 /*
  * This function creates a new thread which calls sigwait on the given

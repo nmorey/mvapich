@@ -1,8 +1,8 @@
-! -*- Mode: Fortran; -*-
 !
-!  (C) 2014 by Argonne National Laboratory.
-!      See COPYRIGHT in top-level directory.
+! Copyright (C) by Argonne National Laboratory
+!     See COPYRIGHT in top-level directory
 !
+
 ! Simple info test
        program main
        use mpi_f08
@@ -52,5 +52,4 @@
        call mpi_info_free( i2, ierr )
 
        call MTest_Finalize( errs )
-       call MPI_Finalize( ierr )
        end

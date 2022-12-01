@@ -146,11 +146,11 @@ enum {
     ((MV2_DIFF(a, b) >= mcast_window_size -1) ? 1 : 0)
 #define MV2_MCAST_MAX_COMMS (4096)
 
-extern MPID_Comm *comm_table[];
+extern MPIR_Comm *comm_table[];
 
 int mv2_mcast_init_bcast_info(bcast_info_t ** bcast_info);
-int mv2_setup_multicast(mcast_info_t * minfo, MPID_Comm *);
-int mv2_cleanup_multicast(mcast_info_t * minfo, MPID_Comm *);
+int mv2_setup_multicast(mcast_info_t * minfo, MPIR_Comm *);
+int mv2_cleanup_multicast(mcast_info_t * minfo, MPIR_Comm *);
 void mv2_process_mcast_msg(vbuf * v);
 void mv2_mcast_flush_sendwin(message_queue_t * q);
 void mv2_mcast_handle_nack(MPIDI_CH3_Pkt_mcast_nack_t * p);
@@ -159,8 +159,8 @@ void mv2_mcast_recv(bcast_info_t * bcast_info, char *buf, int len, int root);
 
 void mv2_mcast_process_comm_init_req(mcast_init_elem_t * list);
 void mv2_mcast_handle_init_ack(MPIDI_CH3_Pkt_mcast_init_ack_t * p);
-int mv2_mcast_progress_comm_ready(MPID_Comm * comm_ptr);
-MPID_Comm *mv2_mcast_find_comm(int comm_id);
+int mv2_mcast_progress_comm_ready(MPIR_Comm * comm_ptr);
+MPIR_Comm *mv2_mcast_find_comm(int comm_id);
 mv2_ud_ctx_t * mv2_mcast_prepare_ud_ctx();
 
 /* bitmask operation on char bit array */

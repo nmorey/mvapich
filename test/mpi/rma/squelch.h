@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
+ */
+
 #ifndef SQUELCH_H_INCLUDED
 #define SQUELCH_H_INCLUDED
 
@@ -13,4 +18,4 @@ static int SQ_VERBOSE = 0;
     }                                           \
   } while (0)
 
-#endif
+#endif /* SQUELCH_H_INCLUDED */

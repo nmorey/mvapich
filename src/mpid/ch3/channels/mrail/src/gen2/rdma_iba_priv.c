@@ -16,21 +16,43 @@
 #include "vbuf.h"
 #include "ibv_param.h"
 #include "rdma_cm.h"
-#include "mpiutil.h"
 #include "cm.h"
 #include "dreg.h"
-#include "debug_utils.h"
+#include "mv2_debug_utils.h"
 #include "ibv_mcast.h"
 #include "mv2_utils.h"
 
 #include <sys/socket.h>
 #include <ifaddrs.h>
-#include <net/if.h>   
+#include <net/if.h>
 #include "rdma_impl.h"
 #include "ibv_param.h"
 #include "hwloc_bind.h"
 #include <arpa/inet.h>
+/*
+=== BEGIN_MPI_T_MV2_CVAR_INFO_BLOCK ===
 
+cvars:
+    - name        : MV2_ALLOW_HETEROGENEOUS_HCA_SELECTION
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : TODO-DESC
+
+    - name        : MV2_PROCESS_PLACEMENT_AWARE_HCA_MAPPING
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : TODO-DESC
+
+=== END_MPI_T_MV2_CVAR_INFO_BLOCK ===
+*/
 #undef DEBUG_PRINT
 #ifdef DEBUG
 #define DEBUG_PRINT(args...) \
@@ -47,8 +69,9 @@ do {                                                          \
 extern int mv2_my_numa_id;
 extern int g_atomics_support;
 
-extern int MPIDI_Get_num_nodes();
-extern int get_numa_bound_info(int *numa_bound, int *num_numas, int *num_cores_numa, int *is_uniform);
+extern int MPIDI_MV2_Get_num_nodes();
+extern int get_numa_bound_info(int *numa_bound, int *num_numas,
+                               int *num_cores_numa, int *is_uniform);
 
 int mv2_ib_hca_socket_info[MAX_NUM_HCAS] = {-1};
 int mv2_ib_hca_numa_info[MAX_NUM_HCAS] = {-1};
@@ -64,11 +87,11 @@ int num_ip_enabled_devices = 0;
 /*
  * Iterate over available interfaces
  * and determine verbs capable ones and return their ip addresses and names.
- * Input : 1) num_interfaces: number of available devices 
+ * Input : 1) num_interfaces: number of available devices
  * Output: 1) Array of ip_address_enabled_devices_t which contains ip_address
- *         and device_name for each device 
+ *         and device_name for each device
  *         2) num_interfaces: `number of devices with ip addresses
- *  
+ *
  */
 int mv2_get_verbs_ips_dev_names(int *num_interfaces, ip_address_enabled_devices_t * ip_address_enabled_devices)
 {
@@ -81,7 +104,7 @@ int mv2_get_verbs_ips_dev_names(int *num_interfaces, ip_address_enabled_devices_
     struct rdma_event_channel *ch = NULL;
     struct sockaddr_in *sin = NULL;
     struct ibv_port_attr port_attr;
-    
+
     max_ips = *num_interfaces;
     ret = getifaddrs(&ifaddr);
     if (ret) {
@@ -155,7 +178,7 @@ int qp_required(MPIDI_VC_t * vc, int my_rank, int dst_rank)
          * ensure correctness */
         qp_reqd = 1;
     } else if ((my_rank == dst_rank) || (
-        !mv2_MPIDI_CH3I_RDMA_Process.force_ib_atomic 
+        !mv2_MPIDI_CH3I_RDMA_Process.force_ib_atomic
         && rdma_use_smp && (vc->smp.local_rank != -1))) {
         /* Process is local */
         qp_reqd = 0;
@@ -181,20 +204,20 @@ struct process_init_info *alloc_process_init_info(int pg_size, int rails)
     struct process_init_info *info;
     int i;
 
-    info = MPIU_Malloc(sizeof *info);
+    info = MPL_malloc(sizeof *info, MPL_MEM_OTHER);
     if (!info) {
         return NULL;
     }
 
-    info->lid = (uint16_t **) MPIU_Malloc(pg_size * sizeof(uint16_t *));
+    info->lid = (uint16_t **) MPL_malloc(pg_size * sizeof(uint16_t *), MPL_MEM_OTHER);
     info->gid = (union ibv_gid **)
-        MPIU_Malloc(pg_size * sizeof(union ibv_gid *));
-    info->hostid = (int **) MPIU_Malloc(pg_size * sizeof(int *));
+        MPL_malloc(pg_size * sizeof(union ibv_gid *), MPL_MEM_OTHER);
+    info->hostid = (int **) MPL_malloc(pg_size * sizeof(int *), MPL_MEM_OTHER);
     info->qp_num_rdma = (uint32_t **)
-        MPIU_Malloc(pg_size * sizeof(uint32_t *));
+        MPL_malloc(pg_size * sizeof(uint32_t *), MPL_MEM_OTHER);
     info->arch_hca_type =
-        (mv2_arch_hca_type *) MPIU_Malloc(pg_size * sizeof(mv2_arch_hca_type));
-    info->vc_addr = (uint64_t *) MPIU_Malloc(pg_size * sizeof(uint64_t));
+        (mv2_arch_hca_type *) MPL_malloc(pg_size * sizeof(mv2_arch_hca_type), MPL_MEM_OTHER);
+    info->vc_addr = (uint64_t *) MPL_malloc(pg_size * sizeof(uint64_t), MPL_MEM_OTHER);
     if (!info->lid
         || !info->gid
         || !info->hostid
@@ -204,11 +227,11 @@ struct process_init_info *alloc_process_init_info(int pg_size, int rails)
 
     for (i = 0; i < pg_size; ++i) {
         info->qp_num_rdma[i] = (uint32_t *)
-            MPIU_Malloc(rails * sizeof(uint32_t));
-        info->lid[i] = (uint16_t *) MPIU_Malloc(rails * sizeof(uint16_t));
+            MPL_malloc(rails * sizeof(uint32_t), MPL_MEM_OTHER);
+        info->lid[i] = (uint16_t *) MPL_malloc(rails * sizeof(uint16_t), MPL_MEM_OTHER);
         info->gid[i] = (union ibv_gid *)
-            MPIU_Malloc(rails * sizeof(union ibv_gid));
-        info->hostid[i] = (int *) MPIU_Malloc(rails * sizeof(int));
+            MPL_malloc(rails * sizeof(union ibv_gid), MPL_MEM_OTHER);
+        info->hostid[i] = (int *) MPL_malloc(rails * sizeof(int), MPL_MEM_OTHER);
         if (!info->lid[i]
             || !info->gid[i]
             || !info->hostid[i]
@@ -228,19 +251,19 @@ void free_process_init_info(struct process_init_info *info, int pg_size)
         return;
 
     for (i = 0; i < pg_size; ++i) {
-        MPIU_Free(info->qp_num_rdma[i]);
-        MPIU_Free(info->lid[i]);
-        MPIU_Free(info->gid[i]);
-        MPIU_Free(info->hostid[i]);
+        MPL_free(info->qp_num_rdma[i]);
+        MPL_free(info->lid[i]);
+        MPL_free(info->gid[i]);
+        MPL_free(info->hostid[i]);
     }
 
-    MPIU_Free(info->lid);
-    MPIU_Free(info->gid);
-    MPIU_Free(info->hostid);
-    MPIU_Free(info->qp_num_rdma);
-    MPIU_Free(info->arch_hca_type);
-    MPIU_Free(info->vc_addr);
-    MPIU_Free(info);
+    MPL_free(info->lid);
+    MPL_free(info->gid);
+    MPL_free(info->hostid);
+    MPL_free(info->qp_num_rdma);
+    MPL_free(info->arch_hca_type);
+    MPL_free(info->vc_addr);
+    MPL_free(info);
 }
 
 struct ibv_srq *create_srq(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
@@ -249,7 +272,7 @@ struct ibv_srq *create_srq(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
     struct ibv_srq_init_attr srq_init_attr;
     struct ibv_srq *srq_ptr = NULL;
 
-    MPIU_Memset(&srq_init_attr, 0, sizeof(srq_init_attr));
+    MPIR_Memset(&srq_init_attr, 0, sizeof(srq_init_attr));
 
     srq_init_attr.srq_context = proc->nic_context[hca_num];
     srq_init_attr.attr.max_wr = mv2_srq_alloc_size;
@@ -284,7 +307,7 @@ struct ibv_srq *create_ud_srq(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
     struct ibv_srq_init_attr srq_init_attr;
     struct ibv_srq *srq_ptr = NULL;
 
-    MPIU_Memset(&srq_init_attr, 0, sizeof(srq_init_attr));
+    MPIR_Memset(&srq_init_attr, 0, sizeof(srq_init_attr));
 
     srq_init_attr.srq_context = proc->nic_context[hca_num];
     srq_init_attr.attr.max_wr = mv2_ud_srq_alloc_size;
@@ -319,7 +342,7 @@ static int check_attrs(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
         && !rdma_enable_only_ud
 #endif
        ) {
-        if ((value = getenv("MV2_DEFAULT_MTU")) == NULL) {
+        if (MV2_DEFAULT_MTU == NULL) {
             /* Set default value for MTU */
             rdma_default_mtu = port_attr->active_mtu;
         } else {
@@ -332,7 +355,7 @@ static int check_attrs(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
             ret = 1;
         }
     } else {
-        if ((value = getenv("MV2_DEFAULT_MTU")) == NULL) {
+        if (MV2_DEFAULT_MTU == NULL) {
             /* Set default value for MTU */
             rdma_default_mtu = port_attr->active_mtu;
         }
@@ -340,7 +363,7 @@ static int check_attrs(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
 #if defined(_ENABLE_UD_) || defined(_MCST_SUPPORT_)
     /* Set UD MTU */
     int max_mtu = mv2_ibv_mtu_enum_to_value(port_attr->active_mtu);
-    if ((value = getenv("MV2_UD_MTU")) == NULL) {
+    if (MV2_UD_MTU == -1) {
         rdma_default_ud_mtu = max_mtu;
     } else {
         if (max_mtu < rdma_default_ud_mtu
@@ -359,7 +382,7 @@ static int check_attrs(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
 #endif /* #if defined(_ENABLE_UD_) || defined(_MCST_SUPPORT_) */
 
     if (dev_attr->max_qp_rd_atom < rdma_default_max_rdma_dst_ops) {
-        if ((value = getenv("MV2_DEFAULT_MAX_RDMA_DST_OPS")) == NULL) {
+        if (MV2_DEFAULT_MAX_RDMA_DST_OPS == -1) {
             rdma_default_max_rdma_dst_ops = dev_attr->max_qp_rd_atom;
         } else {
             fprintf(stderr,
@@ -369,7 +392,7 @@ static int check_attrs(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
             ret = 1;
         }
     } else {
-        if ((value = getenv("MV2_DEFAULT_MAX_RDMA_DST_OPS")) == NULL) {
+        if (MV2_DEFAULT_MAX_RDMA_DST_OPS == -1) {
 #ifdef _ENABLE_XRC_
             /* XRC does not seem to support max_qp_rd_atom as reported by the
              * HCA. So, if we are using XRC, then fall back to using the
@@ -384,7 +407,7 @@ static int check_attrs(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
     }
 
     if (dev_attr->max_qp_rd_atom < rdma_default_qp_ous_rd_atom) {
-        if ((value = getenv("MV2_DEFAULT_QP_OUS_RD_ATOM")) == NULL) {
+        if (MV2_DEFAULT_QP_OUS_RD_ATOM == -1) {
             rdma_default_qp_ous_rd_atom = dev_attr->max_qp_rd_atom;
         } else {
             fprintf(stderr,
@@ -394,7 +417,7 @@ static int check_attrs(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
             ret = 1;
         }
     } else {
-        if ((value = getenv("MV2_DEFAULT_QP_OUS_RD_ATOM")) == NULL) {
+        if (MV2_DEFAULT_QP_OUS_RD_ATOM == -1) {
 #ifdef _ENABLE_XRC_
             /* XRC does not seem to support max_qp_rd_atom as reported by the
              * HCA. So, if we are using XRC, then fall back to using the
@@ -408,7 +431,7 @@ static int check_attrs(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
         }
     }
 
-    if (mv2_MPIDI_CH3I_RDMA_Process.heterogeneity && 
+    if (mv2_MPIDI_CH3I_RDMA_Process.heterogeneity &&
             rdma_default_max_rdma_dst_ops < rdma_default_qp_ous_rd_atom) {
         /* on some heterogeneous configurations (different arch), we observed
          * that lack of this check leads to IBV_WC_REM_INV_REQ_ERR for bw and
@@ -418,12 +441,12 @@ static int check_attrs(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
                 "max_rd_atomic should be less than max_dest_rd_atomic. "
                 "qp's max_dest_rd_atomic is now set to max_rd_atomic \n");
 
-       rdma_default_max_rdma_dst_ops = rdma_default_qp_ous_rd_atom; 
+       rdma_default_max_rdma_dst_ops = rdma_default_qp_ous_rd_atom;
     }
 
     if (mv2_MPIDI_CH3I_RDMA_Process.has_srq) {
         if (dev_attr->max_srq_sge < rdma_default_max_sg_list) {
-            if ((value = getenv("MV2_DEFAULT_MAX_SG_LIST")) == NULL) {
+            if (MV2_DEFAULT_MAX_SG_LIST == -1) {
                 rdma_default_max_sg_list = dev_attr->max_srq_sge;
             } else {
                 fprintf(stderr,
@@ -435,7 +458,7 @@ static int check_attrs(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
         }
 
         if (dev_attr->max_srq_wr < mv2_srq_alloc_size) {
-            if ((value = getenv("MV2_SRQ_MAX_SIZE")) == NULL) {
+            if (MV2_SRQ_MAX_SIZE == -1) {
                 mv2_srq_alloc_size = dev_attr->max_srq_wr;
             } else {
                 fprintf(stderr,
@@ -447,7 +470,7 @@ static int check_attrs(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
         }
     } else {
         if (dev_attr->max_sge < rdma_default_max_sg_list) {
-            if ((value = getenv("MV2_DEFAULT_MAX_SG_LIST")) == NULL) {
+            if (MV2_DEFAULT_MAX_SG_LIST == -1) {
                 rdma_default_max_sg_list = dev_attr->max_sge;
             } else {
                 fprintf(stderr,
@@ -458,7 +481,7 @@ static int check_attrs(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
         }
 
         if (dev_attr->max_qp_wr < rdma_default_max_send_wqe) {
-            if ((value = getenv("MV2_DEFAULT_MAX_SEND_WQE")) == NULL) {
+            if (MV2_DEFAULT_MAX_SEND_WQE == -1) {
                 rdma_default_max_send_wqe = dev_attr->max_qp_wr;
             } else {
                 fprintf(stderr,
@@ -472,7 +495,7 @@ static int check_attrs(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
 #if defined(_ENABLE_UD_)
     if (rdma_use_ud_srq) {
         if (dev_attr->max_srq_wr < mv2_ud_srq_alloc_size) {
-            if ((value = getenv("MV2_UD_SRQ_MAX_SIZE")) == NULL) {
+            if (MV2_UD_SRQ_MAX_SIZE == -1) {
                 mv2_ud_srq_alloc_size = dev_attr->max_srq_wr;
             } else {
                 fprintf(stderr,
@@ -485,7 +508,7 @@ static int check_attrs(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
     }
 #endif /* #if defined(_ENABLE_UD_) */
     if (dev_attr->max_cqe < rdma_default_max_cq_size) {
-        if ((value = getenv("MV2_DEFAULT_MAX_CQ_SIZE")) == NULL) {
+        if (MV2_DEFAULT_MAX_CQ_SIZE == -1) {
             rdma_default_max_cq_size = dev_attr->max_cqe;
         } else {
             fprintf(stderr,
@@ -564,10 +587,6 @@ int rdma_find_active_port(struct ibv_context *context,
  *      Success:    MPI_SUCCESS.
  *      Failure:    ERROR (-1).
  */
-#undef FUNCNAME
-#define FUNCNAME rdma_find_network_type
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int rdma_find_network_type(struct ibv_device **dev_list, int num_devices,
                            struct ibv_device **usable_dev_list,
                            struct ibv_device **usable_devs_on_my_numa,
@@ -595,20 +614,25 @@ int rdma_find_network_type(struct ibv_device **dev_list, int num_devices,
     uint8_t fastest_hca_link_type = IBV_LINK_LAYER_UNSPECIFIED;
     int fastest_network_type = MV2_NETWORK_CLASS_UNKNOWN;
     int network_type = MV2_NETWORK_CLASS_UNKNOWN;
-    int *all_hca_rate = MPIU_Malloc(sizeof(int)*num_devices);
-    uint16_t *all_hca_sm_lid = MPIU_Malloc(sizeof(uint16_t)*num_devices);
-    uint16_t *unique_hca_sm_lid = MPIU_Malloc(sizeof(uint16_t)*num_devices);
-    uint16_t *num_hcas_in_sm = MPIU_Malloc(sizeof(uint16_t)*num_devices);
-    struct ibv_context **nic_context = MPIU_Malloc(sizeof(struct ibv_context*)*num_devices);
+    int *all_hca_rate = MPL_malloc(sizeof(int) * num_devices, MPL_MEM_OTHER);
+    uint16_t *all_hca_sm_lid = MPL_malloc(sizeof(uint16_t) * num_devices,
+                                          MPL_MEM_OTHER);
+    uint16_t *unique_hca_sm_lid = MPL_malloc(sizeof(uint16_t) * num_devices,
+                                             MPL_MEM_OTHER);
+    uint16_t *num_hcas_in_sm = MPL_malloc(sizeof(uint16_t) * num_devices,
+                                          MPL_MEM_OTHER);
+    struct ibv_context **nic_context =
+        MPL_malloc(sizeof(struct ibv_context *) * num_devices, MPL_MEM_OTHER);
 
     if (all_link_type == NULL) {
-        all_hca_link_type = MPIU_Malloc(sizeof(uint8_t) * num_devices);
+        all_hca_link_type = MPL_malloc(sizeof(uint8_t) * num_devices,
+                                       MPL_MEM_OTHER);
     } else {
         all_hca_link_type = all_link_type;
     }
 
-    if ((value = getenv("MV2_ALLOW_HETEROGENEOUS_HCA_SELECTION")) != NULL) {
-        mv2_allow_heterogeneous_hca_selection = !!atoi(value);
+    if (MV2_ALLOW_HETEROGENEOUS_HCA_SELECTION != -1) {
+        mv2_allow_heterogeneous_hca_selection = !!MV2_ALLOW_HETEROGENEOUS_HCA_SELECTION;
     }
 
     if (my_numa == -1) {
@@ -880,14 +904,14 @@ int rdma_find_network_type(struct ibv_device **dev_list, int num_devices,
                 *num_usable_hcas_on_my_numa);
 
     /* Free memory */
-    MPIU_Free(all_hca_rate);
+    MPL_free(all_hca_rate);
     if (all_link_type == NULL) {
-        MPIU_Free(all_hca_link_type);
+        MPL_free(all_hca_link_type);
     }
-    MPIU_Free(all_hca_sm_lid);
-    MPIU_Free(unique_hca_sm_lid);
-    MPIU_Free(num_hcas_in_sm);
-    MPIU_Free(nic_context);
+    MPL_free(all_hca_sm_lid);
+    MPL_free(unique_hca_sm_lid);
+    MPL_free(num_hcas_in_sm);
+    MPL_free(nic_context);
 
     return network_type;
 }
@@ -907,10 +931,6 @@ int rdma_find_network_type(struct ibv_device **dev_list, int num_devices,
  *      Success:    MPI_SUCCESS.
  *      Failure:    ERROR (-1).
  */
-#undef FUNCNAME
-#define FUNCNAME rdma_skip_network_card
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int rdma_skip_network_card(mv2_iba_network_classes network_type,
                            struct ibv_device *ib_dev)
 {
@@ -957,10 +977,6 @@ void ring_rdma_close_hca(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
     }
 }
 
-#undef FUNCNAME
-#define FUNCNAME ring_rdma_open_hca
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int ring_rdma_open_hca(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
 {
     int i = 0, j = 0;
@@ -978,7 +994,7 @@ int ring_rdma_open_hca(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
             goto fn_exit;
         }
 
-        if ((getenv("MV2_IBA_HCA") != NULL) &&
+        if ((MV2_IBA_HCA != NULL) &&
             (strcmp(rdma_iba_hcas[0], RDMA_IBA_NULL_HCA))) {
             int device_match = 0;
             for (j = 0; j < rdma_num_req_hcas; j++) {
@@ -1045,10 +1061,6 @@ int ring_rdma_open_hca(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
  *      Success:    MPI_SUCCESS.
  *      Failure:    ERROR (-1).
  */
-#undef FUNCNAME
-#define FUNCNAME rdma_open_hca
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int rdma_open_hca(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
 {
     int i = 0, j = 0, k = 0, index = 0;
@@ -1079,8 +1091,8 @@ int rdma_open_hca(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
         mv2_process_placement_aware_hca_mapping = 1;
     }
 
-    if ((value = getenv("MV2_PROCESS_PLACEMENT_AWARE_HCA_MAPPING")) != NULL) {
-        mv2_process_placement_aware_hca_mapping = !!atoi(value);
+    if (MV2_PROCESS_PLACEMENT_AWARE_HCA_MAPPING != -1) {
+        mv2_process_placement_aware_hca_mapping = !!MV2_PROCESS_PLACEMENT_AWARE_HCA_MAPPING;
     }
 
     rdma_num_hcas = 0;
@@ -1093,9 +1105,11 @@ int rdma_open_hca(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
     }
 
     /* Allocate memory for devices */
-    usable_dev_list = MPIU_Malloc(sizeof(struct ibv_device *)*num_devices);
-    all_hca_link_type = MPIU_Malloc(sizeof(uint8_t)*num_devices);
-    usable_devs_on_my_numa = MPIU_Malloc(sizeof(struct ibv_device *)*num_devices);
+    usable_dev_list = MPL_malloc(sizeof(struct ibv_device *) * num_devices,
+                                 MPL_MEM_OTHER);
+    all_hca_link_type = MPL_malloc(sizeof(uint8_t)*num_devices, MPL_MEM_OTHER);
+    usable_devs_on_my_numa = MPL_malloc(sizeof(struct ibv_device *) *
+                                        num_devices, MPL_MEM_OTHER);
 
     network_type = rdma_find_network_type(dev_list, num_devices, usable_dev_list,
                                           usable_devs_on_my_numa,
@@ -1110,7 +1124,7 @@ int rdma_open_hca(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
                         " fully support the HCA found on the system (try with"
                         " other build options)\n");
         } else {
-            if ((MPIDI_Get_num_nodes() == 1) && MPIDI_CH3I_Process.has_dpm) {
+            if ((MPIDI_MV2_Get_num_nodes() == 1) && MPIDI_CH3I_Process.has_dpm) {
                 PRINT_ERROR("HCA not found on the system. "
                             "DPM functionality requires an active HCA.\n");
             }
@@ -1120,21 +1134,21 @@ int rdma_open_hca(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
     }
 #if defined(_MCST_SUPPORT_) && defined(RDMA_CM)
     total_ips = num_devices;
-    ip_address_enabled_devices = MPIU_Malloc(num_devices * sizeof(ip_address_enabled_devices_t));
+    ip_address_enabled_devices = MPL_malloc(num_devices * sizeof(ip_address_enabled_devices_t), MPL_MEM_OTHER);
     if (!ip_address_enabled_devices) {
         MPIR_ERR_SETFATALANDSTMT1(mpi_errno, MPI_ERR_NO_MEM, goto fn_fail,
                 "**fail", "**fail %s",
                 "Failed to allocate resources for "
                 "multicast");
     }
-    MPIU_Memset(ip_address_enabled_devices, 0,
+    MPIR_Memset(ip_address_enabled_devices, 0,
                 num_devices * sizeof(ip_address_enabled_devices_t));
     mpi_errno = mv2_get_verbs_ips_dev_names(&total_ips, ip_address_enabled_devices);
     if (mpi_errno) {
         MPIR_ERR_POP(mpi_errno);
     }
     num_ip_enabled_devices = total_ips;
-    PRINT_DEBUG(DEBUG_MCST_verbose, "total ips %d\n",total_ips); 
+    PRINT_DEBUG(DEBUG_MCST_verbose, "total ips %d\n",total_ips);
     if (rdma_use_rdma_cm_mcast == 1 && num_ip_enabled_devices == 0) {
         PRINT_ERROR("No IP enabled device found. Disabling rdma_cm multicast\n");
         rdma_use_rdma_cm_mcast = 0;
@@ -1232,9 +1246,9 @@ int rdma_open_hca(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
 #if defined(_MCST_SUPPORT_) && defined(RDMA_CM)
         /* Only node leader, i.e. local rank 0, will have to worry about using
          * an IB interface with an IP address */
-        /* We don't need to skip the HCA as we change the multi rail policy to rail sharing 
+        /* We don't need to skip the HCA as we change the multi rail policy to rail sharing
          * if RDMA_CM mcast is enabled*/
-        if (rdma_use_rdma_cm_mcast == 1 && 
+        if (rdma_use_rdma_cm_mcast == 1 &&
 			rdma_skip_network_card_without_ip(ip_address_enabled_devices, total_ips, &ip_index, ib_dev)) {
 		/* If the user has specified the use of some HCAs through
 		 * MV2_IBA_HCA, then make sure that we don't skip
@@ -1287,13 +1301,13 @@ int rdma_open_hca(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
                     proc->ib_dev[rdma_num_hcas]->name,
                     mv2_selected_ib_hca_numa_info[rdma_num_hcas],
                     mv2_selected_ib_hca_socket_info[rdma_num_hcas]);
-        
+
 #if defined(_MCST_SUPPORT_) && defined(RDMA_CM)
         if (rdma_use_rdma_cm_mcast == 1 &&
             !rdma_skip_network_card_without_ip(ip_address_enabled_devices,total_ips, &ip_index, ib_dev)){
             /* We need to know the index of the first ip_address for doing mcast.
              * Has to be changed for multirail mcast. */
-            mcast_ctx = MPIU_Malloc(sizeof(mcast_context_t));
+            mcast_ctx = MPL_malloc(sizeof(mcast_context_t), MPL_MEM_OTHER);
             if (!mcast_ctx) {
                 MPIR_ERR_SETFATALANDSTMT1(mpi_errno, MPI_ERR_NO_MEM, goto fn_fail,
                         "**fail", "**fail %s",
@@ -1331,7 +1345,7 @@ int rdma_open_hca(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
             break;
         }
     }
-    
+
     /* Temporary logic to detect if a Rockport network board is selected. For
      * now, we only consider the case where one HCA is used and use 4 QPs per
      * port for RC connections */
@@ -1368,9 +1382,9 @@ int rdma_open_hca(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
 
   fn_exit:
     /* Clean up before exit */
-    MPIU_Free(usable_dev_list);
-    MPIU_Free(all_hca_link_type);
-    MPIU_Free(usable_devs_on_my_numa);
+    MPL_free(usable_dev_list);
+    MPL_free(all_hca_link_type);
+    MPL_free(usable_devs_on_my_numa);
     if (dev_list) {
         ibv_ops.free_device_list(dev_list);
     }
@@ -1390,10 +1404,6 @@ static inline int ipv6_addr_v4mapped(const struct in6_addr *a)
             (a->s6_addr32[2] ^ htonl(0x0000ffff))) == 0UL));
 }
 
-#undef FUNCNAME
-#define FUNCNAME rdma_find_best_gid_index
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int rdma_find_best_gid_index(struct ibv_context *ctx, struct ibv_port_attr *attr, int port)
 {
     int gid_index = RDMA_DEFAULT_GID_INDEX, i = 0;
@@ -1403,12 +1413,12 @@ int rdma_find_best_gid_index(struct ibv_context *ctx, struct ibv_port_attr *attr
     char gid_path[MV2_MAX_GID_PATH_LEN];
 
     /* If the link layer is ethernet (RoCEv1/RoCEv2), attempt
-     * to find the gid index of the first valid interfaces 
+     * to find the gid index of the first valid interfaces
      * supporting RoCEv1 and RoCEv2 from the gid table */
     if (attr->link_layer == IBV_LINK_LAYER_ETHERNET) {
         int first_rocev1_index = -1;
         int first_rocev2_index = -1;
-        while (i < attr->gid_tbl_len && 
+        while (i < attr->gid_tbl_len &&
                (first_rocev1_index == -1 || first_rocev2_index == -1)) {
             int ret = ibv_ops.query_gid(ctx, port, i, &temp_gid);
             if (ret == MPI_SUCCESS) {
@@ -1466,10 +1476,6 @@ int rdma_find_best_gid_index(struct ibv_context *ctx, struct ibv_port_attr *attr
     return gid_index;
 }
 
-#undef FUNCNAME
-#define FUNCNAME rdma_iba_hca_init_noqp
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int rdma_iba_hca_init_noqp(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
                            int pg_rank, int pg_size)
 {
@@ -1482,7 +1488,7 @@ int rdma_iba_hca_init_noqp(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
     /* step 1: open hca, create ptags  and create cqs */
     for (i = 0; i < rdma_num_hcas; i++) {
 
-        MPIU_Memset(&gid, 0, sizeof(gid));
+        MPIR_Memset(&gid, 0, sizeof(gid));
         if (ibv_ops.query_device(proc->nic_context[i], &dev_attr)) {
             MPIR_ERR_SETFATALANDJUMP1(mpi_errno,
                                       MPI_ERR_INTERN,
@@ -1690,10 +1696,6 @@ int rdma_iba_hca_init_noqp(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
 
 }
 
-#undef FUNCNAME
-#define FUNCNAME rdma_iba_hca_init
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int rdma_iba_hca_init(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc, int pg_rank,
                       MPIDI_PG_t * pg, struct process_init_info *info)
 {
@@ -1714,7 +1716,7 @@ int rdma_iba_hca_init(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc, int pg_rank,
     int mpi_errno = MPI_SUCCESS;
     int pg_size = MPIDI_PG_Get_size(pg);
 
-    MPIU_Memset(&gids, 0, sizeof(gids));
+    MPIR_Memset(&gids, 0, sizeof(gids));
 
     /* step 1: open hca, create ptags  and create cqs */
     for (i = 0; i < rdma_num_hcas; i++) {
@@ -1931,8 +1933,8 @@ int rdma_iba_hca_init(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc, int pg_rank,
 
         vc->mrail.num_rails = rdma_num_rails;
         if (!vc->mrail.rails) {
-            vc->mrail.rails = MPIU_Malloc
-                (sizeof *vc->mrail.rails * vc->mrail.num_rails);
+            vc->mrail.rails = MPL_malloc
+                (sizeof *vc->mrail.rails * vc->mrail.num_rails, MPL_MEM_OTHER);
 
             if (!vc->mrail.rails) {
                 MPIR_ERR_SETFATALANDSTMT1(mpi_errno, MPI_ERR_OTHER, goto err_cq,
@@ -1941,20 +1943,21 @@ int rdma_iba_hca_init(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc, int pg_rank,
                         "multirails");
             }
 
-            MPIU_Memset(vc->mrail.rails, 0,
+            MPIR_Memset(vc->mrail.rails, 0,
                     (sizeof *vc->mrail.rails * vc->mrail.num_rails));
         }
 
         if (!vc->mrail.srp.credits) {
-            vc->mrail.srp.credits = MPIU_Malloc
-                (sizeof *vc->mrail.srp.credits * vc->mrail.num_rails);
+            vc->mrail.srp.credits = MPL_malloc
+                (sizeof *vc->mrail.srp.credits * vc->mrail.num_rails,
+                 MPL_MEM_OTHER);
             if (!vc->mrail.srp.credits) {
                 MPIR_ERR_SETFATALANDSTMT1(mpi_errno, MPI_ERR_OTHER, goto err_cq,
                         "**fail", "**fail %s",
                         "Failed to allocate resources for "
                         "credits array");
             }
-            MPIU_Memset(vc->mrail.srp.credits, 0,
+            MPIR_Memset(vc->mrail.srp.credits, 0,
                     (sizeof *vc->mrail.srp.credits * vc->mrail.num_rails));
         }
 
@@ -1970,7 +1973,7 @@ int rdma_iba_hca_init(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc, int pg_rank,
             port_index = (rail_index / (vc->mrail.num_rails / (rdma_num_hcas *
                                                                rdma_num_ports)))
                 % rdma_num_ports;
-            MPIU_Memset(&attr, 0, sizeof attr);
+            MPIR_Memset(&attr, 0, sizeof attr);
             attr.cap.max_send_wr = rdma_default_max_send_wqe;
 
             if (mv2_MPIDI_CH3I_RDMA_Process.link_layer[hca_index][port_index] == IBV_LINK_LAYER_ETHERNET) {
@@ -2093,17 +2096,13 @@ int rdma_iba_hca_init(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc, int pg_rank,
 }
 
 /* Allocate memory and handlers */
-#undef FUNCNAME
-#define FUNCNAME rdma_iba_allocate_memory
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int rdma_iba_allocate_memory(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
                          int pg_rank, int pg_size)
 {
     int mpi_errno = MPI_SUCCESS;
 
-    MPIDI_STATE_DECL(MPID_STATE_RDMA_IBA_ALLOCATE_MEMORY);
-    MPIDI_FUNC_ENTER(MPID_STATE_RDMA_IBA_ALLOCATE_MEMORY);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_RDMA_IBA_ALLOCATE_MEMORY);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_RDMA_IBA_ALLOCATE_MEMORY);
 
     /* First allocate space for RDMA_FAST_PATH for every connection */
     /*
@@ -2121,11 +2120,11 @@ int rdma_iba_allocate_memory(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
 
     if (rdma_polling_set_limit > 0) {
         mv2_MPIDI_CH3I_RDMA_Process.polling_set =
-            (MPIDI_VC_t **) MPIU_Malloc(rdma_polling_set_limit *
-                                        sizeof(MPIDI_VC_t *));
+            (MPIDI_VC_t **) MPL_malloc(rdma_polling_set_limit *
+                                        sizeof(MPIDI_VC_t *), MPL_MEM_OTHER);
     } else {
         mv2_MPIDI_CH3I_RDMA_Process.polling_set =
-            (MPIDI_VC_t **) MPIU_Malloc(pg_size * sizeof(MPIDI_VC_t *));
+            (MPIDI_VC_t **) MPL_malloc(pg_size * sizeof(MPIDI_VC_t *), MPL_MEM_OTHER);
     }
 
     if (!mv2_MPIDI_CH3I_RDMA_Process.polling_set) {
@@ -2157,9 +2156,9 @@ int rdma_iba_allocate_memory(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
 
 #ifdef _ENABLE_UD_
     /* post UD buffers for SRQ or non SRQ */
-    if (rdma_enable_hybrid) { 
+    if (rdma_enable_hybrid) {
         if ((mpi_errno =
-            rdma_ud_post_buffers(&mv2_MPIDI_CH3I_RDMA_Process)) != 
+            rdma_ud_post_buffers(&mv2_MPIDI_CH3I_RDMA_Process)) !=
                 MPI_SUCCESS) {
             MPIR_ERR_POP(mpi_errno);
         }
@@ -2171,7 +2170,7 @@ int rdma_iba_allocate_memory(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
         /* we still need this condition to init the locks and mutex's */
         || rdma_use_ud_srq
 #endif
-        ) { 
+        ) {
         int hca_num = 0;
 
         pthread_spin_init(&mv2_MPIDI_CH3I_RDMA_Process.srq_post_spin_lock, 0);
@@ -2223,10 +2222,10 @@ int rdma_iba_allocate_memory(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
 #ifdef _ENABLE_UD_
         || rdma_use_ud_srq
 #endif
-        ) { 
-        int hca_num = 0; 
+        ) {
+        int hca_num = 0;
         pthread_spin_lock(&mv2_MPIDI_CH3I_RDMA_Process.srq_post_spin_lock);
-            
+
         for (hca_num = 0; hca_num < rdma_num_hcas; ++hca_num) {
             /* Start the async thread which watches for SRQ limit events */
             pthread_attr_t attr;
@@ -2252,9 +2251,9 @@ int rdma_iba_allocate_memory(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
         pthread_spin_unlock(&mv2_MPIDI_CH3I_RDMA_Process.srq_post_spin_lock);
     }
   fn_exit:
-    MPIDI_FUNC_EXIT(MPID_STATE_RDMA_IBA_ALLOCATE_MEMORY);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_RDMA_IBA_ALLOCATE_MEMORY);
     return mpi_errno;
-  
+
   fn_fail:
     goto fn_exit;
 }
@@ -2263,8 +2262,7 @@ int rdma_iba_allocate_memory(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
  * TODO add error handling
  */
 
-int
-rdma_iba_enable_connections(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
+int rdma_iba_enable_connections(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
                             int pg_rank, MPIDI_PG_t * pg,
                             struct process_init_info *info)
 {
@@ -2276,7 +2274,7 @@ rdma_iba_enable_connections(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
     MPIDI_VC_t *vc;
 
     /**********************  INIT --> RTR  ************************/
-    MPIU_Memset(&qp_attr, 0, sizeof qp_attr);
+    MPIR_Memset(&qp_attr, 0, sizeof qp_attr);
     qp_attr.qp_state = IBV_QPS_RTR;
     qp_attr.rq_psn = rdma_default_psn;
 #ifdef _ENABLE_XRC_
@@ -2381,7 +2379,7 @@ rdma_iba_enable_connections(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
     }
 
     /************** RTR --> RTS *******************/
-    MPIU_Memset(&qp_attr, 0, sizeof qp_attr);
+    MPIR_Memset(&qp_attr, 0, sizeof qp_attr);
     qp_attr.qp_state = IBV_QPS_RTS;
     qp_attr.sq_psn = rdma_default_psn;
     qp_attr.timeout = rdma_default_time_out;
@@ -2455,7 +2453,7 @@ void MRAILI_RC_Enable(MPIDI_VC_t * vc)
         vc->mrail.rfp.eager_start_cnt = 0;
         mv2_MPIDI_CH3I_RDMA_Process.rc_connections++;
         rdma_hybrid_pending_rc_conn--;
-        MPIU_Assert(vc->mrail.state & MRAILI_RC_CONNECTING);
+        MPIR_Assert(vc->mrail.state & MRAILI_RC_CONNECTING);
         if (mv2_use_eager_fast_send) {
             vc->eager_fast_max_msg_sz = MIN(DEFAULT_MEDIUM_VBUF_SIZE, rdma_fp_buffer_size);
         } else {
@@ -2499,24 +2497,24 @@ void MRAILI_Init_vc(MPIDI_VC_t * vc)
     vc->mrail.num_rails = rdma_num_rails;
 
     if (!vc->mrail.rails) {
-        vc->mrail.rails = MPIU_Malloc
-            (sizeof *vc->mrail.rails * vc->mrail.num_rails);
+        vc->mrail.rails = MPL_malloc
+            (sizeof *vc->mrail.rails * vc->mrail.num_rails, MPL_MEM_OTHER);
         if (!vc->mrail.rails) {
             ibv_error_abort(GEN_EXIT_ERR,
                             "Fail to allocate resources for multirails\n");
         }
-        MPIU_Memset(vc->mrail.rails, 0,
+        MPIR_Memset(vc->mrail.rails, 0,
                     (sizeof *vc->mrail.rails * vc->mrail.num_rails));
     }
 
     if (!vc->mrail.srp.credits) {
-        vc->mrail.srp.credits = MPIU_Malloc(sizeof(*vc->mrail.srp.credits) *
-                                            vc->mrail.num_rails);
+        vc->mrail.srp.credits = MPL_malloc(sizeof(*vc->mrail.srp.credits) *
+                                            vc->mrail.num_rails, MPL_MEM_OTHER);
         if (!vc->mrail.srp.credits) {
             ibv_error_abort(GEN_EXIT_ERR,
                             "Fail to allocate resources for credits array\n");
         }
-        MPIU_Memset(vc->mrail.srp.credits, 0,
+        MPIR_Memset(vc->mrail.srp.credits, 0,
                     (sizeof(*vc->mrail.srp.credits) * vc->mrail.num_rails));
     }
 
@@ -2540,10 +2538,10 @@ void MRAILI_Init_vc(MPIDI_VC_t * vc)
 #ifndef MV2_DISABLE_HEADER_CACHING
     vc->mrail.rfp.cached_miss = 0;
     vc->mrail.rfp.cached_hit = 0;
-    vc->mrail.rfp.cached_incoming = MPIU_Malloc(sizeof(MPIDI_CH3_Pkt_send_t));
-    vc->mrail.rfp.cached_outgoing = MPIU_Malloc(sizeof(MPIDI_CH3_Pkt_send_t));
-    MPIU_Memset(vc->mrail.rfp.cached_outgoing, 0, sizeof(MPIDI_CH3_Pkt_send_t));
-    MPIU_Memset(vc->mrail.rfp.cached_incoming, 0, sizeof(MPIDI_CH3_Pkt_send_t));
+    vc->mrail.rfp.cached_incoming = MPL_malloc(sizeof(MPIDI_CH3_Pkt_send_t), MPL_MEM_OTHER);
+    vc->mrail.rfp.cached_outgoing = MPL_malloc(sizeof(MPIDI_CH3_Pkt_send_t), MPL_MEM_OTHER);
+    MPIR_Memset(vc->mrail.rfp.cached_outgoing, 0, sizeof(MPIDI_CH3_Pkt_send_t));
+    MPIR_Memset(vc->mrail.rfp.cached_incoming, 0, sizeof(MPIDI_CH3_Pkt_send_t));
 #endif
 
     vc->mrail.cmanager.num_channels = vc->mrail.num_rails;
@@ -2558,13 +2556,13 @@ void MRAILI_Init_vc(MPIDI_VC_t * vc)
     vc->mrail.rfp.in_polling_set = 0;
 
     /* extra one channel for later increase the adaptive rdma */
-    vc->mrail.cmanager.msg_channels = MPIU_Malloc
+    vc->mrail.cmanager.msg_channels = MPL_malloc
         (sizeof *vc->mrail.cmanager.msg_channels
-         * (vc->mrail.cmanager.num_channels + 1));
+         * (vc->mrail.cmanager.num_channels + 1), MPL_MEM_OTHER);
     if (!vc->mrail.cmanager.msg_channels) {
         ibv_error_abort(GEN_EXIT_ERR, "No resource for msg channels\n");
     }
-    MPIU_Memset(vc->mrail.cmanager.msg_channels, 0,
+    MPIR_Memset(vc->mrail.cmanager.msg_channels, 0,
                 sizeof *vc->mrail.cmanager.msg_channels
                 * (vc->mrail.cmanager.num_channels + 1));
 
@@ -2660,24 +2658,24 @@ int cm_qp_reuse(MPIDI_VC_t * vc, MPIDI_VC_t * orig)
 
     vc->mrail.num_rails = rdma_num_rails;
     if (!vc->mrail.rails) {
-        vc->mrail.rails = MPIU_Malloc
-            (sizeof *vc->mrail.rails * vc->mrail.num_rails);
+        vc->mrail.rails = MPL_malloc
+            (sizeof *vc->mrail.rails * vc->mrail.num_rails, MPL_MEM_OTHER);
         if (!vc->mrail.rails) {
             ibv_error_abort(GEN_EXIT_ERR,
                             "Fail to allocate resources for multirails\n");
         }
-        MPIU_Memset(vc->mrail.rails, 0,
+        MPIR_Memset(vc->mrail.rails, 0,
                     (sizeof *vc->mrail.rails * vc->mrail.num_rails));
     }
 
     if (!vc->mrail.srp.credits) {
-        vc->mrail.srp.credits = MPIU_Malloc(sizeof *vc->mrail.srp.credits *
-                                            vc->mrail.num_rails);
+        vc->mrail.srp.credits = MPL_malloc(sizeof *vc->mrail.srp.credits *
+                                            vc->mrail.num_rails, MPL_MEM_OTHER);
         if (!vc->mrail.srp.credits) {
             ibv_error_abort(GEN_EXIT_ERR,
                             "Fail to allocate resources for credits array\n");
         }
-        MPIU_Memset(vc->mrail.srp.credits, 0,
+        MPIR_Memset(vc->mrail.srp.credits, 0,
                     (sizeof(*vc->mrail.srp.credits) * vc->mrail.num_rails));
     }
 
@@ -2734,14 +2732,14 @@ static inline int cm_qp_conn_create(MPIDI_VC_t * vc, int qptype)
 #if defined _ENABLE_XRC_ || _ENABLE_UD_
     if (!vc->mrail.rails) {
 #endif
-        vc->mrail.rails = MPIU_Malloc
-            (sizeof *vc->mrail.rails * vc->mrail.num_rails);
+        vc->mrail.rails = MPL_malloc
+            (sizeof *vc->mrail.rails * vc->mrail.num_rails, MPL_MEM_OTHER);
 
         if (!vc->mrail.rails) {
             ibv_error_abort(GEN_EXIT_ERR,
                             "Fail to allocate resources for multirails\n");
         }
-        MPIU_Memset(vc->mrail.rails, 0,
+        MPIR_Memset(vc->mrail.rails, 0,
                     (sizeof *vc->mrail.rails * vc->mrail.num_rails));
 #if defined _ENABLE_XRC_ || _ENABLE_UD_
     }
@@ -2750,13 +2748,13 @@ static inline int cm_qp_conn_create(MPIDI_VC_t * vc, int qptype)
 #if defined _ENABLE_XRC_ || _ENABLE_UD_
     if (!vc->mrail.srp.credits) {
 #endif
-        vc->mrail.srp.credits = MPIU_Malloc(sizeof *vc->mrail.srp.credits *
-                                            vc->mrail.num_rails);
+        vc->mrail.srp.credits = MPL_malloc(sizeof *vc->mrail.srp.credits *
+                                            vc->mrail.num_rails, MPL_MEM_OTHER);
         if (!vc->mrail.srp.credits) {
             ibv_error_abort(GEN_EXIT_ERR,
                             "Fail to allocate resources for credits array\n");
         }
-        MPIU_Memset(vc->mrail.srp.credits, 0,
+        MPIR_Memset(vc->mrail.srp.credits, 0,
                     (sizeof(*vc->mrail.srp.credits) * vc->mrail.num_rails));
 #if defined _ENABLE_XRC_ || _ENABLE_UD_
     }
@@ -2776,12 +2774,12 @@ static inline int cm_qp_conn_create(MPIDI_VC_t * vc, int qptype)
         } else {
             vc->mrail.rails[rail_index].is_roce = 0;
         }
-        MPIU_Memset(&attr, 0, sizeof(attr));
+        MPIR_Memset(&attr, 0, sizeof(attr));
         attr.cap.max_send_wr = rdma_default_max_send_wqe;
 #ifdef _ENABLE_XRC_
         if (USE_XRC && qptype == MV2_QPT_XRC) {
             attr.xrc_domain = mv2_MPIDI_CH3I_RDMA_Process.xrc_domain[hca_index];
-            MPIU_Assert(attr.xrc_domain != NULL);
+            MPIR_Assert(attr.xrc_domain != NULL);
             attr.qp_type = IBV_QPT_XRC;
             attr.srq = NULL;
             attr.cap.max_recv_wr = 0;
@@ -2940,12 +2938,12 @@ int cm_qp_create(MPIDI_VC_t * vc, int force, int qptype)
                             "Talking to %d Reusing conn to %d XST: 0x%08x\n",
                             vc->pg_rank, iter->vc->pg_rank,
                             iter->vc->ch.xrc_flags);
-                MPIU_Assert(vc->smp.hostid != -1);
+                MPIR_Assert(vc->smp.hostid != -1);
                 if (VC_XST_ISSET(iter->vc, XF_SEND_CONNECTING)) {
                     xrc_pending_conn_t *n;
                     VC_XST_SET(vc, XF_REUSE_WAIT);
 
-                    n = (xrc_pending_conn_t *) MPIU_Malloc(xrc_pending_conn_s);
+                    n = (xrc_pending_conn_t *) MPL_malloc(xrc_pending_conn_s, MPL_MEM_OTHER);
                     n->vc = vc;
                     n->next = iter->vc->ch.xrc_conn_queue;
                     iter->vc->ch.xrc_conn_queue = n;
@@ -2980,7 +2978,7 @@ int cm_qp_move_to_rtr(MPIDI_VC_t * vc, uint16_t * lids, union ibv_gid *gids,
 
     for (rail_index = 0; rail_index < rdma_num_rails; rail_index++) {
         hca_index = rail_index / (vc->mrail.num_rails / rdma_num_hcas);
-        MPIU_Memset(&qp_attr, 0, sizeof qp_attr);
+        MPIR_Memset(&qp_attr, 0, sizeof qp_attr);
         qp_attr.qp_state = IBV_QPS_RTR;
         qp_attr.rq_psn = rdma_default_psn;
 #ifdef _ENABLE_XRC_
@@ -3101,7 +3099,7 @@ int cm_qp_move_to_rts(MPIDI_VC_t * vc)
     int rail_index;
 
     for (rail_index = 0; rail_index < rdma_num_rails; rail_index++) {
-        MPIU_Memset(&qp_attr, 0, sizeof qp_attr);
+        MPIR_Memset(&qp_attr, 0, sizeof qp_attr);
         qp_attr.qp_state = IBV_QPS_RTS;
         qp_attr.sq_psn = rdma_default_psn;
         qp_attr.timeout = rdma_default_time_out;
@@ -3182,8 +3180,8 @@ void MRAILI_Init_vc_network(MPIDI_VC_t * vc)
 #ifndef MV2_DISABLE_HEADER_CACHING
     vc->mrail.rfp.cached_miss = 0;
     vc->mrail.rfp.cached_hit = 0;
-    vc->mrail.rfp.cached_incoming = MPIU_Malloc(sizeof(MPIDI_CH3_Pkt_send_t));
-    vc->mrail.rfp.cached_outgoing = MPIU_Malloc(sizeof(MPIDI_CH3_Pkt_send_t));
+    vc->mrail.rfp.cached_incoming = MPL_malloc(sizeof(MPIDI_CH3_Pkt_send_t), MPL_MEM_OTHER);
+    vc->mrail.rfp.cached_outgoing = MPL_malloc(sizeof(MPIDI_CH3_Pkt_send_t), MPL_MEM_OTHER);
     memset(vc->mrail.rfp.cached_outgoing, 0, sizeof(MPIDI_CH3_Pkt_send_t));
     memset(vc->mrail.rfp.cached_incoming, 0, sizeof(MPIDI_CH3_Pkt_send_t));
 #endif
@@ -3239,9 +3237,9 @@ int rdma_init_ud(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
         qp_info.cap.max_recv_wr = rdma_default_max_ud_recv_wqe;
         qp_info.srq = NULL;
         if (rdma_use_ud_srq) {
-            /* 
+            /*
              * the create function takes care of alloc size
-             * Don't set the limit here to avoid automatically tripping alarm 
+             * Don't set the limit here to avoid automatically tripping alarm
              */
             proc->ud_srq_hndl[hca_index] = create_ud_srq(proc, hca_index);
             qp_info.srq = proc->ud_srq_hndl[hca_index];
@@ -3300,12 +3298,13 @@ int rdma_ud_post_buffers(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
 }
 
 /* create ud vc */
-static inline struct ibv_ah* mv2_ud_set_vc_info (mv2_ud_exch_info_t *rem_info, union ibv_gid gid,
-                        struct ibv_pd *pd, int port, int hca_index)
+static inline struct ibv_ah* mv2_ud_set_vc_info (mv2_ud_exch_info_t *rem_info,
+                        union ibv_gid gid, struct ibv_pd *pd, int port,
+                        int hca_index)
 {
     struct ibv_ah_attr ah_attr;
 
-    MPIU_Memset(&ah_attr, 0, sizeof(ah_attr));
+    MPIR_Memset(&ah_attr, 0, sizeof(ah_attr));
 
     PRINT_DEBUG(DEBUG_UD_verbose>0, "Creating AH: hca: %d, lid:%d, qpn:%d, port: %d, gid_index: %d, roce: %d\n",
                 hca_index, rem_info->lid,rem_info->qpn, port,
@@ -3335,7 +3334,7 @@ static inline struct ibv_ah* mv2_ud_set_vc_info (mv2_ud_exch_info_t *rem_info, u
     /* Sanity check to ensure that we are not creating more AH than optimally
      * needed */
     mv2_num_ud_ah_created++;
-    MPIU_Assert(mv2_num_ud_ah_created <= MPIDI_Get_num_nodes()*MAX_NUM_HCAS);
+    MPIR_Assert(mv2_num_ud_ah_created <= MPIDI_MV2_Get_num_nodes()*MAX_NUM_HCAS);
 
     return ibv_ops.create_ah(pd, &ah_attr);
 }
@@ -3348,9 +3347,9 @@ int MPIDI_CH3I_UD_Generate_addr_handle_for_rank(MPIDI_PG_t * pg, int tgt_rank)
     int found_index = 0;
     union ibv_gid null_gid;
     MPIDI_VC_t *vc  = NULL;
-    MPID_Node_id_t node_id;
+    int node_id;
 
-    MPIU_Memset(&null_gid, 0, sizeof(union ibv_gid));
+    MPIR_Memset(&null_gid, 0, sizeof(union ibv_gid));
 
     MPIDI_PG_Get_vc(pg, tgt_rank, &vc);
 
@@ -3359,7 +3358,7 @@ int MPIDI_CH3I_UD_Generate_addr_handle_for_rank(MPIDI_PG_t * pg, int tgt_rank)
     /* Get the offset into the ud_ah array for the peer process */
     offset = node_id * MAX_NUM_HCAS;
 
-    vc->mrail.ud = MPIU_Malloc(sizeof(mv2_ud_vc_info_t) * rdma_num_hcas);
+    vc->mrail.ud = MPL_malloc(sizeof(mv2_ud_vc_info_t) * rdma_num_hcas, MPL_MEM_OTHER);
 
     for (hca_index = 0; hca_index < rdma_num_hcas; hca_index++) {
         /* Initialize found_index */
@@ -3391,8 +3390,8 @@ int MPIDI_CH3I_UD_Generate_addr_handle_for_rank(MPIDI_PG_t * pg, int tgt_rank)
         }
 
         /* Sanity checks */
-        MPIU_Assert(offset < (MPIDI_Get_num_nodes() * MAX_NUM_HCAS));
-        MPIU_Assert(offset <= ((node_id+1) * MAX_NUM_HCAS));
+        MPIR_Assert(offset < (MPIDI_MV2_Get_num_nodes() * MAX_NUM_HCAS));
+        MPIR_Assert(offset <= ((node_id+1) * MAX_NUM_HCAS));
         if (found_index == -1) {
             PRINT_DEBUG(DEBUG_UD_verbose,
                         "Generating UD_AH for lid %u gid %"PRIx64 ":%"PRIx64 " for node_id %d, tgt_rank %d\n",
@@ -3404,7 +3403,7 @@ int MPIDI_CH3I_UD_Generate_addr_handle_for_rank(MPIDI_PG_t * pg, int tgt_rank)
             pg->ch.mrail->cm_shmem.ud_lid[offset] =
                                 pg->ch.mrail->cm_shmem.remote_ud_info[tgt_rank][hca_index].lid;
             /* Store the GID */
-            MPIU_Memcpy(&pg->ch.mrail->cm_shmem.ud_gid[offset],
+            MPIR_Memcpy(&pg->ch.mrail->cm_shmem.ud_gid[offset],
                         &pg->ch.mrail->cm_shmem.remote_ud_info[tgt_rank][hca_index].gid,
                         sizeof(union ibv_gid));
             /* Store the UD_AH */
@@ -3466,11 +3465,11 @@ int mv2_ud_setup_zcopy_rndv(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
     mv2_ud_ctx_t *ud_ctx;
 
     zcopy_info->rndv_qp_pool = (mv2_rndv_qp_t *)
-        MPIU_Malloc(sizeof(mv2_rndv_qp_t) * rdma_ud_num_rndv_qps);
+        MPL_malloc(sizeof(mv2_rndv_qp_t) * rdma_ud_num_rndv_qps, MPL_MEM_OTHER);
     zcopy_info->rndv_ud_cqs = (struct ibv_cq **)
-        MPIU_Malloc(sizeof(struct ibv_cq *) * rdma_num_hcas);
+        MPL_malloc(sizeof(struct ibv_cq *) * rdma_num_hcas, MPL_MEM_OTHER);
     zcopy_info->rndv_ud_qps = (mv2_ud_ctx_t **)
-        MPIU_Malloc(sizeof(mv2_ud_ctx_t *) * rdma_num_hcas);
+        MPL_malloc(sizeof(mv2_ud_ctx_t *) * rdma_num_hcas, MPL_MEM_OTHER);
 
     for (i = 0; i < rdma_ud_num_rndv_qps; i++) {
         for (hca_index = 0; hca_index < rdma_num_hcas; hca_index++) {
@@ -3482,7 +3481,7 @@ int mv2_ud_setup_zcopy_rndv(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
                 fprintf(stderr, "Error in creating ZCOPY Rndv CQ\n");
                 return MPI_ERR_INTERN;
             }
-    
+
             qp_info.send_cq = qp_info.recv_cq = zcopy_info->rndv_qp_pool[i].ud_cq[hca_index];
             qp_info.sq_psn = rdma_default_psn;
             qp_info.pd = proc->ptag[hca_index];
@@ -3497,7 +3496,7 @@ int mv2_ud_setup_zcopy_rndv(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
                 fprintf(stderr, "Error in creating ZCOPY Rndv QP\n");
                 return MPI_ERR_INTERN;
             }
-    
+
             zcopy_info->rndv_qp_pool[i].seqnum = 0;
             zcopy_info->rndv_qp_pool[i].next = zcopy_info->rndv_qp_pool[i].prev = NULL;
         }
@@ -3509,7 +3508,7 @@ int mv2_ud_setup_zcopy_rndv(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc)
     zcopy_info->rndv_qp_pool_free_head = &zcopy_info->rndv_qp_pool[0];
 
     /* allocate and register GRH buffer */
-    zcopy_info->grh_buf = MPIU_Malloc(MV2_UD_GRH_LEN);
+    zcopy_info->grh_buf = MPL_malloc(MV2_UD_GRH_LEN, MPL_MEM_OTHER);
     zcopy_info->no_free_rndv_qp = 0;
 
     /* Setup QP for sending zcopy rndv messages */

@@ -1,8 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,6 +10,7 @@
 #ifdef HAVE_STRING_H
 #include <string.h>
 #endif
+#include "mpitest.h"
 
 #if !defined(USE_STRICT_MPI) && defined(MPICH)
 #define TEST_HINDEXED_BLOCK 1
@@ -30,7 +31,7 @@ int main(int argc, char **argv)
     int err, errs = 0;
     int rank;
 
-    MPI_Init(&argc, &argv);     /* MPI-1.2 doesn't allow for MPI_Init(0,0) */
+    MTest_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 #if defined(TEST_HINDEXED_BLOCK)
     parse_args(argc, argv);
@@ -51,17 +52,8 @@ int main(int argc, char **argv)
     errs += err;
 #endif /*defined(TEST_HINDEXED_BLOCK) */
 
-    /* print message and exit */
-    if (rank == 0) {
-        if (errs) {
-            fprintf(stderr, "Found %d errors\n", errs);
-        }
-        else {
-            printf(" No Errors\n");
-        }
-    }
-    MPI_Finalize();
-    return 0;
+    MTest_Finalize(errs);
+    return MTestReturnValue(errs);
 }
 
 #if defined(TEST_HINDEXED_BLOCK)
@@ -83,7 +75,7 @@ int hindexed_block_contig_test(void)
     MPI_Datatype newtype;
 
     int size, int_size;
-    MPI_Aint extent;
+    MPI_Aint extent, tmp_lb;
 
     err = MPI_Type_create_hindexed_block(count, 1, &disp, MPI_INT, &newtype);
     if (err != MPI_SUCCESS) {
@@ -110,7 +102,7 @@ int hindexed_block_contig_test(void)
         errs++;
     }
 
-    err = MPI_Type_extent(newtype, &extent);
+    err = MPI_Type_get_extent(newtype, &tmp_lb, &extent);
     if (err != MPI_SUCCESS) {
         if (verbose) {
             fprintf(stderr, "error obtaining type extent in hindexed_block_contig_test()\n");
@@ -139,12 +131,12 @@ int hindexed_block_contig_test(void)
         int goodval;
 
         switch (i) {
-        case 0:
-            goodval = 7;
-            break;
-        default:
-            goodval = 0;        /* pack_and_unpack() zeros before unpack */
-            break;
+            case 0:
+                goodval = 7;
+                break;
+            default:
+                goodval = 0;    /* pack_and_unpack() zeros before unpack */
+                break;
         }
         if (buf[i] != goodval) {
             errs++;
@@ -191,7 +183,7 @@ int hindexed_block_vector_test(void)
     MPI_Datatype vectype, newtype;
 
     int size, int_size;
-    MPI_Aint extent;
+    MPI_Aint extent, tmp_lb;
 
     /* create a vector type of 2 ints, skipping one in between */
     err = MPI_Type_vector(2, 1, 2, MPI_INT, &vectype);
@@ -204,7 +196,7 @@ int hindexed_block_vector_test(void)
 
     MPI_Type_commit(&vectype);
 
-    MPI_Type_extent(vectype, &extent);
+    MPI_Type_get_extent(vectype, &tmp_lb, &extent);
     for (i = 0; i < count; i++)
         disp[i] *= extent;
 
@@ -235,7 +227,7 @@ int hindexed_block_vector_test(void)
         errs++;
     }
 
-    MPI_Type_extent(newtype, &extent);
+    MPI_Type_get_extent(newtype, &tmp_lb, &extent);
 
     err = pack_and_unpack((char *) buf, 1, newtype, NELT * sizeof(int));
     if (err != 0) {

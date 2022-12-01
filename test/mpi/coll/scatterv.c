@@ -1,11 +1,12 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include "mpitest.h"
 
 /* Prototypes for picky compilers */
 void SetData(double *, double *, int, int, int, int, int, int);
@@ -68,8 +69,7 @@ int CheckData(double *recvbuf, int nx, int ny, int myrow, int mycol, int nrow, i
                 if (errs < 10) {
                     printf("Error in (%d,%d) [%d,%d] location, got %f expected %f\n",
                            m, k, myrow, mycol, p[k], val);
-                }
-                else if (errs == 10) {
+                } else if (errs == 10) {
                     printf("Too many errors; suppressing printing\n");
                 }
             }
@@ -81,18 +81,16 @@ int CheckData(double *recvbuf, int nx, int ny, int myrow, int mycol, int nrow, i
 
 int main(int argc, char **argv)
 {
-    int rank, size, myrow, mycol, nx, ny, stride, cnt, i, j, errs, errs_in_place, tot_errs;
+    int rank, size, myrow, mycol, nx, ny, stride, cnt, i, j, errs, errs_in_place;
     double *sendbuf, *recvbuf;
-    MPI_Datatype vec, block, types[2];
-    MPI_Aint displs[2];
+    MPI_Datatype vec, block;
     int *scdispls;
-    int blens[2];
     MPI_Comm comm2d;
     int dims[2], periods[2], coords[2], lcoords[2];
     int *sendcounts;
 
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
@@ -131,14 +129,7 @@ int main(int argc, char **argv)
     scdispls = (int *) malloc(size * sizeof(int));
 
     MPI_Type_vector(ny, nx, stride, MPI_DOUBLE, &vec);
-    blens[0] = 1;
-    blens[1] = 1;
-    types[0] = vec;
-    types[1] = MPI_UB;
-    displs[0] = 0;
-    displs[1] = nx * sizeof(double);
-
-    MPI_Type_struct(2, blens, displs, types, &block);
+    MPI_Type_create_resized(vec, 0, nx * sizeof(double), &block);
     MPI_Type_free(&vec);
     MPI_Type_commit(&block);
 
@@ -171,13 +162,6 @@ int main(int argc, char **argv)
     }
 
     errs += errs_in_place;
-    MPI_Allreduce(&errs, &tot_errs, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-    if (rank == 0) {
-        if (tot_errs == 0)
-            printf(" No Errors\n");
-        else
-            printf("%d errors in use of MPI_SCATTERV\n", tot_errs);
-    }
 
     if (sendbuf)
         free(sendbuf);
@@ -186,6 +170,6 @@ int main(int argc, char **argv)
     free(scdispls);
     MPI_Type_free(&block);
     MPI_Comm_free(&comm2d);
-    MPI_Finalize();
-    return errs;
+    MTest_Finalize(errs);
+    return MTestReturnValue(errs);
 }

@@ -1,8 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpioimpl.h"
 #include "mpiu_greq.h"
 
@@ -13,7 +13,7 @@
 #include "mpioprof.h"
 #endif
 
-int MPIU_Greq_query_fn(void *extra_state, MPI_Status *status)
+int MPIU_Greq_query_fn(void *extra_state, MPI_Status * status)
 {
     int foo;
 
@@ -36,13 +36,14 @@ int MPIU_Greq_free_fn(void *extra_state)
 {
     /* frees the memory allocated in MPIO_Completed_request_create */
     ADIOI_Free(extra_state);
-	
+
     return MPI_SUCCESS;
 }
+
 int MPIU_Greq_cancel_fn(void *extra_state, int complete)
 {
-    MPIU_UNREFERENCED_ARG(extra_state);
-    MPIU_UNREFERENCED_ARG(complete);
+    MPL_UNREFERENCED_ARG(extra_state);
+    MPL_UNREFERENCED_ARG(complete);
 
     /* can't cancel */
     return MPI_SUCCESS;

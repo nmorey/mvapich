@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include <mpi.h>
 #include <stdio.h>
 #include <assert.h>
@@ -18,7 +17,7 @@ int main(int argc, char *argv[])
     int *buf;
     MPI_Win window;
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &nproc);
 
@@ -33,8 +32,7 @@ int main(int argc, char *argv[])
     if (rank == 0) {
         MPI_Alloc_mem(4 * sizeof(int), MPI_INFO_NULL, &buf);
         *buf = nproc - 1;
-    }
-    else
+    } else
         buf = NULL;
 
     MPI_Win_create(buf, 4 * sizeof(int) * (rank == 0), sizeof(int),
@@ -292,12 +290,7 @@ int main(int argc, char *argv[])
     if (buf)
         MPI_Free_mem(buf);
 
-    MPI_Reduce(&errors, &all_errors, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+    MTest_Finalize(errors);
 
-    if (rank == 0 && all_errors == 0)
-        printf(" No Errors\n");
-
-    MPI_Finalize();
-
-    return 0;
+    return MTestReturnValue(all_errors);
 }

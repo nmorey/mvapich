@@ -1,8 +1,6 @@
-## -*- Mode: Makefile; -*-
-## vim: set ft=automake :
 ##
-## (C) 2011 by Argonne National Laboratory.
-##     See COPYRIGHT in top-level directory.
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
 ##
 
 
@@ -32,4 +30,3 @@ src_util_logging_rlog_printrlog_LDADD      = lib/librlogutil.la
 #src_util_logging_rlog_minalignrlog_SOURCES = src/util/logging/rlog/minalignrlog.c $(irlog_sources)
 
 endif BUILD_LOGGING_RLOG
-

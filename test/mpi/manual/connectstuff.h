@@ -1,5 +1,10 @@
-#ifndef _CONNECTSTUFF
-#define _CONNECTSTUFF
+/*
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
+ */
+
+#ifndef CONNECTSTUFF_H_INCLUDED
+#define CONNECTSTUFF_H_INCLUDED
 
 /* handlers */
 void startWatchdog(int seconds);
@@ -15,4 +20,4 @@ void safeSleep(double seconds);
 char *getPortFromFile(const char *fmt, ...);
 char *writePortToFile(const char *port, const char *fmt, ...);
 
-#endif
+#endif /* CONNECTSTUFF_H_INCLUDED */

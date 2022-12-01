@@ -1,8 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include "stdio.h"
 #include "mpitest.h"
@@ -34,8 +34,7 @@ int main(int argc, char *argv[])
         if (rank == 0) {
             for (i = 0; i < SIZE; i++)
                 A[i] = B[i] = i;
-        }
-        else {
+        } else {
             for (i = 0; i < SIZE; i++) {
                 A[i] = (-3) * i;
                 B[i] = (-4) * i;
@@ -49,8 +48,7 @@ int main(int argc, char *argv[])
         if (rank == 0) {
             for (i = 0; i < SIZE - 1; i++)
                 MPI_Put(A + i, 1, MPI_INT, 1, i, 1, MPI_INT, win);
-        }
-        else {
+        } else {
             for (i = 0; i < SIZE - 1; i++)
                 MPI_Get(A + i, 1, MPI_INT, 0, i, 1, MPI_INT, win);
 
@@ -65,8 +63,7 @@ int main(int argc, char *argv[])
                     errs++;
                 }
             }
-        }
-        else {
+        } else {
             if (B[SIZE - 1] != SIZE - 1 - 3 * (SIZE - 1)) {
                 SQUELCH(printf
                         ("Accumulate Error: B[SIZE-1] is %d, should be %d\n", B[SIZE - 1],
@@ -78,6 +75,5 @@ int main(int argc, char *argv[])
     }
     MPI_Comm_free(&CommDeuce);
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

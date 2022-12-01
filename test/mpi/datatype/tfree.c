@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -81,8 +80,7 @@ int main(int argc, char *argv[])
             MPI_Type_free(&tmpType[i]);
         }
         free(buf);
-    }
-    else if (rank == source) {
+    } else if (rank == source) {
         buf = (int *) malloc(VEC_NELM * sizeof(int));
         for (i = 0; i < VEC_NELM; i++)
             buf[i] = i;
@@ -99,6 +97,5 @@ int main(int argc, char *argv[])
 
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

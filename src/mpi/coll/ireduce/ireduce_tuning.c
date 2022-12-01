@@ -1,0 +1,437 @@
+/* Copyright (c) 2001-2022, The Ohio State University. All rights
+ * reserved.
+ *
+ * This file is part of the MVAPICH2 software package developed by the
+ * team members of The Ohio State University's Network-Based Computing
+ * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
+ *
+ * For detailed copyright and licensing information, please refer to the
+ * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ *
+ */
+
+#include <regex.h>
+#include "ireduce_tuning.h"
+#include "mv2_common_tuning.h"
+
+/* TODO: This should be moved to the pre-header as it is in ch4 */
+#ifdef CHANNEL_MRAIL
+#include "mv2_arch_hca_detect.h"
+#endif
+
+/* array used to tune ireduce */
+
+int mv2_size_ireduce_tuning_table = 0;
+mv2_ireduce_tuning_table *mv2_ireduce_thresholds_table = NULL;
+
+int MV2_set_ireduce_tuning_table(int heterogeneity)
+{
+#if defined(CHANNEL_MRAIL) && !defined(_MV2_CH4_OVERRIDE_)
+    if (MV2_IS_ARCH_HCA_TYPE(MV2_get_arch_hca_type(),
+		MV2_ARCH_AMD_OPTERON_6136_32, MV2_HCA_MLX_CX_QDR) && !heterogeneity) {
+      
+	/*Trestles Table*/
+	mv2_size_ireduce_tuning_table = 5;
+	mv2_ireduce_thresholds_table = MPL_malloc(mv2_size_ireduce_tuning_table *
+						  sizeof (mv2_ireduce_tuning_table), MPL_MEM_COLL);
+	mv2_ireduce_tuning_table mv2_tmp_ireduce_thresholds_table[] = {
+	    {8,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {16,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {32,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {64,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {128,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    }
+      };
+    
+      MPIR_Memcpy(mv2_ireduce_thresholds_table, mv2_tmp_ireduce_thresholds_table,
+		  mv2_size_ireduce_tuning_table * sizeof (mv2_ireduce_tuning_table));
+    } else if (MV2_IS_ARCH_HCA_TYPE(MV2_get_arch_hca_type(),
+		MV2_ARCH_INTEL_XEON_E5_2670_16, MV2_HCA_MLX_CX_FDR) && !heterogeneity) {
+
+	/*Gordon Table*/
+	mv2_size_ireduce_tuning_table = 5;
+	mv2_ireduce_thresholds_table = MPL_malloc(mv2_size_ireduce_tuning_table *
+						  sizeof (mv2_ireduce_tuning_table), MPL_MEM_COLL);
+	mv2_ireduce_tuning_table mv2_tmp_ireduce_thresholds_table[] = {
+	    {8,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {16,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {32,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {64,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {128,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    }
+      };
+    
+      MPIR_Memcpy(mv2_ireduce_thresholds_table, mv2_tmp_ireduce_thresholds_table,
+		  mv2_size_ireduce_tuning_table * sizeof (mv2_ireduce_tuning_table));
+    }
+    else if (MV2_IS_ARCH_HCA_TYPE(MV2_get_arch_hca_type(),
+		MV2_ARCH_INTEL_XEON_E5_2680_16, MV2_HCA_MLX_CX_FDR) && !heterogeneity) {
+      
+	/*Stampede,*/
+	mv2_size_ireduce_tuning_table = 8;
+	mv2_ireduce_thresholds_table = MPL_malloc(mv2_size_ireduce_tuning_table *
+						  sizeof (mv2_ireduce_tuning_table), MPL_MEM_COLL);
+	mv2_ireduce_tuning_table mv2_tmp_ireduce_thresholds_table[] = {
+	    {8,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {16,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {32,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {64,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {128,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {256,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {512,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {1024,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    }
+      };
+    
+      MPIR_Memcpy(mv2_ireduce_thresholds_table, mv2_tmp_ireduce_thresholds_table,
+		  mv2_size_ireduce_tuning_table * sizeof (mv2_ireduce_tuning_table));
+    }
+    else
+    {
+        
+	/*RI*/
+	mv2_size_ireduce_tuning_table = 7;
+	mv2_ireduce_thresholds_table = MPL_malloc(mv2_size_ireduce_tuning_table *
+						  sizeof (mv2_ireduce_tuning_table), MPL_MEM_COLL);
+	mv2_ireduce_tuning_table mv2_tmp_ireduce_thresholds_table[] = {
+	    {8,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {16,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {32,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {64,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {128,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {256,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {512,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    }
+      };
+    
+      MPIR_Memcpy(mv2_ireduce_thresholds_table, mv2_tmp_ireduce_thresholds_table,
+		  mv2_size_ireduce_tuning_table * sizeof (mv2_ireduce_tuning_table));
+    }
+#else /* defined(CHANNEL_MRAIL) && !defined(_MV2_CH4_OVERRIDE_) */
+        
+	/*RI*/
+	mv2_size_ireduce_tuning_table = 7;
+	mv2_ireduce_thresholds_table = MPL_malloc(mv2_size_ireduce_tuning_table *
+						  sizeof (mv2_ireduce_tuning_table), MPL_MEM_COLL);
+	mv2_ireduce_tuning_table mv2_tmp_ireduce_thresholds_table[] = {
+	    {8,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {16,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {32,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {64,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {128,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {256,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    },
+	    {512,
+	     8192, 4, 4,
+	     {0},
+	     1, {{0, -1, &MPIR_Ireduce_intra_sched_binomial, -1}},
+	     1, {{0, -1, NULL, -1}}
+	    }
+      };
+    
+      MPIR_Memcpy(mv2_ireduce_thresholds_table, mv2_tmp_ireduce_thresholds_table,
+		  mv2_size_ireduce_tuning_table * sizeof (mv2_ireduce_tuning_table));
+#endif
+    return MPI_SUCCESS;
+}
+
+void MV2_cleanup_ireduce_tuning_table()
+{
+    if (mv2_ireduce_thresholds_table != NULL) {
+	MPL_free(mv2_ireduce_thresholds_table);
+    }
+
+}
+
+/* Return the number of separator inside a string */
+static int count_sep(char *string)
+{
+    return *string == '\0' ? 0 : (count_sep(string + 1) + (*string == ','));
+}
+
+int MV2_internode_Ireduce_is_define(char *mv2_user_ireduce_inter, char *mv2_user_ireduce_intra)
+{
+
+    int i;
+    int nb_element = count_sep(mv2_user_ireduce_inter) + 1;
+
+    /* If one ireduce tuning table is already defined */
+    if (mv2_ireduce_thresholds_table != NULL) {
+	MPL_free(mv2_ireduce_thresholds_table);
+    }
+
+    mv2_ireduce_tuning_table mv2_tmp_ireduce_thresholds_table[1];
+    mv2_size_ireduce_tuning_table = 1;
+
+    /* We realloc the space for the new ireduce tuning table */
+    mv2_ireduce_thresholds_table = MPL_malloc(mv2_size_ireduce_tuning_table *
+					     sizeof (mv2_ireduce_tuning_table), MPL_MEM_COLL);
+
+    if (nb_element == 1) {
+      //consider removing some fields underneath
+	mv2_tmp_ireduce_thresholds_table[0].numproc = 1;
+	mv2_tmp_ireduce_thresholds_table[0].ireduce_segment_size = ireduce_segment_size;
+	mv2_tmp_ireduce_thresholds_table[0].inter_node_knomial_factor = mv2_inter_node_knomial_factor;
+	mv2_tmp_ireduce_thresholds_table[0].intra_node_knomial_factor = mv2_intra_node_knomial_factor;
+	mv2_tmp_ireduce_thresholds_table[0].is_two_level_ireduce[0] = 1;
+	mv2_tmp_ireduce_thresholds_table[0].size_inter_table = 1;
+	mv2_tmp_ireduce_thresholds_table[0].inter_leader[0].min = 0;
+	mv2_tmp_ireduce_thresholds_table[0].inter_leader[0].max = -1;
+        mv2_tmp_ireduce_thresholds_table[0].intra_node[0].min = 0;
+        mv2_tmp_ireduce_thresholds_table[0].intra_node[0].max = -1;
+	switch (atoi(mv2_user_ireduce_inter)) {
+	case IREDUCE_BINOMIAL:
+	    mv2_tmp_ireduce_thresholds_table[0].inter_leader[0].MV2_pt_Ireduce_function =
+		&MPIR_Ireduce_intra_sched_binomial;
+	    mv2_tmp_ireduce_thresholds_table[0].is_two_level_ireduce[0] = 0;
+	    break;
+	case IREDUCE_REDSCAT_GATHER:
+	    mv2_tmp_ireduce_thresholds_table[0].inter_leader[0].MV2_pt_Ireduce_function =
+		&MPIR_Ireduce_intra_sched_reduce_scatter_gather;
+	    mv2_tmp_ireduce_thresholds_table[0].is_two_level_ireduce[0] = 0;
+	    break;
+	default:
+	    mv2_tmp_ireduce_thresholds_table[0].inter_leader[0].MV2_pt_Ireduce_function =
+		&MPIR_Ireduce_intra_sched_binomial;
+	    mv2_tmp_ireduce_thresholds_table[0].is_two_level_ireduce[0] = 0;
+	    break;
+	}
+	if (mv2_user_ireduce_intra == NULL) {
+	    mv2_tmp_ireduce_thresholds_table[0].intra_node[0].MV2_pt_Ireduce_function = NULL;
+	} else {
+	    mv2_tmp_ireduce_thresholds_table[0].intra_node[0].MV2_pt_Ireduce_function = NULL;
+	}
+    } else {
+	char *dup, *p, *save_p;
+	regmatch_t match[NMATCH];
+	regex_t preg;
+	const char *regexp = "([0-9]+):([0-9]+)-([0-9]+|\\+)";
+
+	if (!(dup = MPL_strdup(mv2_user_ireduce_inter))) {
+	    fprintf(stderr, "failed to duplicate `%s'\n", mv2_user_ireduce_inter);
+	    return MPI_ERR_INTERN;
+	}
+
+	if (regcomp(&preg, regexp, REG_EXTENDED)) {
+	    fprintf(stderr, "failed to compile regexp `%s'\n", mv2_user_ireduce_inter);
+	    MPL_free(dup);
+	    return MPI_ERR_INTERN;
+	}
+
+	mv2_tmp_ireduce_thresholds_table[0].numproc = 1;
+	mv2_tmp_ireduce_thresholds_table[0].ireduce_segment_size = ireduce_segment_size;
+	mv2_tmp_ireduce_thresholds_table[0].inter_node_knomial_factor = mv2_inter_node_knomial_factor;
+	mv2_tmp_ireduce_thresholds_table[0].intra_node_knomial_factor = mv2_intra_node_knomial_factor;
+	mv2_tmp_ireduce_thresholds_table[0].size_inter_table = nb_element;
+	i = 0;
+	for (p = strtok_r(dup, ",", &save_p); p; p = strtok_r(NULL, ",", &save_p)) {
+	    if (regexec(&preg, p, NMATCH, match, 0)) {
+		fprintf(stderr, "failed to match on `%s'\n", p);
+		regfree(&preg);
+		MPL_free(dup);
+		return 2;
+	    }
+	    /* given () start at 1 */
+	    switch (atoi(p + match[1].rm_so)) {
+	    case IREDUCE_BINOMIAL:
+	        mv2_tmp_ireduce_thresholds_table[0].inter_leader[0].MV2_pt_Ireduce_function =
+	        	&MPIR_Ireduce_intra_sched_binomial;
+	        mv2_tmp_ireduce_thresholds_table[0].is_two_level_ireduce[0] = 0;
+	        break;
+	    case IREDUCE_REDSCAT_GATHER:
+	        mv2_tmp_ireduce_thresholds_table[0].inter_leader[0].MV2_pt_Ireduce_function =
+	        	&MPIR_Ireduce_intra_sched_reduce_scatter_gather;
+	        mv2_tmp_ireduce_thresholds_table[0].is_two_level_ireduce[0] = 0;
+	        break;
+	    default:
+	        mv2_tmp_ireduce_thresholds_table[0].inter_leader[0].MV2_pt_Ireduce_function =
+	        	&MPIR_Ireduce_intra_sched_binomial;
+	        mv2_tmp_ireduce_thresholds_table[0].is_two_level_ireduce[0] = 0;
+	        break;
+	    }
+	    mv2_tmp_ireduce_thresholds_table[0].inter_leader[i].min = atoi(p +
+									 match[2].rm_so);
+	    if (p[match[3].rm_so] == '+') {
+		mv2_tmp_ireduce_thresholds_table[0].inter_leader[i].max = -1;
+	    } else {
+		mv2_tmp_ireduce_thresholds_table[0].inter_leader[i].max =
+		    atoi(p + match[3].rm_so);
+	    }
+
+	    i++;
+	}
+	MPL_free(dup);
+	regfree(&preg);
+    }
+    mv2_tmp_ireduce_thresholds_table[0].size_intra_table = 1;
+    if (mv2_user_ireduce_intra == NULL) {
+	mv2_tmp_ireduce_thresholds_table[0].intra_node[0].MV2_pt_Ireduce_function = NULL;
+    } else {
+        mv2_tmp_ireduce_thresholds_table[0].intra_node[0].MV2_pt_Ireduce_function = NULL;
+    }
+    MPIR_Memcpy(mv2_ireduce_thresholds_table, mv2_tmp_ireduce_thresholds_table, sizeof
+		(mv2_ireduce_tuning_table));
+    return MPI_SUCCESS;
+}
+
+int MV2_intranode_Ireduce_is_define(char *mv2_user_ireduce_intra)
+{
+
+    int i, j;
+    for (i = 0; i < mv2_size_ireduce_tuning_table; i++) {
+	for (j = 0; j < mv2_ireduce_thresholds_table[i].size_intra_table; j++) {
+	    mv2_ireduce_thresholds_table[i].intra_node[j].MV2_pt_Ireduce_function = NULL;
+	}
+    }
+    return MPI_SUCCESS;
+}

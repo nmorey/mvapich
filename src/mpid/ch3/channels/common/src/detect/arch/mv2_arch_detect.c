@@ -23,7 +23,7 @@
 
 #include "hwloc_bind.h"
 #include "mv2_arch_hca_detect.h"
-#include "debug_utils.h"
+#include "mv2_debug_utils.h"
 #include "upmi.h"
 #include "mpi.h"
 
@@ -827,7 +827,7 @@ void hwlocSocketDetection(int print_details)
             printf("\n");
         }
     }   
-    MPIU_Free(str);
+    MPL_free(str);
 }
 
 //Check the core, where the process is bound to
@@ -893,13 +893,13 @@ int getProcessBinding(pid_t pid)
         j=core_bind[0]-offset;
         if(node[i][j]== j+offset)
         {
-	        MPIU_Free(str);
+	        MPL_free(str);
             hwloc_bitmap_free(cpubind_set);
             return i; /*index of socket where the process is bound*/
         }
     }   
     fprintf(stderr, "Error: Process not bound on any core ??\n");
-    MPIU_Free(str);
+    MPL_free(str);
     hwloc_bitmap_free(cpubind_set);
     return -1;
 }
@@ -1165,7 +1165,7 @@ int mv2_set_force_arch_type()
 }
 void mv2_free_arch_handle () {
     if (mv2_force_arch_type_handle) {
-        MPIU_Free(mv2_force_arch_type_handle);
+        MPL_free(mv2_force_arch_type_handle);
         mv2_force_arch_type_handle = NULL;
     }
 }

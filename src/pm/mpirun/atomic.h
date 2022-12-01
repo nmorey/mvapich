@@ -13,30 +13,30 @@
 #ifndef _ATOMIC_H
 #define _ATOMIC_H
 
-#include "opa_primitives.h"
+#include "mpl_atomic.h"
 
-typedef OPA_int_t atomic_t;
+typedef MPL_atomic_int_t atomic_t;
 
 #define ATOMIC_INIT(i)  OPA_INT_T_INITIALIZER(i)
 
 static inline int atomic_read(atomic_t * ptr)
 {
-    return OPA_load_int(ptr);
+    return MPL_atomic_load_int(ptr);
 }
 
 static inline void atomic_set(atomic_t * ptr, int val)
 {
-    OPA_store_int(ptr, val);
+    MPL_atomic_store_int(ptr, val);
 }
 
 static inline void atomic_add(int i, atomic_t * v)
 {
-    OPA_add_int(v, i);
+    MPL_atomic_fetch_add_int(v, i);
 }
 
 static inline void atomic_sub(int i, atomic_t * v)
 {
-    OPA_add_int(v, -i);
+    MPL_atomic_fetch_sub_int(v, i);
 }
 
 /**
@@ -46,7 +46,7 @@ static inline void atomic_sub(int i, atomic_t * v)
  */
 static inline int atomic_sub_and_test(int i, atomic_t * v)
 {
-    int tmp = OPA_fetch_and_add_int(v, -i);
+    int tmp = MPL_atomic_fetch_sub_int(v, i);
     return (tmp - i == 0);
 }
 
@@ -55,7 +55,7 @@ static inline int atomic_sub_and_test(int i, atomic_t * v)
  */
 static inline void atomic_inc(atomic_t * v)
 {
-    OPA_incr_int(v);
+    MPL_atomic_fetch_add_int(v, 1);
 }
 
 /**
@@ -65,7 +65,7 @@ static inline void atomic_inc(atomic_t * v)
  */
 static inline int atomic_inc_and_test(atomic_t * v)
 {
-    int tmp = OPA_fetch_and_incr_int(v);
+    int tmp = MPL_atomic_fetch_add_int(v, 1);
     return (tmp + 1 == 0);
 }
 
@@ -75,7 +75,7 @@ static inline int atomic_inc_and_test(atomic_t * v)
  */
 static inline void atomic_dec(atomic_t * v)
 {
-    OPA_decr_int(v);
+    MPL_atomic_fetch_sub_int(v, 1);
 }
 
 /**
@@ -85,7 +85,8 @@ static inline void atomic_dec(atomic_t * v)
  */
 static inline int atomic_dec_and_test(atomic_t * v)
 {
-    return (OPA_decr_and_test_int(v) == 0);
+    int tmp = MPL_atomic_fetch_sub_int(v, 1);
+    return (tmp - 1 == 0);
 }
 
 /**
@@ -95,7 +96,7 @@ static inline int atomic_dec_and_test(atomic_t * v)
  */
 static inline int atomic_add_negative(int i, atomic_t * v)
 {
-    int tmp = OPA_fetch_and_add_int(v, i);
+    int tmp = MPL_atomic_fetch_add_int(v, i);
     return (tmp + i < 0);
 }
 

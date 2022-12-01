@@ -1,5 +1,9 @@
 #! /usr/bin/env perl
-#
+##
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
+##
+
 # This file contains common routines for reading a file of function prototypes
 # (such as mpi.h) and extracting the function prototypes.
 
@@ -53,6 +57,7 @@ sub ReadInterface {
                 $args .= <FD>;
             }
             $args =~ s/MPICH_ATTR[A-Z_]*\([^)]*\)//g;
+            $args =~ s/MPICH_API_PUBLIC//g;
             $args =~ s/\)\s*;//g;
             $args =~ s/[\r\n]*//g;
             # remove qualifiers from args

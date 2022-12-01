@@ -49,7 +49,7 @@ struct MPIDI_CH3I_RDMA_put_get_list_t{
     int     op_type;
     /* op_type, SIGNAL_FOR_PUT or
      * SIGNAL_FOR_GET */
-    MPIDI_msg_sz_t     data_size;
+    intptr_t     data_size;
     struct  dreg_entry * mem_entry; /* mem region registered on the fly*/
     void    *target_addr;   /* get use only */
     void    *origin_addr;   /* get use only, tmp buffer for small msg,
@@ -57,7 +57,7 @@ struct MPIDI_CH3I_RDMA_put_get_list_t{
                              */
     int     completion; /* deregister when complete is 0 */
     int     target_rank;
-    MPID_Win    *win_ptr;
+    MPIR_Win    *win_ptr;
     struct MPIDI_VC* vc_ptr;
     put_get_list_entry_stat status;
 };
@@ -65,7 +65,7 @@ struct MPIDI_CH3I_RDMA_put_get_list_t{
 #define Calculate_IOV_len(_iov, _n_iov, _len)                   \
 {   int _i; (_len) = 0;                                         \
     for (_i = 0; _i < (_n_iov); _i ++) {                        \
-        (_len) += (_iov)[_i].MPL_IOV_LEN;                      \
+        (_len) += (_iov)[_i].iov_len;                      \
     }                                                           \
 }
 
@@ -143,23 +143,23 @@ struct MPIDI_CH3I_RDMA_put_get_list_t{
     if (NULL == (c)->mrail.sreq_tail) {                         \
         (c)->mrail.sreq_head = (void *)(s);                     \
     } else {                                                    \
-        ((MPID_Request *)                                       \
+        ((MPIR_Request *)                                       \
          (c)->mrail.sreq_tail)->mrail.next_inflow =             \
             (void *)(s);                                        \
     }                                                           \
     (c)->mrail.sreq_tail = (void *)(s);                         \
-    ((MPID_Request *)(s))->mrail.next_inflow = NULL;            \
+    ((MPIR_Request *)(s))->mrail.next_inflow = NULL;            \
 }
 
 #define RENDEZVOUS_DONE(c) {                                    \
-    MPID_Request *req = (c)->mrail.sreq_head;                   \
+    MPIR_Request *req = (c)->mrail.sreq_head;                   \
     (c)->mrail.sreq_head =                                      \
-    ((MPID_Request *)                                           \
+    ((MPIR_Request *)                                           \
      (c)->mrail.sreq_head)->mrail.next_inflow;                  \
         if (NULL == (c)->mrail.sreq_head) {                     \
             (c)->mrail.sreq_tail = NULL;                        \
         }                                                       \
-    MPID_Request_release(req);                                  \
+    MPIR_Request_free(req);                                  \
 }
 
 #define MPIDI_CH3I_MRAIL_REVERT_RPUT(_sreq)                     \
@@ -196,10 +196,10 @@ struct MPIDI_CH3I_RDMA_put_get_list_t{
         (_pkt)->rndv.ipc_displ = (_req)->mrail.ipc_displ;       \
         (_pkt)->rndv.ipc_baseptr = (_req)->mrail.ipc_baseptr;   \
         (_pkt)->rndv.ipc_size = (_req)->mrail.ipc_size;         \
-        MPIU_Memcpy(&(_pkt)->rndv.ipc_memhandle,                \
+        MPIR_Memcpy(&(_pkt)->rndv.ipc_memhandle,                \
                     &(_req)->mrail.ipc_memhandle,               \
                     sizeof(deviceIpcMemHandle_t));              \
-        MPIU_Memcpy(&(_pkt)->rndv.ipc_eventhandle,              \
+        MPIR_Memcpy(&(_pkt)->rndv.ipc_eventhandle,              \
                     &(_req)->mrail.ipc_eventhandle,             \
                     sizeof(deviceIpcEventHandle_t));            \
     }                                                           \
@@ -230,7 +230,7 @@ struct MPIDI_CH3I_RDMA_put_get_list_t{
 do {                                                            \
     if (1 == req->mrail.rndv_buf_alloc                          \
             && NULL != req->mrail.rndv_buf) {                   \
-        MPIU_Free(req->mrail.rndv_buf);                         \
+        MPL_free(req->mrail.rndv_buf);                         \
         req->mrail.rndv_buf_alloc = 0;                          \
         req->mrail.rndv_buf_off = 0;                            \
         req->mrail.rndv_buf_sz = 0;                             \
@@ -294,14 +294,14 @@ int MRAILI_Send_noop_if_needed(struct MPIDI_VC* vc, int rail);
 int MRAILI_Send_rdma_credit_if_needed(struct MPIDI_VC* vc);
 
 /* Following interface for rndv msgs */
-void MPIDI_CH3I_MRAILI_Rendezvous_rput_push(struct MPIDI_VC* vc, MPID_Request * sreq);
+void MPIDI_CH3I_MRAILI_Rendezvous_rput_push(struct MPIDI_VC* vc, MPIR_Request * sreq);
 
-void MPIDI_CH3I_MRAILI_Rendezvous_rget_push(struct MPIDI_VC* vc, MPID_Request * sreq);
+void MPIDI_CH3I_MRAILI_Rendezvous_rget_push(struct MPIDI_VC* vc, MPIR_Request * sreq);
 
 #ifdef _ENABLE_UD_
 /* UD ZCOPY RNDV interface */
 void MPIDI_CH3I_MRAILI_Rendezvous_zcopy_push(struct MPIDI_VC * vc,
-                                             MPID_Request * sreq,
+                                             MPIR_Request * sreq,
                                              mv2_ud_zcopy_info_t *zcopy_info);
 #endif
 

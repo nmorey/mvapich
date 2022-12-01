@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2008 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "hydra_server.h"
@@ -13,7 +12,7 @@
 #include "ui.h"
 #include "uiu.h"
 
-struct HYD_server_info_s HYD_server_info = { {0} };
+struct HYD_server_info_s HYD_server_info;
 
 struct HYD_exec *HYD_uii_mpx_exec_list = NULL;
 struct HYD_ui_info_s HYD_ui_info;
@@ -26,26 +25,6 @@ static void signal_cb(int signum)
     int sent, closed;
 
     HYDU_FUNC_ENTER();
-
-    /* SIGALRM is a special signal that indicates that a checkpoint
-     * needs to be initiated */
-    if (signum == SIGALRM) {
-        if (HYD_server_info.user_global.ckpoint_prefix == NULL) {
-            HYDU_dump(stderr, "No checkpoint prefix provided\n");
-            return;
-        }
-
-#if HAVE_ALARM
-        if (HYD_ui_mpich_info.ckpoint_int != -1)
-            alarm(HYD_ui_mpich_info.ckpoint_int);
-#endif /* HAVE_ALARM */
-
-        cmd.type = HYD_CKPOINT;
-        HYDU_sock_write(HYD_server_info.cmd_pipe[1], &cmd, sizeof(cmd), &sent, &closed,
-                        HYDU_SOCK_COMM_MSGWAIT);
-
-        goto fn_exit;
-    }
 
     cmd.type = HYD_SIGNAL;
     cmd.signum = signum;
@@ -103,7 +82,7 @@ static HYD_status qsort_node_list(void)
     for (count = 0, node = HYD_server_info.node_list; node; node = node->next, count++)
         /* skip */ ;
 
-    HYDU_MALLOC(node_list, struct HYD_node **, count * sizeof(struct HYD_node *), status);
+    HYDU_MALLOC_OR_JUMP(node_list, struct HYD_node **, count * sizeof(struct HYD_node *), status);
     for (i = 0, node = HYD_server_info.node_list; node; node = node->next, i++)
         node_list[i] = node;
 
@@ -117,7 +96,7 @@ static HYD_status qsort_node_list(void)
     }
     HYD_server_info.node_list = new_list;
 
-    HYDU_FREE(node_list);
+    MPL_free(node_list);
 
   fn_exit:
     return status;
@@ -148,13 +127,6 @@ int main(int argc, char **argv)
     status = HYD_uii_mpx_get_parameters(argv);
     HYDU_ERR_POP(status, "error parsing parameters\n");
 
-    /* Now we initialize engines that require us to know user
-     * preferences */
-#if HAVE_ALARM
-    if (HYD_ui_mpich_info.ckpoint_int != -1)
-        alarm(HYD_ui_mpich_info.ckpoint_int);
-#endif /* HAVE_ALARM */
-
     /* The demux engine should be initialized before any sockets are
      * created, since it checks for STDIN's validity.  If STDIN was
      * closed and we opened a socket that got the same fd as STDIN,
@@ -174,8 +146,7 @@ int main(int argc, char **argv)
         /* If we already have a host list at this point, it must have
          * come from the user */
         user_provided_host_list = 1;
-    }
-    else {
+    } else {
         /* Node list is not created yet. The user might not have
          * provided the host file. Query the RMK. */
         status = HYDT_bsci_query_node_list(&HYD_server_info.node_list);
@@ -195,19 +166,36 @@ int main(int argc, char **argv)
         }
     }
 
-    /*
-     * If this is a checkpoint-restart, if the user specified the
-     * number of processes, we already have a dummy executable. If the
-     * number of processes came from the RMK, our executable list is
-     * still NULL; a dummy executable needs to be created.
-     */
-    if (HYD_uii_mpx_exec_list == NULL) {
-        HYDU_ASSERT(HYD_server_info.user_global.ckpoint_prefix, status);
+    if (HYD_server_info.user_global.skip_launch_node) {
+        struct HYD_node *newlist = NULL, *tail = NULL;
+        struct HYD_node *next;
+        int node_id = 0;
+        for (node = HYD_server_info.node_list; node; node = next) {
+            next = node->next;
+            if (MPL_host_is_local(node->hostname)) {
+                MPL_free(node->hostname);
+                MPL_free(node->user);
+                MPL_free(node->local_binding);
+                MPL_free(node);
+            } else {
+                node->next = NULL;
+                if (newlist == NULL) {
+                    assert(tail == NULL);
+                    newlist = node;
+                } else {
+                    tail->next = node;
+                }
+                tail = node;
+                node->node_id = node_id++;
+            }
+        }
 
-        /* create a dummy executable */
-        status = HYDU_alloc_exec(&HYD_uii_mpx_exec_list);
-        HYDU_ERR_POP(status, "unable to allocate exec\n");
-        HYD_uii_mpx_exec_list->appnum = 0;
+        if (newlist == NULL) {
+            status = HYD_INVALID_PARAM;
+            HYDU_ERR_POP(status, "no nodes available to launch processes\n");
+        } else {
+            HYD_server_info.node_list = newlist;
+        }
     }
 
     if (HYD_server_info.user_global.debug)
@@ -253,9 +241,13 @@ int main(int argc, char **argv)
 
     /* If the number of processes is not given, we allocate all the
      * available nodes to each executable */
+    /* NOTE:
+     *   user may accidently give on command line -np 0, or even -np -1,
+     *   these cases will all be treated as if it is being ignored.
+     */
     HYD_server_info.pg_list.pg_process_count = 0;
     for (exec = HYD_uii_mpx_exec_list; exec; exec = exec->next) {
-        if (exec->proc_count == -1) {
+        if (exec->proc_count <= 0) {
             global_core_count = 0;
             for (node = HYD_server_info.node_list, i = 0; node; node = node->next, i++)
                 global_core_count += node->core_count;
@@ -280,20 +272,14 @@ int main(int argc, char **argv)
      * the list of nodes passed to us */
     if (HYD_server_info.localhost == NULL) {
         /* See if the node list contains a localhost */
-        for (node = HYD_server_info.node_list; node; node = node->next) {
-            int is_local;
-
-            status = HYDU_sock_is_local(node->hostname, &is_local);
-            HYDU_ERR_POP(status, "unable to check if %s is local\n", node->hostname);
-
-            if (is_local)
+        for (node = HYD_server_info.node_list; node; node = node->next)
+            if (MPL_host_is_local(node->hostname))
                 break;
-        }
 
         if (node)
-            HYD_server_info.localhost = HYDU_strdup(node->hostname);
+            HYD_server_info.localhost = MPL_strdup(node->hostname);
         else {
-            HYDU_MALLOC(HYD_server_info.localhost, char *, MAX_HOSTNAME_LEN, status);
+            HYDU_MALLOC_OR_JUMP(HYD_server_info.localhost, char *, MAX_HOSTNAME_LEN, status);
             if (gethostname(HYD_server_info.localhost, MAX_HOSTNAME_LEN) < 0)
                 HYDU_ERR_SETANDJUMP(status, HYD_SOCK_ERROR, "unable to get local hostname\n");
         }
@@ -321,7 +307,7 @@ int main(int argc, char **argv)
         MPL_env2str("MPICH_PORT_RANGE", (const char **) &HYD_server_info.port_range) ||
         MPL_env2str("MPIEXEC_PORTRANGE", (const char **) &HYD_server_info.port_range) ||
         MPL_env2str("MPIEXEC_PORT_RANGE", (const char **) &HYD_server_info.port_range))
-        HYD_server_info.port_range = HYDU_strdup(HYD_server_info.port_range);
+        HYD_server_info.port_range = MPL_strdup(HYD_server_info.port_range);
 
     /* Add the stdout/stderr callback handlers */
     HYD_server_info.stdout_cb = HYD_uiu_stdout_cb;
@@ -399,14 +385,11 @@ int main(int argc, char **argv)
         printf("This typically refers to a problem with your application.\n");
         printf("Please see the FAQ page for debugging suggestions\n");
         return exit_status;
-    }
-    else if (WIFEXITED(exit_status)) {
+    } else if (WIFEXITED(exit_status)) {
         return WEXITSTATUS(exit_status);
-    }
-    else if (WIFSTOPPED(exit_status)) {
+    } else if (WIFSTOPPED(exit_status)) {
         return WSTOPSIG(exit_status);
-    }
-    else {
+    } else {
         return exit_status;
     }
 

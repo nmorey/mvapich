@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,8 +50,7 @@ int main(int argc, char *argv[])
                 buf[3 * i] = i;
             MPI_Send(buf, count, newtype, dest, 0, comm);
             MPI_Send(buf, count, newtype, dest, 1, comm);
-        }
-        else if (rank == dest) {
+        } else if (rank == dest) {
             MPI_Recv(buf, count, MPI_INT, source, 0, comm, &status);
             for (i = 0; i < count; i++) {
                 if (buf[i] != i) {
@@ -79,6 +77,5 @@ int main(int argc, char *argv[])
     MPI_Type_free(&newtype);
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

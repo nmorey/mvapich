@@ -24,7 +24,7 @@
 
 #if defined(CKPT)
 
-#include <mpimem.h>
+#include <mpir_mem.h>
 #include <ctype.h>
 #include <sys/types.h>
 #ifdef CR_FTB
@@ -47,12 +47,11 @@
 #include "upmi.h"
 #include "cm.h"
 #include "mem_hooks.h"
-#include "mpiutil.h"
 #include "error_handling.h"
-#include "debug_utils.h"
+#include "mv2_debug_utils.h"
 
 #include "hwloc_bind.h"
-#include "coll_shmem.h"
+#include "mv2_ch3_shmem.h"
 
 #ifdef ENABLE_SCR
 #include "scr.h"
@@ -968,8 +967,8 @@ int CR_Reset_proc_info()
     int has_parent;
     int pg_id_sz;
     int kvs_name_sz;
-    MPIU_Free(MPIDI_Process.my_pg->id);
-    MPIU_Free(MPIDI_Process.my_pg->ch.kvs_name);
+    MPL_free(MPIDI_Process.my_pg->id);
+    MPL_free(MPIDI_Process.my_pg->ch.kvs_name);
     unsetenv("PMI_FD");
 
     PRINT_DEBUG(DEBUG_CR_verbose > 2,"unset PMI_FD\n");
@@ -985,10 +984,10 @@ int CR_Reset_proc_info()
     }
 
     PRINT_DEBUG(DEBUG_MIG_verbose > 1,"UPMI_KVS_GET_NAME_LENGTH_MAX = %d\n", pg_id_sz);
-    MPIDI_Process.my_pg->id = MPIU_Malloc(pg_id_sz + 1);
+    MPIDI_Process.my_pg->id = MPL_malloc(pg_id_sz + 1);
 
     if (NULL == MPIDI_Process.my_pg->id) {
-        CR_ERR_ABORT("MPIU_Malloc failed\n");
+        CR_ERR_ABORT("MPL_malloc failed\n");
     }
 
     if (UPMI_KVS_GET_MY_NAME(MPIDI_Process.my_pg->id, pg_id_sz)) {
@@ -999,10 +998,10 @@ int CR_Reset_proc_info()
         CR_ERR_ABORT("UPMI_KVS_GET_NAME_LENGTH_MAX failed\n");
     }
 
-    MPIDI_Process.my_pg->ch.kvs_name = MPIU_Malloc(kvs_name_sz + 1);
+    MPIDI_Process.my_pg->ch.kvs_name = MPL_malloc(kvs_name_sz + 1);
 
     if (NULL == MPIDI_Process.my_pg->id) {
-        CR_ERR_ABORT("MPIU_Malloc failed\n");
+        CR_ERR_ABORT("MPL_malloc failed\n");
     }
 
     if (UPMI_KVS_GET_MY_NAME(MPIDI_Process.my_pg->ch.kvs_name, kvs_name_sz)) {
@@ -1360,7 +1359,7 @@ void MPIDI_CH3I_CR_Sync_ckpt_request()
 void MPIDI_CH3I_CR_Handle_recv(MPIDI_VC_t * vc, MPIDI_CH3_Pkt_type_t msg_type, vbuf * v)
 {
     MPICR_remote_update_msg *msg = NULL;
-    struct MPID_Request *sreq = NULL;
+    struct MPIR_Request *sreq = NULL;
     int found = 0;
     PRINT_DEBUG(DEBUG_CR_verbose > 2,"%s: [%d <= %d]: got msg: %s(%d)\n", __func__, MPIDI_Process.my_pg_rank, vc->pg_rank, MPIDI_CH3_Pkt_type_to_string[msg_type], msg_type);
     switch (msg_type) {
@@ -1368,7 +1367,7 @@ void MPIDI_CH3I_CR_Handle_recv(MPIDI_VC_t * vc, MPIDI_CH3_Pkt_type_t msg_type, v
         PRINT_DEBUG(DEBUG_CR_verbose > 2,"Received MPIDI_CH3_PKT_CR_REMOTE_UPDATE\n");
 
         msg = (MPICR_remote_update_msg *) (v->buffer + sizeof(MPIDI_CH3I_MRAILI_Pkt_comm_header));
-        sreq = (struct MPID_Request *) vc->mrail.sreq_head;
+        sreq = (struct MPIR_Request *) vc->mrail.sreq_head;
 
         PRINT_DEBUG(DEBUG_CR_verbose > 2,"Looking for address match %p\n", msg->recv_mem_addr);
         found = 0;
@@ -1380,12 +1379,12 @@ void MPIDI_CH3I_CR_Handle_recv(MPIDI_VC_t * vc, MPIDI_CH3_Pkt_type_t msg_type, v
                 PRINT_DEBUG(DEBUG_CR_verbose > 2,"Found a address match req: %p\n", sreq);
 
                 /*FIXME: Is address match enough? */
-                MPIU_Memcpy(sreq->mrail.rkey, msg->recv_buf_rkey, sizeof(uint32_t) * MAX_NUM_HCAS);
+                MPIR_Memcpy(sreq->mrail.rkey, msg->recv_buf_rkey, sizeof(uint32_t) * MAX_NUM_HCAS);
                 found++;
                 if (vc->mrail.sreq_to_update <= 0) {
                     PRINT_DEBUG(DEBUG_CR_verbose > 2,"[%d <== %d]: %s: Warn: REM_UPDATE: sreq-to-up=%d...\n", MPICR_pg_rank, vc->pg_rank, __func__, vc->mrail.sreq_to_update);
                     /// a spurious REM_UPDATE msg, not a real bug...
-                    //MPIU_Assert( vc->mrail.sreq_to_update > 0 );// don't need to crash the prog
+                    //MPIR_Assert( vc->mrail.sreq_to_update > 0 );// don't need to crash the prog
                 } else
                     vc->mrail.sreq_to_update--; // has updated one sender' rndv(sreq)
                 if (vc->mrail.sreq_to_update == 0) {
@@ -1427,8 +1426,8 @@ void MPIDI_CH3I_CR_Handle_send_completion(MPIDI_VC_t * vc, MPIDI_CH3_Pkt_type_t 
 /*===========================*/
 
 /* The request involving memory registration (e.g. rndv recv). */
-struct MPID_Request *MPICR_req_list_head = NULL;
-struct MPID_Request *MPICR_req_list_tail = NULL;
+struct MPIR_Request *MPICR_req_list_head = NULL;
+struct MPIR_Request *MPICR_req_list_tail = NULL;
 
 int CR_IBU_Release_network()
 {
@@ -1472,9 +1471,9 @@ int CR_IBU_Release_network()
         }
 #ifndef MV2_DISABLE_HEADER_CACHING
         if (vc->mrail.rfp.cached_incoming)
-            MPIU_Free(vc->mrail.rfp.cached_incoming);
+            MPL_free(vc->mrail.rfp.cached_incoming);
         if (vc->mrail.rfp.cached_outgoing)
-            MPIU_Free(vc->mrail.rfp.cached_outgoing);
+            MPL_free(vc->mrail.rfp.cached_outgoing);
 #endif                          /* !MV2_DISABLE_HEADER_CACHING */
     }
     PRINT_DEBUG(DEBUG_CR_verbose > 1,"CR_IBU_Release_network: CH3I_RDMA.has_srq\n");
@@ -1568,10 +1567,10 @@ int CR_IBU_Rebuild_network()
     int pg_size = MPICR_pg_size;
     struct addrinfo *res;
 
-    uint32_t *ud_qpn_all = (uint32_t *) MPIU_Malloc(pg_size * sizeof(uint32_t));
-    uint16_t *lid_all = (uint16_t *) MPIU_Malloc(pg_size * sizeof(uint16_t));
+    uint32_t *ud_qpn_all = (uint32_t *) MPL_malloc(pg_size * sizeof(uint32_t));
+    uint16_t *lid_all = (uint16_t *) MPL_malloc(pg_size * sizeof(uint16_t));
     union ibv_gid *gid_all = (union ibv_gid *)
-                                 MPIU_Malloc(pg_size * sizeof(union ibv_gid));
+                                 MPL_malloc(pg_size * sizeof(union ibv_gid));
     rdma_num_rails = rdma_num_hcas * rdma_num_ports * rdma_num_qp_per_port;
 
     PRINT_DEBUG(DEBUG_CR_verbose > 1,"num_qp_per_port %d, num_rails = %d\n", rdma_num_qp_per_port, rdma_num_rails);
@@ -1687,7 +1686,7 @@ int CR_IBU_Rebuild_network()
                    sizeof(union ibv_gid) * MAX_NUM_HCAS * MAX_NUM_PORTS);
             self_info.qpn = ud_qpn_self;
 
-            ud_addr_info_t *all_info = (ud_addr_info_t *) MPIU_Malloc(sizeof(ud_addr_info_t) * pg_size);
+            ud_addr_info_t *all_info = (ud_addr_info_t *) MPL_malloc(sizeof(ud_addr_info_t) * pg_size);
             /*will be freed in rdma_iba_bootstrap_cleanup */
             PRINT_DEBUG(DEBUG_CR_verbose > 2,"Setting up ring-based exchange\n");
             rdma_setup_startup_ring(&mv2_MPIDI_CH3I_RDMA_Process, pg_rank, pg_size);
@@ -1799,9 +1798,9 @@ int CR_IBU_Rebuild_network()
 
     PRINT_DEBUG(DEBUG_CR_verbose,"CR_IBU_Rebuild_network finish\n");
 
-    MPIU_Free(ud_qpn_all);
-    MPIU_Free(lid_all);
-    MPIU_Free(gid_all);
+    MPL_free(ud_qpn_all);
+    MPL_free(lid_all);
+    MPL_free(gid_all);
 
   fn_exit:
     return mpi_errno;
@@ -1812,7 +1811,7 @@ int CR_IBU_Rebuild_network()
 
 int CR_IBU_Prep_remote_update()
 {
-    struct MPID_Request *temp = MPICR_req_list_head;
+    struct MPIR_Request *temp = MPICR_req_list_head;
 
     /* Using this to reduce the number of update messages 
      * since all consecutive request to a same memory address 
@@ -1851,8 +1850,8 @@ int CR_IBU_Prep_remote_update()
         for (i = 0; i < rdma_num_hcas; ++i) {
             rkey[i] = temp->mrail.d_entry->memhandle[i]->rkey;
 #if !defined(NDEBUG)
-            MPIU_Assert(vc->mrail.srp.credits[i].backlog.len == 0);
-            MPIU_Assert(vc->mrail.rails[i].ext_sendq_head == NULL);
+            MPIR_Assert(vc->mrail.srp.credits[i].backlog.len == 0);
+            MPIR_Assert(vc->mrail.rails[i].ext_sendq_head == NULL);
 #endif                          /* !defined(NDEBUG) */
         }
 
@@ -1872,7 +1871,7 @@ int CR_IBU_Prep_remote_update()
 
                 if (cts_header->rndv.buf_addr == temp->mrail.rndv_buf) {
                     PRINT_DEBUG(DEBUG_CR_verbose > 2,"Found a match in local pending cts\n");
-                    MPIU_Memcpy(cts_header->rndv.rkey, rkey, sizeof(uint32_t) * MAX_NUM_HCAS);
+                    MPIR_Memcpy(cts_header->rndv.rkey, rkey, sizeof(uint32_t) * MAX_NUM_HCAS);
                 }
             }
 
@@ -1885,7 +1884,7 @@ int CR_IBU_Prep_remote_update()
         /* Check cm_sendq for all cts packets. */
         if (!MPIDI_CH3I_CM_SendQ_empty(vc)) {
             PRINT_DEBUG(DEBUG_CR_verbose > 2,"cm_send_Q is not empty\n");
-            struct MPID_Request *req = MPIDI_CH3I_CM_SendQ_head(vc);
+            struct MPIR_Request *req = MPIDI_CH3I_CM_SendQ_head(vc);
             PRINT_DEBUG(DEBUG_CR_verbose > 2,"req %p\n", req);
 
             i = 0;
@@ -1901,7 +1900,7 @@ int CR_IBU_Prep_remote_update()
 
                     if (cts_header->rndv.buf_addr == temp->mrail.rndv_buf) {
                         PRINT_DEBUG(DEBUG_CR_verbose > 2,"Found a match in local cm queue\n");
-                        MPIU_Memcpy(cts_header->rndv.rkey, rkey, sizeof(uint32_t) * MAX_NUM_HCAS);
+                        MPIR_Memcpy(cts_header->rndv.rkey, rkey, sizeof(uint32_t) * MAX_NUM_HCAS);
                     }
                 }
 
@@ -1913,7 +1912,7 @@ int CR_IBU_Prep_remote_update()
 
         /* Prepare remote update packet. */
         msg.recv_mem_addr = temp->mrail.rndv_buf;
-        MPIU_Memcpy(msg.recv_buf_rkey, rkey, sizeof(uint32_t) * MAX_NUM_HCAS);
+        MPIR_Memcpy(msg.recv_buf_rkey, rkey, sizeof(uint32_t) * MAX_NUM_HCAS);
 
         /*FIXME: use recv_mem_addr as only identifier */
         PRINT_DEBUG(DEBUG_CR_verbose > 2,"recv_mem_addr %p, rkey0 %x\n", msg.recv_mem_addr, msg.recv_buf_rkey[0]);
@@ -1925,14 +1924,14 @@ int CR_IBU_Prep_remote_update()
         }
         else
         {
-            p = (MPIDI_CH3I_MRAILI_Pkt_comm_header *)MPIU_Malloc(sizeof(MPIDI_CH3I_MRAILI_Pkt_comm_header));
+            p = (MPIDI_CH3I_MRAILI_Pkt_comm_header *)MPL_malloc(sizeof(MPIDI_CH3I_MRAILI_Pkt_comm_header));
         }
 
         p->type = MPIDI_CH3_PKT_CR_REMOTE_UPDATE;
-        MPIU_Memcpy(v->buffer + sizeof(MPIDI_CH3I_MRAILI_Pkt_comm_header), &msg, sizeof(msg));
+        MPIR_Memcpy(v->buffer + sizeof(MPIDI_CH3I_MRAILI_Pkt_comm_header), &msg, sizeof(msg));
 
         /* Push update packet to message log queue. */
-        entry = (MPIDI_CH3I_CR_msg_log_queue_entry_t *) MPIU_Malloc(sizeof(MPIDI_CH3I_CR_msg_log_queue_entry_t));
+        entry = (MPIDI_CH3I_CR_msg_log_queue_entry_t *) MPL_malloc(sizeof(MPIDI_CH3I_CR_msg_log_queue_entry_t));
         entry->len = sizeof(MPIDI_CH3I_MRAILI_Pkt_comm_header) + sizeof(msg);
         entry->buf = v;
         MSG_LOG_ENQUEUE(vc, entry);
@@ -1950,7 +1949,7 @@ int CR_IBU_Prep_remote_update()
  */
 void CR_record_rndv(MPIDI_VC_t ** vc_vector)
 {
-    struct MPID_Request *sreq = NULL;
+    struct MPIR_Request *sreq = NULL;
     MPIDI_VC_t *vc = NULL;
 
     int i, n;
@@ -1965,7 +1964,7 @@ void CR_record_rndv(MPIDI_VC_t ** vc_vector)
         }
 
         n = 0;
-        sreq = (struct MPID_Request *) vc->mrail.sreq_head;
+        sreq = (struct MPIR_Request *) vc->mrail.sreq_head;
 
         /* record: num of rndvs as sender */
         while (sreq)
@@ -1993,12 +1992,12 @@ void CR_record_flowlist(char *title)
     int n = 0;
     while (vc) {
         n++;
-        MPIU_Assert(vc->mrail.inflow == 1);
+        MPIR_Assert(vc->mrail.inflow == 1);
         vc = vc->mrail.nextflow;
     }
 
     /* count pending CTS at recv-side */
-    struct MPID_Request *temp = MPICR_req_list_head;
+    struct MPIR_Request *temp = MPICR_req_list_head;
     int cts = 0;
     while (temp) {
         cts++;
@@ -2012,10 +2011,10 @@ void CR_record_flowlist(char *title)
 int CR_IBU_Suspend_channels()
 {
     int i = 0;
-    MPIDI_VC_t **vc_vector = (MPIDI_VC_t **) MPIU_Malloc(sizeof(MPIDI_VC_t *) * MPICR_pg_size);
+    MPIDI_VC_t **vc_vector = (MPIDI_VC_t **) MPL_malloc(sizeof(MPIDI_VC_t *) * MPICR_pg_size);
     MPIDI_VC_t *vc = NULL;
 
-    MPIU_Assert(vc_vector);
+    MPIR_Assert(vc_vector);
     for (; i < MPICR_pg_size; ++i) {
         if (i == MPICR_pg_rank) {
             continue;
@@ -2061,7 +2060,7 @@ int CR_IBU_Suspend_channels()
     /* record num of rndvs(sender) to update at restart */
     CR_record_rndv(vc_vector);
     //CR_record_flowlist("after susp-chan");
-    MPIU_Free(vc_vector);
+    MPL_free(vc_vector);
 
     return retval;
 }
@@ -2114,7 +2113,7 @@ int CR_IBU_Reactivate_channels()
         return retval;
     }
 
-    MPIDI_VC_t **vc_vector = (MPIDI_VC_t **) MPIU_Malloc(sizeof(MPIDI_VC_t *) * MPICR_pg_size);
+    MPIDI_VC_t **vc_vector = (MPIDI_VC_t **) MPL_malloc(sizeof(MPIDI_VC_t *) * MPICR_pg_size);
     MPIDI_VC_t *vc = NULL;
     int i = 0;
 
@@ -2126,12 +2125,12 @@ int CR_IBU_Reactivate_channels()
         MPIDI_PG_Get_vc(MPICR_pg, i, &vc);
 
         /* Now all calling can only be small rank reactivate to big rank. */
-        MPIU_Assert(vc->ch.state != MPIDI_CH3I_VC_STATE_CONNECTING_CLI);
-        MPIU_Assert(vc->ch.state != MPIDI_CH3I_VC_STATE_CONNECTING_SRV);
-        MPIU_Assert(vc->ch.state != MPIDI_CH3I_VC_STATE_SUSPENDING);
-        MPIU_Assert(vc->ch.state != MPIDI_CH3I_VC_STATE_IDLE);
-        MPIU_Assert(vc->ch.state != MPIDI_CH3I_VC_STATE_REACTIVATING_CLI_1);
-        MPIU_Assert(vc->ch.state != MPIDI_CH3I_VC_STATE_REACTIVATING_CLI_2);
+        MPIR_Assert(vc->ch.state != MPIDI_CH3I_VC_STATE_CONNECTING_CLI);
+        MPIR_Assert(vc->ch.state != MPIDI_CH3I_VC_STATE_CONNECTING_SRV);
+        MPIR_Assert(vc->ch.state != MPIDI_CH3I_VC_STATE_SUSPENDING);
+        MPIR_Assert(vc->ch.state != MPIDI_CH3I_VC_STATE_IDLE);
+        MPIR_Assert(vc->ch.state != MPIDI_CH3I_VC_STATE_REACTIVATING_CLI_1);
+        MPIR_Assert(vc->ch.state != MPIDI_CH3I_VC_STATE_REACTIVATING_CLI_2);
 
         if (vc->ch.state == MPIDI_CH3I_VC_STATE_SUSPENDED || vc->ch.state == MPIDI_CH3I_VC_STATE_REACTIVATING_SRV) {
             vc_vector[i] = vc;
@@ -2155,12 +2154,12 @@ int CR_IBU_Reactivate_channels()
     if ((retval = MPIDI_CH3I_CM_Reactivate(vc_vector))) {
         return retval;
     }
-    MPIU_Free(vc_vector);
+    MPL_free(vc_vector);
 
     return retval;
 }
 
-void MPIDI_CH3I_CR_req_enqueue(struct MPID_Request *req, MPIDI_VC_t * vc)
+void MPIDI_CH3I_CR_req_enqueue(struct MPIR_Request *req, MPIDI_VC_t * vc)
 {
     if (req == NULL) {
         return;
@@ -2177,7 +2176,7 @@ void MPIDI_CH3I_CR_req_enqueue(struct MPID_Request *req, MPIDI_VC_t * vc)
     }
 }
 
-void MPIDI_CH3I_CR_req_dequeue(struct MPID_Request *req)
+void MPIDI_CH3I_CR_req_dequeue(struct MPIR_Request *req)
 {
     if (req == NULL) {
         return;
@@ -2198,7 +2197,7 @@ void MPIDI_CH3I_CR_req_dequeue(struct MPID_Request *req)
         return;
     }
 
-    struct MPID_Request *temp = MPICR_req_list_head;
+    struct MPIR_Request *temp = MPICR_req_list_head;
 
     while (temp->ch.cr_queue_next != NULL) {
         if (temp->ch.cr_queue_next == req) {
@@ -2246,7 +2245,7 @@ static int CR_FTB_Init(int rank, char *sessionid)
     if (ret != FTB_SUCCESS)
         goto err_declare_events;
 
-    str = MPIU_Malloc(sizeof(char) * FTB_MAX_SUBSCRIPTION_STR);
+    str = MPL_malloc(sizeof(char) * FTB_MAX_SUBSCRIPTION_STR);
     if (!str)
         goto err_malloc;
 
@@ -2272,7 +2271,7 @@ static int CR_FTB_Init(int rank, char *sessionid)
     PRINT_DEBUG(DEBUG_CR_verbose > 1,"use PMI_PORT=%s\n", str);
     setenv("PMI_PORT", str, 1);
 
-    MPIU_Free(str);
+    MPL_free(str);
     ftb_init_done = 1;
     return (0);
 

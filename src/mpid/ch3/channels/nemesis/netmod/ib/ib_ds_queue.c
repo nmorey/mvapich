@@ -31,12 +31,12 @@ int MPID_nem_ib_queue_init(
     int mpi_errno = MPI_SUCCESS;
     /*int i;*/
 
-    MPIU_Assert(NULL != q);
+    MPIR_Assert(NULL != q);
 
-    *q = MPIU_Malloc(sizeof(MPID_nem_ib_queue_t));
+    *q = MPL_malloc(sizeof(MPID_nem_ib_queue_t));
 
     if(NULL == *q) {
-        MPIU_CHKMEM_SETERR(mpi_errno,
+        MPIR_CHKMEM_SETERR(mpi_errno,
                 sizeof(MPID_nem_ib_queue_t),
                 "IB Module Queue");
     }
@@ -60,10 +60,10 @@ int MPID_nem_ib_queue_new_elem(
 {
     int mpi_errno = MPI_SUCCESS;
 
-    (*e) = MPIU_Malloc(sizeof(MPID_nem_ib_queue_elem_t));
+    (*e) = MPL_malloc(sizeof(MPID_nem_ib_queue_elem_t));
 
     if (NULL == *e) {
-        MPIU_CHKMEM_SETERR (mpi_errno,
+        MPIR_CHKMEM_SETERR (mpi_errno,
                 sizeof(MPID_nem_ib_queue_elem_t),
                 "IB module queue elem");
     }
@@ -156,9 +156,9 @@ int MPID_nem_ib_queue_alloc(
         *e = q->free_queue;
         q->free_queue = q->free_queue->next;
     } else {
-        *e = MPIU_Malloc(sizeof(MPID_nem_ib_queue_elem_t));
+        *e = MPL_malloc(sizeof(MPID_nem_ib_queue_elem_t));
         if(NULL == *e) {
-            MPIU_CHKMEM_SETERR(mpi_errno,
+            MPIR_CHKMEM_SETERR(mpi_errno,
                     sizeof(MPID_nem_ib_queue_elem_t),
                     "IB Module Queue Element");
         }
@@ -185,8 +185,8 @@ void MPID_nem_ib_queue_finalize(
 
         MPID_nem_ib_queue_dequeue(q, &e);
 
-        MPIU_Free(e);
+        MPL_free(e);
     }
 
-    MPIU_Free(q);
+    MPL_free(q);
 }

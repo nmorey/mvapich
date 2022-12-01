@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 /* Copyright (c) 2001-2022, The Ohio State University. All rights
  * reserved.
@@ -15,10 +14,10 @@
  *
  */
 
-#ifndef HAVE_MPIDPKT_H
-#define HAVE_MPIDPKT_H
+#ifndef MPIDPKT_H_INCLUDED
+#define MPIDPKT_H_INCLUDED
 
-#include "oputil.h"
+#include "mpir_op_util.h"
 
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
@@ -172,6 +171,11 @@ typedef enum
     MPIDI_CH3_PKT_FLOW_CNTL_UPDATE,
     MPIDI_CH3_PKT_CLOSE,
     MPIDI_CH3_PKT_REVOKE,
+#ifndef MPIDI_CH3_HAS_NO_DYNAMIC_PROCESS
+    /* Dynamic Connection Management */
+    MPIDI_CH3_PKT_CONN_ACK,
+    MPIDI_CH3_PKT_ACCEPT_ACK,
+#endif
     MPIDI_CH3_PKT_END_CH3,
     /* The channel can define additional types by defining the value
      * MPIDI_CH3_PKT_ENUM */
@@ -182,7 +186,7 @@ typedef enum
     MPIDI_CH3_PKT_INVALID = -1  /* forces a signed enum to quash warnings */
 } MPIDI_CH3_Pkt_type_t;
 
-/* These flags can be "OR'ed" together */
+/* These pkt_flags can be "OR'ed" together */
 typedef enum {
     MPIDI_CH3_PKT_FLAG_NONE = 0,
     MPIDI_CH3_PKT_FLAG_RMA_LOCK_SHARED = 1,
@@ -202,8 +206,6 @@ typedef enum {
     MPIDI_CH3_PKT_FLAG_RMA_STREAM = 16384
 } MPIDI_CH3_Pkt_flags_t;
 
-extern char *MPIDI_CH3_Pkt_type_to_string[MPIDI_CH3_PKT_END_ALL+1];
-
 typedef struct MPIDI_CH3_Pkt_send
 {
 #if defined(CHANNEL_MRAIL)
@@ -212,9 +214,12 @@ typedef struct MPIDI_CH3_Pkt_send
 #else /* defined(CHANNEL_MRAIL) */
     MPIDI_CH3_Pkt_type_t type;  /* XXX - uint8_t to conserve space ??? */
 #endif /* defined(CHANNEL_MRAIL) */
-    MPI_Request sender_req_id;	/* needed for ssend and send cancel */
     MPIDI_Message_match match;
-    MPIDI_msg_sz_t data_sz;
+    MPI_Request sender_req_id;  /* needed for ssend and send cancel */
+    intptr_t data_sz;
+#if defined(MPID_USE_SEQUENCE_NUMBERS) && !defined(CHANNEL_MRAIL)
+    MPID_Seqnum_t seqnum;
+#endif
 #if defined(_ENABLE_CUDA_) && defined(HAVE_CUDA_IPC)
     uint8_t in_device_region;
     deviceIpcEventHandle_t ipcEventHandle;
@@ -254,10 +259,12 @@ typedef struct MPIDI_CH3_Pkt_eagershort_send
     MPIDI_CH3_Pkt_type_t type;  /* XXX - uint8_t to conserve space ??? */
 #endif /* defined(CHANNEL_MRAIL) */
     MPIDI_Message_match match;
-    MPIDI_msg_sz_t data_sz;
-    char data[MPIDI_EAGER_SHORT_SIZE];    /* FIXME: Experimental for now */
-}
-MPIDI_CH3_Pkt_eagershort_send_t;
+    intptr_t data_sz;
+#if defined(MPID_USE_SEQUENCE_NUMBERS) && !defined(CHANNEL_MRAIL)
+    MPID_Seqnum_t seqnum;
+#endif
+    char data[MPIDI_EAGER_SHORT_SIZE];  /* MV2 support for RDMA FP */
+} MPIDI_CH3_Pkt_eagershort_send_t;
 #endif /* defined(USE_EAGER_SHORT) */
 
 typedef struct MPIDI_CH3_Pkt_eager_sync_ack
@@ -278,7 +285,7 @@ typedef struct MPIDI_CH3_Pkt_rndv_req_to_send
     MPIDI_CH3I_MRAILI_IBA_PKT_DECL
     MPI_Request sender_req_id;  /* needed for ssend and send cancel */
     MPIDI_Message_match match;
-    MPIDI_msg_sz_t data_sz;
+    intptr_t data_sz;
     MPIDI_CH3I_MRAILI_RNDV_INFO_DECL
 } MPIDI_CH3_Pkt_rndv_req_to_send_t;
 
@@ -318,7 +325,7 @@ typedef struct MPIDI_CH3_Pkt_rndv_clr_to_send
 #if defined(CHANNEL_MRAIL)
     uint8_t type;
     MPIDI_CH3I_MRAILI_IBA_PKT_DECL
-    MPIDI_msg_sz_t recv_sz;
+    intptr_t recv_sz;
     MPIDI_CH3I_MRAILI_RNDV_INFO_DECL
 #else /* defined(CHANNEL_MRAIL) */
     MPIDI_CH3_Pkt_type_t type;
@@ -346,7 +353,7 @@ typedef struct MPIDI_CH3_Pkt_rndv_send
 typedef struct MPIDI_CH3_Pkt_packetized_send_start {
     uint8_t type;
     MPIDI_CH3I_MRAILI_IBA_PKT_DECL
-    MPIDI_msg_sz_t origin_head_size;
+    intptr_t origin_head_size;
 } MPIDI_CH3_Pkt_packetized_send_start_t;
 
 typedef struct MPIDI_CH3_Pkt_packetized_send_data {
@@ -354,8 +361,8 @@ typedef struct MPIDI_CH3_Pkt_packetized_send_data {
     MPIDI_CH3I_MRAILI_IBA_PKT_DECL
     MPI_Request receiver_req_id;
 #if defined(_SMP_LIMIC_) || defined(_SMP_CMA_)
-    struct MPID_Request *send_req_id;
-    struct MPID_Request *csend_req_id;
+    struct MPIR_Request *send_req_id;
+    struct MPIR_Request *csend_req_id;
 #endif
 } MPIDI_CH3_Pkt_packetized_send_data_t;
 
@@ -443,6 +450,14 @@ typedef struct MPIDI_CH3_Pkt_cancel_send_resp
     MPI_Request sender_req_id;
     int ack;
 } MPIDI_CH3_Pkt_cancel_send_resp_t;
+
+/* *INDENT-OFF* */
+/* Indentation turned off because "indent" is getting confused with
+ * the lack of a semi-colon in the field below */
+#if defined(MPIDI_CH3_PKT_DEFS)
+MPIDI_CH3_PKT_DEFS
+#endif
+/* *INDENT-ON* */
 
 #define MPIDI_CH3_PKT_RMA_GET_TARGET_DATATYPE(pkt_, datatype_, err_)    \
     {                                                                   \
@@ -549,6 +564,144 @@ typedef struct MPIDI_CH3_Pkt_cancel_send_resp
         }                                                               \
     }
 
+#if defined(CHANNEL_MRAIL)
+#define MPIDI_CH3_PKT_RMA_GET_FLAGS(pkt_, flags_, err_)                 \
+    {                                                                   \
+        /* This macro returns flags in RMA operation packets (PUT, GET, \
+           ACC, GACC, FOP, CAS), RMA operation response packets         \
+           (GET_RESP, GET_ACCUM_RESP, FOP_RESP, CAS_RESP), RMA control  \
+           packets (UNLOCK) and RMA control response packets (LOCK_ACK, \
+           LOCK_OP_ACK) */                                              \
+        err_ = MPI_SUCCESS;                                             \
+        switch((pkt_).type) {                                           \
+        case (MPIDI_CH3_PKT_PUT):                                       \
+        case (MPIDI_CH3_PKT_PUT_IMMED):                                 \
+        case (MPIDI_CH3_PKT_PUT_RNDV):                                  \
+            flags_ = (pkt_).put.pkt_flags;                                  \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_GET):                                       \
+        case (MPIDI_CH3_PKT_GET_RNDV):                                  \
+            flags_ = (pkt_).get.pkt_flags;                                  \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_ACCUMULATE):                                \
+        case (MPIDI_CH3_PKT_ACCUMULATE_IMMED):                          \
+            flags_ = (pkt_).accum.pkt_flags;                                \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_GET_ACCUM):                                 \
+        case (MPIDI_CH3_PKT_GET_ACCUM_IMMED):                           \
+            flags_ = (pkt_).get_accum.pkt_flags;                            \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_CAS_IMMED):                                 \
+            flags_ = (pkt_).cas.pkt_flags;                                  \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_FOP):                                       \
+        case (MPIDI_CH3_PKT_FOP_IMMED):                                 \
+            flags_ = (pkt_).fop.pkt_flags;                                  \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_ACCUMULATE_RNDV):                           \
+        case (MPIDI_CH3_PKT_GET_ACCUM_RNDV):                            \
+            flags_ = (pkt_).accum_rndv.pkt_flags;                           \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_GET_RESP):                                  \
+        case (MPIDI_CH3_PKT_GET_RESP_IMMED):                            \
+            flags_ = (pkt_).get_resp.pkt_flags;                             \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_GET_ACCUM_RESP):                            \
+        case (MPIDI_CH3_PKT_GET_ACCUM_RESP_IMMED):                      \
+            flags_ = (pkt_).get_accum_resp.pkt_flags;                       \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_FOP_RESP):                                  \
+        case (MPIDI_CH3_PKT_FOP_RESP_IMMED):                            \
+            flags_ = (pkt_).fop_resp.pkt_flags;                             \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_CAS_RESP_IMMED):                            \
+            flags_ = (pkt_).cas_resp.pkt_flags;                             \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_LOCK):                                      \
+            flags_ = (pkt_).lock.pkt_flags;                                 \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_UNLOCK):                                    \
+            flags_ = (pkt_).unlock.pkt_flags;                               \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_LOCK_ACK):                                  \
+            flags_ = (pkt_).lock_ack.pkt_flags;                             \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_LOCK_OP_ACK):                               \
+            flags_ = (pkt_).lock_op_ack.pkt_flags;                          \
+            break;                                                      \
+        default:                                                        \
+            MPIR_ERR_SETANDJUMP1(err_, MPI_ERR_OTHER, "**invalidpkt", "**invalidpkt %d", (pkt_).type); \
+        }                                                               \
+    }
+
+
+#else 
+
+#define MPIDI_CH3_PKT_RMA_GET_FLAGS(pkt_, flags_, err_)                 \
+    {                                                                   \
+        /* This macro returns pkt_flags in RMA operation packets (PUT, GET, \
+           ACC, GACC, FOP, CAS), RMA operation response packets         \
+           (GET_RESP, GET_ACCUM_RESP, FOP_RESP, CAS_RESP), RMA control  \
+           packets (UNLOCK) and RMA control response packets (LOCK_ACK, \
+           LOCK_OP_ACK) */                                              \
+        err_ = MPI_SUCCESS;                                             \
+        switch((pkt_).type) {                                           \
+        case (MPIDI_CH3_PKT_PUT):                                       \
+        case (MPIDI_CH3_PKT_PUT_IMMED):                                 \
+            flags_ = (pkt_).put.pkt_flags;                                  \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_GET):                                       \
+            flags_ = (pkt_).get.pkt_flags;                                  \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_ACCUMULATE):                                \
+        case (MPIDI_CH3_PKT_ACCUMULATE_IMMED):                          \
+            flags_ = (pkt_).accum.pkt_flags;                                \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_GET_ACCUM):                                 \
+        case (MPIDI_CH3_PKT_GET_ACCUM_IMMED):                           \
+            flags_ = (pkt_).get_accum.pkt_flags;                            \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_CAS_IMMED):                                 \
+            flags_ = (pkt_).cas.pkt_flags;                                  \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_FOP):                                       \
+        case (MPIDI_CH3_PKT_FOP_IMMED):                                 \
+            flags_ = (pkt_).fop.pkt_flags;                                  \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_GET_RESP):                                  \
+        case (MPIDI_CH3_PKT_GET_RESP_IMMED):                            \
+            flags_ = (pkt_).get_resp.pkt_flags;                             \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_GET_ACCUM_RESP):                            \
+        case (MPIDI_CH3_PKT_GET_ACCUM_RESP_IMMED):                      \
+            flags_ = (pkt_).get_accum_resp.pkt_flags;                       \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_FOP_RESP):                                  \
+        case (MPIDI_CH3_PKT_FOP_RESP_IMMED):                            \
+            flags_ = (pkt_).fop_resp.pkt_flags;                             \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_CAS_RESP_IMMED):                            \
+            flags_ = (pkt_).cas_resp.pkt_flags;                             \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_LOCK):                                      \
+            flags_ = (pkt_).lock.pkt_flags;                                 \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_UNLOCK):                                    \
+            flags_ = (pkt_).unlock.pkt_flags;                               \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_LOCK_ACK):                                  \
+            flags_ = (pkt_).lock_ack.pkt_flags;                             \
+            break;                                                      \
+        case (MPIDI_CH3_PKT_LOCK_OP_ACK):                               \
+            flags_ = (pkt_).lock_op_ack.pkt_flags;                          \
+            break;                                                      \
+        default:                                                        \
+            MPIR_ERR_SETANDJUMP1(err_, MPI_ERR_OTHER, "**invalidpkt", "**invalidpkt %d", (pkt_).type); \
+        }                                                               \
+    }
+
+#endif /* CHANNEL_MRAIL */
+
 #define MPIDI_CH3_PKT_RMA_GET_OP(pkt_, op_, err_)                       \
     {                                                                   \
         /* This macro returns op in RMA operation packets (ACC, GACC,   \
@@ -574,7 +727,7 @@ typedef struct MPIDI_CH3_Pkt_cancel_send_resp
 
 #define MPIDI_CH3_PKT_RMA_ERASE_FLAGS(pkt_, err_)                       \
     {                                                                   \
-        /* This macro erases flags in RMA operation packets (PUT, GET,  \
+        /* This macro erases pkt_flags in RMA operation packets (PUT, GET,  \
            ACC, GACC, FOP, CAS), RMA operation response packets         \
            (GET_RESP, GET_ACCUM_RESP, FOP_RESP, CAS_RESP), RMA control  \
            packets (UNLOCK) and RMA control response packets (LOCK_ACK, \
@@ -583,52 +736,52 @@ typedef struct MPIDI_CH3_Pkt_cancel_send_resp
         switch((pkt_).type) {                                           \
         case (MPIDI_CH3_PKT_PUT):                                       \
         case (MPIDI_CH3_PKT_PUT_IMMED):                                 \
-            (pkt_).put.flags = MPIDI_CH3_PKT_FLAG_NONE;                 \
+            (pkt_).put.pkt_flags = MPIDI_CH3_PKT_FLAG_NONE;                 \
             break;                                                      \
         case (MPIDI_CH3_PKT_GET):                                       \
-            (pkt_).get.flags = MPIDI_CH3_PKT_FLAG_NONE;                 \
+            (pkt_).get.pkt_flags = MPIDI_CH3_PKT_FLAG_NONE;                 \
             break;                                                      \
         case (MPIDI_CH3_PKT_ACCUMULATE):                                \
         case (MPIDI_CH3_PKT_ACCUMULATE_IMMED):                          \
-            (pkt_).accum.flags = MPIDI_CH3_PKT_FLAG_NONE;               \
+            (pkt_).accum.pkt_flags = MPIDI_CH3_PKT_FLAG_NONE;               \
             break;                                                      \
         case (MPIDI_CH3_PKT_GET_ACCUM):                                 \
         case (MPIDI_CH3_PKT_GET_ACCUM_IMMED):                           \
-            (pkt_).get_accum.flags = MPIDI_CH3_PKT_FLAG_NONE;           \
+            (pkt_).get_accum.pkt_flags = MPIDI_CH3_PKT_FLAG_NONE;           \
             break;                                                      \
         case (MPIDI_CH3_PKT_CAS_IMMED):                                 \
-            (pkt_).cas.flags = MPIDI_CH3_PKT_FLAG_NONE;                 \
+            (pkt_).cas.pkt_flags = MPIDI_CH3_PKT_FLAG_NONE;                 \
             break;                                                      \
         case (MPIDI_CH3_PKT_FOP):                                       \
         case (MPIDI_CH3_PKT_FOP_IMMED):                                 \
-            (pkt_).fop.flags = MPIDI_CH3_PKT_FLAG_NONE;                 \
+            (pkt_).fop.pkt_flags = MPIDI_CH3_PKT_FLAG_NONE;                 \
             break;                                                      \
         case (MPIDI_CH3_PKT_GET_RESP):                                  \
         case (MPIDI_CH3_PKT_GET_RESP_IMMED):                            \
-            (pkt_).get_resp.flags = MPIDI_CH3_PKT_FLAG_NONE;            \
+            (pkt_).get_resp.pkt_flags = MPIDI_CH3_PKT_FLAG_NONE;            \
             break;                                                      \
         case (MPIDI_CH3_PKT_GET_ACCUM_RESP):                            \
         case (MPIDI_CH3_PKT_GET_ACCUM_RESP_IMMED):                      \
-            (pkt_).get_accum_resp.flags = MPIDI_CH3_PKT_FLAG_NONE;      \
+            (pkt_).get_accum_resp.pkt_flags = MPIDI_CH3_PKT_FLAG_NONE;      \
             break;                                                      \
         case (MPIDI_CH3_PKT_FOP_RESP):                                  \
         case (MPIDI_CH3_PKT_FOP_RESP_IMMED):                            \
-            (pkt_).fop_resp.flags = MPIDI_CH3_PKT_FLAG_NONE;            \
+            (pkt_).fop_resp.pkt_flags = MPIDI_CH3_PKT_FLAG_NONE;            \
             break;                                                      \
         case (MPIDI_CH3_PKT_CAS_RESP_IMMED):                            \
-            (pkt_).cas_resp.flags = MPIDI_CH3_PKT_FLAG_NONE;            \
+            (pkt_).cas_resp.pkt_flags = MPIDI_CH3_PKT_FLAG_NONE;            \
             break;                                                      \
         case (MPIDI_CH3_PKT_LOCK):                                      \
-            (pkt_).lock.flags = MPIDI_CH3_PKT_FLAG_NONE;                \
+            (pkt_).lock.pkt_flags = MPIDI_CH3_PKT_FLAG_NONE;                \
             break;                                                      \
         case (MPIDI_CH3_PKT_UNLOCK):                                    \
-            (pkt_).unlock.flags = MPIDI_CH3_PKT_FLAG_NONE;              \
+            (pkt_).unlock.pkt_flags = MPIDI_CH3_PKT_FLAG_NONE;              \
             break;                                                      \
         case (MPIDI_CH3_PKT_LOCK_ACK):                                  \
-            (pkt_).lock_ack.flags = MPIDI_CH3_PKT_FLAG_NONE;            \
+            (pkt_).lock_ack.pkt_flags = MPIDI_CH3_PKT_FLAG_NONE;            \
             break;                                                      \
         case (MPIDI_CH3_PKT_LOCK_OP_ACK):                               \
-            (pkt_).lock_op_ack.flags = MPIDI_CH3_PKT_FLAG_NONE;         \
+            (pkt_).lock_op_ack.pkt_flags = MPIDI_CH3_PKT_FLAG_NONE;         \
             break;                                                      \
         default:                                                        \
             MPIR_ERR_SETANDJUMP1(err_, MPI_ERR_OTHER, "**invalidpkt", "**invalidpkt %d", (pkt_).type); \
@@ -721,29 +874,6 @@ typedef struct MPIDI_CH3_Pkt_cancel_send_resp
         }                                                               \
     }
 
-#define MPIDI_CH3_PKT_RMA_SET_DATALOOP_SIZE(pkt_, dataloop_size_, err_) \
-    {                                                                   \
-        /* This macro sets dataloop_size in RMA operation packets       \
-           (PUT, GET, ACC, GACC) */                                     \
-        err_ = MPI_SUCCESS;                                             \
-        switch((pkt_).type) {                                           \
-        case (MPIDI_CH3_PKT_PUT):                                       \
-            (pkt_).put.info.dataloop_size = (dataloop_size_);           \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_GET):                                       \
-            (pkt_).get.info.dataloop_size = (dataloop_size_);           \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_ACCUMULATE):                                \
-            (pkt_).accum.info.dataloop_size = (dataloop_size_);         \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_GET_ACCUM):                                 \
-            (pkt_).get_accum.info.dataloop_size = (dataloop_size_);     \
-            break;                                                      \
-        default:                                                        \
-            MPIR_ERR_SETANDJUMP1(err_, MPI_ERR_OTHER, "**invalidpkt", "**invalidpkt %d", (pkt_).type); \
-        }                                                               \
-    }
-
 #define MPIDI_CH3_PKT_RMA_GET_REQUEST_HANDLE(pkt_, request_hdl_, err_)  \
     {                                                                   \
         err_ = MPI_SUCCESS;                                             \
@@ -811,151 +941,41 @@ typedef struct MPIDI_CH3_Pkt_cancel_send_resp
      (pkt_).type == MPIDI_CH3_PKT_ACCUMULATE_IMMED)
 
 
+typedef struct MPIDI_CH3_Pkt_put
+{
 #if defined(CHANNEL_MRAIL)
-#define MPIDI_CH3_PKT_RMA_GET_FLAGS(pkt_, flags_, err_)                 \
-    {                                                                   \
-        /* This macro returns flags in RMA operation packets (PUT, GET, \
-           ACC, GACC, FOP, CAS), RMA operation response packets         \
-           (GET_RESP, GET_ACCUM_RESP, FOP_RESP, CAS_RESP), RMA control  \
-           packets (UNLOCK) and RMA control response packets (LOCK_ACK, \
-           LOCK_OP_ACK) */                                              \
-        err_ = MPI_SUCCESS;                                             \
-        switch((pkt_).type) {                                           \
-        case (MPIDI_CH3_PKT_PUT):                                       \
-        case (MPIDI_CH3_PKT_PUT_IMMED):                                 \
-        case (MPIDI_CH3_PKT_PUT_RNDV):                                  \
-            flags_ = (pkt_).put.flags;                                  \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_GET):                                       \
-        case (MPIDI_CH3_PKT_GET_RNDV):                                  \
-            flags_ = (pkt_).get.flags;                                  \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_ACCUMULATE):                                \
-        case (MPIDI_CH3_PKT_ACCUMULATE_IMMED):                          \
-            flags_ = (pkt_).accum.flags;                                \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_GET_ACCUM):                                 \
-        case (MPIDI_CH3_PKT_GET_ACCUM_IMMED):                           \
-            flags_ = (pkt_).get_accum.flags;                            \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_CAS_IMMED):                                 \
-            flags_ = (pkt_).cas.flags;                                  \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_FOP):                                       \
-        case (MPIDI_CH3_PKT_FOP_IMMED):                                 \
-            flags_ = (pkt_).fop.flags;                                  \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_ACCUMULATE_RNDV):                           \
-        case (MPIDI_CH3_PKT_GET_ACCUM_RNDV):                            \
-            flags_ = (pkt_).accum_rndv.flags;                           \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_GET_RESP):                                  \
-        case (MPIDI_CH3_PKT_GET_RESP_IMMED):                            \
-            flags_ = (pkt_).get_resp.flags;                             \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_GET_ACCUM_RESP):                            \
-        case (MPIDI_CH3_PKT_GET_ACCUM_RESP_IMMED):                      \
-            flags_ = (pkt_).get_accum_resp.flags;                       \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_FOP_RESP):                                  \
-        case (MPIDI_CH3_PKT_FOP_RESP_IMMED):                            \
-            flags_ = (pkt_).fop_resp.flags;                             \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_CAS_RESP_IMMED):                            \
-            flags_ = (pkt_).cas_resp.flags;                             \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_LOCK):                                      \
-            flags_ = (pkt_).lock.flags;                                 \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_UNLOCK):                                    \
-            flags_ = (pkt_).unlock.flags;                               \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_LOCK_ACK):                                  \
-            flags_ = (pkt_).lock_ack.flags;                             \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_LOCK_OP_ACK):                               \
-            flags_ = (pkt_).lock_op_ack.flags;                          \
-            break;                                                      \
-        default:                                                        \
-            MPIR_ERR_SETANDJUMP1(err_, MPI_ERR_OTHER, "**invalidpkt", "**invalidpkt %d", (pkt_).type); \
-        }                                                               \
-    }
+    uint8_t type;
+    MPIDI_CH3I_MRAILI_IBA_PKT_DECL
+    uint32_t rma_issued;
+#else /* defined(CHANNEL_MRAIL) */
+    MPIDI_CH3_Pkt_type_t type;
+#endif /* defined(CHANNEL_MRAIL) */
+    int pkt_flags;
+    void *addr;
+    int count;
+    MPI_Datatype datatype;
+    MPI_Win target_win_handle;
+    MPI_Win source_win_handle;
+    union {
+        int flattened_type_size;
+        MPIDI_CH3_RMA_Immed_u data;
+    } info;
+#if defined (CHANNEL_PSM)
+    intptr_t rndv_len;
+    int source_rank;
+    int target_rank;
+    int rndv_tag;
+    int rndv_mode;
+    int mapped_trank;
+    int mapped_srank;
+#endif       
+} MPIDI_CH3_Pkt_put_t;
 
-
-#else 
-
-#define MPIDI_CH3_PKT_RMA_GET_FLAGS(pkt_, flags_, err_)                 \
-    {                                                                   \
-        /* This macro returns flags in RMA operation packets (PUT, GET, \
-           ACC, GACC, FOP, CAS), RMA operation response packets         \
-           (GET_RESP, GET_ACCUM_RESP, FOP_RESP, CAS_RESP), RMA control  \
-           packets (UNLOCK) and RMA control response packets (LOCK_ACK, \
-           LOCK_OP_ACK) */                                              \
-        err_ = MPI_SUCCESS;                                             \
-        switch((pkt_).type) {                                           \
-        case (MPIDI_CH3_PKT_PUT):                                       \
-        case (MPIDI_CH3_PKT_PUT_IMMED):                                 \
-            flags_ = (pkt_).put.flags;                                  \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_GET):                                       \
-            flags_ = (pkt_).get.flags;                                  \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_ACCUMULATE):                                \
-        case (MPIDI_CH3_PKT_ACCUMULATE_IMMED):                          \
-            flags_ = (pkt_).accum.flags;                                \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_GET_ACCUM):                                 \
-        case (MPIDI_CH3_PKT_GET_ACCUM_IMMED):                           \
-            flags_ = (pkt_).get_accum.flags;                            \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_CAS_IMMED):                                 \
-            flags_ = (pkt_).cas.flags;                                  \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_FOP):                                       \
-        case (MPIDI_CH3_PKT_FOP_IMMED):                                 \
-            flags_ = (pkt_).fop.flags;                                  \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_GET_RESP):                                  \
-        case (MPIDI_CH3_PKT_GET_RESP_IMMED):                            \
-            flags_ = (pkt_).get_resp.flags;                             \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_GET_ACCUM_RESP):                            \
-        case (MPIDI_CH3_PKT_GET_ACCUM_RESP_IMMED):                      \
-            flags_ = (pkt_).get_accum_resp.flags;                       \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_FOP_RESP):                                  \
-        case (MPIDI_CH3_PKT_FOP_RESP_IMMED):                            \
-            flags_ = (pkt_).fop_resp.flags;                             \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_CAS_RESP_IMMED):                            \
-            flags_ = (pkt_).cas_resp.flags;                             \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_LOCK):                                      \
-            flags_ = (pkt_).lock.flags;                                 \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_UNLOCK):                                    \
-            flags_ = (pkt_).unlock.flags;                               \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_LOCK_ACK):                                  \
-            flags_ = (pkt_).lock_ack.flags;                             \
-            break;                                                      \
-        case (MPIDI_CH3_PKT_LOCK_OP_ACK):                               \
-            flags_ = (pkt_).lock_op_ack.flags;                          \
-            break;                                                      \
-        default:                                                        \
-            MPIR_ERR_SETANDJUMP1(err_, MPI_ERR_OTHER, "**invalidpkt", "**invalidpkt %d", (pkt_).type); \
-        }                                                               \
-    }
-
-#endif
-
-/* *INDENT-OFF* */
-/* Indentation turned off because "indent" is getting confused with
- * the lack of a semi-colon in the field below */
-#if defined(MPIDI_CH3_PKT_DEFS)
-MPIDI_CH3_PKT_DEFS
-#endif
-
+/* 
+ * MV2 rndv version 
+ * It is important that these definitions remain beneath their base
+ * MPICH versions or Git will get confused when merging 
+ */
 #if defined(CHANNEL_MRAIL)
 /*
 Top elements of MPIDI_CH3_Pkt_put_rndv should match with MPIDI_CH3_Pkt_put_t 
@@ -966,53 +986,21 @@ typedef struct MPIDI_CH3_Pkt_put_rndv
     uint8_t type;
     MPIDI_CH3I_MRAILI_IBA_PKT_DECL
     uint32_t rma_issued;
-    MPIDI_CH3_Pkt_flags_t flags;
+    int pkt_flags;
     void *addr;
     int count;
     MPI_Datatype datatype;
     MPI_Win target_win_handle;
     MPI_Win source_win_handle;
     union {
-        int dataloop_size;
-        char data[MPIDI_RMA_IMMED_BYTES];
-    } info;
-    MPI_Request sender_req_id;
-    MPIDI_msg_sz_t data_sz;
-    MPIDI_CH3I_MRAILI_Rndv_info_t rndv;
-}
-MPIDI_CH3_Pkt_put_rndv_t;
-#endif /* defined(CHANNEL_MRAIL) */
-
-typedef struct MPIDI_CH3_Pkt_put
-{
-#if defined(CHANNEL_MRAIL)
-    uint8_t type;
-    MPIDI_CH3I_MRAILI_IBA_PKT_DECL
-    uint32_t rma_issued;
-#else /* defined(CHANNEL_MRAIL) */
-    MPIDI_CH3_Pkt_type_t type;
-#endif /* defined(CHANNEL_MRAIL) */
-    MPIDI_CH3_Pkt_flags_t flags;
-    void *addr;
-    int count;
-    MPI_Datatype datatype;
-    MPI_Win target_win_handle;
-    MPI_Win source_win_handle;
-    union {
-        int dataloop_size;
+        int flattened_type_size;
         MPIDI_CH3_RMA_Immed_u data;
     } info;
-#if defined (CHANNEL_PSM)
-    MPIDI_msg_sz_t rndv_len;
-    int source_rank;
-    int target_rank;
-    int rndv_tag;
-    int rndv_mode;
-    int mapped_trank;
-    int mapped_srank;
-#endif       
-}
-MPIDI_CH3_Pkt_put_t;
+    MPI_Request sender_req_id;
+    intptr_t data_sz;
+    MPIDI_CH3I_MRAILI_Rndv_info_t rndv;
+} MPIDI_CH3_Pkt_put_rndv_t;
+#endif /* CHANNEL_MRAIL */
 
 typedef struct MPIDI_CH3_Pkt_get
 {
@@ -1023,12 +1011,12 @@ typedef struct MPIDI_CH3_Pkt_get
 #else /* defined(CHANNEL_MRAIL) */
     MPIDI_CH3_Pkt_type_t type;
 #endif /* defined(CHANNEL_MRAIL) */
-    MPIDI_CH3_Pkt_flags_t flags;
+    int pkt_flags;
     void *addr;
     int count;
     MPI_Datatype datatype;
     struct {
-        int dataloop_size;      /* for derived datatypes */
+        int flattened_type_size;
     } info;
     MPI_Request request_handle;
     MPI_Win target_win_handle;
@@ -1036,15 +1024,19 @@ typedef struct MPIDI_CH3_Pkt_get
     int rndv_mode;
     int target_rank;
     int source_rank;
-    MPIDI_msg_sz_t rndv_len;
+    intptr_t rndv_len;
     int rndv_tag;
     int mapped_srank;
     int mapped_trank;
     MPI_Win source_win_handle;
 #endif
-}
-MPIDI_CH3_Pkt_get_t;
+} MPIDI_CH3_Pkt_get_t;
 
+/* 
+ * MV2 rndv version
+ * It is important that these definitions remain beneath their base
+ * MPICH versions or Git will get confused when merging 
+ */
 #if defined(CHANNEL_MRAIL)
 /*
 Top elements of MPIDI_CH3_Pkt_get_rndv should match with MPIDI_CH3_Pkt_get_t 
@@ -1055,19 +1047,18 @@ typedef struct MPIDI_CH3_Pkt_get_rndv
     uint8_t type;
     MPIDI_CH3I_MRAILI_IBA_PKT_DECL
     uint32_t rma_issued;
-    MPIDI_CH3_Pkt_flags_t flags;
+    int pkt_flags;
     void *addr;
     int count;
     MPI_Datatype datatype;
     struct {
-        int dataloop_size;      /* for derived datatypes */
+        int flattened_type_size;
     } info;
     MPI_Request request_handle;
     MPI_Win target_win_handle;
-    MPIDI_msg_sz_t data_sz;
+    intptr_t data_sz;
     MPIDI_CH3I_MRAILI_Rndv_info_t rndv;
-}
-MPIDI_CH3_Pkt_get_rndv_t;
+} MPIDI_CH3_Pkt_get_rndv_t;
 #endif /* defined(CHANNEL_MRAIL) */
 
 typedef struct MPIDI_CH3_Pkt_get_resp
@@ -1082,8 +1073,8 @@ typedef struct MPIDI_CH3_Pkt_get_resp
     MPI_Request request_handle;
     /* following are used to decrement ack_counter at origin */
     int target_rank;
-    MPIDI_CH3_Pkt_flags_t flags;
-    /* Following are to piggyback IMMED data */
+    int pkt_flags;
+    /* Followings are to piggyback IMMED data */
     struct {
         /* note that we use struct here in order
          * to consistently access data
@@ -1094,73 +1085,14 @@ typedef struct MPIDI_CH3_Pkt_get_resp
     int source_rank;
     int rndv_tag;
     int rndv_mode;
-    MPIDI_msg_sz_t rndv_len;
+    intptr_t rndv_len;
     MPI_Win target_win_handle;
     MPI_Win source_win_handle;
     int mapped_trank;
     int mapped_srank;
 #endif /* CHANNEL_PSM */
-}
-MPIDI_CH3_Pkt_get_resp_t;
+} MPIDI_CH3_Pkt_get_resp_t;
 
-
-#if defined(CHANNEL_MRAIL)
-/*
-Top elements of MPIDI_CH3_Pkt_accum_rndv should match with MPIDI_CH3_Pkt_accum_t 
-TODO: remove this restriction
-*/
-typedef struct MPIDI_CH3_Pkt_accum_rndv
-{
-    uint8_t type;
-    MPIDI_CH3I_MRAILI_IBA_PKT_DECL
-    uint32_t rma_issued;
-    MPIDI_CH3_Pkt_flags_t flags;
-    MPI_Request request_handle; /* For get_accumulate response */
-    void *addr;
-    int count;
-    MPI_Datatype datatype;
-    int dataloop_size;   /* for derived datatypes */
-    MPI_Op op;
-    MPI_Win target_win_handle; /* Used in the last RMA operation in each
-                               * epoch for decrementing rma op counter in
-                               * active target rma and for unlocking window
-                               * in passive target rma. Otherwise set to NULL*/
-    MPI_Win source_win_handle; /* Used in the last RMA operation in an
-                               * epoch in the case of passive target rma
-                               * with shared locks. Otherwise set to NULL*/
-    MPI_Request sender_req_id;
-    MPIDI_msg_sz_t data_sz;
-
-    MPIDI_CH3I_MRAILI_RNDV_INFO_DECL
-}
-MPIDI_CH3_Pkt_accum_rndv_t;
-
-typedef struct MPIDI_CH3_Pkt_get_accum_rndv
-{
-    uint8_t type;
-    MPIDI_CH3I_MRAILI_IBA_PKT_DECL
-    uint32_t rma_issued;
-    MPIDI_CH3_Pkt_flags_t flags;
-    MPI_Request request_handle; 
-    void *addr;
-    int count;
-    MPI_Datatype datatype;
-    int dataloop_size;   /* for derived datatypes */
-    MPI_Op op;
-    MPI_Win target_win_handle; /* Used in the last RMA operation in each
-                               * epoch for decrementing rma op counter in
-                               * active target rma and for unlocking window
-                               * in passive target rma. Otherwise set to NULL*/
-    MPI_Win source_win_handle; /* Used in the last RMA operation in an
-                               * epoch in the case of passive target rma
-                               * with shared locks. Otherwise set to NULL*/
-    MPI_Request sender_req_id;
-    MPIDI_msg_sz_t data_sz;
-
-    MPIDI_CH3I_MRAILI_RNDV_INFO_DECL
-}
-MPIDI_CH3_Pkt_get_accum_rndv_t;
-#endif /* defined(CHANNEL_MRAIL) */
 
 typedef struct MPIDI_CH3_Pkt_accum
 {
@@ -1171,7 +1103,7 @@ typedef struct MPIDI_CH3_Pkt_accum
 #else /* defined(CHANNEL_MRAIL) */
     MPIDI_CH3_Pkt_type_t type;
 #endif /* defined(CHANNEL_MRAIL) */
-    MPIDI_CH3_Pkt_flags_t flags;
+    int pkt_flags;
     void *addr;
     int count;
     MPI_Datatype datatype;
@@ -1179,11 +1111,11 @@ typedef struct MPIDI_CH3_Pkt_accum
     MPI_Win target_win_handle;
     MPI_Win source_win_handle;
     union {
-        int dataloop_size;
+        int flattened_type_size;
         MPIDI_CH3_RMA_Immed_u data;
     } info;
 #if defined (CHANNEL_PSM)
-    MPIDI_msg_sz_t rndv_len;
+    intptr_t rndv_len;
     int source_rank;
     int target_rank;
     int rndv_tag;
@@ -1193,8 +1125,41 @@ typedef struct MPIDI_CH3_Pkt_accum
     int mapped_srank;
     int mapped_trank;
 #endif    
-}
-MPIDI_CH3_Pkt_accum_t;
+} MPIDI_CH3_Pkt_accum_t;
+
+/* 
+ * MV2 rndv version
+ * It is important that these definitions remain beneath their base
+ * MPICH versions or Git will get confused when merging 
+ */
+#if defined(CHANNEL_MRAIL)
+/*
+Top elements of MPIDI_CH3_Pkt_accum_rndv should match with MPIDI_CH3_Pkt_accum_t 
+TODO: remove this restriction
+*/
+typedef struct MPIDI_CH3_Pkt_accum_rndv
+{
+    uint8_t type;
+    MPIDI_CH3I_MRAILI_IBA_PKT_DECL
+    uint32_t rma_issued;
+    int pkt_flags;
+    MPI_Request request_handle; /* For get_accumulate response */
+    void *addr;
+    int count;
+    MPI_Datatype datatype;
+    MPI_Op op;
+    MPI_Win target_win_handle; 
+    MPI_Win source_win_handle; 
+    union {
+        int flattened_type_size;
+        MPIDI_CH3_RMA_Immed_u data;
+    } info;
+    MPI_Request sender_req_id;
+    intptr_t data_sz;
+
+    MPIDI_CH3I_MRAILI_RNDV_INFO_DECL
+} MPIDI_CH3_Pkt_accum_rndv_t;
+#endif /* CHANNEL_MRAIL */
 
 typedef struct MPIDI_CH3_Pkt_get_accum {
 #if defined(CHANNEL_MRAIL)
@@ -1204,7 +1169,7 @@ typedef struct MPIDI_CH3_Pkt_get_accum {
 #else /* defined(CHANNEL_MRAIL) */
     MPIDI_CH3_Pkt_type_t type;
 #endif /* defined(CHANNEL_MRAIL) */
-    MPIDI_CH3_Pkt_flags_t flags;
+    int pkt_flags;
     MPI_Request request_handle; /* For get_accumulate response */
     void *addr;
     int count;
@@ -1212,11 +1177,11 @@ typedef struct MPIDI_CH3_Pkt_get_accum {
     MPI_Op op;
     MPI_Win target_win_handle;
     union {
-        int dataloop_size;
+        int flattened_type_size;
         MPIDI_CH3_RMA_Immed_u data;
     } info;
 #if defined (CHANNEL_PSM)
-    MPIDI_msg_sz_t rndv_len;
+    intptr_t rndv_len;
     int source_rank;
     int target_rank;
     int rndv_tag;
@@ -1230,6 +1195,36 @@ typedef struct MPIDI_CH3_Pkt_get_accum {
 #endif    
 } MPIDI_CH3_Pkt_get_accum_t;
 
+/* 
+ * MV2 rndv version
+ * It is important that these definitions remain beneath their base
+ * MPICH versions or Git will get confused when merging 
+ */
+#if defined(CHANNEL_MRAIL)
+typedef struct MPIDI_CH3_Pkt_get_accum_rndv
+{
+    uint8_t type;
+    MPIDI_CH3I_MRAILI_IBA_PKT_DECL
+    uint32_t rma_issued;
+    int pkt_flags;
+    MPI_Request request_handle; 
+    void *addr;
+    int count;
+    MPI_Datatype datatype;
+    MPI_Op op;
+    MPI_Win target_win_handle; 
+    union {
+        int flattened_type_size;
+        MPIDI_CH3_RMA_Immed_u data;
+    } info;
+    MPI_Request sender_req_id;
+    intptr_t data_sz;
+
+    MPIDI_CH3I_MRAILI_RNDV_INFO_DECL
+} MPIDI_CH3_Pkt_get_accum_rndv_t;
+#endif /* defined(CHANNEL_MRAIL) */
+
+
 typedef struct MPIDI_CH3_Pkt_get_accum_resp
 {
 #if defined(CHANNEL_MRAIL)
@@ -1242,8 +1237,8 @@ typedef struct MPIDI_CH3_Pkt_get_accum_resp
     MPI_Request request_handle;
     /* following are used to decrement ack_counter at origin */
     int target_rank;
-    MPIDI_CH3_Pkt_flags_t flags;
-    /* Following are to piggyback IMMED data */
+    int pkt_flags;
+    /* Followings are to piggyback IMMED data */
     struct {
         /* note that we use struct here in order
          * to consistently access data
@@ -1254,14 +1249,13 @@ typedef struct MPIDI_CH3_Pkt_get_accum_resp
     int source_rank;
     int rndv_tag;
     int rndv_mode;
-    MPIDI_msg_sz_t rndv_len;
+    intptr_t rndv_len;
     MPI_Win target_win_handle;
     MPI_Win source_win_handle;
     int mapped_trank;
     int mapped_srank;
 #endif /* CHANNEL_PSM */
-}
-MPIDI_CH3_Pkt_get_accum_resp_t;
+} MPIDI_CH3_Pkt_get_accum_resp_t;
 
 typedef struct MPIDI_CH3_Pkt_cas
 {
@@ -1271,7 +1265,7 @@ typedef struct MPIDI_CH3_Pkt_cas
 #else /* defined(CHANNEL_MRAIL) */
     MPIDI_CH3_Pkt_type_t type;
 #endif /* defined(CHANNEL_MRAIL) */
-    MPIDI_CH3_Pkt_flags_t flags;
+    int pkt_flags;
     MPI_Datatype datatype;
     void *addr;
     MPI_Request request_handle;
@@ -1283,8 +1277,7 @@ typedef struct MPIDI_CH3_Pkt_cas
     int mapped_srank;
     int mapped_trank;
 #endif
-}
-MPIDI_CH3_Pkt_cas_t;
+} MPIDI_CH3_Pkt_cas_t;
 
 typedef struct MPIDI_CH3_Pkt_cas_resp
 {
@@ -1303,13 +1296,12 @@ typedef struct MPIDI_CH3_Pkt_cas_resp
     } info;
     /* following are used to decrement ack_counter at origin */
     int target_rank;
-    MPIDI_CH3_Pkt_flags_t flags;
+    int pkt_flags;
 #if defined (CHANNEL_PSM)
     int mapped_srank;
     int mapped_trank;
 #endif
-}
-MPIDI_CH3_Pkt_cas_resp_t;
+} MPIDI_CH3_Pkt_cas_resp_t;
 
 typedef struct MPIDI_CH3_Pkt_fop
 {
@@ -1319,7 +1311,7 @@ typedef struct MPIDI_CH3_Pkt_fop
 #else /* defined(CHANNEL_MRAIL) */
     MPIDI_CH3_Pkt_type_t type;
 #endif /* defined(CHANNEL_MRAIL) */
-    MPIDI_CH3_Pkt_flags_t flags;
+    int pkt_flags;
     MPI_Datatype datatype;
     void *addr;
     MPI_Op op;
@@ -1356,13 +1348,12 @@ typedef struct MPIDI_CH3_Pkt_fop_resp
     } info;
     /* following are used to decrement ack_counter at origin */
     int target_rank;
-    MPIDI_CH3_Pkt_flags_t flags;
+    int pkt_flags;
 #if defined (CHANNEL_PSM)
     int mapped_srank;
     int mapped_trank;
 #endif
-}
-MPIDI_CH3_Pkt_fop_resp_t;
+} MPIDI_CH3_Pkt_fop_resp_t;
 
 typedef struct MPIDI_CH3_Pkt_lock
 {
@@ -1372,7 +1363,7 @@ typedef struct MPIDI_CH3_Pkt_lock
 #else /* defined(CHANNEL_MRAIL) */
     MPIDI_CH3_Pkt_type_t type;
 #endif /* defined(CHANNEL_MRAIL) */
-    MPIDI_CH3_Pkt_flags_t flags;
+    int pkt_flags;
     MPI_Win target_win_handle;
     /* Note that either source_win_handle
      * or request_handle will be used. Here
@@ -1391,26 +1382,6 @@ typedef struct MPIDI_CH3_Pkt_lock
 }
 MPIDI_CH3_Pkt_lock_t;
 
-typedef struct MPIDI_CH3_Pkt_lock_granted
-{
-#if defined(CHANNEL_MRAIL)
-    uint8_t type;
-    MPIDI_CH3I_MRAILI_IBA_PKT_DECL
-#else /* defined(CHANNEL_MRAIL) */
-    MPIDI_CH3_Pkt_type_t type;
-#endif /* defined(CHANNEL_MRAIL) */
-    MPI_Win source_win_handle;
-    int target_rank;            /* Used in pt_rma_done response to look up the
-                                   target state at the origin. */
-#if defined (CHANNEL_PSM)
-    int source_rank;
-    MPI_Win target_win_handle;
-    int mapped_srank;
-    int mapped_trank;
-#endif
-}
-MPIDI_CH3_Pkt_lock_granted_t;
-
 typedef struct MPIDI_CH3_Pkt_unlock {
 #if defined(CHANNEL_MRAIL)
     uint8_t type;
@@ -1420,7 +1391,7 @@ typedef struct MPIDI_CH3_Pkt_unlock {
 #endif /* defined(CHANNEL_MRAIL) */
     MPI_Win target_win_handle;
     MPI_Win source_win_handle;
-    MPIDI_CH3_Pkt_flags_t flags;
+    int pkt_flags;
 #if defined (CHANNEL_PSM)
     int source_rank;
     int mapped_srank;
@@ -1452,7 +1423,7 @@ typedef struct MPIDI_CH3_Pkt_lock_ack {
 #else /* defined(CHANNEL_MRAIL) */
     MPIDI_CH3_Pkt_type_t type;
 #endif /* defined(CHANNEL_MRAIL) */
-    MPIDI_CH3_Pkt_flags_t flags;
+    int pkt_flags;
     /* note that either source_win_handle
      * or request_handle is used. */
     MPI_Win source_win_handle;
@@ -1472,7 +1443,7 @@ typedef struct MPIDI_CH3_Pkt_lock_op_ack {
 #else
     MPIDI_CH3_Pkt_type_t type;
 #endif /* defined(CHANNEL_MRAIL) */
-    MPIDI_CH3_Pkt_flags_t flags;
+    int pkt_flags;
     /* note that either source_win_handle
      * or request_handle is used. */
     MPI_Win source_win_handle;
@@ -1498,7 +1469,7 @@ typedef struct MPIDI_CH3_Pkt_ack {
 #endif
     MPI_Win source_win_handle;
     int target_rank;
-    MPIDI_CH3_Pkt_flags_t flags;
+    int pkt_flags;
 #if defined (CHANNEL_PSM)
     int source_rank;
     int mapped_srank;
@@ -1515,8 +1486,7 @@ typedef struct MPIDI_CH3_Pkt_decr_at_counter {
 #endif
     MPI_Win target_win_handle;
     MPI_Win source_win_handle;
-    MPIDI_CH3_Pkt_flags_t flags;
-
+    int pkt_flags;
 #if defined (CHANNEL_PSM)
     int target_rank;
     int source_rank;
@@ -1536,9 +1506,19 @@ typedef struct MPIDI_CH3_Pkt_close
     int ack;
 } MPIDI_CH3_Pkt_close_t;
 
+#ifndef MPIDI_CH3_HAS_NO_DYNAMIC_PROCESS
+/* packet types used in dynamic process connection. */
+typedef struct MPIDI_CH3_Pkt_conn_ack {
+    MPIDI_CH3_Pkt_type_t type;
+    int ack;
+} MPIDI_CH3_Pkt_conn_ack_t;
+
+typedef MPIDI_CH3_Pkt_conn_ack_t MPIDI_CH3_Pkt_accept_ack_t;
+#endif /* end of MPIDI_CH3_HAS_NO_DYNAMIC_PROCESS */
+
 typedef struct MPIDI_CH3_Pkt_revoke {
     MPIDI_CH3_Pkt_type_t type;
-    MPIU_Context_id_t revoked_comm;
+    MPIR_Context_id_t revoked_comm;
 } MPIDI_CH3_Pkt_revoke_t;
 
 typedef union MPIDI_CH3_Pkt
@@ -1580,6 +1560,10 @@ typedef union MPIDI_CH3_Pkt
     MPIDI_CH3_Pkt_ack_t ack;
     MPIDI_CH3_Pkt_decr_at_counter_t decr_at_cnt;
     MPIDI_CH3_Pkt_close_t close;
+#ifndef MPIDI_CH3_HAS_NO_DYNAMIC_PROCESS
+    MPIDI_CH3_Pkt_conn_ack_t conn_ack;
+    MPIDI_CH3_Pkt_accept_ack_t accept_ack;
+#endif
     MPIDI_CH3_Pkt_cas_t cas;
     MPIDI_CH3_Pkt_cas_resp_t cas_resp;
     MPIDI_CH3_Pkt_fop_t fop;
@@ -1593,62 +1577,9 @@ typedef union MPIDI_CH3_Pkt
 
 /* Extended header packet types */
 
-/* to send derived datatype across in RMA ops */
-typedef struct MPIDI_RMA_dtype_info {   /* for derived datatypes */
-    int is_contig;
-    MPI_Aint max_contig_blocks;
-    MPI_Aint size;
-    MPI_Aint extent;
-    MPI_Aint dataloop_size;     /* not needed because this info is sent in
-                                 * packet header. remove it after lock/unlock
-                                 * is implemented in the device */
-    void *dataloop;             /* pointer needed to update pointers
-                                 * within dataloop on remote side */
-    int dataloop_depth;
-    int basic_type;
-    MPI_Aint ub, lb, true_ub, true_lb;
-    int has_sticky_ub, has_sticky_lb;
-} MPIDI_RMA_dtype_info;
-
 typedef struct MPIDI_CH3_Ext_pkt_stream {
     MPI_Aint stream_offset;
 } MPIDI_CH3_Ext_pkt_stream_t;
-
-typedef struct MPIDI_CH3_Ext_pkt_derived {
-    MPIDI_RMA_dtype_info dtype_info;
-    /* Follow with variable-length dataloop.
-     * On origin we allocate a large buffer including
-     * this header and the dataloop; on target we use
-     * separate buffer to receive dataloop in order
-     * to avoid extra copy.*/
-} MPIDI_CH3_Ext_pkt_derived_t;
-
-typedef struct MPIDI_CH3_Ext_pkt_stream_derived {
-    MPI_Aint stream_offset;
-    MPIDI_RMA_dtype_info dtype_info;
-    /* follow with variable-length dataloop. */
-} MPIDI_CH3_Ext_pkt_stream_derived_t;
-
-/* Note that since ACC and GET_ACC contain the same extended attributes,
- * we use generic routines for them in some places (see below).
- * If we add OP-specific attribute in future, we should handle them separately.
- *  1. origin issuing function
- *  2. target packet handler
- *  3. target data receive complete handler. */
-typedef MPIDI_CH3_Ext_pkt_stream_t MPIDI_CH3_Ext_pkt_accum_stream_t;
-typedef MPIDI_CH3_Ext_pkt_derived_t MPIDI_CH3_Ext_pkt_accum_derived_t;
-typedef MPIDI_CH3_Ext_pkt_stream_derived_t MPIDI_CH3_Ext_pkt_accum_stream_derived_t;
-
-typedef MPIDI_CH3_Ext_pkt_stream_t MPIDI_CH3_Ext_pkt_get_accum_stream_t;
-typedef MPIDI_CH3_Ext_pkt_derived_t MPIDI_CH3_Ext_pkt_get_accum_derived_t;
-typedef MPIDI_CH3_Ext_pkt_stream_derived_t MPIDI_CH3_Ext_pkt_get_accum_stream_derived_t;
-
-typedef MPIDI_CH3_Ext_pkt_derived_t MPIDI_CH3_Ext_pkt_put_derived_t;
-typedef MPIDI_CH3_Ext_pkt_derived_t MPIDI_CH3_Ext_pkt_get_derived_t;
-
-#if defined(CHANNEL_MRAIL)
-extern int MPIDI_CH3_Pkt_size_index[];
-#endif /* defined(CHANNEL_MRAIL) */
 
 #if defined(MPID_USE_SEQUENCE_NUMBERS)
 typedef struct MPIDI_CH3_Pkt_send_container {
@@ -1657,4 +1588,9 @@ typedef struct MPIDI_CH3_Pkt_send_container {
 } MPIDI_CH3_Pkt_send_container_t;
 #endif
 
-#endif
+/* MV2 reference array for packet sizes */
+#if defined(CHANNEL_MRAIL)
+extern int MPIDI_CH3_Pkt_size_index[];
+#endif /* defined(CHANNEL_MRAIL) */
+
+#endif /* MPIDPKT_H_INCLUDED */

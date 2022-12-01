@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /* style: allow:fprintf:10 sig:0 */
@@ -48,8 +46,7 @@ int chkcomm2inc_(int *keyval, const int *expected, int *ierr)
     MPI_Comm_get_attr(MPI_COMM_WORLD, *keyval, &val, &flag);
     if (!flag) {
         *ierr = 1;
-    }
-    else {
+    } else {
         if (*val != *expected) {
             /* In some cases, using printf from a c routine linked
              * with a Fortran routine can cause linking difficulties.

@@ -37,7 +37,7 @@ int MPIDI_nem_ib_init_cmanager(int rank, int size)
     MPIDI_STATE_DECL(MPID_STATE_MPIDI_INIT_CMANAGER);
     MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_INIT_CMANAGER);
 
-    cmanagers = (MPID_nem_ib_channel_manager *)MPIU_Malloc(size * sizeof(MPID_nem_ib_channel_manager));
+    cmanagers = (MPID_nem_ib_channel_manager *)MPL_malloc(size * sizeof(MPID_nem_ib_channel_manager));
 
     memset(cmanagers, 0, size * sizeof(MPID_nem_ib_channel_manager));
 
@@ -47,7 +47,7 @@ int MPIDI_nem_ib_init_cmanager(int rank, int size)
 
         cmanagers[i].num_channels          = rdma_num_rails;
         cmanagers[i].num_local_pollings    = 0;
-        cmanagers[i].msg_channels = MPIU_Malloc(sizeof *cmanagers[i].msg_channels * (cmanagers[i].num_channels + 1));
+        cmanagers[i].msg_channels = MPL_malloc(sizeof *cmanagers[i].msg_channels * (cmanagers[i].num_channels + 1));
         if (!cmanagers[i].msg_channels) {
             ibv_error_abort(GEN_EXIT_ERR, "No resource for msg channels\n");
         }

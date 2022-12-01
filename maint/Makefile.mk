@@ -1,8 +1,6 @@
-## -*- Mode: Makefile; -*-
-## vim: set ft=automake :
 ##
-## (C) 2011 by Argonne National Laboratory.
-##     See COPYRIGHT in top-level directory.
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
 ##
 
 # this file exists to ensure that files in the "maint" dir get distributed
@@ -19,13 +17,12 @@ dist_noinst_SCRIPTS +=                \
     maint/extractfixme.in             \
     maint/extractstates.in            \
     maint/extractstrings.in           \
-    maint/f77tof90                    \
-    maint/f77tof90.in                 \
     maint/findunusederrtxt            \
     maint/gcovmerge.in                \
     maint/getcoverage.in              \
     maint/gen_subcfg_m4               \
     maint/extractcvars                   \
+    maint/extractmv2cvars             \
     maint/genstates.in                \
     maint/getcoverage.in              \
     maint/local_perl/lib/YAML/Tiny.pm \
@@ -53,4 +50,3 @@ dist_noinst_DATA +=                        \
 ### TODO FIXME what do we do about these?
 ##makedefs
 ##sampleconf.in
-

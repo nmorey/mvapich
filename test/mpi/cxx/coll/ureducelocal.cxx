@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include "mpitestconf.h"
 #ifdef HAVE_IOSTREAM
@@ -31,9 +30,9 @@ void uop(const void *invec, void *inoutvec, int count, const MPI::Datatype & dat
 
     for (i = 0; i < count; i++) {
         if (datatype == MPI::INT)
-            ((int *)inoutvec)[i] = ((int *)invec)[i] + ((int *)inoutvec)[i];
+            ((int *) inoutvec)[i] = ((int *) invec)[i] + ((int *) inoutvec)[i];
         else if (datatype == MPI::DOUBLE || datatype == my_datatype)
-            ((double *)inoutvec)[i] = ((double *)invec)[i] + ((double *)inoutvec)[i];
+            ((double *) inoutvec)[i] = ((double *) invec)[i] + ((double *) inoutvec)[i];
         else
             return;
     }
@@ -99,7 +98,7 @@ int main(int argc, char **argv)
         /* A vector of MPI::DOUBLEs */
         dvin = new double[count];
         dvout = new double[count];
-        my_datatype = MPI::DOUBLE.Create_vector(count/2, 1, 2);
+        my_datatype = MPI::DOUBLE.Create_vector(count / 2, 1, 2);
         my_datatype.Commit();
         real_count = count;
         for (root = 0; root < size; root++) {
@@ -123,6 +122,5 @@ int main(int argc, char **argv)
 
     sumop.Free();
     MTest_Finalize(errs);
-    MPI::Finalize();
     return 0;
 }

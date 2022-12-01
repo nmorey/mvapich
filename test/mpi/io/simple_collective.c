@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2015 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 
@@ -31,6 +30,7 @@
 #include <mpi.h>
 #include <errno.h>
 #include <getopt.h>
+#include "mpitest.h"
 
 static char *opt_file = NULL;
 static int rank = -1;
@@ -96,7 +96,7 @@ int main(int argc, char **argv)
     int nr_errors = 0;
 
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
 
@@ -111,11 +111,8 @@ int main(int argc, char **argv)
     nr_errors += test_write(file, nprocs, rank, info);
     MPI_Info_free(&info);
 
-    MPI_Finalize();
-    if (!rank && nr_errors == 0) {
-        printf(" No Errors\n");
-    }
-    return (-nr_errors);
+    MTest_Finalize(nr_errors);
+    return MTestReturnValue(nr_errors);
 }
 
 static int parse_args(int argc, char **argv)
@@ -124,16 +121,16 @@ static int parse_args(int argc, char **argv)
 
     while ((c = getopt(argc, argv, "e")) != EOF) {
         switch (c) {
-        case 'h':
-            if (rank == 0)
-                usage(argv[0]);
-            exit(0);
-        case '?':      /* unknown */
-            if (rank == 0)
-                usage(argv[0]);
-            exit(1);
-        default:
-            break;
+            case 'h':
+                if (rank == 0)
+                    usage(argv[0]);
+                exit(0);
+            case '?':  /* unknown */
+                if (rank == 0)
+                    usage(argv[0]);
+                exit(1);
+            default:
+                break;
         }
     }
 
@@ -155,7 +152,3 @@ static void usage(const char *prog)
     printf("\n<OPTIONS> is one or more of\n");
     printf(" -h       print this help\n");
 }
-
-/*
- * vim: ts=8 sts=4 sw=4 noexpandtab
- */

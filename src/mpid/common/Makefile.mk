@@ -1,14 +1,12 @@
-## -*- Mode: Makefile; -*-
-## vim: set ft=automake :
 ##
-## (C) 2011 by Argonne National Laboratory.
-## (C) 2014 by Mellanox Technologies, Inc.
-##     See COPYRIGHT in top-level directory.
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
 ##
 
-include $(top_srcdir)/src/mpid/common/datatype/Makefile.mk
 include $(top_srcdir)/src/mpid/common/sched/Makefile.mk
-include $(top_srcdir)/src/mpid/common/sock/Makefile.mk
 include $(top_srcdir)/src/mpid/common/thread/Makefile.mk
 include $(top_srcdir)/src/mpid/common/hcoll/Makefile.mk
 include $(top_srcdir)/src/mpid/common/timers/Makefile.mk
+include $(top_srcdir)/src/mpid/common/shm/Makefile.mk
+include $(top_srcdir)/src/mpid/common/bc/Makefile.mk
+include $(top_srcdir)/src/mpid/common/genq/Makefile.mk

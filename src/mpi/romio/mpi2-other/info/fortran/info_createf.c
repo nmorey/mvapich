@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
-/* 
- *
- *   Copyright (C) 1997 University of Chicago. 
- *   See COPYRIGHT notice in top-level directory.
+/*
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpio.h"
@@ -84,7 +82,7 @@
 #endif
 #endif
 
-void mpi_info_create_(MPI_Fint *info, int *ierr )
+void mpi_info_create_(MPI_Fint * info, int *ierr)
 {
     MPI_Info info_c;
 

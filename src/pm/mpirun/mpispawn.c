@@ -16,7 +16,7 @@
 #include <pmi_tree.h>
 #include <mpmd.h>
 #include <error_handling.h>
-#include <debug_utils.h>
+#include <mv2_debug_utils.h>
 #include <crfs.h>
 #include <mpispawn_ckpt.h>
 #include <signal_processor.h>
@@ -714,9 +714,9 @@ void spawn_processes(int n)
 void process_cleanup(void)
 {
     // Run process cleanup only once
-    static OPA_int_t process_cleanup_started = {0};
+    static MPL_atomic_int_t process_cleanup_started = {0};
     static int process_cleanup_complete = 0;
-    int started = OPA_fetch_and_add_int( &process_cleanup_started, 1 );
+    int started = MPL_atomic_fetch_add_int( &process_cleanup_started, 1 );
 
     /*
      * Do not return until process cleanup is done running

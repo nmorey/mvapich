@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2012 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /*
@@ -20,7 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "mpitestconf.h"
+#include "mpitest.h"
 
 #ifdef MPICH
 /* MPICH (as of 6/2012) packs the native bytes */
@@ -42,7 +41,7 @@ int main(int argc, char **argv)
     double tpack, tmanual, tpackopt;
     int ntry;
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
 
     MPI_Type_contiguous(6, MPI_FLOAT, &ft1type);
     MPI_Type_size(ft1type, &typesize);
@@ -53,11 +52,11 @@ int main(int argc, char **argv)
     MPI_Type_free(&ft1type);
     MPI_Type_free(&ft2type);
 #if defined(MPICH) && defined(PRINT_DATATYPE_INTERNALS)
-    /* To use MPIDU_Datatype_debug to print the datatype internals,
+    /* To use MPIR_Datatype_debug to print the datatype internals,
      * you must configure MPICH with --enable-g=log */
     if (verbose) {
         printf("Original datatype:\n");
-        MPIDU_Datatype_debug(ft3type, 10);
+        MPIR_Datatype_debug(ft3type, 10);
     }
 #endif
     /* The same type, but without using the contiguous type */
@@ -68,7 +67,7 @@ int main(int argc, char **argv)
 #if defined(MPICH) && defined(PRINT_DATATYPE_INTERNALS)
     if (verbose) {
         printf("\n\nMerged datatype:\n");
-        MPIDU_Datatype_debug(ftopttype, 10);
+        MPIR_Datatype_debug(ftopttype, 10);
     }
 #endif
 
@@ -175,17 +174,11 @@ int main(int argc, char **argv)
         printf("MPI_Pack time should be less than 4 times the manual time\n");
         printf("For most informative results, be sure to compile this test with optimization\n");
     }
-    if (errs) {
-        printf(" Found %d errors\n", errs);
-    }
-    else {
-        printf(" No Errors\n");
-    }
 
     free(inbuf);
     free(outbuf);
     free(outbuf2);
 
-    MPI_Finalize();
-    return 0;
+    MTest_Finalize(errs);
+    return MTestReturnValue(errs);
 }

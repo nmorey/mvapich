@@ -27,29 +27,29 @@
 #include "rdma_impl.h"
 #include "ibv_mcast.h"
 #include "vbuf.h"
-#include "debug_utils.h"
+#include "mv2_debug_utils.h"
 
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_vbuf_allocated);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_vbuf_freed);
-MPIR_T_PVAR_ULONG_LEVEL_DECL_EXTERN(MV2, mv2_vbuf_available);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_ud_vbuf_allocated);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_ud_vbuf_freed);
-MPIR_T_PVAR_ULONG_LEVEL_DECL_EXTERN(MV2, mv2_ud_vbuf_available);
+extern MPIR_T_pvar_timer_t PVAR_TIMER_mv2_vbuf_allocated;
+extern MPIR_T_pvar_timer_t PVAR_TIMER_mv2_vbuf_freed;
+extern unsigned long PVAR_LEVEL_mv2_vbuf_available;
+extern MPIR_T_pvar_timer_t PVAR_TIMER_mv2_ud_vbuf_allocated;
+extern MPIR_T_pvar_timer_t PVAR_TIMER_mv2_ud_vbuf_freed;
+extern unsigned long PVAR_LEVEL_mv2_ud_vbuf_available;
 
 
 extern mv2_MPIDI_CH3I_RDMA_Process_t mv2_MPIDI_CH3I_RDMA_Process;
 /* TODO : replace with hash table */
-MPID_Comm *comm_table[MV2_MCAST_MAX_COMMS];
+MPIR_Comm *comm_table[MV2_MCAST_MAX_COMMS];
 mcast_context_t *mcast_ctx = NULL;
 
-MPID_Comm *mv2_mcast_find_comm(int comm_id)
+MPIR_Comm *mv2_mcast_find_comm(int comm_id)
 {
     return comm_table[comm_id];
 }
 
-static void mv2_mcast_register_comm(MPID_Comm * comm_ptr, int comm_id)
+static void mv2_mcast_register_comm(MPIR_Comm * comm_ptr, int comm_id)
 {
-    MPIU_Assert(comm_table[comm_id] == NULL);
+    MPIR_Assert(comm_table[comm_id] == NULL);
     comm_table[comm_id] = comm_ptr;
     PRINT_DEBUG(DEBUG_MCST_verbose > 2, "register comm_id :%d comm:%p\n",
                 comm_id, comm_ptr);
@@ -71,7 +71,8 @@ void mv2_mcast_add_comm_init_req(int comm_id, int comm_size)
     int mask_size;
 
     /* initialize the element */
-    init_elem = (mcast_init_elem_t *) MPIU_Malloc(sizeof(mcast_init_elem_t));
+    init_elem = (mcast_init_elem_t *) MPL_malloc(sizeof(mcast_init_elem_t), 
+                                                    MPL_MEM_OTHER);
     init_elem->next = NULL;
     init_elem->status = MCAST_COMM_INACTIVE;
     init_elem->comm_id = comm_id;
@@ -80,8 +81,9 @@ void mv2_mcast_add_comm_init_req(int comm_id, int comm_size)
     init_elem->acks_pending = comm_size - 1;
     mask_size = ((sizeof(unsigned char) * 8 - 1) + (comm_size - 1)) /
         (sizeof(unsigned char) * 8);
-    init_elem->init_ack_mask = (unsigned char *) MPIU_Malloc(mask_size);
-    MPIU_Memset(init_elem->init_ack_mask, 0, mask_size);
+    init_elem->init_ack_mask = (unsigned char *) MPL_malloc(mask_size,
+                                                            MPL_MEM_OTHER);
+    MPIR_Memset(init_elem->init_ack_mask, 0, mask_size);
 
     /* insert at the beginig  */
     init_elem->next = mcast_ctx->init_list;
@@ -105,18 +107,18 @@ void mv2_mcast_remove_comm_init_req(mcast_init_elem_t * init_elem)
             break;
         }
     }
-    MPIU_Assert(curr);
+    MPIR_Assert(curr);
     PRINT_DEBUG(DEBUG_MCST_verbose > 2, "End MCAST Comm init comm_id:%d\n",
                 init_elem->comm_id);
 
-    MPIU_Free(init_elem->init_ack_mask);
-    MPIU_Free(curr);
+    MPL_free(init_elem->init_ack_mask);
+    MPL_free(curr);
 }
 
 static inline void vbuf_init_mcast_send(vbuf * v, unsigned long len, int hca_num,
                                         mcast_info_t * minfo)
 {
-    MPIU_Assert(v != NULL);
+    MPIR_Assert(v != NULL);
 
     v->desc.u.sr.next = NULL;
     v->desc.u.sr.send_flags = IBV_SEND_SIGNALED;
@@ -140,7 +142,7 @@ static inline void vbuf_init_mcast_send(vbuf * v, unsigned long len, int hca_num
 
 static void mv2_mcast_send_comm_init(mcast_init_elem_t * elem, int rail)
 {
-    MPID_Comm *comm_ptr;
+    MPIR_Comm *comm_ptr;
     vbuf *v;
     mcast_info_t *minfo;
 
@@ -235,7 +237,7 @@ void mv2_mcast_process_comm_init_req(mcast_init_elem_t * list)
     }
 }
 
-int mv2_mcast_progress_comm_ready(MPID_Comm * comm_ptr)
+int mv2_mcast_progress_comm_ready(MPIR_Comm * comm_ptr)
 {
     mcast_info_t *minfo = NULL;
     mcast_init_elem_t *curr = NULL;
@@ -251,7 +253,7 @@ int mv2_mcast_progress_comm_ready(MPID_Comm * comm_ptr)
         }
         curr = curr->next;
     }
-    MPIU_Assert(curr);
+    MPIR_Assert(curr);
     if (curr == NULL) {
         return 0;
     }
@@ -323,7 +325,7 @@ static inline int mv2_recv_umad_response(int mad_portid, char *umad_buf,
             /* recv success */
             int recv_index;
             recv_trid = (uint32_t) mad_ops.get_field64(mad, 0, IB_MAD_TRID_F);
-            MPIU_Assert(recv_trid >= trid && recv_trid <= trid_max);
+            MPIR_Assert(recv_trid >= trid && recv_trid <= trid_max);
             recv_index = recv_trid - trid + 1;
             MV2_CHAR_SETBIT(recv_mask, recv_index);
             if (recv_trid == expected_trid) {
@@ -419,18 +421,18 @@ static inline int mv2_op_mcast_group(mcast_init_info_t * all_init_info,
         goto fn_fail;
     }
 
-    MPIU_Memset(umad_recv_buf, 0, umad_buf_size);
+    MPIR_Memset(umad_recv_buf, 0, umad_buf_size);
 
     trid = (uint32_t) rand();
     mask_size = ((sizeof(unsigned char) * 8 - 1) + num_ranks) /
         (sizeof(unsigned char) * 8);
-    recv_mask = (unsigned char *) MPIU_Malloc(mask_size);
-    MPIU_Memset(recv_mask, 0, mask_size);
+    recv_mask = (unsigned char *) MPL_malloc(mask_size, MPL_MEM_OTHER);
+    MPIR_Memset(recv_mask, 0, mask_size);
 
     for (i = 0; i < num_ranks; i++) {
 
-        MPIU_Memset(umad_send_buf, 0, umad_buf_size);
-        MPIU_Memcpy(port_gid.raw, &all_init_info[i], 16);
+        MPIR_Memset(umad_send_buf, 0, umad_buf_size);
+        MPIR_Memcpy(port_gid.raw, &all_init_info[i], 16);
         if (method == IB_MAD_METHOD_SET) {
             comp_mask = (i == 0) ? create_mask : join_mask;
         } else {
@@ -523,7 +525,7 @@ static inline int mv2_op_mcast_group(mcast_init_info_t * all_init_info,
         }
     }
     if (recv_mask) {
-        MPIU_Free(recv_mask);
+        MPL_free(recv_mask);
     }
 
     return ret;
@@ -628,7 +630,7 @@ static inline int mv2_mcast_attach_ud_qp(mcast_info_t * minfo)
     /* create address handle */
 
     ah_attr = &minfo->ah_attr;
-    MPIU_Memset(ah_attr, 0, sizeof(struct ibv_ah_attr));
+    MPIR_Memset(ah_attr, 0, sizeof(struct ibv_ah_attr));
     ah_attr->dlid = minfo->grp_info.mlid;
     ah_attr->sl = rdma_default_service_level;
     ah_attr->is_global = 1;
@@ -666,7 +668,7 @@ int mv2_rdma_cm_mcst_get_addr_info(char *dst, struct sockaddr *addr)
         return ret;
     }
     PRINT_DEBUG(DEBUG_MCST_verbose,"addr len %d, addr: %s ends\n",res->ai_addrlen,dst); 
-    MPIU_Memcpy(addr, res->ai_addr, res->ai_addrlen);
+    MPIR_Memcpy(addr, res->ai_addr, res->ai_addrlen);
     freeaddrinfo(res);
 
     return ret;
@@ -693,7 +695,7 @@ static int mv2_rdma_cm_mcst_join_handler(mcast_info_t *minfo,
     mcast_ctx->remote_qpn = param->qp_num;
     mcast_ctx->remote_qkey = param->qkey;
     inet_ntop(AF_INET6, param->ah_attr.grh.dgid.raw, buf, 40);
-    MPIU_Memcpy(minfo->grp_info.mgid.raw,param->ah_attr.grh.dgid.raw, sizeof(param->ah_attr.grh.dgid.raw));
+    MPIR_Memcpy(minfo->grp_info.mgid.raw,param->ah_attr.grh.dgid.raw, sizeof(param->ah_attr.grh.dgid.raw));
     minfo->grp_info.mlid = param->ah_attr.dlid;
     return 0;
 }
@@ -731,7 +733,7 @@ static int mv2_rdma_cm_mcst_get_dst_addr(char *dst, struct sockaddr *addr)
 {
 	struct sockaddr_ib *sib;
 	sib = (struct sockaddr_ib *) addr;
-	MPIU_Memset(sib, 0, sizeof *sib);
+	MPIR_Memset(sib, 0, sizeof *sib);
 	sib->sib_family = AF_IB;
 	inet_pton(AF_INET6, dst, &sib->sib_addr);
 	return 0;
@@ -751,7 +753,7 @@ static inline int mv2_rdma_cm_join_mcast_group(mcast_info_t * minfo,
         minfo->grp_info.mlid = 0;
         minfo->grp_info.status = 0;
         minfo->grp_info.comm_id = 0;
-        MPIU_Memset(minfo->grp_info.mgid.raw, 0, 16);
+        MPIR_Memset(minfo->grp_info.mgid.raw, 0, 16);
     }
 
     minfo->dst_addr = (struct sockaddr *) &(minfo->dst_in);
@@ -829,7 +831,7 @@ static inline int mv2_join_mcast_group(mcast_info_t * minfo,
 {
     minfo->grp_info.mlid = 0;
     minfo->grp_info.comm_id = 0;
-    MPIU_Memset(minfo->grp_info.mgid.raw, 0, 16);
+    MPIR_Memset(minfo->grp_info.mgid.raw, 0, 16);
     if (mv2_op_mcast_group(all_init_info, num_ranks, IB_MAD_METHOD_SET, 
              &minfo->grp_info.mgid, &minfo->grp_info.mlid) != MCAST_SUCCESS) {
         minfo->grp_info.status = 0;
@@ -849,12 +851,12 @@ static inline int mv2_leave_mcast_group(mcast_info_t * minfo,
 
 static inline void mv2_mcast_remove_sendwin(message_queue_t * q, vbuf * v)
 {
-    MPIU_Assert(q->head == v);
+    MPIR_Assert(q->head == v);
     q->head = v->mcast_sendwin_msg.next;
     q->count--;
     if (q->head == NULL) {
         q->tail = NULL;
-        MPIU_Assert(q->count == 0);
+        MPIR_Assert(q->count == 0);
     }
     v->mcast_sendwin_msg.next = NULL;
 }
@@ -875,12 +877,12 @@ static inline void mv2_mcast_add_sendwin(message_queue_t * q, vbuf * v)
 
 static inline void mv2_mcast_remove_recvwin(message_queue_t * q, vbuf * v)
 {
-    MPIU_Assert(q->head == v);
+    MPIR_Assert(q->head == v);
     q->head = v->mcast_recvwin_msg.next;
     q->count--;
     if (q->head == NULL) {
         q->tail = NULL;
-        MPIU_Assert(q->count == 0);
+        MPIR_Assert(q->count == 0);
     } else {
         q->head->mcast_recvwin_msg.prev = NULL;
     }
@@ -947,15 +949,15 @@ static inline void mv2_mcast_send_init_ack(int comm_id, int root)
     int mpi_errno = MPI_SUCCESS;
     int leader_rank;
     MPIDI_VC_t *vc;
-    MPID_Request *sreq = NULL;
+    MPIR_Request *sreq = NULL;
     MPIDI_CH3_Pkt_mcast_init_ack_t pkt;
-    MPID_Comm *comm_ptr;
+    MPIR_Comm *comm_ptr;
 
     MPIDI_Pkt_init(&pkt, MPIDI_CH3_PKT_MCST_INIT_ACK);
     pkt.psn = 0;
     pkt.comm_id = comm_id;
     comm_ptr = mv2_mcast_find_comm(comm_id);
-    MPIU_Assert(comm_ptr);
+    MPIR_Assert(comm_ptr);
     PMPI_Comm_rank(comm_ptr->dev.ch.leader_comm, &leader_rank);
     pkt.src_rank = leader_rank;
     MPIDI_Comm_get_vc(comm_ptr, root, &vc);
@@ -966,7 +968,7 @@ static inline void mv2_mcast_send_init_ack(int comm_id, int root)
     }
 
     if (sreq != NULL) {
-        MPID_Request_release(sreq);
+        MPIR_Request_free(sreq);
     }
 
     PRINT_DEBUG(DEBUG_MCST_verbose > 2,
@@ -979,9 +981,9 @@ static inline void mv2_mcast_send_nack(uint32_t psn, int comm_id, int root)
     vbuf *v;
     mcast_info_t *minfo;
     MPIDI_VC_t *vc;
-    MPID_Request *sreq = NULL;
+    MPIR_Request *sreq = NULL;
     MPIDI_CH3_Pkt_mcast_nack_t pkt;
-    MPID_Comm *comm_ptr;
+    MPIR_Comm *comm_ptr;
     bcast_info_t *bcast_info;
 
     MPIDI_Pkt_init(&pkt, MPIDI_CH3_PKT_MCST_NACK);
@@ -1002,7 +1004,7 @@ static inline void mv2_mcast_send_nack(uint32_t psn, int comm_id, int root)
         }
         GET_UD_VBUF_BY_OFFSET_WITHOUT_LOCK(v, MV2_SEND_UD_VBUF_POOL_OFFSET);
         bcast_info->nack_time = mv2_get_time_us();
-        MPIU_Memcpy(v->pheader, (const void *) &pkt, sizeof(MPIDI_CH3_Pkt_mcast_nack_t));
+        MPIR_Memcpy(v->pheader, (const void *) &pkt, sizeof(MPIDI_CH3_Pkt_mcast_nack_t));
 
         vbuf_init_mcast_send(v, sizeof(MPIDI_CH3_Pkt_mcast_nack_t), mcast_ctx->selected_rail, minfo);
         IBV_POST_MCAST_SEND(v, mcast_ctx);
@@ -1019,7 +1021,7 @@ static inline void mv2_mcast_send_nack(uint32_t psn, int comm_id, int root)
         }
 
         if (sreq != NULL) {
-            MPID_Request_release(sreq);
+            MPIR_Request_free(sreq);
         }
     
         PRINT_DEBUG(DEBUG_MCST_verbose > 2, "sending rc nack psn:%d to :%d\n", psn, root);
@@ -1035,7 +1037,7 @@ static inline void mv2_mcast_resend_window(bcast_info_t * bcast_info, uint32_t p
     v = bcast_info->send_window.head;
     while (v) {
 
-        MPIU_Assert(v != NULL);
+        MPIR_Assert(v != NULL);
 
         v->retry_count++;
         v->pending_send_polls++;
@@ -1071,7 +1073,7 @@ static inline void mv2_mcast_resend(bcast_info_t * bcast_info, uint32_t psn)
         v = v->mcast_sendwin_msg.next;
     }
 
-    MPIU_Assert(v != NULL);
+    MPIR_Assert(v != NULL);
     /* check if it already resend */
     if (v->retry_count < 2) {
         resend_backoff = 1;
@@ -1099,7 +1101,8 @@ static inline void mv2_mcast_resend(bcast_info_t * bcast_info, uint32_t psn)
 
 int mv2_mcast_init_bcast_info(bcast_info_t ** bcast_info)
 {
-    *bcast_info = (bcast_info_t *) MPIU_Malloc(sizeof(bcast_info_t));
+    *bcast_info = (bcast_info_t *) MPL_malloc(sizeof(bcast_info_t), 
+                                                MPL_MEM_OTHER);
     /* init bcast info */
     MESSAGE_QUEUE_INIT(&((*bcast_info)->send_window));
     MESSAGE_QUEUE_INIT(&((*bcast_info)->recv_window));
@@ -1112,29 +1115,30 @@ int mv2_mcast_init_bcast_info(bcast_info_t ** bcast_info)
     return MCAST_SUCCESS;
 }
 
-int mv2_setup_multicast(mcast_info_t * minfo, MPID_Comm * comm_ptr)
+int mv2_setup_multicast(mcast_info_t * minfo, MPIR_Comm * comm_ptr)
 {
     int mpi_errno = MPI_SUCCESS, i;
-    MPID_Comm *leader_ptr;
+    MPIR_Comm *leader_ptr;
     mcast_init_info_t init_info;
     mcast_init_info_t *all_init_info = NULL;
     minfo->init_info = NULL;
     int leader_rank, leader_comm_size, num_ip_enabled_nodes = 0;
     MPIR_Errflag_t errflag = MPIR_ERR_NONE;
     int comm_id, mcast_status = MCAST_SUCCESS;
-    MPID_Comm_get_ptr(comm_ptr->dev.ch.leader_comm, leader_ptr);
+    MPIR_Comm_get_ptr(comm_ptr->dev.ch.leader_comm, leader_ptr);
 
     PMPI_Comm_size(comm_ptr->dev.ch.leader_comm, &leader_comm_size);
     PMPI_Comm_rank(comm_ptr->dev.ch.leader_comm, &leader_rank);
     
     if (leader_rank == 0) {
-        all_init_info = MPIU_Malloc(leader_comm_size * sizeof(mcast_init_info_t));
+        all_init_info = MPL_malloc(leader_comm_size * sizeof(mcast_init_info_t),
+                                    MPL_MEM_OTHER);
         if (all_init_info == NULL) {
             return MCAST_FAILURE;
         }
     }
 
-    MPIU_Memcpy(init_info.gid, mv2_MPIDI_CH3I_RDMA_Process.gids[0][0].raw, 16);
+    MPIR_Memcpy(init_info.gid, mv2_MPIDI_CH3I_RDMA_Process.gids[0][0].raw, 16);
 
     MPIR_Gather_impl(init_info.gid, sizeof(mcast_init_info_t), MPI_BYTE,
                                  all_init_info, sizeof(mcast_init_info_t), MPI_BYTE,
@@ -1233,7 +1237,7 @@ fn_fail:
     return MCAST_FAILURE;
 }
 
-int mv2_cleanup_multicast(mcast_info_t * minfo, MPID_Comm * comm_ptr)
+int mv2_cleanup_multicast(mcast_info_t * minfo, MPIR_Comm * comm_ptr)
 {
     int leader_rank, leader_comm_size, cleanup_status = MCAST_SUCCESS;
 
@@ -1268,7 +1272,7 @@ int mv2_cleanup_multicast(mcast_info_t * minfo, MPID_Comm * comm_ptr)
     }
 
     if (leader_rank == 0 && minfo->init_info) {
-        MPIU_Free(minfo->init_info);
+        MPL_free(minfo->init_info);
         minfo->init_info = NULL;
     }
 
@@ -1293,7 +1297,7 @@ void mv2_mcast_flush_sendwin(message_queue_t * q)
 void mv2_mcast_send(bcast_info_t * bcast_info, char *buf, int len)
 {
     vbuf *v;
-    MPID_Comm *comm_ptr;
+    MPIR_Comm *comm_ptr;
     mcast_info_t *minfo = &bcast_info->minfo;
 
     GET_UD_VBUF_BY_OFFSET_WITHOUT_LOCK(v, MV2_SEND_UD_VBUF_POOL_OFFSET);
@@ -1323,7 +1327,7 @@ void mv2_mcast_send(bcast_info_t * bcast_info, char *buf, int len)
 void mv2_process_mcast_msg(vbuf * v)
 {
     MPIDI_CH3_Pkt_mcast_t *p;
-    MPID_Comm *comm_ptr = NULL;
+    MPIR_Comm *comm_ptr = NULL;
     bcast_info_t *bcast_info;
     p = (MPIDI_CH3_Pkt_mcast_t *) v->pheader;
 
@@ -1393,7 +1397,7 @@ void mv2_process_mcast_msg(vbuf * v)
 void mv2_mcast_handle_nack(MPIDI_CH3_Pkt_mcast_nack_t * p)
 {
     uint32_t psn;
-    MPID_Comm *comm_ptr = NULL;
+    MPIR_Comm *comm_ptr = NULL;
     bcast_info_t *bcast_info;
     PRINT_DEBUG(DEBUG_MCST_verbose > 2, "nack received psn:%d\n", p->psn);
     psn = p->psn;
@@ -1459,7 +1463,7 @@ void mv2_mcast_recv(bcast_info_t * bcast_info, char *buf, int len, int root)
     if (len != (v->content_size - sizeof(MPIDI_CH3_Pkt_mcast_t))) {
         PRINT_DEBUG(DEBUG_MCST_verbose > 1, "mismatch in size\n");
     }
-    MPIU_Assert(len == (v->content_size - sizeof(MPIDI_CH3_Pkt_mcast_t)));
+    MPIR_Assert(len == (v->content_size - sizeof(MPIDI_CH3_Pkt_mcast_t)));
     memcpy(buf, (char *) v->pheader + sizeof(MPIDI_CH3_Pkt_mcast_t), len);
 
     MRAILI_Release_vbuf(v);

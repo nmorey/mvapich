@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
-/*  
- *  (C) 2004 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+/*
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #ifndef IOLOOP_H_INCLUDED
@@ -10,7 +9,7 @@
 typedef struct {
     int fd;
     int rdwr;
-    int (*handler)( int, int, void * );
+    int (*handler) (int, int, void *);
     void *extra_data;
 } IOHandle;
 
@@ -22,10 +21,10 @@ typedef struct {
 #define IOLOOP_TIMEOUT 0x1
 #define IOLOOP_ERROR   0x2
 
-int MPIE_IORegister( int, int, int (*)(int,int,void*), void * );
-int MPIE_IODeregister( int );
-int MPIE_IOLoop( int );
-void TimeoutInit( int );
-int  TimeoutGetRemaining( void );
+int MPIE_IORegister(int, int, int (*)(int, int, void *), void *);
+int MPIE_IODeregister(int);
+int MPIE_IOLoop(int);
+void TimeoutInit(int);
+int TimeoutGetRemaining(void);
 
-#endif
+#endif /* IOLOOP_H_INCLUDED */

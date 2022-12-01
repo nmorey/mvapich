@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2014 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -81,8 +80,7 @@ int main(int argc, char **argv)
         }
 
         fprintf(stdout, " %s\n", buf);
-    }
-    else if (rank == 2) {
+    } else if (rank == 2) {
         char buf[10] = "No errors";
         err = MPI_Recv(NULL, 0, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         if (MPI_SUCCESS != err) {

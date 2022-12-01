@@ -1,8 +1,8 @@
-! -*- Mode: Fortran; -*-
 !
-!  (C) 2014 by Argonne National Laboratory.
-!      See COPYRIGHT in top-level directory.
+! Copyright (C) by Argonne National Laboratory
+!     See COPYRIGHT in top-level directory
 !
+
 !     This program is Fortran version of dgraph_unwgt.c
 !     Specify a distributed graph of a bidirectional ring of the MPI_COMM_WORLD,
 !     i.e. everyone only talks to left and right neighbors.
@@ -209,5 +209,4 @@
       call MPI_Comm_free(dgraph_comm, ierr)
 
       call MTEST_Finalize(errs)
-      call MPI_Finalize(ierr)
       end

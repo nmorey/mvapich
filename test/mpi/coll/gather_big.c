@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2015 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpi.h"
@@ -27,12 +26,12 @@ int main(int argc, char *argv[])
     long *sendbuf = NULL;
     long *recvbuf = NULL;
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    if (size < (ROOT+1)) {
-        fprintf(stderr, "At least %d processes required\n", ROOT+1);
+    if (size < (ROOT + 1)) {
+        fprintf(stderr, "At least %d processes required\n", ROOT + 1);
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
@@ -56,7 +55,7 @@ int main(int argc, char *argv[])
 
     MPI_Gather(sendbuf, COUNT, MPI_LONG, recvbuf, COUNT, MPI_LONG, ROOT, MPI_COMM_WORLD);
 
-    int lerr = 0;
+    int errs = 0;
     if (rank == ROOT) {
         for (i = 0; i < size; i++) {
             for (j = 0; j < COUNT; j++) {
@@ -65,23 +64,20 @@ int main(int argc, char *argv[])
                     printf("  recbuf[%d * %d + %d] = ", i, COUNT, j);
                     printf("  %ld,", recvbuf[i * COUNT + j]);
                     printf("  should be %ld\n", i * VERIFY_CONST + j);
-                    lerr++;
-                    if (lerr > 10) {
+                    errs++;
+                    if (errs > 10) {
                         j = COUNT;
                     }
                 }
             }
         }
-        MTest_Finalize(lerr);
         free(recvbuf);
-    }
-    else {
-        MTest_Finalize(lerr);
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
-    MPI_Finalize();
+
+    MTest_Finalize(errs);
 
     free(sendbuf);
-    return 0;
+    return MTestReturnValue(errs);
 }

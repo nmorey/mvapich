@@ -1,9 +1,7 @@
-# -*- Mode: Makefile; -*-
-# vim: set ft=automake :
-#
-# (C) 2011 by Argonne National Laboratory.
-#     See COPYRIGHT in top-level directory.
-#
+##
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
+##
 
 include $(top_srcdir)/Makefile_f77.mtest
 
@@ -23,4 +21,3 @@ checksizes_LDADD =
 nodist_checksizes_SOURCES = checksizes.c
 
 DISTCLEANFILES = checksizes.c
-

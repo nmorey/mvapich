@@ -11,7 +11,7 @@
  */
 
 #include "mpichconf.h"
-#include <mpimem.h>
+#include <mpir_mem.h>
 #include "rdma_impl.h"
 #include "ibv_impl.h"
 #include "vbuf.h"
@@ -21,17 +21,17 @@
 #ifdef _ENABLE_CUDA_
 #include "ibv_cuda_util.h"
 
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_vbuf_allocated);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_vbuf_freed);
-MPIR_T_PVAR_ULONG_LEVEL_DECL_EXTERN(MV2, mv2_vbuf_available);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_ud_vbuf_allocated);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_ud_vbuf_freed);
-MPIR_T_PVAR_ULONG_LEVEL_DECL_EXTERN(MV2, mv2_ud_vbuf_available);
+extern unsigned long PVAR_COUNTER_mv2_vbuf_allocated;
+extern unsigned long PVAR_COUNTER_mv2_vbuf_freed;
+extern unsigned long PVAR_LEVEL_mv2_vbuf_available;
+extern unsigned long PVAR_COUNTER_mv2_ud_vbuf_allocated;
+extern unsigned long PVAR_COUNTER_mv2_ud_vbuf_freed;
+extern unsigned long PVAR_LEVEL_mv2_ud_vbuf_available;
 
 int MPIDI_CH3I_MRAIL_Prepare_rndv_device(MPIDI_VC_t * vc,
-            MPID_Request * sreq, MPID_Request * rreq)
+            MPIR_Request * sreq, MPIR_Request * rreq)
 {
-    MPID_Request *req = NULL;
+    MPIR_Request *req = NULL;
     int i = 0;
 
     if (NULL == sreq) {
@@ -58,13 +58,13 @@ int MPIDI_CH3I_MRAIL_Prepare_rndv_device(MPIDI_VC_t * vc,
                     || req->dev.OnDataAvail == MPIDI_CH3_ReqHandler_unpack_device))
     {
 
-        req->mrail.rndv_buf = req->dev.iov[0].MPL_IOV_BUF;
-        req->mrail.rndv_buf_sz = req->dev.iov[0].MPL_IOV_LEN;
+        req->mrail.rndv_buf = req->dev.iov[0].iov_base;
+        req->mrail.rndv_buf_sz = req->dev.iov[0].iov_len;
         req->mrail.rndv_buf_alloc = 0;
     } else {
 
         req->mrail.rndv_buf_sz = req->dev.segment_size;
-        req->mrail.rndv_buf = MPIU_Malloc(req->mrail.rndv_buf_sz);
+        req->mrail.rndv_buf = MPL_malloc(req->mrail.rndv_buf_sz);
 
         if (req->mrail.rndv_buf == NULL) {
             PRINT_ERROR("RGET and R3 are not supported for GPU to GPU transfer \n");
@@ -93,7 +93,7 @@ int MPIDI_CH3I_MRAIL_Prepare_rndv_device(MPIDI_VC_t * vc,
 }
 
 #if defined(HAVE_CUDA_IPC)
-void MPIDI_CH3_DEVICE_IPC_Rendezvous_push(MPIDI_VC_t * vc, MPID_Request * sreq)
+void MPIDI_CH3_DEVICE_IPC_Rendezvous_push(MPIDI_VC_t * vc, MPIR_Request * sreq)
 {
     int local_index, shared_index;
     int i, nbytes, cudaipc_memcpy_sync = 0;
@@ -121,10 +121,10 @@ void MPIDI_CH3_DEVICE_IPC_Rendezvous_push(MPIDI_VC_t * vc, MPID_Request * sreq)
         CUDA_CHECK(cudaStreamWaitEvent(strm, 
                     cudaipc_local_data[local_index + i].ipcEvent, 0));
         if (cudaipc_memcpy_sync) {
-            MPIU_Memcpy_Device(cudaipc_local_data[local_index + i].buffer,
+            MV2_MPIDI_Memcpy_Device(cudaipc_local_data[local_index + i].buffer,
                         src, nbytes, cudaMemcpyDefault);
         } else {
-            MPIU_Memcpy_Device_Async(cudaipc_local_data[local_index + i].buffer,
+            MV2_MPIDI_Memcpy_Device_Async(cudaipc_local_data[local_index + i].buffer,
                         src, nbytes, cudaMemcpyDefault, strm);
         }
         CUDA_CHECK(cudaEventRecord(
@@ -144,13 +144,13 @@ void MPIDI_CH3_DEVICE_IPC_Rendezvous_push(MPIDI_VC_t * vc, MPID_Request * sreq)
                         sreq->mrail.rndv_buf != NULL) { 
                     /* a temporary host rndv buffer would have been allocated only when the 
                        sender buffers is noncontiguous and is in the host memory */
-                    MPIU_Assert(sreq->mrail.device_transfer_mode == HOST_TO_DEVICE);
-                    MPIU_Free_Device_Pinned_Host(sreq->mrail.rndv_buf);
+                    MPIR_Assert(sreq->mrail.device_transfer_mode == HOST_TO_DEVICE);
+                    MV2_MPIDI_Free_Device_Pinned_Host(sreq->mrail.rndv_buf);
                     sreq->mrail.rndv_buf_alloc = 0;
                     sreq->mrail.rndv_buf = NULL;
                 }
                 MPIDI_CH3U_Handle_send_req(vc, sreq, &complete);
-                MPIU_Assert(complete == TRUE);
+                MPIR_Assert(complete == TRUE);
             } else {
                 sreq->mrail.device_event = get_device_event();
                 if (sreq->mrail.device_event == NULL) {
@@ -178,7 +178,7 @@ void MPIDI_CH3_DEVICE_IPC_Rendezvous_push(MPIDI_VC_t * vc, MPID_Request * sreq)
     sreq->mrail.device_ipc_stage_index = i;
 }
 
-void MPIDI_CH3_DEVICE_IPC_Rendezvous_recv(MPIDI_VC_t * vc, MPID_Request * rreq)
+void MPIDI_CH3_DEVICE_IPC_Rendezvous_recv(MPIDI_VC_t * vc, MPIR_Request * rreq)
 {
     int local_index, shared_index;
     int i, nbytes, cudaipc_memcpy_sync = 0;
@@ -207,10 +207,10 @@ void MPIDI_CH3_DEVICE_IPC_Rendezvous_recv(MPIDI_VC_t * vc, MPID_Request * rreq)
         CUDA_CHECK(cudaStreamWaitEvent(strm, 
                     cudaipc_remote_data[local_index + i].ipcEvent, 0));
         if (cudaipc_memcpy_sync) {
-            MPIU_Memcpy_Device(dst, cudaipc_remote_data[local_index + i].buffer,
+            MV2_MPIDI_Memcpy_Device(dst, cudaipc_remote_data[local_index + i].buffer,
                         nbytes, cudaMemcpyDefault);
         } else {
-            MPIU_Memcpy_Device_Async(dst, cudaipc_remote_data[local_index + i].buffer,
+            MV2_MPIDI_Memcpy_Device_Async(dst, cudaipc_remote_data[local_index + i].buffer,
                         nbytes, cudaMemcpyDefault, strm);
         }
         CUDA_CHECK(cudaEventRecord(cudaipc_remote_data[local_index + i].ipcEvent, strm));
@@ -229,7 +229,7 @@ void MPIDI_CH3_DEVICE_IPC_Rendezvous_recv(MPIDI_VC_t * vc, MPID_Request * rreq)
                     ibv_error_abort(IBV_RETURN_ERR,
                             "MPIDI_CH3U_Handle_recv_req returned error");
                 }
-                MPIU_Assert(complete == TRUE);
+                MPIR_Assert(complete == TRUE);
 
             } else {
                 rreq->mrail.device_event = get_device_event();
@@ -260,13 +260,13 @@ void MPIDI_CH3_DEVICE_IPC_Rendezvous_recv(MPIDI_VC_t * vc, MPID_Request * rreq)
 }
 
 int MPIDI_CH3I_MRAIL_Prepare_rndv_device_ipc_buffered (MPIDI_VC_t * vc,
-                                            MPID_Request * sreq) 
+                                            MPIR_Request * sreq) 
 {
     if (vc->smp.local_rank == -1
         || vc->smp.can_access_peer != MV2_DEVICE_IPC_ENABLED
         || sreq->mrail.device_transfer_mode == NONE
         || sreq->dev.iov_count > 1 
-        || sreq->dev.iov[0].MPL_IOV_LEN < mv2_device_ipc_threshold) {
+        || sreq->dev.iov[0].iov_len < mv2_device_ipc_threshold) {
         return 0;
     }
 
@@ -274,14 +274,14 @@ int MPIDI_CH3I_MRAIL_Prepare_rndv_device_ipc_buffered (MPIDI_VC_t * vc,
     sreq->mrail.d_entry = NULL;
     sreq->mrail.device_ipc_stage_index = 0;
 
-    sreq->mrail.rndv_buf = (void *) sreq->dev.iov[0].MPL_IOV_BUF;
-    sreq->mrail.rndv_buf_sz = sreq->dev.iov[0].MPL_IOV_LEN;
+    sreq->mrail.rndv_buf = (void *) sreq->dev.iov[0].iov_base;
+    sreq->mrail.rndv_buf_sz = sreq->dev.iov[0].iov_len;
 
     return 1;
 }
 
 int MPIDI_CH3I_MRAIL_Revert_rndv_device_ipc_buffered (MPIDI_VC_t * vc,
-                                            MPID_Request * sreq)
+                                            MPIR_Request * sreq)
 {
     int i, mpi_errno = MPI_SUCCESS;
     uintptr_t buf;
@@ -293,7 +293,7 @@ int MPIDI_CH3I_MRAIL_Revert_rndv_device_ipc_buffered (MPIDI_VC_t * vc,
     }
     if (sreq->mrail.rndv_buf_alloc == 1 && 
             sreq->mrail.rndv_buf != NULL) { 
-        MPIU_Free(sreq->mrail.rndv_buf);
+        MPL_free(sreq->mrail.rndv_buf);
         sreq->mrail.rndv_buf = NULL;
     }
     sreq->mrail.protocol = MV2_RNDV_PROTOCOL_CUDAIPC;
@@ -302,14 +302,14 @@ int MPIDI_CH3I_MRAIL_Revert_rndv_device_ipc_buffered (MPIDI_VC_t * vc,
     if (1 == sreq->dev.iov_count && (sreq->dev.OnDataAvail == NULL
                 || sreq->dev.OnDataAvail == sreq->dev.OnFinal)) { 
 
-        sreq->mrail.rndv_buf = sreq->dev.iov[0].MPL_IOV_BUF;
-        sreq->mrail.rndv_buf_sz = sreq->dev.iov[0].MPL_IOV_LEN;
+        sreq->mrail.rndv_buf = sreq->dev.iov[0].iov_base;
+        sreq->mrail.rndv_buf_sz = sreq->dev.iov[0].iov_len;
         sreq->mrail.rndv_buf_alloc = 0;
 
     } else {
 
         sreq->mrail.rndv_buf_sz = sreq->dev.segment_size;
-        MPIU_Malloc_Device_Pinned_Host(sreq->mrail.rndv_buf, sreq->mrail.rndv_buf_sz);
+        MV2_MPIDI_Malloc_Device_Pinned_Host(sreq->mrail.rndv_buf, sreq->mrail.rndv_buf_sz);
         if (sreq->mrail.rndv_buf == NULL) { 
             ibv_error_abort(IBV_STATUS_ERR, "rndv buf allocation failed"); 
         }
@@ -317,9 +317,9 @@ int MPIDI_CH3I_MRAIL_Revert_rndv_device_ipc_buffered (MPIDI_VC_t * vc,
 
         buf = (uintptr_t) sreq->mrail.rndv_buf;
         for (i = 0; i < sreq->dev.iov_count; i++) {
-            MPIU_Memcpy((void *) buf, sreq->dev.iov[i].MPL_IOV_BUF,
-                    sreq->dev.iov[i].MPL_IOV_LEN);
-            buf += sreq->dev.iov[i].MPL_IOV_LEN;
+            MPIR_Memcpy((void *) buf, sreq->dev.iov[i].iov_base,
+                    sreq->dev.iov[i].iov_len);
+            buf += sreq->dev.iov[i].iov_len;
         }
 
         while (sreq->dev.OnDataAvail ==
@@ -335,9 +335,9 @@ int MPIDI_CH3I_MRAIL_Revert_rndv_device_ipc_buffered (MPIDI_VC_t * vc,
             }
 
             for (i = 0; i < sreq->dev.iov_count; i++) {
-               MPIU_Memcpy((void *) buf, sreq->dev.iov[i].MPL_IOV_BUF,
-                        sreq->dev.iov[i].MPL_IOV_LEN);
-                buf += sreq->dev.iov[i].MPL_IOV_LEN;
+               MPIR_Memcpy((void *) buf, sreq->dev.iov[i].iov_base,
+                        sreq->dev.iov[i].iov_len);
+                buf += sreq->dev.iov[i].iov_len;
             }
 
         }
@@ -347,15 +347,15 @@ int MPIDI_CH3I_MRAIL_Revert_rndv_device_ipc_buffered (MPIDI_VC_t * vc,
 }
  
 int MPIDI_CH3I_MRAIL_Prepare_rndv_recv_cuda_ipc_buffered(MPIDI_VC_t * vc, 
-                                            MPID_Request * rreq) 
+                                            MPIR_Request * rreq) 
 {
 
     rreq->mrail.protocol = MV2_RNDV_PROTOCOL_R3;
     rreq->mrail.d_entry = NULL;
     rreq->mrail.device_ipc_stage_index = 0;
 
-    rreq->mrail.rndv_buf = (void *) rreq->dev.iov[0].MPL_IOV_BUF;
-    rreq->mrail.rndv_buf_sz = rreq->dev.iov[0].MPL_IOV_LEN;
+    rreq->mrail.rndv_buf = (void *) rreq->dev.iov[0].iov_base;
+    rreq->mrail.rndv_buf_sz = rreq->dev.iov[0].iov_len;
 
     DEVICE_IPC_RECV_IN_PROGRESS(vc, rreq);
     PUSH_FLOWLIST(vc);
@@ -363,7 +363,7 @@ int MPIDI_CH3I_MRAIL_Prepare_rndv_recv_cuda_ipc_buffered(MPIDI_VC_t * vc,
 }
 
 int MPIDI_CH3I_MRAIL_Prepare_rndv_device_ipc(MPIDI_VC_t * vc,
-                                            MPID_Request * sreq) 
+                                            MPIR_Request * sreq) 
 {
     int status = 1;
     size_t size;
@@ -375,7 +375,7 @@ int MPIDI_CH3I_MRAIL_Prepare_rndv_device_ipc(MPIDI_VC_t * vc,
         || vc->smp.can_access_peer != MV2_DEVICE_IPC_ENABLED
         || sreq->mrail.device_transfer_mode == NONE
         || sreq->dev.iov_count > 1 
-        || sreq->dev.iov[0].MPL_IOV_LEN < mv2_device_ipc_threshold) {
+        || sreq->dev.iov[0].iov_len < mv2_device_ipc_threshold) {
         status = 0;
         goto fn_exit;
     }
@@ -383,7 +383,7 @@ int MPIDI_CH3I_MRAIL_Prepare_rndv_device_ipc(MPIDI_VC_t * vc,
     sreq->mrail.protocol = MV2_RNDV_PROTOCOL_RGET;
     sreq->mrail.d_entry = NULL;
 
-    cuerr = cuMemGetAddressRange(&baseptr, &size, (CUdeviceptr) sreq->dev.iov[0].MPL_IOV_BUF);
+    cuerr = cuMemGetAddressRange(&baseptr, &size, (CUdeviceptr) sreq->dev.iov[0].iov_base);
     if (cuerr != CUDA_SUCCESS) {
         DEBUG_PRINT("cuMemGetAddressRange failed, reverting to R3 \n");
         status = 0;
@@ -398,7 +398,7 @@ int MPIDI_CH3I_MRAIL_Prepare_rndv_device_ipc(MPIDI_VC_t * vc,
         goto fn_exit;
     }
 
-    sreq->mrail.ipc_displ = (uint64_t) sreq->dev.iov[0].MPL_IOV_BUF - (uint64_t) baseptr;
+    sreq->mrail.ipc_displ = (uint64_t) sreq->dev.iov[0].iov_base - (uint64_t) baseptr;
 
     sreq->mrail.ipc_baseptr = (void *)baseptr;
     sreq->mrail.ipc_size = size;
@@ -425,7 +425,7 @@ fn_exit:
 } 
 
 int MPIDI_CH3I_MRAIL_Rndv_transfer_device_ipc (MPIDI_VC_t * vc,
-                                MPID_Request * rreq, 
+                                MPIR_Request * rreq, 
                                 MPIDI_CH3_Pkt_rndv_req_to_send_t *rts_pkt)
 {
     int status = 1;
@@ -435,9 +435,9 @@ int MPIDI_CH3I_MRAIL_Rndv_transfer_device_ipc (MPIDI_VC_t * vc,
     size_t size;
     device_regcache_entry_t *reg;
 
-    MPIU_Memcpy (&rreq->mrail.ipc_eventhandle, 
+    MPIR_Memcpy (&rreq->mrail.ipc_eventhandle, 
             &rts_pkt->rndv.ipc_eventhandle, sizeof(cudaIpcEventHandle_t));
-    MPIU_Memcpy (&rreq->mrail.ipc_memhandle, 
+    MPIR_Memcpy (&rreq->mrail.ipc_memhandle, 
             &rts_pkt->rndv.ipc_memhandle, sizeof(cudaIpcMemHandle_t));
     base_ptr = rts_pkt->rndv.ipc_baseptr;
     size = rts_pkt->rndv.ipc_size;
@@ -475,7 +475,7 @@ int MPIDI_CH3I_MRAIL_Rndv_transfer_device_ipc (MPIDI_VC_t * vc,
             busy_cuda_event_list_head, busy_cuda_event_list_tail);
     }
 
-    MPIU_Memcpy_Device_Async(rreq->mrail.rndv_buf,
+    MV2_MPIDI_Memcpy_Device_Async(rreq->mrail.rndv_buf,
            remote_buf, rreq->mrail.rndv_buf_sz, cudaMemcpyDefault, stream_d2h);
     
     cuda_event->op_type = RGET;
@@ -494,7 +494,7 @@ int MPIDI_CH3I_MRAIL_Rndv_transfer_device_ipc (MPIDI_VC_t * vc,
 }
 #endif
 
-void MPIDI_CH3I_MRAIL_Send_device_cts_conti(MPIDI_VC_t * vc, MPID_Request * req)
+void MPIDI_CH3I_MRAIL_Send_device_cts_conti(MPIDI_VC_t * vc, MPIR_Request * req)
 {
 
     MPIDI_CH3_Pkt_device_cts_cont_t *cts_pkt;
@@ -532,8 +532,8 @@ void MPIDI_CH3_Rendezvous_device_cts_conti(MPIDI_VC_t * vc,
                      MPIDI_CH3_Pkt_device_cts_cont_t * cts_pkt)
 {
     int i, hca_index;
-    MPID_Request *sreq;
-    MPID_Request_get_ptr(cts_pkt->sender_req_id, sreq);
+    MPIR_Request *sreq;
+    MPIR_Request_get_ptr(cts_pkt->sender_req_id, sreq);
 
     for (i = 0; i < cts_pkt->rndv.num_device_blocks; i++) {
         sreq->mrail.device_remote_addr[i] = cts_pkt->rndv.buffer_addr[i];
@@ -553,12 +553,12 @@ void MPIDI_CH3_Rendezvous_device_cts_conti(MPIDI_VC_t * vc,
 }
 
 void MRAILI_RDMA_Put_finish_device(MPIDI_VC_t * vc,
-                                 MPID_Request * sreq, int rail,
+                                 MPIR_Request * sreq, int rail,
                                  int is_device_pipeline, int device_pipeline_finish,
                                  int offset)
 {
     MPIDI_CH3_Pkt_rput_finish_t rput_pkt;
-    MPL_IOV iov;
+    struct iovec iov;
     int n_iov = 1;
     int nb;
     vbuf *buf;
@@ -574,8 +574,8 @@ void MRAILI_RDMA_Put_finish_device(MPIDI_VC_t * vc,
     rput_pkt.device_pipeline_finish = device_pipeline_finish;
     rput_pkt.device_pipeline_offset = offset;
 
-    iov.MPL_IOV_BUF = &rput_pkt;
-    iov.MPL_IOV_LEN = sizeof(MPIDI_CH3_Pkt_rput_finish_t);
+    iov.iov_base = &rput_pkt;
+    iov.iov_len = sizeof(MPIDI_CH3_Pkt_rput_finish_t);
 
     DEBUG_PRINT("Sending RPUT FINISH\n");
 
@@ -594,7 +594,7 @@ void MRAILI_RDMA_Put_finish_device(MPIDI_VC_t * vc,
 }
 
 void MPIDI_CH3I_MRAILI_Rendezvous_rput_push_device(MPIDI_VC_t * vc,
-        MPID_Request * sreq)
+        MPIR_Request * sreq)
 {
     int i = 0,rail;
     int nbytes, rail_index;
@@ -631,8 +631,8 @@ void MPIDI_CH3I_MRAILI_Rendezvous_rput_push_device(MPIDI_VC_t * vc,
             cuda_event->size = nbytes; 
             GET_VBUF_BY_OFFSET_WITHOUT_LOCK(cuda_event->device_vbuf_head, MV2_CUDA_VBUF_POOL_OFFSET);
             sreq->mrail.num_send_device_copy++;
-            MPIU_Memcpy_Device_Async(cuda_event->device_vbuf_head->buffer,
-                    (const void *)(sreq->dev.iov[0].MPL_IOV_BUF + 
+            MV2_MPIDI_Memcpy_Device_Async(cuda_event->device_vbuf_head->buffer,
+                    (const void *)(sreq->dev.iov[0].iov_base + 
                         mv2_device_stage_block_size * i), nbytes,
                     cudaMemcpyDeviceToHost, stream_d2h);
             PRINT_DEBUG(DEBUG_CUDA_verbose>1, 
@@ -737,7 +737,7 @@ void MPIDI_CH3I_MRAILI_Rendezvous_rput_push_device(MPIDI_VC_t * vc,
 }
 
 /* return true if request if complete */
-int MPIDI_CH3I_MRAILI_Process_device_finish(MPIDI_VC_t * vc, MPID_Request * rreq,
+int MPIDI_CH3I_MRAILI_Process_device_finish(MPIDI_VC_t * vc, MPIR_Request * rreq,
                                     MPIDI_CH3_Pkt_rput_finish_t * rf_pkt)
 {
     int nbytes;
@@ -748,7 +748,7 @@ int MPIDI_CH3I_MRAILI_Process_device_finish(MPIDI_VC_t * vc, MPID_Request * rreq
 
     MV2_DEVICE_PROGRESS();
     
-    MPIU_Assert (rf_pkt->is_device == 1);
+    MPIR_Assert (rf_pkt->is_device == 1);
 
     displacement = rf_pkt->device_pipeline_offset / mv2_device_stage_block_size;
     i=rreq->mrail.num_remote_device_done;
@@ -806,7 +806,7 @@ int MPIDI_CH3I_MRAILI_Process_device_finish(MPIDI_VC_t * vc, MPID_Request * rreq
         MPIDI_CH3I_MRAIL_Send_device_cts_conti(vc, rreq);
     }
 
-    MPIU_Memcpy_Device_Async(rreq->mrail.rndv_buf + rf_pkt->device_pipeline_offset,
+    MV2_MPIDI_Memcpy_Device_Async(rreq->mrail.rndv_buf + rf_pkt->device_pipeline_offset,
             (const void *)(device_vbuf->buffer),
             nbytes, cudaMemcpyHostToDevice, stream_h2d);
 
@@ -842,7 +842,7 @@ fn_exit:
 #define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_Prepare_rndv_cts_device(MPIDI_VC_t * vc,
         MPIDI_CH3_Pkt_rndv_clr_to_send_t * cts_pkt,
-        MPID_Request * rreq)
+        MPIR_Request * rreq)
 {
     int mpi_errno = MPI_SUCCESS;
 

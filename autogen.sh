@@ -1,7 +1,9 @@
 #! /bin/sh
 # 
-# (C) 2006 by Argonne National Laboratory.
-#     See COPYRIGHT in top-level directory.
+##
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
+##
 #
 # Copyright (c) 2001-2022, The Ohio State University. All rights
 # reserved.
@@ -56,33 +58,13 @@ ProgHomeDir() {
     eval $2=$proghome
 }
 
-########################################################################
-## Run any local pre-update hooks
-########################################################################
-if test -d maint/hooks/pre ; then
-    for hook in `ls maint/hooks/pre/* 2>/dev/null` ; do
-        if test -x "$hook" ; then
-            echo_n "executing pre-update hook '$hook'... "
-            ./$hook
-            echo done
-        else
-            warn "unable to execute pre-update hook: '$hook'"
-        fi
-    done
-fi
-
-########################################################################
-# This used to be an optionally installed hook to help with git-svn
-# versions of the old SVN repo.  Now that we are using git, this is our
-# mechanism that replaces relative svn:externals paths, such as for
-# "confdb" and "mpl". The basic plan is to delete the destdir and then
-# copy all of the files, warts and all, from the source directory to the
-# destination directory.
-echo
-echo "####################################"
-echo "## Replicating confdb (and similar)"
-echo "####################################"
-echo
+# checking and patching submodules
+check_submodule_presence() {
+    if test ! -f "$SRCROOTDIR/$1/configure.ac"; then
+        error "Submodule $1 is not checked out"
+        exit 1
+    fi
+}
 
 sync_external () {
     srcdir=$1
@@ -95,38 +77,6 @@ sync_external () {
     rm -rf "$destdir"
     cp -pPR "$srcdir" "$destdir"
 }
-
-confdb_dirs=
-confdb_dirs="${confdb_dirs} src/mpi/romio/confdb"
-confdb_dirs="${confdb_dirs} src/mpl/confdb"
-confdb_dirs="${confdb_dirs} src/pm/hydra/confdb"
-confdb_dirs="${confdb_dirs} src/pm/hydra/mpl/confdb"
-confdb_dirs="${confdb_dirs} test/mpi/confdb"
-
-# hydra's copy of mpl
-sync_external src/mpl src/pm/hydra/mpl
-
-# all the confdb directories, by various names
-for destdir in $confdb_dirs ; do
-    sync_external confdb "$destdir"
-done
-
-# a couple of other random files
-if [ -f maint/version.m4 ] ; then
-    cp -pPR maint/version.m4 src/pm/hydra/version.m4
-    cp -pPR maint/version.m4 src/mpi/romio/version.m4
-    cp -pPR maint/version.m4 test/mpi/version.m4
-fi
-
-# Now sanity check that some of the above sync was successful
-f="aclocal_cc.m4"
-for d in $confdb_dirs ; do
-    if [ -f "$d/$f" ] ; then :
-    else
-        error "expected to find '$f' in '$d'"
-        exit 1
-    fi
-done
 
 ########################################################################
 echo
@@ -144,8 +94,9 @@ if [ ! -d maint -o ! -s maint/version.m4 ] ; then
     echo "must execute at top level directory for now"
     exit 1
 fi
+# Set the SRCROOTDIR to be used later and avoid "cd ../../"-like usage.
+SRCROOTDIR=$PWD
 echo "done"
-
 
 ########################################################################
 ## Initialize variables to default values (possibly from the environment)
@@ -156,22 +107,25 @@ do_bindings=yes
 do_geterrmsgs=yes
 do_getcvars=yes
 do_f77=yes
-do_f77tof90=yes
 do_build_configure=yes
-do_genstates=yes
+do_genstates=no
 do_atdir_check=no
 do_atver_check=yes
 do_subcfg_m4=yes
+do_izem=yes
+do_ofi=yes
+do_ucx=yes
+do_json=yes
+do_yaksa=yes
 
 export do_build_configure
 
 # Allow MAKE to be set from the environment
 MAKE=${MAKE-make}
 
-# external packages that require autogen.sh to be run for each of them
-externals="src/pm/hydra src/mpi/romio src/openpa"
 # amdirs are the directories that make use of autoreconf
-amdirs=". src/mpl src/util/logging/rlog limic2-0.5.6 osu_benchmarks"
+amdirs=". src/mpl limic2-0.5.6 osu_benchmarks"
+#amdirs=". src/mpl src/util/logging/rlog limic2-0.5.6 osu_benchmarks"
 
 autoreconf_args="-if"
 export autoreconf_args
@@ -182,7 +136,7 @@ export autoreconf_args
 
 # List of steps that we will consider (We do not include depend
 # because the values for depend are not just yes/no)
-AllSteps="geterrmsgs bindings f77 f77tof90 build_configure genstates getparms"
+AllSteps="geterrmsgs bindings f77 build_configure genstates getparms"
 stepsCleared=no
 
 for arg in "$@" ; do
@@ -275,6 +229,22 @@ for arg in "$@" ; do
 	    autotoolsdir=`echo "A$arg" | sed -e 's/.*=//'`
 	    ;;
 
+    -without-izem|--without-izem)
+        do_izem=no
+        ;;
+
+    -without-ofi|--without-ofi|-without-libfabric|--without-libfabric)
+        do_ofi=no
+        ;;
+
+    -without-ucx|--without-ucx)
+        do_ucx=no
+        ;;
+
+    -without-json|--without-json)
+        do_json=no
+        ;;
+
 	-help|--help|-usage|--usage)
 	    cat <<EOF
    ./autogen.sh [ --with-autotools=dir ] \\
@@ -324,10 +294,6 @@ done
 ########################################################################
 ## Check for the location of autotools
 ########################################################################
-
-if [ -z "$autotoolsdir" ] ; then
-    autotoolsdir=$MPICH_AUTOTOOLS_DIR
-fi
 
 if [ -n "$autotoolsdir" ] ; then
     if [ -x $autotoolsdir/autoconf -a -x $autotoolsdir/autoheader ] ; then
@@ -587,11 +553,37 @@ fi
 
 
 ########################################################################
+## Checking for bash
+########################################################################
+
+echo_n "Checking for bash... "
+if test "`which bash 2>&1 > /dev/null ; echo $?`" = "0" ;then
+    echo "done"
+else
+    echo "bash not found" ;
+    exit 1;
+fi
+
+########################################################################
 ## Checking for UNIX find
 ########################################################################
 
 echo_n "Checking for UNIX find... "
-find . -name 'configure.ac' > /dev/null 2>&1
+find ./maint -name 'configure.ac' > /dev/null 2>&1
+if [ $? = 0 ] ; then
+    echo "done"
+else
+    echo "not found (error)"
+    exit 1
+fi
+
+
+########################################################################
+## Checking for UNIX patch
+########################################################################
+
+echo_n "Checking for UNIX patch... "
+patch -v > /dev/null 2>&1
 if [ $? = 0 ] ; then
     echo "done"
 else
@@ -605,22 +597,120 @@ fi
 ########################################################################
 
 echo_n "Checking if xargs rm -rf works... "
-if [ -d "`find . -name __random_dir__`" ] ; then
+if [ -d "`find ./maint -name __random_dir__`" ] ; then
     error "found a directory named __random_dir__"
     exit 1
 else
-    mkdir __random_dir__
-    find . -name __random_dir__ | xargs rm -rf > /dev/null 2>&1
+    mkdir ./maint/__random_dir__
+    find ./maint -name __random_dir__ | xargs rm -rf > /dev/null 2>&1
     if [ $? = 0 ] ; then
 	echo "yes"
     else
 	echo "no (error)"
-	rm -rf __random_dir__
+	rm -rf ./maint/__random_dir__
 	exit 1
     fi
 fi
 
+########################################################################
+## Setup external packages
+########################################################################
 
+echo
+echo "###########################################################"
+echo "## Checking submodules"
+echo "###########################################################"
+echo
+
+# hwloc is always required
+check_submodule_presence modules/hwloc
+
+# external packages that require autogen.sh to be run for each of them
+externals="src/pm/hydra src/pm/hydra2 src/mpi/romio modules/hwloc test/mpi modules/json-c modules/yaksa"
+
+if [ "yes" = "$do_izem" ] ; then
+    check_submodule_presence modules/izem
+    externals="${externals} modules/izem"
+fi
+
+if [ "yes" = "$do_ucx" ] ; then
+    check_submodule_presence modules/ucx
+    externals="${externals} modules/ucx"
+fi
+
+if [ "yes" = "$do_ofi" ] ; then
+    check_submodule_presence modules/libfabric
+    externals="${externals} modules/libfabric"
+fi
+
+if [ "yes" = "$do_json" ] ; then
+    check_submodule_presence "modules/json-c"
+fi
+
+if [ "yes" = "$do_yaksa" ] ; then
+    check_submodule_presence "modules/yaksa"
+fi
+
+########################################################################
+# This used to be an optionally installed hook to help with git-svn
+# versions of the old SVN repo.  Now that we are using git, this is our
+# mechanism that replaces relative svn:externals paths, such as for
+# "confdb" and "mpl". The basic plan is to delete the destdir and then
+# copy all of the files, warts and all, from the source directory to the
+# destination directory.
+echo
+echo "####################################"
+echo "## Replicating confdb (and similar)"
+echo "####################################"
+echo
+
+confdb_dirs=
+confdb_dirs="${confdb_dirs} src/mpi/romio/confdb"
+confdb_dirs="${confdb_dirs} src/mpi/romio/mpl/confdb"
+confdb_dirs="${confdb_dirs} src/mpl/confdb"
+confdb_dirs="${confdb_dirs} src/pm/hydra/confdb"
+confdb_dirs="${confdb_dirs} src/pm/hydra2/confdb"
+confdb_dirs="${confdb_dirs} src/pm/hydra/mpl/confdb"
+confdb_dirs="${confdb_dirs} src/pm/hydra2/mpl/confdb"
+confdb_dirs="${confdb_dirs} test/mpi/confdb"
+confdb_dirs="${confdb_dirs} test/mpi/dtpools/confdb"
+
+# hydra's copies of mpl and hwloc
+sync_external src/mpl src/pm/hydra/mpl
+sync_external src/mpl src/pm/hydra2/mpl
+
+# ROMIO's copy of mpl
+sync_external src/mpl src/mpi/romio/mpl
+
+# all the confdb directories, by various names
+for destdir in $confdb_dirs ; do
+    sync_external confdb "$destdir"
+done
+
+# Copying hwloc to hydra
+sync_external modules/hwloc src/pm/hydra/tools/topo/hwloc/hwloc
+sync_external modules/hwloc src/pm/hydra2/libhydra/topo/hwloc/hwloc
+# remove .git directories to avoid confusing git clean
+rm -rf src/pm/hydra/tools/topo/hwloc/hwloc/.git
+rm -rf src/pm/hydra2/libhydra/topo/hwloc/hwloc/.git
+
+# a couple of other random files
+if [ -f maint/version.m4 ] ; then
+    cp -pPR maint/version.m4 src/pm/hydra/version.m4
+    cp -pPR maint/version.m4 src/pm/hydra2/version.m4
+    cp -pPR maint/version.m4 src/mpi/romio/version.m4
+    cp -pPR maint/version.m4 test/mpi/version.m4
+fi
+
+# Now sanity check that some of the above sync was successful
+f="aclocal_cc.m4"
+for d in $confdb_dirs ; do
+    if [ -f "$d/$f" ] ; then :
+    else
+        error "expected to find '$f' in '$d'"
+        exit 1
+    fi
+done
 
 echo
 echo
@@ -642,6 +732,21 @@ else
     echo "error"
     error "unable to correctly generate maint/Version shell helper"
 fi
+
+########################################################################
+## Building the README
+########################################################################
+
+echo_n "Updating the README... "
+. ./maint/Version
+if [ -f README.vin ] ; then
+    sed -e "s/%VERSION%/${MPICH_VERSION}/g" -e "s/%LIBFABRIC_VERSION%/${LIBFABRIC_VERSION}/g" README.vin > README
+    echo "done"
+else
+    echo "error"
+    error "README.vin file not present, unable to update README version number (perhaps we are running in a release tarball source tree?)"
+fi
+
 
 ########################################################################
 ## Building subsys_include.m4
@@ -708,6 +813,8 @@ if [ $do_bindings = "yes" ] ; then
 	( cd src/binding/fortran/use_mpi_f08 && chmod a+x ./buildiface && ./buildiface )
         # Delete the old Makefile.mk
         ( rm -f src/binding/fortran/use_mpi_f08/wrappers_c/Makefile.mk )
+        # Delete the old cdesc.h
+        ( rm -f src/binding/fortran/use_mpi_f08/wrappers_c/cdesc.h )
         # Execute once for mpi.h.in ...
 	( cd src/binding/fortran/use_mpi_f08/wrappers_c && chmod a+x ./buildiface && ./buildiface ../../../../include/mpi.h.in )
         # ... and once for mpio.h.in
@@ -778,7 +885,7 @@ static const int generic_msgs_len = 0;
 static msgpair generic_err_msgs[] = { {0xacebad03, 0, "no error catalog", 0xcb0bfa11}, };
 static const int specific_msgs_len = 0;
 static msgpair specific_err_msgs[] = {  {0xacebad03,0,0,0xcb0bfa11}, };
-#if MPICH_ERROR_MSG_LEVEL > MPICH_ERROR_MSG_NONE
+#if MPICH_ERROR_MSG_LEVEL > MPICH_ERROR_MSG__NONE
 #define MPIR_MAX_ERROR_CLASS_INDEX 54
 static int class_to_index[] = {
 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -836,6 +943,7 @@ echo
 
 # Run some of the simple codes
 echo_n "Creating the enumeration of logging states into src/include/mpiallstates.h... "
+touch src/include/mpiallstates.h # silience build errors when do_genstates is disabled
 if [ -x maint/extractstates -a $do_genstates = "yes" ] ; then
     ./maint/extractstates
 fi
@@ -855,39 +963,20 @@ else
     echo "skipped"
 fi
 
-# Create and/or update the f90 tests
-if [ -x ./maint/f77tof90 -a $do_f77tof90 = "yes" ] ; then
-    echo_n "Create or update the Fortran 90 tests derived from the Fortran 77 tests... "
-    for dir in test/mpi/f77/* ; do
-        if [ ! -d $dir ] ; then continue ; fi
-	leafDir=`basename $dir`
-        if [ ! -d test/mpi/f90/$leafDir ] ; then
-	    mkdir test/mpi/f90/$leafDir
-        fi
-        if maint/f77tof90 $dir test/mpi/f90/$leafDir Makefile.am Makefile.ap ; then
-            echo "timestamp" > test/mpi/f90/$leafDir/Makefile.am-stamp
-        else
-            echo "failed"
-            error "maint/f77tof90 $dir failed!"
-            exit 1
-        fi
-    done
-    for dir in test/mpi/errors/f77/* ; do
-        if [ ! -d $dir ] ; then continue ; fi
-	leafDir=`basename $dir`
-        if [ ! -d test/mpi/errors/f90/$leafDir ] ; then
-	    mkdir test/mpi/errors/f90/$leafDir
-        fi
-        if maint/f77tof90 $dir test/mpi/errors/f90/$leafDir Makefile.am Makefile.ap ; then
-            echo "timestamp" > test/mpi/errors/f90/$leafDir/Makefile.am-stamp
-        else
-            echo "failed"
-            error "maint/f77tof90 $dir failed!"
-            exit 1
-        fi
-    done
-    echo "done"
+# BEGIN: MV2 CVAR Extraction
+echo_n "Extracting MV2 control variables (cvar) ... "
+if test -x maint/extractmv2cvars -a "$do_getcvars" = "yes" ; then
+    if ./maint/extractmv2cvars --dirs="`cat maint/cvardirs`"; then
+        echo "done"
+    else
+        echo "failed"
+        error "unable to extract MV2 control variables"
+        exit 1
+    fi
+else
+    echo "skipped"
 fi
+# END: MV2 CVAR Extraction
 
 echo
 echo
@@ -914,32 +1003,90 @@ if [ "$do_build_configure" = "yes" ] ; then
 	    echo "------------------------------------------------------------------------"
 	    echo "running $autoreconf in $amdir"
             (cd $amdir && $autoreconf $autoreconf_args) || exit 1
+            # Patching ltmain.sh
+            if [ -f $amdir/confdb/ltmain.sh ] ; then
+                echo_n "Patching ltmain.sh for compatibility with Intel compiler options... "
+                patch -N -s -l $amdir/confdb/ltmain.sh maint/patches/optional/confdb/intel-compiler.patch
+                if [ $? -eq 0 ] ; then
+                    # Remove possible leftovers, which don't imply a failure
+                    rm -f $amdir/confdb/ltmain.sh.orig
+                    echo "done"
+                else
+                    echo "failed"
+                fi
+                # Rebuild configure
+                (cd $amdir && $autoconf -f) || exit 1
+                # Reset ltmain.sh timestamps to avoid confusing make
+                touch -r $amdir/confdb/ltversion.m4 $amdir/confdb/ltmain.sh
+            fi
             # Patching libtool.m4
             # This works with libtool versions 2.4 - 2.4.2.
             # Older versions are not supported to build mpich.
             # Newer versions should have this patch already included.
             if [ -f $amdir/confdb/libtool.m4 ] ; then
                 # There is no need to patch if we're not going to use Fortran.
-                fortran_patch_requires_rebuild=no
+                ifort_patch_requires_rebuild=no
+                oracle_patch_requires_rebuild=no
+                flang_patch_requires_rebuild=no
+                arm_patch_requires_rebuild=no
                 ibm_patch_requires_rebuild=no
+                sys_lib_dlsearch_path_patch_requires_rebuild=no
+                macos_patch_requires_rebuild=no
+                echo_n "Patching libtool.m4 for system dynamic library search path..."
+                patch -N -s -l $amdir/confdb/libtool.m4 maint/patches/optional/confdb/sys_lib_dlsearch_path_spec.patch
+                if [ $? -eq 0 ] ; then
+                    sys_lib_dlsearch_path_patch_requires_rebuild=yes
+                    # Remove possible leftovers, which don't imply a failure
+                    rm -f $amdir/confdb/libtool.m4.orig
+                    echo "done"
+                else
+                    echo "failed"
+                fi
+                echo_n "Patching libtool.m4 for compatibility macOS Big Sur..."
+                patch -N -s -l $amdir/confdb/libtool.m4 maint/patches/optional/confdb/big-sur.patch
+                if [ $? -eq 0 ] ; then
+                    macos_patch_requires_rebuild=yes
+                    # Remove possible leftovers, which don't imply a failure
+                    rm -f $amdir/confdb/libtool.m4.orig
+                    echo "done"
+                else
+                    echo "failed"
+                fi
                 if [ $do_bindings = "yes" ] ; then
                     echo_n "Patching libtool.m4 for compatibility with ifort on OSX... "
-                    patch -N -s -l $amdir/confdb/libtool.m4 maint/darwin-ifort.patch
-
+                    patch -N -s -l $amdir/confdb/libtool.m4 maint/patches/optional/confdb/darwin-ifort.patch
                     if [ $? -eq 0 ] ; then
-                        fortran_patch_requires_rebuild=yes
+                        ibm_patch_requires_rebuild=yes
                         # Remove possible leftovers, which don't imply a failure
                         rm -f $amdir/confdb/libtool.m4.orig
                         echo "done"
                     else
                         echo "failed"
                     fi
-
-                    echo_n "Patching libtool.m4 for compatibility with flang on linux... "
-                    patch -N -s -l $amdir/confdb/libtool.m4 maint/linux-flang.patch
-
+                    echo_n "Patching libtool.m4 for fort compatibility with Oracle Dev Studio 12.6..."
+                    patch -N -s -l $amdir/confdb/libtool.m4 maint/patches/optional/confdb/oracle-fort.patch
                     if [ $? -eq 0 ] ; then
-                        fortran_patch_requires_rebuild=yes
+                        oracle_patch_requires_rebuild=yes
+                        # Remove possible leftovers, which don't imply a failure
+                        rm -f $amdir/confdb/libtool.m4.orig
+                        echo "done"
+                    else
+                        echo "failed"
+                    fi
+                    echo_n "Patching libtool.m4 for compatibility with Flang..."
+                    patch -N -s -l $amdir/confdb/libtool.m4 maint/patches/optional/confdb/flang.patch
+                    if [ $? -eq 0 ] ; then
+                        flang_patch_requires_rebuild=yes
+                        # Remove possible leftovers, which don't imply a failure
+                        rm -f $amdir/confdb/libtool.m4.orig
+                        echo "done"
+                    else
+                        echo "failed"
+                    fi
+                    echo_n "Patching libtool.m4 for compatibility with Arm LLVM compilers..."
+                    patch -N -s -l $amdir/confdb/libtool.m4 maint/patches/optional/confdb/arm-compiler.patch
+                    if [ $? -eq 0 ] ; then
+                        arm_patch_requires_rebuild=yes
                         # Remove possible leftovers, which don't imply a failure
                         rm -f $amdir/confdb/libtool.m4.orig
                         echo "done"
@@ -958,7 +1105,10 @@ if [ "$do_build_configure" = "yes" ] ; then
                     fi
                 fi
 
-                if [ $fortran_patch_requires_rebuild = "yes" ] || [ $ibm_patch_requires_rebuild = "yes" ]; then
+                if [ $ifort_patch_requires_rebuild = "yes" ] || [ $oracle_patch_requires_rebuild = "yes" ] \
+                    || [ $arm_patch_requires_rebuild = "yes" ] || [ $ibm_patch_requires_rebuild = "yes" ] \
+                    || [ $sys_lib_dlsearch_path_patch_requires_rebuild = "yes" ] || [ $flang_patch_requires_rebuild = "yes" ] \
+                    || [ $macos_patch_requires_rebuild = "yes" ]; then
                     # Rebuild configure
                     (cd $amdir && $autoconf -f) || exit 1
                     # Reset libtool.m4 timestamps to avoid confusing make
@@ -968,3 +1118,15 @@ if [ "$do_build_configure" = "yes" ] ; then
 	fi
     done
 fi
+
+
+echo
+echo
+echo "###########################################################"
+echo "## Creating JSON char arrays"
+echo "###########################################################"
+echo
+
+echo_n "generating json char arrays... "
+./maint/tuning/coll/json_gen.sh
+echo "done"

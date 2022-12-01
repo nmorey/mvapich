@@ -1,8 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include "stdio.h"
 #include "stdlib.h"
@@ -68,8 +68,7 @@ int main(int argc, char *argv[])
                 errs++;
 
         free(results);
-    }
-    else {
+    } else {
         /* Get the largest power of two smaller than nprocs */
         mask = 1;
         nlevels = 0;
@@ -93,8 +92,7 @@ int main(int argc, char *argv[])
                 acc_idx[level] = idx + 1;
                 get_idx[level] = idx + mask * 2;
                 idx = idx + 1;
-            }
-            else {
+            } else {
                 /* go to right for acc_idx, go to left for
                  * get_idx. set idx=acc_idx for next iteration */
                 acc_idx[level] = idx + mask * 2;
@@ -140,7 +138,6 @@ int main(int argc, char *argv[])
     }
 
     MTest_Finalize(errs);
-    MPI_Finalize();
     return MTestReturnValue(errs);
 }
 

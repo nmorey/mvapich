@@ -1,8 +1,8 @@
-! -*- Mode: Fortran; -*-
 !
-!  (C) 2011 by Argonne National Laboratory.
-!      See COPYRIGHT in top-level directory.
+! Copyright (C) by Argonne National Laboratory
+!     See COPYRIGHT in top-level directory
 !
+
 ! Based on a sample program that triggered a segfault in MPICH
 program testf90_mpi
   use mpi_f08
@@ -20,6 +20,5 @@ program testf90_mpi
   call MPI_Type_free(ctype, ierr)
 
   call mtest_finalize(errs)
-  call MPI_Finalize(ierr)
 
 end program testf90_mpi

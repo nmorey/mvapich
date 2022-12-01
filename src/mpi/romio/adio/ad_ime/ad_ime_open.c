@@ -1,9 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*-
- *
- *
- *   Copyright (C) 1997 University of Chicago.
- *   Copyright (C) 2017 DataDirect Networks.
- *   See COPYRIGHT notice in top-level directory.
+/*
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "ad_ime.h"
@@ -71,7 +68,7 @@ void ADIOI_IME_Open(ADIO_File fd, int *error_code)
         return;
     }
 
-    ime_fs->ime_filename = ADIOI_IME_Convert_filename(fd->filename);
+    ime_fs->ime_filename = ADIOI_IME_Add_prefix(fd->filename);
 
     /* all processes open the file */
     ret = ime_native_open(ime_fs->ime_filename, amode, perm);

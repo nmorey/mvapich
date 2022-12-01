@@ -16,11 +16,11 @@
 #include "upmi.h"
 
 #define NEM_IB_ERR(message, args...) {                          \
-    MPIU_Internal_error_printf("[%s:%d] [%s:%d] ",              \
+    MV2_MPIDI_Internal_error_printf("[%s:%d] [%s:%d] ",              \
             me.hostname, me.rank,                               \
             __FILE__, __LINE__);                                \
-    MPIU_Internal_error_printf(message, ##args);                \
-    MPIU_Internal_error_printf("\n");                           \
+    MV2_MPIDI_Internal_error_printf(message, ##args);                \
+    MV2_MPIDI_Internal_error_printf("\n");                           \
 }
 
 #ifdef DEBUG_NEM_IB

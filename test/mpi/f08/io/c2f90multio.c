@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /*
@@ -14,6 +13,7 @@
 */
 #include "mpi.h"
 #include <stdio.h>
+#include "mpitest.h"
 
 int main(int argc, char *argv[])
 {
@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
     int rank;
     MPI_File cFile;
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     /* File */
@@ -33,8 +33,7 @@ int main(int argc, char *argv[])
     if (rc) {
         errs++;
         printf("Unable to open file \"temp\"\n");
-    }
-    else {
+    } else {
         handleA = MPI_File_c2f(cFile);
         handleB = MPI_File_c2f(cFile);
         if (handleA != handleB) {
@@ -44,16 +43,8 @@ int main(int argc, char *argv[])
     }
     MPI_File_close(&cFile);
 
-    if (rank == 0) {
-        if (errs) {
-            fprintf(stderr, "Found %d errors\n", errs);
-        }
-        else {
-            printf(" No Errors\n");
-        }
-    }
+    MTest_Finalize(errs);
 
-    MPI_Finalize();
 
-    return 0;
+    return MTestReturnValue(errs);
 }

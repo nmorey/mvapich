@@ -1,12 +1,13 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2008 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include "mpi.h"
+#include "mpitest.h"
 
 /*
  * Run this test with 8 processes.  This test was submitted by xxx
@@ -31,7 +32,7 @@ int main(int argc, char *argv[])
     int i, j, status;
     FILE *pf = 0;
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &nProc);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -52,8 +53,7 @@ int main(int argc, char *argv[])
         char buf[128];
         sprintf(buf, "fast_mpi_%d.dmp", rank);
         pf = fopen(buf, "w");
-    }
-    else if (loopProgress) {
+    } else if (loopProgress) {
         pf = stdout;
     }
 
@@ -68,11 +68,10 @@ int main(int argc, char *argv[])
         }
         for (i = 0; i < LOOP_COUNT; i++) {
             if (verbose) {
-                fprintf(pf, "Master : loop %d\n", i);
+                fprintf(pf, "Main : loop %d\n", i);
                 fflush(pf);
-            }
-            else if (loopProgress && (i & PROGRESS_COUNT) == 0) {
-                fprintf(pf, "Master: loop %d\n", i);
+            } else if (loopProgress && (i & PROGRESS_COUNT) == 0) {
+                fprintf(pf, "Main: loop %d\n", i);
                 fflush(pf);
             }
             for (j = 1; j < nProc; j++) {
@@ -105,15 +104,14 @@ int main(int argc, char *argv[])
         }
         free(psend);
         free(precv);
-    }
-    else {
+    } else {
         int *psend;
         int *precv;
         psend = (int *) calloc(DATA_SIZE, sizeof(int));
         precv = (int *) calloc(DATA_SIZE, sizeof(int));
         for (i = 0; i < LOOP_COUNT; i++) {
             if (verbose) {
-                fprintf(pf, "  send to master\n");
+                fprintf(pf, "  send to main\n");
                 fflush(pf);
             }
             /*
@@ -123,15 +121,15 @@ int main(int argc, char *argv[])
              */
             status = MPI_Send(psend, DATA_SIZE - 1, MPI_INT, 0, MP_TAG, MPI_COMM_WORLD);
             if (verbose) {
-                fprintf(pf, "  send to master done, status = %d\n", status);
+                fprintf(pf, "  send to main done, status = %d\n", status);
                 fflush(pf);
-                fprintf(pf, "  read from master\n");
+                fprintf(pf, "  read from main\n");
                 fflush(pf);
             }
             status = MPI_Recv(precv, DATA_SIZE, MPI_INT, 0, MP_TAG,
                               MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             if (verbose) {
-                fprintf(pf, "  read from master done, status = %d\n", status);
+                fprintf(pf, "  read from main done, status = %d\n", status);
                 fflush(pf);
             }
         }
@@ -141,12 +139,7 @@ int main(int argc, char *argv[])
     if (verbose) {
         fclose(pf);
     }
-    MPI_Finalize();
-
-    /* This test fails if it hangs */
-    if (rank == 0) {
-        printf(" No Errors\n");
-    }
+    MTest_Finalize(0);
 
     return 0;
 }

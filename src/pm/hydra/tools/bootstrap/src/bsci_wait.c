@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2008 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "hydra.h"
@@ -16,8 +15,7 @@ HYD_status HYDT_bsci_wait_for_completion(int timeout)
 
     if (HYDT_bsci_fns.wait_for_completion) {
         status = HYDT_bsci_fns.wait_for_completion(timeout);
-    }
-    else {
+    } else {
         status = HYDT_bscu_wait_for_completion(timeout);
     }
     HYDU_ERR_POP(status, "launcher returned error waiting for completion\n");

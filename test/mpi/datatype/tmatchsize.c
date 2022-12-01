@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,14 +35,12 @@ int main(int argc, char *argv[])
     if (err) {
         errs++;
         MTestPrintErrorMsg("Float: ", err);
-    }
-    else {
+    } else {
         err = MPI_Type_size(newtype, &dsize);
         if (err) {
             errs++;
             MTestPrintErrorMsg("Float type: ", err);
-        }
-        else {
+        } else {
             if (dsize != sizeof(float)) {
                 errs++;
                 printf("Unexpected size for float (%d != %d)\n", dsize, (int) sizeof(float));
@@ -55,8 +52,7 @@ int main(int argc, char *argv[])
     if (err) {
         errs++;
         MTestPrintErrorMsg("Double: ", err);
-    }
-    else {
+    } else {
         MPI_Type_size(newtype, &dsize);
         if (dsize != sizeof(double)) {
             errs++;
@@ -68,8 +64,7 @@ int main(int argc, char *argv[])
     if (err) {
         errs++;
         MTestPrintErrorMsg("Long double: ", err);
-    }
-    else {
+    } else {
         MPI_Type_size(newtype, &dsize);
         if (dsize != sizeof(long double)) {
             errs++;
@@ -82,8 +77,7 @@ int main(int argc, char *argv[])
     if (err) {
         errs++;
         MTestPrintErrorMsg("Short: ", err);
-    }
-    else {
+    } else {
         MPI_Type_size(newtype, &dsize);
         if (dsize != sizeof(short)) {
             errs++;
@@ -95,8 +89,7 @@ int main(int argc, char *argv[])
     if (err) {
         errs++;
         MTestPrintErrorMsg("Int: ", err);
-    }
-    else {
+    } else {
         MPI_Type_size(newtype, &dsize);
         if (dsize != sizeof(int)) {
             errs++;
@@ -108,8 +101,7 @@ int main(int argc, char *argv[])
     if (err) {
         errs++;
         MTestPrintErrorMsg("Long: ", err);
-    }
-    else {
+    } else {
         MPI_Type_size(newtype, &dsize);
         if (dsize != sizeof(long)) {
             errs++;
@@ -121,8 +113,7 @@ int main(int argc, char *argv[])
     if (err) {
         errs++;
         MTestPrintErrorMsg("Long long: ", err);
-    }
-    else {
+    } else {
         MPI_Type_size(newtype, &dsize);
         if (dsize != sizeof(long long)) {
             errs++;
@@ -140,8 +131,7 @@ int main(int argc, char *argv[])
         if (err) {
             errs++;
             MTestPrintErrorMsg("Complex: ", err);
-        }
-        else {
+        } else {
             MPI_Type_size(newtype, &dsize);
             if (dsize != 2 * sizeof(float)) {
                 errs++;
@@ -155,8 +145,7 @@ int main(int argc, char *argv[])
         if (err) {
             errs++;
             MTestPrintErrorMsg("Double complex: ", err);
-        }
-        else {
+        } else {
             MPI_Type_size(newtype, &dsize);
             if (dsize != 2 * sizeof(double)) {
                 errs++;
@@ -166,6 +155,5 @@ int main(int argc, char *argv[])
     }
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

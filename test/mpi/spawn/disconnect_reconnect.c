@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include "mpitest.h"
 #include <stdio.h>
@@ -65,8 +64,7 @@ int main(int argc, char *argv[])
             MPI_Comm_spawn((char *) "./disconnect_reconnect",
                            /*MPI_ARGV_NULL */ &argv[1], np,
                            MPI_INFO_NULL, 0, MPI_COMM_WORLD, &intercomm, MPI_ERRCODES_IGNORE);
-        }
-        else {
+        } else {
             intercomm = parentcomm;
         }
 
@@ -121,8 +119,7 @@ int main(int argc, char *argv[])
              * errs += err;
              * }
              */
-        }
-        else {
+        } else {
             IF_VERBOSE(("[%d] child rank %d alive.\n", rank, rank));
             /* Child */
             if (size != np) {
@@ -156,7 +153,7 @@ int main(int argc, char *argv[])
                 MPI_Comm_disconnect(&intercomm);
             }
 
-            /* Send the errs back to the master process */
+            /* Send the errs back to the parent process */
             /* Errors cannot be sent back to the parent because there is no
              * communicator connected to the parent */
             /*MPI_Ssend(&errs, 1, MPI_INT, 0, 1, intercomm); */
@@ -167,13 +164,13 @@ int main(int argc, char *argv[])
          * if both call MTest_Finalize */
         if (parentcomm == MPI_COMM_NULL) {
             MTest_Finalize(errs);
+        } else {
+            MPI_Finalize();
         }
-    }
-    else {
+    } else {
         MTest_Finalize(errs);
     }
 
     IF_VERBOSE(("[%d] calling finalize\n", rank));
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

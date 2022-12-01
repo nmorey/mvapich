@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 /* Copyright (c) 2001-2022, The Ohio State University. All rights
  * reserved.
@@ -24,35 +23,23 @@
    cancel message, once the code decides that the request can still
    be cancelled */
 
-#undef FUNCNAME
-#define FUNCNAME MPID_Cancel_send
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-int MPID_Cancel_send(MPID_Request * sreq)
+int MPID_Cancel_send(MPIR_Request * sreq)
 {
     MPIDI_VC_t * vc;
     int proto;
     int flag;
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_MPID_CANCEL_SEND);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_CANCEL_SEND);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPID_CANCEL_SEND);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_CANCEL_SEND);
     
-    MPIU_Assert(sreq->kind == MPID_REQUEST_SEND);
+    MPIR_Assert(sreq->kind == MPIR_REQUEST_KIND__SEND);
 
     MPIDI_Request_cancel_pending(sreq, &flag);
     if (flag)
     {
-	goto fn_exit;
-    }
-
-#if defined (CHANNEL_PSM)
-    /* PSM can't do send cancel, this code is just for completion */
-    sreq->psm_flags |= PSM_SEND_CANCEL;
-    mpi_errno = psm_do_cancel(sreq);
-    if(mpi_errno) MPIR_ERR_POP(mpi_errno);
     goto fn_exit;
-#endif
+    }
 
     /*
      * FIXME: user requests returned by MPI_Ibsend() have a NULL comm pointer
@@ -64,7 +51,7 @@ int MPID_Cancel_send(MPID_Request * sreq)
      */
     if (sreq->comm == NULL)
     {
-	goto fn_exit;
+    goto fn_exit;
     }
 
     MPIDI_Comm_get_vc_set_active(sreq->comm, sreq->dev.match.parts.rank, &vc);
@@ -73,45 +60,43 @@ int MPID_Cancel_send(MPID_Request * sreq)
 
     if (proto == MPIDI_REQUEST_SELF_MSG)
     {
-	MPID_Request * rreq;
-	
-	MPIU_DBG_MSG(CH3_OTHER,VERBOSE,
-		     "attempting to cancel message sent to self");
-	
-	MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_POBJ_MSGQ_MUTEX);
-	rreq = MPIDI_CH3U_Recvq_FDU(sreq->handle, &sreq->dev.match);
-	MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_POBJ_MSGQ_MUTEX);
-	if (rreq)
-	{
-	    MPIU_Assert(rreq->partner_request == sreq);
-	    
-	    MPIU_DBG_MSG_FMT(CH3_OTHER,VERBOSE,(MPIU_DBG_FDEST,
+    MPIR_Request * rreq;
+    
+    MPL_DBG_MSG(MPIDI_CH3_DBG_OTHER,VERBOSE,
+             "attempting to cancel message sent to self");
+    
+    MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_POBJ_MSGQ_MUTEX);
+    rreq = MPIDI_CH3U_Recvq_FDU(sreq->handle, &sreq->dev.match);
+    MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_POBJ_MSGQ_MUTEX);
+    if (rreq)
+    {
+        MPIR_Assert(rreq->dev.partner_request == sreq);
+        
+        MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_OTHER,VERBOSE,(MPL_DBG_FDEST,
              "send-to-self cancellation successful, sreq=0x%08x, rreq=0x%08x",
-						sreq->handle, rreq->handle));
+                        sreq->handle, rreq->handle));
 
             /* Pull the message out of the unexpected queue since it's
              * being cancelled.  The below request release drops one
              * reference.  We explicitly drop a second reference,
              * because the receive request will never be visible to
              * the user. */
-            MPID_Request_release(rreq);
-            MPID_Request_release(rreq);
+            MPIR_Request_free(rreq);
+            MPIR_Request_free(rreq);
 
-	    MPIR_STATUS_SET_CANCEL_BIT(sreq->status, TRUE);
+        MPIR_STATUS_SET_CANCEL_BIT(sreq->status, TRUE);
             mpi_errno = MPID_Request_complete(sreq);
-            if (mpi_errno != MPI_SUCCESS) {
-                MPIR_ERR_POP(mpi_errno);
-            }
-	}
-	else
-	{
-	    MPIR_STATUS_SET_CANCEL_BIT(sreq->status, FALSE);
-	    MPIU_DBG_MSG_FMT(CH3_OTHER,VERBOSE,(MPIU_DBG_FDEST,
+            MPIR_ERR_CHECK(mpi_errno);
+    }
+    else
+    {
+        MPIR_STATUS_SET_CANCEL_BIT(sreq->status, FALSE);
+        MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_OTHER,VERBOSE,(MPL_DBG_FDEST,
                "send-to-self cancellation failed, sreq=0x%08x, rreq=0x%08x",
-						sreq->handle, rreq->handle));
-	}
-	
-	goto fn_exit;
+                        sreq->handle, rreq->handle));
+    }
+    
+    goto fn_exit;
     }
 
     /* If the message went over a netmod and it provides a cancel_send
@@ -129,117 +114,117 @@ int MPID_Cancel_send(MPID_Request * sreq)
        release the device's reference to the request object.  
     */
     {
-	int cancelled;
-	
-	if (proto == MPIDI_REQUEST_RNDV_MSG)
-	{
-	    MPID_Request * rts_sreq;
-	    /* The cancellation of the RTS request needs to be atomic through 
-	       the destruction of the RTS request to avoid
+    int cancelled;
+    
+    if (proto == MPIDI_REQUEST_RNDV_MSG)
+    {
+        MPIR_Request * rts_sreq;
+        /* The cancellation of the RTS request needs to be atomic through 
+           the destruction of the RTS request to avoid
                conflict with release of the RTS request if the CTS is received
-	       (see handling of a rendezvous CTS packet in
+           (see handling of a rendezvous CTS packet in
                MPIDI_CH3U_Handle_recv_pkt()).  
-	       MPID_Request_fetch_and_clear_rts_sreq() is used to guarantee 
-	       that atomicity. */
+           MPID_Request_fetch_and_clear_rts_sreq() is used to guarantee 
+           that atomicity. */
 #if defined(CHANNEL_MRAIL)
-	    /* OSU-MPI2 finishes rndv request with extra step */
-	    MPIDI_CH3I_MRAILI_RREQ_RNDV_FINISH(sreq);
+        /* OSU-MPI2 finishes rndv request with extra step */
+        MPIDI_CH3I_MRAILI_RREQ_RNDV_FINISH(sreq);
 #endif /* defined(CHANNEL_MRAIL) */
-	    MPIDI_Request_fetch_and_clear_rts_sreq(sreq, &rts_sreq);
-	    if (rts_sreq != NULL) 
-	    {
-		cancelled = FALSE;
-		
-		/* since we attempted to cancel a RTS request, then we are 
-		   responsible for releasing that request */
-		MPID_Request_release(rts_sreq);
+        MPIDI_Request_fetch_and_clear_rts_sreq(sreq, &rts_sreq);
+        if (rts_sreq != NULL) 
+        {
+        cancelled = FALSE;
+        
+        /* since we attempted to cancel a RTS request, then we are 
+           responsible for releasing that request */
+        MPIR_Request_free(rts_sreq);
 
-		/* --BEGIN ERROR HANDLING-- */
-		if (mpi_errno != MPI_SUCCESS)
-		{
-		    mpi_errno = MPIR_Err_create_code(mpi_errno, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPI_ERR_OTHER,
-						     "**ch3|cancelrndv", 0);
-		    goto fn_exit;
-		}
-		/* --END ERROR HANDLING-- */
-		
-		if (cancelled)
-		{
-		    MPIR_STATUS_SET_CANCEL_BIT(sreq->status, TRUE);
-		    /* no other thread should be waiting on sreq, so it is 
-		       safe to reset ref_count and cc */
-                    MPID_cc_set(&sreq->cc, 0);
+        /* --BEGIN ERROR HANDLING-- */
+        if (mpi_errno != MPI_SUCCESS)
+        {
+            mpi_errno = MPIR_Err_create_code(mpi_errno, MPIR_ERR_RECOVERABLE, __func__, __LINE__, MPI_ERR_OTHER,
+                             "**ch3|cancelrndv", 0);
+            goto fn_exit;
+        }
+        /* --END ERROR HANDLING-- */
+        
+        if (cancelled)
+        {
+            MPIR_STATUS_SET_CANCEL_BIT(sreq->status, TRUE);
+            /* no other thread should be waiting on sreq, so it is 
+               safe to reset ref_count and cc */
+                    MPIR_cc_set(&sreq->cc, 0);
                     /* FIXME should be a decr and assert, not a set */
-		    MPIU_Object_set_ref(sreq, 1);
-		    goto fn_exit;
-		}
-	    }
-	}
-	else
-	{
-	    cancelled = FALSE;
-	    if (cancelled)
-	    {
-		MPIR_STATUS_SET_CANCEL_BIT(sreq->status, TRUE);
-		/* no other thread should be waiting on sreq, so it is safe to 
-		   reset ref_count and cc */
-                MPID_cc_set(&sreq->cc, 0);
+            MPIR_Object_set_ref(sreq, 1);
+            goto fn_exit;
+        }
+        }
+    }
+    else
+    {
+        cancelled = FALSE;
+        if (cancelled)
+        {
+        MPIR_STATUS_SET_CANCEL_BIT(sreq->status, TRUE);
+        /* no other thread should be waiting on sreq, so it is safe to 
+           reset ref_count and cc */
+                MPIR_cc_set(&sreq->cc, 0);
                 /* FIXME should be a decr and assert, not a set */
-		MPIU_Object_set_ref(sreq, 1);
-		goto fn_exit;
-	    }
-	}
+        MPIR_Object_set_ref(sreq, 1);
+        goto fn_exit;
+        }
+    }
     }
 
     /* Part or all of the message has already been sent, so we need to send a 
        cancellation request to the receiver in an attempt
        to catch the message before it is matched. */
     {
-	int was_incomplete;
-	MPIDI_CH3_Pkt_t upkt;
-	MPIDI_CH3_Pkt_cancel_send_req_t * const csr_pkt = &upkt.cancel_send_req;
-	MPID_Request * csr_sreq;
+    int was_incomplete;
+    MPIDI_CH3_Pkt_t upkt;
+    MPIDI_CH3_Pkt_cancel_send_req_t * const csr_pkt = &upkt.cancel_send_req;
+    MPIR_Request * csr_sreq;
 #if defined(CHANNEL_MRAIL) && defined(MPID_USE_SEQUENCE_NUMBERS)
-	MPID_Seqnum_t seqnum;
+    MPID_Seqnum_t seqnum;
 #endif /* defined(CHANNEL_MRAIL) && defined(MPID_USE_SEQUENCE_NUMBERS) */
-	
-	MPIU_DBG_MSG_FMT(CH3_OTHER,VERBOSE,(MPIU_DBG_FDEST,
+    
+    MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_OTHER,VERBOSE,(MPL_DBG_FDEST,
               "sending cancel request to %d for 0x%08x", 
-	      sreq->dev.match.parts.rank, sreq->handle));
-	
-	/* The completion counter and reference count are incremented to keep 
-	   the request around long enough to receive a
-	   response regardless of what the user does (free the request before 
-	   waiting, etc.). */
-	MPIDI_CH3U_Request_increment_cc(sreq, &was_incomplete);
-	if (!was_incomplete)
-	{
-	    /* The reference count is incremented only if the request was 
-	       complete before the increment. */
-	    MPIR_Request_add_ref( sreq );
-	}
+          sreq->dev.match.parts.rank, sreq->handle));
+    
+    /* The completion counter and reference count are incremented to keep 
+       the request around long enough to receive a
+       response regardless of what the user does (free the request before 
+       waiting, etc.). */
+    MPIDI_CH3U_Request_increment_cc(sreq, &was_incomplete);
+    if (!was_incomplete)
+    {
+        /* The reference count is incremented only if the request was 
+           complete before the increment. */
+        MPIR_Request_add_ref( sreq );
+    }
 
-	MPIDI_Pkt_init(csr_pkt, MPIDI_CH3_PKT_CANCEL_SEND_REQ);
-	csr_pkt->match.parts.rank = sreq->comm->rank;
-	csr_pkt->match.parts.tag = sreq->dev.match.parts.tag;
-	csr_pkt->match.parts.context_id = sreq->dev.match.parts.context_id;
-	csr_pkt->sender_req_id = sreq->handle;
-	
+    MPIDI_Pkt_init(csr_pkt, MPIDI_CH3_PKT_CANCEL_SEND_REQ);
+    csr_pkt->match.parts.rank = sreq->comm->rank;
+    csr_pkt->match.parts.tag = sreq->dev.match.parts.tag;
+    csr_pkt->match.parts.context_id = sreq->dev.match.parts.context_id;
+    csr_pkt->sender_req_id = sreq->handle;
+    
 #if defined(CHANNEL_MRAIL)
         MPIDI_VC_FAI_send_seqnum(vc, seqnum);
         MPIDI_Pkt_set_seqnum(csr_pkt, seqnum);
 #endif /* defined(CHANNEL_MRAIL) */
-	
-	MPID_THREAD_CS_ENTER(POBJ, vc->pobj_mutex);
-	mpi_errno = MPIDI_CH3_iStartMsg(vc, csr_pkt, sizeof(*csr_pkt), &csr_sreq);
-	MPID_THREAD_CS_EXIT(POBJ, vc->pobj_mutex);
-	if (mpi_errno != MPI_SUCCESS) {
-	    MPIR_ERR_SETANDJUMP(mpi_errno,MPI_ERR_OTHER,"**ch3|cancelreq");
-	}
-	if (csr_sreq != NULL)
-	{
-	    MPID_Request_release(csr_sreq);
-	}
+    
+    MPID_THREAD_CS_ENTER(POBJ, vc->pobj_mutex);
+    mpi_errno = MPIDI_CH3_iStartMsg(vc, csr_pkt, sizeof(*csr_pkt), &csr_sreq);
+    MPID_THREAD_CS_EXIT(POBJ, vc->pobj_mutex);
+    if (mpi_errno != MPI_SUCCESS) {
+        MPIR_ERR_SETANDJUMP(mpi_errno,MPI_ERR_OTHER,"**ch3|cancelreq");
+    }
+    if (csr_sreq != NULL)
+    {
+        MPIR_Request_free(csr_sreq);
+    }
     }
     
     /* FIXME: if send cancellation packets are allowed to arrive out-of-order 
@@ -252,7 +237,7 @@ int MPID_Cancel_send(MPID_Request * sreq)
        should be adequate. */
  fn_fail:
  fn_exit:
-    MPIDI_FUNC_EXIT(MPID_STATE_MPID_CANCEL_SEND);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_CANCEL_SEND);
     return mpi_errno;
 }
 
@@ -261,24 +246,24 @@ int MPID_Cancel_send(MPID_Request * sreq)
  */
 
 int MPIDI_CH3_PktHandler_CancelSendReq( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, void *data ATTRIBUTE((unused)),
-					MPIDI_msg_sz_t *buflen, MPID_Request **rreqp )
+                    intptr_t *buflen, MPIR_Request **rreqp )
 {
     MPIDI_CH3_Pkt_cancel_send_req_t * req_pkt = &pkt->cancel_send_req;
-    MPID_Request * rreq;
+    MPIR_Request * rreq;
     int ack;
     MPIDI_CH3_Pkt_t upkt;
     MPIDI_CH3_Pkt_cancel_send_resp_t * resp_pkt = &upkt.cancel_send_resp;
-    MPID_Request * resp_sreq;
+    MPIR_Request * resp_sreq;
     int mpi_errno = MPI_SUCCESS;
 #if defined(CHANNEL_MRAIL) && defined(MPID_USE_SEQUENCE_NUMBERS)
     MPID_Seqnum_t seqnum;
 #endif /* defined(CHANNEL_MRAIL) && defined(MPID_USE_SEQUENCE_NUMBERS) */
     
-    MPIU_DBG_MSG_FMT(CH3_OTHER,VERBOSE,(MPIU_DBG_FDEST,
+    MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_OTHER,VERBOSE,(MPL_DBG_FDEST,
       "received cancel send req pkt, sreq=0x%08x, rank=%d, tag=%d, context=%d",
-		      req_pkt->sender_req_id, req_pkt->match.parts.rank, 
-		      req_pkt->match.parts.tag, req_pkt->match.parts.context_id));
-	    
+              req_pkt->sender_req_id, req_pkt->match.parts.rank, 
+              req_pkt->match.parts.tag, req_pkt->match.parts.context_id));
+        
     *buflen = 0;
     /* FIXME: Note that this routine is called from within the packet handler. 
        If the message queue mutex is different from the progress mutex, this 
@@ -286,27 +271,31 @@ int MPIDI_CH3_PktHandler_CancelSendReq( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, vo
     rreq = MPIDI_CH3U_Recvq_FDU(req_pkt->sender_req_id, &req_pkt->match);
     if (rreq != NULL)
     {
-	MPIU_DBG_MSG(CH3_OTHER,TYPICAL,"message cancelled");
-	if (MPIDI_Request_get_msg_type(rreq) == MPIDI_REQUEST_EAGER_MSG && rreq->dev.recv_data_sz > 0)
-	{
-	    MPIU_Free(rreq->dev.tmpbuf);
-	}
+        MPL_DBG_MSG(MPIDI_CH3_DBG_OTHER,TYPICAL,"message cancelled");
+        if (MPIDI_Request_get_msg_type(rreq) == MPIDI_REQUEST_EAGER_MSG && rreq->dev.recv_data_sz > 0)
+        {
+            MPL_free(rreq->dev.tmpbuf);
+        }
 #if defined(CHANNEL_MRAIL)
-	MPIDI_CH3I_MRAILI_RREQ_RNDV_FINISH(rreq);
-    /* MPID_Request_release() treats all rreqs as posted recvs and always
-     * decrements mv2_posted_recvq_length.  Here rreq is unexpected, so
-     * increment mv2_posted_recvq_length and decrement mv2_unexp_msg_recv (#908)
-     */
-    MV2_INC_NUM_POSTED_RECV();
-    MV2_DEC_NUM_UNEXP_RECV();
+        MPIDI_CH3I_MRAILI_RREQ_RNDV_FINISH(rreq);
+        /* MPIR_Request_free() treats all rreqs as posted recvs and always
+         * decrements mv2_posted_recvq_length.  Here rreq is unexpected, so
+         * increment mv2_posted_recvq_length and decrement mv2_unexp_msg_recv (#908)
+         */
+        MV2_INC_NUM_POSTED_RECV();
+        MV2_DEC_NUM_UNEXP_RECV();
 #endif /* defined(CHANNEL_MRAIL) */
-	MPID_Request_release(rreq);
-	ack = TRUE;
+        if (MPIDI_Request_get_msg_type(rreq) == MPIDI_REQUEST_RNDV_MSG)
+        {
+            MPIR_Request_free(rreq);
+        }
+        MPIR_Request_free(rreq);
+        ack = TRUE;
     }
     else
     {
-	MPIU_DBG_MSG(CH3_OTHER,TYPICAL,"unable to cancel message");
-	ack = FALSE;
+        MPL_DBG_MSG(MPIDI_CH3_DBG_OTHER,TYPICAL,"unable to cancel message");
+        ack = FALSE;
     }
     
     MPIDI_Pkt_init(resp_pkt, MPIDI_CH3_PKT_CANCEL_SEND_RESP);
@@ -321,12 +310,12 @@ int MPIDI_CH3_PktHandler_CancelSendReq( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, vo
     mpi_errno = MPIDI_CH3_iStartMsg(vc, resp_pkt, sizeof(*resp_pkt), &resp_sreq);
     /* MPID_THREAD_CS_EXIT(POBJ, vc->pobj_mutex); */
     if (mpi_errno != MPI_SUCCESS) {
-	MPIR_ERR_SETANDJUMP(mpi_errno,MPI_ERR_OTHER,
-			    "**ch3|cancelresp");
+        MPIR_ERR_SETANDJUMP(mpi_errno,MPI_ERR_OTHER,
+                    "**ch3|cancelresp");
     }
     if (resp_sreq != NULL)
     {
-	MPID_Request_release(resp_sreq);
+        MPIR_Request_free(resp_sreq);
     }
     
     *rreqp = NULL;
@@ -336,47 +325,45 @@ int MPIDI_CH3_PktHandler_CancelSendReq( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, vo
 }
 
 int MPIDI_CH3_PktHandler_CancelSendResp( MPIDI_VC_t *vc ATTRIBUTE((unused)), 
-					 MPIDI_CH3_Pkt_t *pkt, void *data ATTRIBUTE((unused)),
-					 MPIDI_msg_sz_t *buflen, MPID_Request **rreqp )
+                     MPIDI_CH3_Pkt_t *pkt, void *data ATTRIBUTE((unused)),
+                     intptr_t *buflen, MPIR_Request **rreqp )
 {
     MPIDI_CH3_Pkt_cancel_send_resp_t * resp_pkt = &pkt->cancel_send_resp;
-    MPID_Request * sreq;
+    MPIR_Request * sreq;
     int mpi_errno = MPI_SUCCESS;
     
-    MPIU_DBG_MSG_FMT(CH3_OTHER,VERBOSE,(MPIU_DBG_FDEST,
-			"received cancel send resp pkt, sreq=0x%08x, ack=%d",
-			resp_pkt->sender_req_id, resp_pkt->ack));
-	    
+    MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_OTHER,VERBOSE,(MPL_DBG_FDEST,
+            "received cancel send resp pkt, sreq=0x%08x, ack=%d",
+            resp_pkt->sender_req_id, resp_pkt->ack));
+        
     *buflen = 0;
 
-    MPID_Request_get_ptr(resp_pkt->sender_req_id, sreq);
+    MPIR_Request_get_ptr(resp_pkt->sender_req_id, sreq);
     
     if (resp_pkt->ack)
     {
-	MPIR_STATUS_SET_CANCEL_BIT(sreq->status, TRUE);
-	
-	if (MPIDI_Request_get_msg_type(sreq) == MPIDI_REQUEST_RNDV_MSG ||
-	    MPIDI_Request_get_type(sreq) == MPIDI_REQUEST_TYPE_SSEND)
-	{
-	    int cc;
-	    
-	    /* decrement the CC one additional time for the CTS/sync ack that 
-	       is never going to arrive */
-	    MPIDI_CH3U_Request_decrement_cc(sreq, &cc);
-	}
-		
-	MPIU_DBG_MSG(CH3_OTHER,TYPICAL,"message cancelled");
+    MPIR_STATUS_SET_CANCEL_BIT(sreq->status, TRUE);
+    
+    if (MPIDI_Request_get_msg_type(sreq) == MPIDI_REQUEST_RNDV_MSG ||
+        MPIDI_Request_get_type(sreq) == MPIDI_REQUEST_TYPE_SSEND)
+    {
+        int cc;
+        
+        /* decrement the CC one additional time for the CTS/sync ack that 
+           is never going to arrive */
+        MPIDI_CH3U_Request_decrement_cc(sreq, &cc);
+    }
+        
+    MPL_DBG_MSG(MPIDI_CH3_DBG_OTHER,TYPICAL,"message cancelled");
     }
     else
     {
-	MPIR_STATUS_SET_CANCEL_BIT(sreq->status, FALSE);
-	MPIU_DBG_MSG(CH3_OTHER,TYPICAL,"unable to cancel message");
+    MPIR_STATUS_SET_CANCEL_BIT(sreq->status, FALSE);
+    MPL_DBG_MSG(MPIDI_CH3_DBG_OTHER,TYPICAL,"unable to cancel message");
     }
     
     mpi_errno = MPID_Request_complete(sreq);
-    if (mpi_errno != MPI_SUCCESS) {
-        MPIR_ERR_POP(mpi_errno);
-    }
+    MPIR_ERR_CHECK(mpi_errno);
 
     *rreqp = NULL;
 
@@ -393,20 +380,20 @@ int MPIDI_CH3_PktHandler_CancelSendResp( MPIDI_VC_t *vc ATTRIBUTE((unused)),
 #ifdef MPICH_DBG_OUTPUT
 int MPIDI_CH3_PktPrint_CancelSendReq( FILE *fp, MPIDI_CH3_Pkt_t *pkt )
 {
-    MPIU_DBG_PRINTF((" type ......... CANCEL_SEND\n"));
-    MPIU_DBG_PRINTF((" sender_reqid . 0x%08X\n", pkt->cancel_send_req.sender_req_id));
-    MPIU_DBG_PRINTF((" context_id ... %d\n", pkt->cancel_send_req.match.parts.context_id));
-    MPIU_DBG_PRINTF((" tag .......... %d\n", pkt->cancel_send_req.match.parts.tag));
-    MPIU_DBG_PRINTF((" rank ......... %d\n", pkt->cancel_send_req.match.parts.rank));
+    MPL_DBG_MSG(MPIDI_CH3_DBG_OTHER,TERSE," type ......... CANCEL_SEND\n");
+    MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_OTHER,TERSE,(MPL_DBG_FDEST," sender_reqid . 0x%08X\n", pkt->cancel_send_req.sender_req_id));
+    MPL_DBG_MSG_D(MPIDI_CH3_DBG_OTHER,TERSE," context_id ... %d\n", pkt->cancel_send_req.match.parts.context_id);
+    MPL_DBG_MSG_D(MPIDI_CH3_DBG_OTHER,TERSE," tag .......... %d\n", pkt->cancel_send_req.match.parts.tag);
+    MPL_DBG_MSG_D(MPIDI_CH3_DBG_OTHER,TERSE," rank ......... %d\n", pkt->cancel_send_req.match.parts.rank);
 
     return MPI_SUCCESS;
 }
 
 int MPIDI_CH3_PktPrint_CancelSendResp( FILE *fp, MPIDI_CH3_Pkt_t *pkt )
 {
-    MPIU_DBG_PRINTF((" type ......... CANCEL_SEND_RESP\n"));
-    MPIU_DBG_PRINTF((" sender_reqid . 0x%08X\n", pkt->cancel_send_resp.sender_req_id));
-    MPIU_DBG_PRINTF((" ack .......... %d\n", pkt->cancel_send_resp.ack));
+    MPL_DBG_MSG(MPIDI_CH3_DBG_OTHER,TERSE," type ......... CANCEL_SEND_RESP\n");
+    MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_OTHER,TERSE,(MPL_DBG_FDEST," sender_reqid . 0x%08X\n", pkt->cancel_send_resp.sender_req_id));
+    MPL_DBG_MSG_D(MPIDI_CH3_DBG_OTHER,TERSE," ack .......... %d\n", pkt->cancel_send_resp.ack);
     
     return MPI_SUCCESS;
 }

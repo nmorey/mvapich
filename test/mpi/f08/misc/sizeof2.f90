@@ -1,7 +1,8 @@
 !
-!  (C) 2014 by Argonne National Laboratory.
-!      See COPYRIGHT in top-level directory.
+! Copyright (C) by Argonne National Laboratory
+!     See COPYRIGHT in top-level directory
 !
+
         program main
           use mpi_f08
           integer ierr, errs
@@ -57,6 +58,5 @@
           else
              print *, ' No Errors'
           endif
-          call mpi_finalize(ierr)
 
         end program main

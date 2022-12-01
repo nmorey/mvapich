@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
-/* 
- *
- *   Copyright (C) 2004 University of Chicago. 
- *   See COPYRIGHT notice in top-level directory.
+/*
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "adio.h"
@@ -12,9 +10,8 @@
  *
  * Same function is used for both reads and writes.
  */
-void ADIOI_FAKE_IOComplete(ADIO_Request *request, ADIO_Status *status,
-			  int *error_code)
+void ADIOI_FAKE_IOComplete(ADIO_Request * request, ADIO_Status * status, int *error_code)
 {
-        *error_code = MPI_SUCCESS;
-	return;
+    *error_code = MPI_SUCCESS;
+    return;
 }

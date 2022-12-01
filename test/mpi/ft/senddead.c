@@ -1,12 +1,12 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "mpitest.h"
 
 /*
  * This test attempts to MPI_Send with the destination being a dead process.
@@ -15,7 +15,7 @@
  */
 int main(int argc, char **argv)
 {
-    int rank, size, err, errclass;
+    int rank, size, err, errclass, toterrs = 0;
     char buf[100000];
 
     MPI_Init(&argc, &argv);
@@ -38,6 +38,7 @@ int main(int argc, char **argv)
         if ((err) && (errclass != MPIX_ERR_PROC_FAILED)) {
             fprintf(stderr, "Wrong error code (%d) returned. Expected MPIX_ERR_PROC_FAILED\n",
                     errclass);
+            toterrs++;
         }
 #endif
         err = MPI_Send(buf, 100000, MPI_CHAR, 1, 0, MPI_COMM_WORLD);
@@ -46,8 +47,8 @@ int main(int argc, char **argv)
         if ((err) && (errclass != MPIX_ERR_PROC_FAILED)) {
             fprintf(stderr, "Wrong error code (%d) returned. Expected MPIX_ERR_PROC_FAILED\n",
                     errclass);
-        }
-        else {
+            toterrs++;
+        } else {
             printf(" No Errors\n");
             fflush(stdout);
         }
@@ -59,5 +60,5 @@ int main(int argc, char **argv)
 
     MPI_Finalize();
 
-    return 0;
+    return MTestReturnValue(toterrs);
 }

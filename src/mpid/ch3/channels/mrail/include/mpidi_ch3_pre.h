@@ -22,7 +22,7 @@
 #include "mpichconf.h"
 #include "mpidi_ch3_rdma_pre.h"
 #include "smp_smpi.h"
-#include "mpiu_os_wrappers_pre.h"
+#include "mpl_shm.h"
 
 #if defined (_SHARP_SUPPORT_)
 #include "api/sharp_coll.h"
@@ -166,7 +166,7 @@ typedef struct MPIDI_CH3I_Buffer_t
     unsigned int num_bytes;
     void *buffer;
     unsigned int bufflen;
-    MPL_IOV *iov;
+    struct iovec *iov;
     int iovlen;
     int index;
     int total;
@@ -185,18 +185,18 @@ struct _xrc_pending_conn;
 #endif
 typedef struct MPIDI_CH3I_VC
 {
-    struct MPID_Request * sendq_head;
-    struct MPID_Request * sendq_tail;
-    struct MPID_Request * send_active;
-    struct MPID_Request * recv_active;
-    struct MPID_Request * req;
+    struct MPIR_Request * sendq_head;
+    struct MPIR_Request * sendq_tail;
+    struct MPIR_Request * send_active;
+    struct MPIR_Request * recv_active;
+    struct MPIR_Request * req;
     volatile MPIDI_CH3I_VC_state_t state;
     MPIDI_CH3I_Buffer_t read;
     int read_state;
     int port_name_tag;
     /* Connection management */
-    struct MPID_Request * cm_sendq_head;
-    struct MPID_Request * cm_sendq_tail;
+    struct MPIR_Request * cm_sendq_head;
+    struct MPIR_Request * cm_sendq_tail;
     struct vbuf         * cm_1sc_sendq_head;
     struct vbuf         * cm_1sc_sendq_tail;
 #ifdef CKPT
@@ -210,8 +210,8 @@ typedef struct MPIDI_CH3I_VC
     uint32_t                    xrc_rqpn[MAX_NUM_SUBRAILS];
     uint32_t                    xrc_my_rqpn[MAX_NUM_SUBRAILS];
 #endif
-    MPIDI_msg_sz_t              pending_r3_data;
-    MPIDI_msg_sz_t              received_r3_data;
+    intptr_t              pending_r3_data;
+    intptr_t              received_r3_data;
 } MPIDI_CH3I_VC;
 
 #ifdef _ENABLE_XRC_
@@ -274,10 +274,10 @@ typedef enum DEVICE_IPC_STATUS
 
 typedef struct MPIDI_CH3I_SMP_VC
 {
-    struct MPID_Request * sendq_head;
-    struct MPID_Request * sendq_tail;
-    struct MPID_Request * send_active;
-    struct MPID_Request * recv_active;
+    struct MPIR_Request * sendq_head;
+    struct MPIR_Request * sendq_tail;
+    struct MPIR_Request * send_active;
+    struct MPIR_Request * recv_active;
     int local_nodes;
     int local_rank;
     SMP_pkt_type_t send_current_pkt_type;
@@ -346,7 +346,7 @@ struct __attribute__((__aligned__(64))) MPIDI_CH3I_Request          \
     MPIDI_CH3_Pkt_t pkt;                                            \
     enum REQ_TYPE   reqtype;                                        \
     /* For CKPT, hard to put in ifdef because it's in macro define*/\
-    struct MPID_Request *cr_queue_next;                             \
+    struct MPIR_Request *cr_queue_next;                             \
     struct MPIDI_VC *vc;                                            \
 } ch;
 
@@ -450,19 +450,19 @@ typedef pthread_mutex_t MPIDI_CH3I_SHM_MUTEX;
     int16_t outstanding_rma;                                                     \
     int *shm_l2g_rank;                                                           \
     int node_comm_size;                                                          \
-    MPID_Comm *node_comm_ptr;                                                    \
+    MPIR_Comm *node_comm_ptr;                                                    \
     volatile int poll_flag; /* flag to indicate if polling for one sided completions is needed */ \
     void *shm_base_addr;        /* base address of shared memory region */              \
     int shm_coll_comm_ref;                                                              \
     MPI_Aint shm_segment_len;   /* size of shared memory region */                      \
-    MPIU_SHMW_Hnd_t shm_segment_handle; /* handle to shared memory region */            \
+    MPL_shm_hnd_t shm_segment_handle; /* handle to shared memory region */            \
     MPIDI_CH3I_SHM_MUTEX *shm_mutex;    /* shared memory windows -- lock for            \
                                            accumulate/atomic operations */              \
-    MPIU_SHMW_Hnd_t shm_mutex_segment_handle; /* handle to interprocess mutex memory    \
+    MPL_shm_hnd_t shm_mutex_segment_handle; /* handle to interprocess mutex memory    \
                                                  region */                              \
     void *info_shm_base_addr; /* base address of shared memory region for window info */          \
     MPI_Aint info_shm_segment_len; /* size of shared memory region for window info */             \
-    MPIU_SHMW_Hnd_t info_shm_segment_handle; /* handle to shared memory region for window info */ \
+    MPL_shm_hnd_t info_shm_segment_handle; /* handle to shared memory region for window info */ \
 
 extern int mv2_create_dummy_request();
 extern int mv2_free_dummy_request();

@@ -9,9 +9,11 @@ workflow:
 
 stages:
   - build
+  - rename
   - run
+  - regression
+  - eval
   - clean
-
 
 variables:
   GIT_STRATEGY: clone
@@ -25,6 +27,15 @@ variables:
   # never run this base build - must be overridden
   rules:
     - when: never
+
+.rename:
+  stage: rename
+  timeout: 2h
+  tags:
+    - regression
+  # never run this base build - must be overridden
+  rules:
+    - when: never
     
 .run:
   stage: run
@@ -32,6 +43,28 @@ variables:
   tags: 
     - builder
   variables: 
+    GIT_STRATEGY: fetch
+  # never run this base build - must be overridden
+  rules:
+    - when: never
+
+.regression:
+  stage: regression
+  timeout: 1d
+  tags:
+    - regression
+  variables:
+    GIT_STRATEGY: fetch
+  # never run this base build - must be overridden
+  rules:
+    - when: never
+
+.eval:
+  stage: eval
+  timeout: 1h
+  tags:
+    -regression
+  variables:
     GIT_STRATEGY: fetch
   # never run this base build - must be overridden
   rules:
@@ -55,10 +88,56 @@ Build-MV2:
     - which buildbot
     - echo "Triggering builds for $BRANCH"
     - echo "mrail https://scm.mvapich.cse.ohio-state.edu/newbuildbot/#/builders/88"
-    - echo "psm https://scm.mvapich.cse.ohio-state.edu/newbuildbot/#/builders/86"
-    - echo "sock https://scm.mvapich.cse.ohio-state.edu/newbuildbot/#/builders/87"
+    - echo "ofi https://scm.mvapich.cse.ohio-state.edu/newbuildbot/#/builders/163"
+    - echo "sock https://scm.mvapich.cse.ohio-state.edu/newbuildbot/#/builders/164"
     # send the buildbot command and wait until it completes 
     - buildbot try --connect=pb --master=newbotmaster:8013 --username=gitlab-runner --passwd=passwd --vc=git --branch=origin/$BRANCH --property=source_revision=$CI_COMMIT_SHA --wait --quiet
+
+Rename-Build-MRI-ucx:
+  extends: .rename
+  tags:
+    - ucx
+  rules:
+   # merge
+   - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+   # for running manually through the Pipelines page
+   - if: $CI_PIPELINE_SOURCE == "web" && $PIPELINE_BRANCH_TYPE
+  script:
+    - echo $PWD
+    - source .gitlab/ci/renameBuild.sh LATEST_
+    #REG_* builder does separate builds by commit Hash, also permissions are different
+    #- source .gitlab/ci/renameBuild.sh REG_
+
+Rename-Build-RI2-mrail:
+  extends: .rename
+  tags:
+    - mrail
+  rules:
+   # merge
+   - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+   # for running manually through the Pipelines page
+   - if: $CI_PIPELINE_SOURCE == "web" && $PIPELINE_BRANCH_TYPE
+  script:
+    - echo $PWD
+    - source .gitlab/ci/renameBuild.sh LATEST_
+    #REG_* builder does separate builds by commit Hash, also permissions are different
+    #- source .gitlab/ci/renameBuild.sh REG_
+
+Rename-Build-nowlab-ofi:
+  extends: .rename
+  tags:
+    - ofi
+  rules:
+   # merge
+   - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+   # for running manually through the Pipelines page
+   - if: $CI_PIPELINE_SOURCE == "web" && $PIPELINE_BRANCH_TYPE
+  script:
+    - echo $PWD
+    - source .gitlab/ci/renameBuild.sh LATEST_
+    #REG_* builder does separate builds by commit Hash, also permissions are different
+    #- source .gitlab/ci/renameBuild.sh REG_
+
 
 Run-Tests:
   extends: .run
@@ -70,7 +149,7 @@ Run-Tests:
   script:
     - echo "TODO launch runbot test here for relevant branches"
     - echo "https://testing.nowlab.cse.ohio-state.edu/mvapich2/grid/MERGES_master/${CI_COMMIT_SHA}/?cluster="
-    - ssh -o StrictHostKeyChecking=no runbot@nowlab /home/runbot/bin/queueTests -r $CI_COMMIT_SHA -b $BUILDER -c gcc -B MERGES/$BRANCH -i /home/runbot/mvapich2/merges/${BUILDER}/${CI_COMMIT_SHA}/gcc/ -C git --project mvapich2
+    - ssh -o StrictHostKeyChecking=no runbot@nowlab /home/runbot/bin/queueTests -r $CI_COMMIT_SHA -b $BUILDER -c gcc -B MERGES/$BRANCH -i /home/runbot/mvapich2/merges/${BRANCH}/${BUILDER}/${CI_COMMIT_SHA}/gcc/ -C git --project mvapich2
 
 Clean-Dir:
   stage: clean
@@ -83,3 +162,91 @@ Clean-Dir:
   script:
     - rm -rf $CI_BUILDS_DIR/$CI_COMMIT_REF_NAME/$CI_COMMIT_SHORT_SHA
     - rm -rf $CI_BUILDS_DIR/$CI_COMMIT_REF_NAME/${CI_COMMIT_SHORT_SHA}.tmp
+
+Run-Regressions-MRI-ucx:
+  extends: .regression
+  tags:
+    - ucx
+  rules:
+    # merge
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    # for running manually through the Pipelines page
+    - if: $CI_PIPELINE_SOURCE == "web" && $PIPELINE_BRANCH_TYPE
+  script:
+    - echo $PWD
+    - source .gitlab/ci/runRegressions.sh
+  artifacts:
+    paths:
+      - $CI_PROJECT_DIR/*.html
+      - $CI_PROJECT_DIR/slurm-*
+
+Run-Regressions-RI2-mrail:
+  extends: .regression
+  tags:
+    - mrail
+  rules:
+    # merge
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    # for running manually through the Pipelines page
+    - if: $CI_PIPELINE_SOURCE == "web" && $PIPELINE_BRANCH_TYPE
+  script:
+    - echo $PWD
+    - source .gitlab/ci/runRegressions.sh
+  artifacts:
+    paths:
+      - $CI_PROJECT_DIR/*.html
+      - $CI_PROJECT_DIR/slurm-*
+
+Run-Regressions-nowlab-ofi:
+  extends: .regression
+  tags:
+    - ofi
+  rules:
+    # merge
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    # for running manually through the Pipelines page
+    - if: $CI_PIPELINE_SOURCE == "web" && $PIPELINE_BRANCH_TYPE
+  script:
+    - echo $PWD
+    - source .gitlab/ci/runRegressions.sh
+  artifacts:
+    paths:
+      - $CI_PROJECT_DIR/*.html
+      - $CI_PROJECT_DIR/slurm-*
+
+Eval-Regressions-MRI-ucx:
+  extends: .eval
+  tags:
+    - ucx
+  rules:
+    # merge
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    # for running manually through the Pipelines page
+    - if: $CI_PIPELINE_SOURCE == "web" && $PIPELINE_BRANCH_TYPE
+  script:
+    - source .gitlab/ci/evalRegressions.sh
+
+Eval-Regressions-RI2-mrail:
+  extends: .eval
+  tags:
+    - mrail
+  rules:
+    # merge
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    # for running manually through the Pipelines page
+    - if: $CI_PIPELINE_SOURCE == "web" && $PIPELINE_BRANCH_TYPE
+  script:
+    - source .gitlab/ci/evalRegressions.sh
+
+Eval-Regressions-nowlab-ofi:
+  extends: .eval
+  tags:
+    - ofi
+  rules:
+    # merge
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    # for running manually through the Pipelines page
+    - if: $CI_PIPELINE_SOURCE == "web" && $PIPELINE_BRANCH_TYPE
+  script:
+    - source .gitlab/ci/evalRegressions.sh
+

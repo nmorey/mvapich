@@ -18,14 +18,14 @@
 #include "mv2_ud.h"
 #include "mv2_ud_inline.h"
 #include "ibv_send_inline.h"
-#include <debug_utils.h>
+#include <mv2_debug_utils.h>
 
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_vbuf_allocated);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_vbuf_freed);
-MPIR_T_PVAR_ULONG_LEVEL_DECL_EXTERN(MV2, mv2_vbuf_available);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_ud_vbuf_allocated);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_ud_vbuf_freed);
-MPIR_T_PVAR_ULONG_LEVEL_DECL_EXTERN(MV2, mv2_ud_vbuf_available);
+extern unsigned long PVAR_COUNTER_mv2_vbuf_allocated;
+extern unsigned long PVAR_COUNTER_mv2_vbuf_freed;
+extern unsigned long PVAR_LEVEL_mv2_vbuf_available;
+extern unsigned long PVAR_COUNTER_mv2_ud_vbuf_allocated;
+extern unsigned long PVAR_COUNTER_mv2_ud_vbuf_freed;
+extern unsigned long PVAR_LEVEL_mv2_ud_vbuf_available;
 
 static inline void mv2_ud_flush_ext_window(MPIDI_VC_t *vc)
 {
@@ -43,7 +43,7 @@ static inline void mv2_ud_flush_ext_window(MPIDI_VC_t *vc)
         vc->mrail.rely.ext_win_send_count++;
     }
     if (q->head == NULL) {
-        MPIU_Assert(q->count == 0);
+        MPIR_Assert(q->count == 0);
         q->tail = NULL;
     }
 }
@@ -119,7 +119,7 @@ static inline void mv2_ud_place_recvwin(vbuf *v)
                         vc->pg_rank, v->seqnum, vc->mrail.seqnum_next_torecv);
             ret = mv2_ud_recv_window_add(&vc->mrail.rely.recv_window, v, vc->mrail.seqnum_next_torecv);
             if (ret == MSG_IN_RECVWIN) {
-                MPIU_Assert(v->transport == IB_TRANSPORT_UD);
+                MPIR_Assert(v->transport == IB_TRANSPORT_UD);
                 PRINT_DEBUG(DEBUG_UD_verbose>1, 
                         "Releasing out-of-order %s packet from %d recv:%d expected:%d\n",
                         (v->transport == IB_TRANSPORT_UD)?"UD":"RC",
@@ -148,7 +148,7 @@ static inline void mv2_ud_place_recvwin(vbuf *v)
         }
     } else {
         /* We should never drop a packet that is not sent over UD */
-        MPIU_Assert(v->transport == IB_TRANSPORT_UD);
+        MPIR_Assert(v->transport == IB_TRANSPORT_UD);
         PRINT_DEBUG(DEBUG_UD_verbose>1,
                     "Message from %d is not in recv window seqnum:%d win start:%d win end:%d\n",
                     vc->pg_rank, v->seqnum, recv_win_start, recv_win_end);
@@ -162,14 +162,14 @@ int post_ud_send(MPIDI_VC_t* vc, vbuf* v, int rail, mv2_ud_ctx_t *send_ud_ctx)
     mv2_ud_ctx_t *ud_ctx = send_ud_ctx; 
     MPIDI_CH3I_MRAILI_Pkt_comm_header *p = v->pheader;
 
-    MPIU_Assert(v->desc.sg_entry.length <= MRAIL_MAX_UD_SIZE);
+    MPIR_Assert(v->desc.sg_entry.length <= MRAIL_MAX_UD_SIZE);
     if (send_ud_ctx == NULL ) {
         ud_ctx = mv2_MPIDI_CH3I_RDMA_Process.ud_rails[rail];
     }
     v->vc = (void *)vc;
     p->rail = rail;
     p->src.rank  = MPIDI_Process.my_pg_rank;
-    MPIU_Assert(v->transport == IB_TRANSPORT_UD);
+    MPIR_Assert(v->transport == IB_TRANSPORT_UD);
 
     SEND_WINDOW_CHECK(&vc->mrail.rely, v);
 
@@ -211,7 +211,7 @@ void mv2_send_control_msg(MPIDI_VC_t *vc, vbuf *v)
     ud_ctx = mv2_MPIDI_CH3I_RDMA_Process.ud_rails[p->rail];
     v->vc = (void *)vc;
     p->src.rank  = MPIDI_Process.my_pg_rank;
-    MPIU_Assert(v->transport == IB_TRANSPORT_UD);
+    MPIR_Assert(v->transport == IB_TRANSPORT_UD);
 
     v->seqnum = p->seqnum = -1;
     MARK_ACK_COMPLETED(vc);

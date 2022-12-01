@@ -14,7 +14,7 @@
  */
 
 #include <process.h>
-#include <debug_utils.h>
+#include <mv2_debug_utils.h>
 #include <mpirun_util.h>
 #include <db/text.h>
 #include <unistd.h>
@@ -34,6 +34,7 @@ static struct rank_s {
     char const * hostname;
     char const * hca;
     int port;
+    int block_size;
 } current = {NULL, NULL, -1};
 
 static size_t multiplier = 1;
@@ -111,6 +112,7 @@ commit(void)
     extern size_t n_ranks;
     extern size_t n_alloc;
     extern struct rank_s * rank;
+    int blsz;
 
     if ((multiplier + n_ranks) > n_alloc) {
         size_t p_alloc = n_alloc;
@@ -139,10 +141,12 @@ commit(void)
         rank = ptr;
     }
 
+    blsz = multiplier;
     while (multiplier--) {
         rank[n_ranks].hostname = db_add_text(current.hostname);
         rank[n_ranks].hca = db_add_text(current.hca);
         rank[n_ranks].port = current.port;
+        rank[n_ranks].block_size = blsz;
 
         ++n_ranks;
     }
@@ -158,8 +162,7 @@ commit(void)
     return 0;
 }
 
-extern int
-read_hostfile(char const * pathname, int using_pbs)
+extern int read_hostfile(char const * pathname, int using_pbs)
 {
     int rv;
     int i, offset = dpm ? env2int("TOTALPROCS") : 0;
@@ -241,6 +244,9 @@ read_hostfile(char const * pathname, int using_pbs)
             host_num++;
         }
         plist[i - offset].hostname = rank[host_index].hostname;
+        plist[i - offset].block_size = nprocs_per_node ? nprocs_per_node *
+                                        rank[host_index].block_size :
+                                        rank[host_index].block_size;
 
         if (rank[i % n_ranks].hca) {
             plist[i - offset].device = rank[host_index].hca;

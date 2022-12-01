@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 /* Copyright (c) 2001-2022, The Ohio State University. All rights
  * reserved.
@@ -16,14 +15,11 @@
  */
 
 #include "mpidimpl.h"
-#if ENABLE_PVAR_MV2 && CHANNEL_MRAIL
-#include "mv2_mpit_cvars.h"
-#endif
 #ifdef CHANNEL_MRAIL
 #include "upmi.h"
 #endif
 
-#if defined (CHANNEL_PSM) || defined(CHANNEL_MRAIL)
+#if defined(CHANNEL_MRAIL)
 #include "hwloc_bind.h"
 #endif
 
@@ -31,27 +27,17 @@
 #include "scr.h"
 #endif
 
-#if ENABLE_PVAR_MV2 && CHANNEL_MRAIL
-extern void free_cvar_handles();
-#endif
-
-void mv2_free_hca_handle();
-void mv2_free_arch_handle();
 /* FIXME: This routine needs to be factored into finalize actions per module,
    In addition, we should consider registering callbacks for those actions
    rather than direct routine calls.
  */
 
-#undef FUNCNAME
-#define FUNCNAME MPID_Finalize
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPID_Finalize(void)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_MPID_FINALIZE);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_FINALIZE);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPID_FINALIZE);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_FINALIZE);
 
     /*
      * Wait for all posted receives to complete.  For now we are not doing 
@@ -123,50 +109,18 @@ int MPID_Finalize(void)
       *    request, we need to to search the pending send queue and
       *    cancel it, in which case an error shouldn't be generated.
       */
-#if ENABLE_PVAR_MV2 && CHANNEL_MRAIL
-    mv2_free_cvar_handles();
-    mv2_free_hca_handle();
-    mv2_free_arch_handle();
-#endif 
-
-#ifdef _ENABLE_CUDA_
-    if (mv2_enable_device) {
-        device_cleanup();
-    }
-#endif
-
-#ifdef _ENABLE_XRC_
-    xrc_rdmafp_init = 0;
-    if (USE_XRC) {
-        mpi_errno = UPMI_BARRIER ();
-        if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-    }
-#endif 
-
-#ifdef MPID_NEEDS_ICOMM_WORLD
-    mpi_errno = MPIR_Comm_release_always(MPIR_Process.icomm_world);
-    if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-#endif
-
-    mpi_errno = MPIR_Comm_release_always(MPIR_Process.comm_self);
-    if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-
-    mpi_errno = MPIR_Comm_release_always(MPIR_Process.comm_world);
-    if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-
-#if defined(CHANNEL_MRAIL)
-    mv2_is_in_finalize = 1;
-    /* Let the lower layer flush out. */
-    MPIDI_CH3_Flush();
-#endif /* defined(CHANNEL_MRAIL) */
 
     /* Re-enabling the close step because many tests are failing
      * without it, particularly under gforker */
+
+    mpi_errno = MPIDI_Port_finalize();
+    if (mpi_errno) { MPIR_ERR_POP(mpi_errno); }
+
+#if 1
     /* FIXME: The close actions should use the same code as the other
        connection close code */
-#if !defined (CHANNEL_PSM) && !defined(CHANNEL_MRAIL)
     mpi_errno = MPIDI_PG_Close_VCs();
-    if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+    MPIR_ERR_CHECK(mpi_errno);
     /*
      * Wait for all VCs to finish the close protocol
      */
@@ -174,15 +128,21 @@ int MPID_Finalize(void)
     if (mpi_errno) { MPIR_ERR_POP(mpi_errno); }
 #endif
 
+#ifdef MPID_NEEDS_ICOMM_WORLD
+    mpi_errno = MPIR_Comm_release_always(MPIR_Process.icomm_world);
+    MPIR_ERR_CHECK(mpi_errno);
+#endif
+
+    mpi_errno = MPIR_Comm_release_always(MPIR_Process.comm_self);
+    MPIR_ERR_CHECK(mpi_errno);
+
+    mpi_errno = MPIR_Comm_release_always(MPIR_Process.comm_world);
+    MPIR_ERR_CHECK(mpi_errno);
+
     /* Note that the CH3I_Progress_finalize call has been removed; the
        CH3_Finalize routine should call it */
     mpi_errno = MPIDI_CH3_Finalize();
     if (mpi_errno) { MPIR_ERR_POP(mpi_errno); }
-
-#if defined (CHANNEL_PSM) || defined(CHANNEL_MRAIL)
-    /* Deallocate hwloc topology and remove corresponding files */
-    smpi_destroy_hwloc_topology();
-#endif
 
     /* Tell the process group code that we're done with the process groups.
        This will notify PMI (with UPMI_FINALIZE) if necessary.  It
@@ -197,51 +157,21 @@ int MPID_Finalize(void)
 
     /* Release any SRbuf pool storage */
     if (MPIDI_CH3U_SRBuf_pool) {
-	MPIDI_CH3U_SRBuf_element_t *p, *pNext;
-	p = MPIDI_CH3U_SRBuf_pool;
-	while (p) {
-	    pNext = p->next;
-	    MPIU_Free(p);
-	    p = pNext;
-	}
+        MPIDI_CH3U_SRBuf_element_t *p, *pNext;
+        p = MPIDI_CH3U_SRBuf_pool;
+        while (p) {
+            pNext = p->next;
+            MPL_free(p);
+            p = pNext;
+        }
     }
 
     MPIDI_RMA_finalize();
     
-    MPIU_Free(MPIDI_failed_procs_string);
-
-#if defined(_ENABLE_CUDA_)
-    /* Release any COLL SRbuf pool storage */
-    if (MPIDI_CH3U_COLL_SRBuf_pool) {
-	MPIDI_CH3U_COLL_SRBuf_element_t *p, *pNext;
-	p = MPIDI_CH3U_COLL_SRBuf_pool;
-	while (p) {
-	    pNext = p->next;
-	    MPIU_Free_Device_Pinned_Host(p->buf);
-        MPIU_Free(p);
-	    p = pNext;
-	}
-    }
-
-    /*free cuda resources allocated in Alltoall*/
-    MPIR_Alltoall_CUDA_cleanup();
-
-    /* Release any CUDA SRbuf storage */
-    if (MPIDI_CH3U_CUDA_SRBuf_pool) {
-        MPIDI_CH3U_CUDA_SRBuf_element_t *p, *pNext;
-        p = MPIDI_CH3U_CUDA_SRBuf_pool;
-        while (p) {
-            pNext = p->next;
-            MPIU_Free_Device(p->buf);
-            MPIU_Free(p);
-            p = pNext;
-        }
-    }
-#endif
-    MPIDU_Ftb_finalize();
+    MPL_free(MPIDI_failed_procs_string);
 
  fn_exit:
-    MPIDI_FUNC_EXIT(MPID_STATE_MPID_FINALIZE);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_FINALIZE);
     return mpi_errno;
  fn_fail:
     goto fn_exit;

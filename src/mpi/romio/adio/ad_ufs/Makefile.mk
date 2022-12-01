@@ -1,8 +1,6 @@
-## -*- Mode: Makefile; -*-
-## vim: set ft=automake :
 ##
-## (C) 2011 by Argonne National Laboratory.
-##     See COPYRIGHT in top-level directory.
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
 ##
 
 if BUILD_AD_UFS
@@ -14,4 +12,3 @@ romio_other_sources +=        \
     adio/ad_ufs/ad_ufs_open.c
 
 endif BUILD_AD_UFS
-

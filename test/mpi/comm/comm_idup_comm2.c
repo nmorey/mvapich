@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2015 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /* This test tests overlapping of Comm_idups with other comm. generations calls */
@@ -76,8 +75,7 @@ int main(int argc, char **argv)
 
     if (rank % 2 == 0) {
         MPI_Comm_create_group(dupcomm, even_group, 0, &outcomm);
-    }
-    else {
+    } else {
         outcomm = MPI_COMM_NULL;
     }
     MPI_Group_free(&even_group);
@@ -90,11 +88,9 @@ int main(int argc, char **argv)
 
     if (rank == 0) {
         rleader = size / 2;
-    }
-    else if (rank == size / 2) {
+    } else if (rank == size / 2) {
         rleader = 0;
-    }
-    else {
+    } else {
         rleader = -1;
     }
     isLeft = rank < size / 2;
@@ -119,6 +115,5 @@ int main(int argc, char **argv)
     MPI_Comm_free(&dupcomm);
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

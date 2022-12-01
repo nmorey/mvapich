@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,8 +33,7 @@ int main(int argc, char *argv[])
     if (topo_type != MPI_CART) {
         errs++;
         printf("Topo type of duped cart was not cart\n");
-    }
-    else {
+    } else {
         MPI_Cart_get(comm2, 2, outdims, outperiods, outcoords);
         for (i = 0; i < 2; i++) {
             if (outdims[i] != dims[i]) {
@@ -75,8 +73,7 @@ int main(int argc, char *argv[])
         if (topo_type != MPI_GRAPH) {
             errs++;
             printf("Topo type of duped graph was not graph\n");
-        }
-        else {
+        } else {
             int nnodes, nedges;
             MPI_Graphdims_get(comm2, &nnodes, &nedges);
             if (nnodes != wsize) {
@@ -118,7 +115,5 @@ int main(int argc, char *argv[])
     }
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
-
+    return MTestReturnValue(errs);
 }

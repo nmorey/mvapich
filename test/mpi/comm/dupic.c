@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include "mpitest.h"
@@ -47,11 +46,9 @@ int main(int argc, char *argv[])
                 errs++;
                 if (count == 1 && indicies[0] != 1) {
                     printf("Error in context values for intercomm\n");
-                }
-                else if (count == 2) {
+                } else if (count == 2) {
                     printf("Error: two messages received!\n");
-                }
-                else {
+                } else {
                     int i;
                     printf("Error: count = %d", count);
                     for (i = 0; i < count; i++) {
@@ -87,7 +84,5 @@ int main(int argc, char *argv[])
         MTestFreeComm(&comm);
     }
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
-
+    return MTestReturnValue(errs);
 }

@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2008 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "hydra.h"
@@ -17,8 +16,7 @@ HYD_status HYDT_bsci_query_env_inherit(const char *env_name, int *ret)
     if (HYDT_bsci_fns.query_env_inherit) {
         status = HYDT_bsci_fns.query_env_inherit(env_name, ret);
         HYDU_ERR_POP(status, "launcher returned error querying env propagation\n");
-    }
-    else {
+    } else {
         *ret = 1;
     }
 

@@ -1,8 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2006 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
     int errs = 0;
     int rank, size, dest, source;
     int i, indices[40];
-    MPI_Aint extent;
+    MPI_Aint extent, tmp_lb;
     int *buf, *bufs[MAX_MSGS];
     MPI_Comm comm;
     MPI_Datatype dtype;
@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
     MPI_Type_commit(&dtype);
 
     /* Create the corresponding message buffers */
-    MPI_Type_extent(dtype, &extent);
+    MPI_Type_get_extent(dtype, &tmp_lb, &extent);
     for (i = 0; i < MAX_MSGS; i++) {
         bufs[i] = (int *) malloc(extent);
         if (!bufs[i]) {
@@ -61,8 +61,7 @@ int main(int argc, char *argv[])
         for (i = 0; i < MAX_MSGS; i++) {
             MPI_Recv(buf, 10 * 30, MPI_INT, source, i, comm, MPI_STATUS_IGNORE);
         }
-    }
-    else if (rank == source) {
+    } else if (rank == source) {
         for (i = 0; i < MAX_MSGS; i++) {
             MPI_Isend(bufs[i], 1, dtype, dest, i, comm, &req[i]);
         }
@@ -75,6 +74,5 @@ int main(int argc, char *argv[])
     }
     free(buf);
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

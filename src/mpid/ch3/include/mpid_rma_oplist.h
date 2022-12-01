@@ -1,24 +1,23 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
-#if !defined(MPID_RMA_OPLIST_H_INCLUDED)
+#ifndef MPID_RMA_OPLIST_H_INCLUDED
 #define MPID_RMA_OPLIST_H_INCLUDED
 
-#include "mpl_utlist.h"
+#include "utlist.h"
 #include "mpid_rma_types.h"
 
-int MPIDI_CH3I_RMA_Cleanup_ops_aggressive(MPID_Win * win_ptr);
-int MPIDI_CH3I_RMA_Cleanup_target_aggressive(MPID_Win * win_ptr, MPIDI_RMA_Target_t ** target);
-int MPIDI_CH3I_RMA_Make_progress_target(MPID_Win * win_ptr, int target_rank, int *made_progress);
-int MPIDI_CH3I_RMA_Make_progress_win(MPID_Win * win_ptr, int *made_progress);
+int MPIDI_CH3I_RMA_Cleanup_ops_aggressive(MPIR_Win * win_ptr);
+int MPIDI_CH3I_RMA_Cleanup_target_aggressive(MPIR_Win * win_ptr, MPIDI_RMA_Target_t ** target);
+int MPIDI_CH3I_RMA_Make_progress_target(MPIR_Win * win_ptr, int target_rank, int *made_progress);
+int MPIDI_CH3I_RMA_Make_progress_win(MPIR_Win * win_ptr, int *made_progress);
 
 extern MPIDI_RMA_Op_t *global_rma_op_pool_head, *global_rma_op_pool_start;
 extern MPIDI_RMA_Target_t *global_rma_target_pool_head, *global_rma_target_pool_start;
 
-MPIR_T_PVAR_DOUBLE_TIMER_DECL_EXTERN(RMA, rma_rmaqueue_alloc);
+extern MPIR_T_pvar_timer_t PVAR_TIMER_rma_rmaqueue_alloc ATTRIBUTE((unused));
 
 /* This macro returns two flags: local_completed and remote_completed,
  * to indicate if the completion is reached on this target. */
@@ -109,11 +108,7 @@ MPIR_T_PVAR_DOUBLE_TIMER_DECL_EXTERN(RMA, rma_rmaqueue_alloc);
      &(win_ptr_)->slots[(rank_) % (win_ptr_)->num_slots] :              \
      &(win_ptr_)->slots[(rank_)])
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_Win_set_active
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-static inline int MPIDI_CH3I_Win_set_active(MPID_Win * win_ptr)
+static inline int MPIDI_CH3I_Win_set_active(MPIR_Win * win_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -122,33 +117,29 @@ static inline int MPIDI_CH3I_Win_set_active(MPID_Win * win_ptr)
 
         if (MPIDI_RMA_Win_active_list_head == NULL) {
             /* This is the first active window, activate RMA progress */
-            MPID_Progress_activate_hook(MPIDI_CH3I_RMA_Progress_hook_id);
+            MPIR_Progress_hook_activate(MPIDI_CH3I_RMA_Progress_hook_id);
         }
 
-        MPL_DL_DELETE(MPIDI_RMA_Win_inactive_list_head, win_ptr);
-        MPL_DL_APPEND(MPIDI_RMA_Win_active_list_head, win_ptr);
+        DL_DELETE(MPIDI_RMA_Win_inactive_list_head, win_ptr);
+        DL_APPEND(MPIDI_RMA_Win_active_list_head, win_ptr);
     }
 
     return mpi_errno;
 }
 
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_Win_set_inactive
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-static inline int MPIDI_CH3I_Win_set_inactive(MPID_Win * win_ptr)
+static inline int MPIDI_CH3I_Win_set_inactive(MPIR_Win * win_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
 
     if (win_ptr->active == TRUE) {
         win_ptr->active = FALSE;
-        MPL_DL_DELETE(MPIDI_RMA_Win_active_list_head, win_ptr);
-        MPL_DL_APPEND(MPIDI_RMA_Win_inactive_list_head, win_ptr);
+        DL_DELETE(MPIDI_RMA_Win_active_list_head, win_ptr);
+        DL_APPEND(MPIDI_RMA_Win_inactive_list_head, win_ptr);
 
         if (MPIDI_RMA_Win_active_list_head == NULL) {
             /* This is the last active window, de-activate RMA progress */
-            MPID_Progress_deactivate_hook(MPIDI_CH3I_RMA_Progress_hook_id);
+            MPIR_Progress_hook_deactivate(MPIDI_CH3I_RMA_Progress_hook_id);
         }
     }
 
@@ -158,11 +149,7 @@ static inline int MPIDI_CH3I_Win_set_inactive(MPID_Win * win_ptr)
 
 /* MPIDI_CH3I_Win_op_alloc(): get a new op element from op pool and
  * initialize it. If we cannot get one, return NULL. */
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_Win_op_alloc
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-static inline MPIDI_RMA_Op_t *MPIDI_CH3I_Win_op_alloc(MPID_Win * win_ptr)
+static inline MPIDI_RMA_Op_t *MPIDI_CH3I_Win_op_alloc(MPIR_Win * win_ptr)
 {
     MPIDI_RMA_Op_t *e;
 
@@ -172,12 +159,12 @@ static inline MPIDI_RMA_Op_t *MPIDI_CH3I_Win_op_alloc(MPID_Win * win_ptr)
             return NULL;
         else {
             e = global_rma_op_pool_head;
-            MPL_DL_DELETE(global_rma_op_pool_head, e);
+            DL_DELETE(global_rma_op_pool_head, e);
         }
     }
     else {
         e = win_ptr->op_pool_head;
-        MPL_DL_DELETE(win_ptr->op_pool_head, e);
+        DL_DELETE(win_ptr->op_pool_head, e);
     }
 
     e->single_req = NULL;
@@ -195,17 +182,11 @@ static inline MPIDI_RMA_Op_t *MPIDI_CH3I_Win_op_alloc(MPID_Win * win_ptr)
 
 /* MPIDI_CH3I_Win_op_free(): put an op element back to the op pool which
  * it belongs to. */
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_Win_op_free
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-static inline int MPIDI_CH3I_Win_op_free(MPID_Win * win_ptr, MPIDI_RMA_Op_t * e)
+static inline int MPIDI_CH3I_Win_op_free(MPIR_Win * win_ptr, MPIDI_RMA_Op_t * e)
 {
     int mpi_errno = MPI_SUCCESS;
 
-    if (e->multi_reqs != NULL) {
-        MPIU_Free(e->multi_reqs);
-    }
+    MPL_free(e->multi_reqs);
 
     /* We enqueue elements to the right pool, so when they get freed
      * at window free time, they won't conflict with the global pool
@@ -213,20 +194,16 @@ static inline int MPIDI_CH3I_Win_op_free(MPID_Win * win_ptr, MPIDI_RMA_Op_t * e)
     /* use PREPEND when return objects back to the pool
      * in order to improve cache performance */
     if (e->pool_type == MPIDI_RMA_POOL_WIN)
-        MPL_DL_PREPEND(win_ptr->op_pool_head, e);
+        DL_PREPEND(win_ptr->op_pool_head, e);
     else
-        MPL_DL_PREPEND(global_rma_op_pool_head, e);
+        DL_PREPEND(global_rma_op_pool_head, e);
 
     return mpi_errno;
 }
 
 /* MPIDI_CH3I_Win_target_alloc(): get a target element from the target pool.
  * If we cannot get one, return NULL. */
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_Win_target_alloc
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-static inline MPIDI_RMA_Target_t *MPIDI_CH3I_Win_target_alloc(MPID_Win * win_ptr)
+static inline MPIDI_RMA_Target_t *MPIDI_CH3I_Win_target_alloc(MPIR_Win * win_ptr)
 {
     MPIDI_RMA_Target_t *e;
 
@@ -236,12 +213,12 @@ static inline MPIDI_RMA_Target_t *MPIDI_CH3I_Win_target_alloc(MPID_Win * win_ptr
             return NULL;
         else {
             e = global_rma_target_pool_head;
-            MPL_DL_DELETE(global_rma_target_pool_head, e);
+            DL_DELETE(global_rma_target_pool_head, e);
         }
     }
     else {
         e = win_ptr->target_pool_head;
-        MPL_DL_DELETE(win_ptr->target_pool_head, e);
+        DL_DELETE(win_ptr->target_pool_head, e);
     }
 
     e->pending_net_ops_list_head = NULL;
@@ -265,37 +242,29 @@ static inline MPIDI_RMA_Target_t *MPIDI_CH3I_Win_target_alloc(MPID_Win * win_ptr
 
 /* MPIDI_CH3I_Win_target_free(): put a target element back to the target pool
  * it belongs to. */
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_Win_target_free
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-static inline int MPIDI_CH3I_Win_target_free(MPID_Win * win_ptr, MPIDI_RMA_Target_t * e)
+static inline int MPIDI_CH3I_Win_target_free(MPIR_Win * win_ptr, MPIDI_RMA_Target_t * e)
 {
     int mpi_errno = MPI_SUCCESS;
 
     /* We enqueue elements to the right pool, so when they get freed
      * at window free time, they won't conflict with the global pool
      * or other windows */
-    MPIU_Assert(e->pending_net_ops_list_head == NULL);
-    MPIU_Assert(e->pending_user_ops_list_head == NULL);
+    MPIR_Assert(e->pending_net_ops_list_head == NULL);
+    MPIR_Assert(e->pending_user_ops_list_head == NULL);
 
     /* use PREPEND when return objects back to the pool
      * in order to improve cache performance */
     if (e->pool_type == MPIDI_RMA_POOL_WIN)
-        MPL_DL_PREPEND(win_ptr->target_pool_head, e);
+        DL_PREPEND(win_ptr->target_pool_head, e);
     else
-        MPL_DL_PREPEND(global_rma_target_pool_head, e);
+        DL_PREPEND(global_rma_target_pool_head, e);
 
     return mpi_errno;
 }
 
 /* MPIDI_CH3I_Win_create_target(): given a rank, create
  * corresponding target in RMA slots. */
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_Win_create_target
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-static inline int MPIDI_CH3I_Win_create_target(MPID_Win * win_ptr, int target_rank,
+static inline int MPIDI_CH3I_Win_create_target(MPIR_Win * win_ptr, int target_rank,
                                                MPIDI_RMA_Target_t ** e)
 {
     int mpi_errno = MPI_SUCCESS;
@@ -306,16 +275,15 @@ static inline int MPIDI_CH3I_Win_create_target(MPID_Win * win_ptr, int target_ra
     t = MPIDI_CH3I_Win_target_alloc(win_ptr);
     if (t == NULL) {
         mpi_errno = MPIDI_CH3I_RMA_Cleanup_target_aggressive(win_ptr, &t);
-        if (mpi_errno != MPI_SUCCESS)
-            MPIR_ERR_POP(mpi_errno);
+        MPIR_ERR_CHECK(mpi_errno);
     }
 
     t->target_rank = target_rank;
 
     /* Enqueue target into target list. */
-    MPL_DL_APPEND(slot->target_list_head, t);
+    DL_APPEND(slot->target_list_head, t);
 
-    MPIU_Assert(t != NULL);
+    MPIR_Assert(t != NULL);
 
     (*e) = t;
 
@@ -327,11 +295,7 @@ static inline int MPIDI_CH3I_Win_create_target(MPID_Win * win_ptr, int target_ra
 
 /* MPIDI_CH3I_Win_find_target(): given a rank, find
  * corresponding target in RMA slots. */
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_Win_find_target
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-static inline int MPIDI_CH3I_Win_find_target(MPID_Win * win_ptr, int target_rank,
+static inline int MPIDI_CH3I_Win_find_target(MPIR_Win * win_ptr, int target_rank,
                                              MPIDI_RMA_Target_t ** e)
 {
     int mpi_errno = MPI_SUCCESS;
@@ -355,22 +319,16 @@ static inline int MPIDI_CH3I_Win_find_target(MPID_Win * win_ptr, int target_rank
 /* MPIDI_CH3I_Win_enqueue_op(): given an operation, enqueue it to the
  * corresponding operation lists in corresponding target element. This
  * routines is only called from operation routines. */
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_Win_enqueue_op
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-static inline int MPIDI_CH3I_Win_enqueue_op(MPID_Win * win_ptr, MPIDI_RMA_Op_t * op)
+static inline int MPIDI_CH3I_Win_enqueue_op(MPIR_Win * win_ptr, MPIDI_RMA_Op_t * op)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIDI_RMA_Target_t *target = NULL;
 
     mpi_errno = MPIDI_CH3I_Win_find_target(win_ptr, op->target_rank, &target);
-    if (mpi_errno != MPI_SUCCESS)
-        MPIR_ERR_POP(mpi_errno);
+    MPIR_ERR_CHECK(mpi_errno);
     if (target == NULL) {
         mpi_errno = MPIDI_CH3I_Win_create_target(win_ptr, op->target_rank, &target);
-        if (mpi_errno != MPI_SUCCESS)
-            MPIR_ERR_POP(mpi_errno);
+        MPIR_ERR_CHECK(mpi_errno);
 
         if (win_ptr->states.access_state == MPIDI_RMA_PER_TARGET ||
             win_ptr->states.access_state == MPIDI_RMA_LOCK_ALL_GRANTED) {
@@ -405,21 +363,21 @@ static inline int MPIDI_CH3I_Win_enqueue_op(MPID_Win * win_ptr, MPIDI_RMA_Op_t *
             /* Move head element of user pending list to net pending list */
             if (target->pending_net_ops_list_head == NULL)
                 win_ptr->num_targets_with_pending_net_ops++;
-            MPL_DL_DELETE(target->pending_user_ops_list_head, user_op);
-            MPL_DL_APPEND(target->pending_net_ops_list_head, user_op);
+            DL_DELETE(target->pending_user_ops_list_head, user_op);
+            DL_APPEND(target->pending_net_ops_list_head, user_op);
 
             if (target->next_op_to_issue == NULL)
                 target->next_op_to_issue = user_op;
         }
 
         /* Enqueue operation into user pending list. */
-        MPL_DL_APPEND(target->pending_user_ops_list_head, op);
+        DL_APPEND(target->pending_user_ops_list_head, op);
     }
     else {
         /* Enqueue operation into net pending list. */
         if (target->pending_net_ops_list_head == NULL)
             win_ptr->num_targets_with_pending_net_ops++;
-        MPL_DL_APPEND(target->pending_net_ops_list_head, op);
+        DL_APPEND(target->pending_net_ops_list_head, op);
 
         if (target->next_op_to_issue == NULL)
             target->next_op_to_issue = op;
@@ -441,11 +399,7 @@ static inline int MPIDI_CH3I_Win_enqueue_op(MPID_Win * win_ptr, MPIDI_RMA_Op_t *
 
 /* MPIDI_CH3I_Win_target_dequeue_and_free(): dequeue and free
  * the target in RMA slots. */
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_Win_target_dequeue_and_free
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-static inline int MPIDI_CH3I_Win_target_dequeue_and_free(MPID_Win * win_ptr, MPIDI_RMA_Target_t * e)
+static inline int MPIDI_CH3I_Win_target_dequeue_and_free(MPIR_Win * win_ptr, MPIDI_RMA_Target_t * e)
 {
     int mpi_errno = MPI_SUCCESS;
     int target_rank = e->target_rank;
@@ -453,11 +407,10 @@ static inline int MPIDI_CH3I_Win_target_dequeue_and_free(MPID_Win * win_ptr, MPI
 
     slot = MPIDI_CH3I_RMA_RANK_TO_SLOT(win_ptr, target_rank);
 
-    MPL_DL_DELETE(slot->target_list_head, e);
+    DL_DELETE(slot->target_list_head, e);
 
     mpi_errno = MPIDI_CH3I_Win_target_free(win_ptr, e);
-    if (mpi_errno != MPI_SUCCESS)
-        MPIR_ERR_POP(mpi_errno);
+    MPIR_ERR_CHECK(mpi_errno);
 
   fn_exit:
     return mpi_errno;
@@ -465,11 +418,7 @@ static inline int MPIDI_CH3I_Win_target_dequeue_and_free(MPID_Win * win_ptr, MPI
     goto fn_exit;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_RMA_Cleanup_targets_win
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-static inline int MPIDI_CH3I_RMA_Cleanup_targets_win(MPID_Win * win_ptr)
+static inline int MPIDI_CH3I_RMA_Cleanup_targets_win(MPIR_Win * win_ptr)
 {
     MPIDI_RMA_Target_t *target = NULL, *next_target = NULL;
     int i, mpi_errno = MPI_SUCCESS;
@@ -478,8 +427,7 @@ static inline int MPIDI_CH3I_RMA_Cleanup_targets_win(MPID_Win * win_ptr)
         for (target = win_ptr->slots[i].target_list_head; target;) {
             next_target = target->next;
             mpi_errno = MPIDI_CH3I_Win_target_dequeue_and_free(win_ptr, target);
-            if (mpi_errno != MPI_SUCCESS)
-                MPIR_ERR_POP(mpi_errno);
+            MPIR_ERR_CHECK(mpi_errno);
             target = next_target;
         }
     }
@@ -490,11 +438,7 @@ static inline int MPIDI_CH3I_RMA_Cleanup_targets_win(MPID_Win * win_ptr)
     goto fn_exit;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_Win_get_op
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-static inline int MPIDI_CH3I_Win_get_op(MPID_Win * win_ptr, MPIDI_RMA_Op_t ** e)
+static inline int MPIDI_CH3I_Win_get_op(MPIR_Win * win_ptr, MPIDI_RMA_Op_t ** e)
 {
     MPIDI_RMA_Op_t *new_ptr = NULL;
     int mpi_errno = MPI_SUCCESS;
@@ -507,8 +451,7 @@ static inline int MPIDI_CH3I_Win_get_op(MPID_Win * win_ptr, MPIDI_RMA_Op_t ** e)
             break;
 
         mpi_errno = MPIDI_CH3I_RMA_Cleanup_ops_aggressive(win_ptr);
-        if (mpi_errno != MPI_SUCCESS)
-            MPIR_ERR_POP(mpi_errno);
+        MPIR_ERR_CHECK(mpi_errno);
     }
 
     (*e) = new_ptr;
@@ -525,18 +468,14 @@ static inline int MPIDI_CH3I_Win_get_op(MPID_Win * win_ptr, MPIDI_RMA_Op_t ** e)
  * @param IN    list      Pointer to the RMA ops list
  * @param IN    curr_ptr  Pointer to the element to be freed.
  */
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_RMA_Ops_free_elem
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-static inline void MPIDI_CH3I_RMA_Ops_free_elem(MPID_Win * win_ptr, MPIDI_RMA_Ops_list_t * list,
+static inline void MPIDI_CH3I_RMA_Ops_free_elem(MPIR_Win * win_ptr, MPIDI_RMA_Ops_list_t * list,
                                                 MPIDI_RMA_Op_t * curr_ptr)
 {
     MPIDI_RMA_Op_t *tmp_ptr = curr_ptr;
 
-    MPIU_Assert(curr_ptr != NULL);
+    MPIR_Assert(curr_ptr != NULL);
 
-    MPL_DL_DELETE(*list, curr_ptr);
+    DL_DELETE(*list, curr_ptr);
 
     MPIDI_CH3I_Win_op_free(win_ptr, tmp_ptr);
 }

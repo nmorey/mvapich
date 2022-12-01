@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2013 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /*
@@ -23,9 +22,13 @@
 #define MPITIMPL_H_INCLUDED
 
 #include "mpi.h"
-#include "mpiutil.h"
-#include "mpiu_utarray.h"
-#include "mpiu_uthash.h"
+#include "mpir_strerror.h"
+#include "mpir_type_defs.h"
+#include "mpir_assert.h"
+#include "mpir_pointers.h"
+#include "utarray.h"
+#include "uthash.h"
+#include "mpir_objects.h"
 
 #ifdef HAVE_ERROR_CHECKING
 typedef enum {
@@ -40,7 +43,7 @@ typedef enum {
 /* MPI_T enum
  */
 typedef struct enum_item_s {
-    const char* name;
+    const char *name;
     int value;
 } enum_item_t;
 
@@ -66,7 +69,7 @@ typedef struct {
 typedef struct {
     const char *name;
     unsigned idx;
-    UT_hash_handle hh;  /* Makes this structure hashable */
+    UT_hash_handle hh;          /* Makes this structure hashable */
 } name2index_hash_t;
 
 /* MPI_T control variable (cvar)
@@ -83,7 +86,7 @@ typedef union MPIR_T_cvar_value_s {
     unsigned ul;
     unsigned ull;
     MPI_Count c;
-    char* str;
+    const char *str;
     double f;
     MPIR_T_cvar_range_value_t range;
 } MPIR_T_cvar_value_t;
@@ -104,11 +107,11 @@ typedef struct cvar_table_entry_s {
     /* cvar data type */
     MPI_Datatype datatype;
 
-     /* Num. of elements of the cvar. May be ignored when get_count != NULL */
+    /* Num. of elements of the cvar. May be ignored when get_count != NULL */
     int count;
 
     /* Properties of the cvar */
-    MPI_T_enum  enumtype;
+    MPI_T_enum enumtype;
     MPIR_T_verbosity_t verbosity;
     MPIR_T_bind_t bind;
     MPIR_T_scope_t scope;
@@ -131,7 +134,7 @@ typedef struct MPIR_T_cvar_handle_s {
     MPIR_T_object_kind kind;
 #endif
 
-     /* Address and count of the cvar. Set at handle allocation time */
+    /* Address and count of the cvar. Set at handle allocation time */
     void *addr;
     int count;
 
@@ -140,12 +143,11 @@ typedef struct MPIR_T_cvar_handle_s {
     MPIR_T_scope_t scope;
 } MPIR_T_cvar_handle_t;
 
-void MPIR_T_CVAR_REGISTER_impl(
-    MPI_Datatype dtype, const char* name, const void *addr, int count,
-    MPIR_T_enum_t *etype, MPIR_T_verbosity_t verb, MPIR_T_bind_t bind,
-    MPIR_T_scope_t scope,MPIR_T_cvar_get_addr_cb get_addr,
-    MPIR_T_cvar_get_count_cb get_count, MPIR_T_cvar_value_t defaultval,
-    const char *cat, const char * desc);
+void MPIR_T_CVAR_REGISTER_impl(MPI_Datatype dtype, const char *name, const void *addr, int count,
+                               MPIR_T_enum_t * etype, MPIR_T_verbosity_t verb, MPIR_T_bind_t bind,
+                               MPIR_T_scope_t scope, MPIR_T_cvar_get_addr_cb get_addr,
+                               MPIR_T_cvar_get_count_cb get_count, MPIR_T_cvar_value_t defaultval,
+                               const char *cat, const char *desc);
 
 /* MPI_T performance variable (pvar)
  */
@@ -195,13 +197,13 @@ typedef struct {
     /* pvar data type */
     MPI_Datatype datatype;
 
-     /* Num. of elements of the pvar */
+    /* Num. of elements of the pvar */
     int count;
 
     /* Properties of the pvar */
     MPIR_T_pvar_class_t varclass;
     MPIR_T_verbosity_t verbosity;
-    MPIR_T_enum_t  *enumtype;
+    MPIR_T_enum_t *enumtype;
     MPIR_T_bind_t bind;
 
     /* Basic flags of the pvar */
@@ -231,11 +233,6 @@ typedef struct {
             action_; \
         #endif \
     } while (0)
-
-#define PVAR_GATED_DECL(MODULE, declaration_) \
-    #ifdef ENABLE_PVAR_##MODULE \
-        declaration_; \
-    #endif
 */
 
 /* ENABLE_PVAR_##MODULE must be defined by configure script either to 0 or 1 */
@@ -246,11 +243,6 @@ typedef struct {
         } \
     } while (0)
 
-/* The declaration is not gated. But any compiler should optimize it away if
- * there are no references to the declared varaible */
-#define PVAR_GATED_DECL(MODULE_, declaration_) \
-    declaration_
-
 /* For some classes of pvars, internally we can not represent them
  * in basic data types. So come the following typedefs.
  */
@@ -258,10 +250,10 @@ typedef struct {
 /* Timer type */
 typedef struct {
     /* Accumulated time */
-    MPID_Time_t total;
+    MPL_time_t total;
 
     /* Time when the timer was started recently */
-    MPID_Time_t curstart;
+    MPL_time_t curstart;
 
     /* A counter recording how many times the timer is started */
     unsigned long long count;
@@ -366,11 +358,13 @@ typedef struct MPIR_T_pvar_session_s {
     MPIR_T_pvar_handle_t *hlist;
 } MPIR_T_pvar_session_t;
 
-extern void MPIR_T_PVAR_REGISTER_impl(
-    int varclass, MPI_Datatype dtype, const char* name, void *addr, int count,
-    MPIR_T_enum_t *etype, int verb, int bind, int flags,
-    MPIR_T_pvar_get_value_cb get_value, MPIR_T_pvar_get_count_cb get_count,
-    const char * cat, const char * desc);
+extern void MPIR_T_PVAR_REGISTER_impl(MPIR_T_pvar_class_t varclass, MPI_Datatype dtype,
+                                      const char *name, void *addr, int count,
+                                      MPIR_T_enum_t * etype, MPIR_T_verbosity_t verb,
+                                      MPIR_T_bind_t bind, int flags,
+                                      MPIR_T_pvar_get_value_cb get_value,
+                                      MPIR_T_pvar_get_count_cb get_count, const char *cat,
+                                      const char *desc);
 
 /* For static pvars (i.e., pvars with static storage), we embed their class name
  * into their variable name, so that users can declare pvars with the same name
@@ -380,14 +374,6 @@ extern void MPIR_T_PVAR_REGISTER_impl(
 
 /* MPI_T_PVAR_CLASS_STATE (continuous only)
  */
-
-/* Declaration -- static pvar */
-#define MPIR_T_PVAR_INT_STATE_DECL_impl(name_) \
-    int PVAR_STATE_##name_;
-#define MPIR_T_PVAR_INT_STATE_DECL_STATIC_impl(name_) \
-    static int PVAR_STATE_##name_;
-#define MPIR_T_PVAR_INT_STATE_DECL_EXTERN_impl(name_) \
-    extern int PVAR_STATE_##name_;
 
 /* Interfaces through pointer or name */
 #define MPIR_T_PVAR_STATE_SET_VAR_impl(ptr_, val_) \
@@ -406,12 +392,12 @@ extern void MPIR_T_PVAR_REGISTER_impl(
     do { \
         void *addr_; \
         /* Allowable datatypes only */ \
-        MPIU_Assert((dtype_) == MPI_INT); \
+        MPIR_Assert((dtype_) == MPI_INT); \
         /* Double check if dtype_ and name_ match */ \
-        MPIU_Assert(sizeof(PVAR_STATE_##name_) == MPID_Datatype_get_basic_size(dtype_)); \
-        MPIU_Assert((flags_) & MPIR_T_PVAR_FLAG_CONTINUOUS); \
+        MPIR_Assert(sizeof(PVAR_STATE_##name_) == MPIR_Datatype_get_basic_size(dtype_)); \
+        MPIR_Assert((flags_) & MPIR_T_PVAR_FLAG_CONTINUOUS); \
         /* State pvars should be describled further by an enum */ \
-        MPIU_Assert((etype_) != MPI_T_ENUM_NULL); \
+        MPIR_Assert((etype_) != MPI_T_ENUM_NULL); \
         PVAR_STATE_##name_ = (initval_); \
         addr_ = &PVAR_STATE_##name_; \
         MPIR_T_PVAR_REGISTER_impl(MPI_T_PVAR_CLASS_STATE, dtype_, #name_, \
@@ -423,10 +409,10 @@ extern void MPIR_T_PVAR_REGISTER_impl(
             etype_, verb_, bind_, flags_, get_value_, get_count_, cat_, desc_) \
     do { \
         /* Allowable datatypes */ \
-        MPIU_Assert((dtype_) == MPI_INT); \
-        MPIU_Assert((flags_) & MPIR_T_PVAR_FLAG_CONTINUOUS); \
-        MPIU_Assert((etype_) != MPI_T_ENUM_NULL); \
-        MPIU_Assert((addr_) != NULL || (get_value_) != NULL); \
+        MPIR_Assert((dtype_) == MPI_INT); \
+        MPIR_Assert((flags_) & MPIR_T_PVAR_FLAG_CONTINUOUS); \
+        MPIR_Assert((etype_) != MPI_T_ENUM_NULL); \
+        MPIR_Assert((addr_) != NULL || (get_value_) != NULL); \
         MPIR_T_PVAR_REGISTER_impl(MPI_T_PVAR_CLASS_STATE, dtype_, #name_, \
             addr_, count_, etype_, verb_, bind_, flags_, get_value_, get_count_, cat_, desc_); \
     } while (0)
@@ -434,34 +420,6 @@ extern void MPIR_T_PVAR_REGISTER_impl(
 
 /* MPI_T_PVAR_CLASS_LEVEL (continuous only)
  */
-
-/* Declaration -- static pvar */
-#define MPIR_T_PVAR_UINT_LEVEL_DECL_impl(name_) \
-    unsigned int PVAR_LEVEL_##name_;
-#define MPIR_T_PVAR_ULONG_LEVEL_DECL_impl(name_) \
-    unsigned long PVAR_LEVEL_##name_;
-#define MPIR_T_PVAR_ULONG2_LEVEL_DECL_impl(name_) \
-    unsigned long long PVAR_LEVEL_##name_;
-#define MPIR_T_PVAR_DOUBLE_LEVEL_DECL_impl(name_) \
-    double PVAR_LEVEL_##name_;
-
-#define MPIR_T_PVAR_UINT_LEVEL_DECL_STATIC_impl(name_) \
-    static unsigned PVAR_LEVEL_##name_;
-#define MPIR_T_PVAR_ULONG_LEVEL_DECL_STATIC_impl(name_) \
-    static unsigned long PVAR_LEVEL_##name_;
-#define MPIR_T_PVAR_ULONG2_LEVEL_DECL_STATIC_impl(name_) \
-    static unsigned long long PVAR_LEVEL_##name_;
-#define MPIR_T_PVAR_DOUBLE_LEVEL_DECL_STATIC_impl(name_) \
-    static double PVAR_LEVEL_##name_;
-
-#define MPIR_T_PVAR_UINT_LEVEL_DECL_EXTERN_impl(name_) \
-    extern unsigned PVAR_LEVEL_##name_;
-#define MPIR_T_PVAR_ULONG_LEVEL_DECL_EXTERN_impl(name_) \
-    extern unsigned long PVAR_LEVEL_##name_;
-#define MPIR_T_PVAR_ULONG2_LEVEL_DECL_EXTERN_impl(name_) \
-    extern unsigned long long PVAR_LEVEL_##name_;
-#define MPIR_T_PVAR_DOUBLE_LEVEL_DECL_EXTERN_impl(name_) \
-    extern double PVAR_LEVEL_##name_;
 
 /* Interfaces through pointer or name */
 #define MPIR_T_PVAR_LEVEL_SET_VAR_impl(ptr_, val_) \
@@ -488,11 +446,11 @@ extern void MPIR_T_PVAR_REGISTER_impl(
     do { \
         void *addr_; \
         /* Allowable datatypes only */ \
-        MPIU_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
+        MPIR_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
                     (dtype_) == MPI_UNSIGNED_LONG_LONG || (dtype_) == MPI_DOUBLE); \
         /* Double check if dtype_ and name_ match */ \
-        MPIU_Assert(sizeof(PVAR_LEVEL_##name_) == MPID_Datatype_get_basic_size(dtype_)); \
-        MPIU_Assert((flags_) & MPIR_T_PVAR_FLAG_CONTINUOUS); \
+        MPIR_Assert(sizeof(PVAR_LEVEL_##name_) == MPIR_Datatype_get_basic_size(dtype_)); \
+        MPIR_Assert((flags_) & MPIR_T_PVAR_FLAG_CONTINUOUS); \
         PVAR_LEVEL_##name_ = (initval_); \
         addr_ = &PVAR_LEVEL_##name_; \
         MPIR_T_PVAR_REGISTER_impl(MPI_T_PVAR_CLASS_LEVEL, dtype_, #name_, \
@@ -504,10 +462,10 @@ extern void MPIR_T_PVAR_REGISTER_impl(
             addr_, count_, verb_, bind_, flags_, get_value_, get_count_, cat_, desc_) \
     do { \
         /* Allowable datatypes */ \
-        MPIU_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
+        MPIR_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
                     (dtype_) == MPI_UNSIGNED_LONG_LONG || (dtype_) == MPI_DOUBLE); \
-        MPIU_Assert((flags_) & MPIR_T_PVAR_FLAG_CONTINUOUS); \
-        MPIU_Assert((addr_) != NULL || (get_value_) != NULL); \
+        MPIR_Assert((flags_) & MPIR_T_PVAR_FLAG_CONTINUOUS); \
+        MPIR_Assert((addr_) != NULL || (get_value_) != NULL); \
         MPIR_T_PVAR_REGISTER_impl(MPI_T_PVAR_CLASS_LEVEL, dtype_, #name_, \
             addr_, count_, MPI_T_ENUM_NULL, verb_, bind_, flags_, get_value_, \
             get_count_, cat_, desc_); \
@@ -516,34 +474,6 @@ extern void MPIR_T_PVAR_REGISTER_impl(
 
 /* MPI_T_PVAR_CLASS_SIZE (continuous only)
  */
-
-/* Declaration -- static pvar */
-#define MPIR_T_PVAR_UINT_SIZE_DECL_impl(name_) \
-    unsigned PVAR_SIZE_##name_;
-#define MPIR_T_PVAR_ULONG_SIZE_DECL_impl(name_) \
-    unsigned long PVAR_SIZE_##name_;
-#define MPIR_T_PVAR_ULONG2_SIZE_DECL_impl(name_) \
-    unsigned long long PVAR_SIZE_##name_;
-#define MPIR_T_PVAR_DOUBLE_SIZE_DECL_impl(name_) \
-    double PVAR_SIZE_##name_;
-
-#define MPIR_T_PVAR_UINT_SIZE_DECL_STATIC_impl(name_) \
-    static unsigned PVAR_SIZE_##name_;
-#define MPIR_T_PVAR_ULONG_SIZE_DECL_STATIC_impl(name_) \
-    static unsigned long PVAR_SIZE_##name_;
-#define MPIR_T_PVAR_ULONG2_SIZE_DECL_STATIC_impl(name_) \
-    static unsigned long long PVAR_SIZE_##name_;
-#define MPIR_T_PVAR_DOUBLE_SIZE_DECL_STATIC_impl(name_) \
-    static double PVAR_SIZE_##name_;
-
-#define MPIR_T_PVAR_UINT_SIZE_DECL_EXTERN_impl(name_) \
-    extern unsigned PVAR_SIZE_##name_;
-#define MPIR_T_PVAR_ULONG_SIZE_DECL_EXTERN_impl(name_) \
-    extern unsigned long PVAR_SIZE_##name_;
-#define MPIR_T_PVAR_ULONG2_SIZE_DECL_EXTERN_impl(name_) \
-    extern unsigned long long PVAR_SIZE_##name_;
-#define MPIR_T_PVAR_DOUBLE_SIZE_DECL_EXTERN_impl(name_) \
-    extern double PVAR_SIZE_##name_;
 
 /* Interfaces through pointer or name */
 #define MPIR_T_PVAR_SIZE_SET_VAR_impl(ptr_, val_) \
@@ -562,11 +492,11 @@ extern void MPIR_T_PVAR_REGISTER_impl(
     do { \
         void *addr_; \
         /* Allowable datatypes only */ \
-        MPIU_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
+        MPIR_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
                     (dtype_) == MPI_UNSIGNED_LONG_LONG || (dtype_) == MPI_DOUBLE); \
         /* Double check if dtype_ and name_ match */ \
-        MPIU_Assert(sizeof(PVAR_SIZE_##name_) == MPID_Datatype_get_basic_size(dtype_)); \
-        MPIU_Assert((flags_) & MPIR_T_PVAR_FLAG_CONTINUOUS); \
+        MPIR_Assert(sizeof(PVAR_SIZE_##name_) == MPIR_Datatype_get_basic_size(dtype_)); \
+        MPIR_Assert((flags_) & MPIR_T_PVAR_FLAG_CONTINUOUS); \
         PVAR_SIZE_##name_ = (initval_); \
         addr_ = &PVAR_SIZE_##name_; \
         MPIR_T_PVAR_REGISTER_impl(MPI_T_PVAR_CLASS_SIZE, dtype_, #name_, \
@@ -578,10 +508,10 @@ extern void MPIR_T_PVAR_REGISTER_impl(
             addr_, count_, verb_, bind_, flags_, get_value_, get_count_, cat_, desc_) \
     do { \
         /* Allowable datatypes */ \
-        MPIU_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
+        MPIR_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
                     (dtype_) == MPI_UNSIGNED_LONG_LONG || (dtype_) == MPI_DOUBLE); \
-        MPIU_Assert((flags_) & MPIR_T_PVAR_FLAG_CONTINUOUS); \
-        MPIU_Assert((addr_) != NULL || (get_value_) != NULL); \
+        MPIR_Assert((flags_) & MPIR_T_PVAR_FLAG_CONTINUOUS); \
+        MPIR_Assert((addr_) != NULL || (get_value_) != NULL); \
         MPIR_T_PVAR_REGISTER_impl(MPI_T_PVAR_CLASS_SIZE, dtype_, #name_, \
             addr_, count_, MPI_T_ENUM_NULL, verb_, bind_, flags_, get_value_, \
             get_count_, cat_, desc_); \
@@ -591,20 +521,10 @@ extern void MPIR_T_PVAR_REGISTER_impl(
 /* MPI_T_PVAR_CLASS_PERCENTAGE (continuous only)
  */
 
-/* Declaration -- static pvar */
-#define MPIR_T_PVAR_DOUBLE_PERCENTAGE_DECL_impl(name_) \
-    double PVAR_PERCENTAGE_##name_;
-
-#define MPIR_T_PVAR_DOUBLE_PERCENTAGE_DECL_STATIC_impl(name_) \
-    static double PVAR_PERCENTAGE_##name_;
-
-#define MPIR_T_PVAR_DOUBLE_PERCENTAGE_DECL_EXTERN_impl(name_) \
-    extern double PVAR_PERCENTAGE_##name_;
-
 /* Interfaces through pointer or name */
 #define MPIR_T_PVAR_PERCENTAGE_SET_VAR_impl(ptr_, val_) \
     do { \
-        MPIU_Assert(0.0 <= (val_) && (val_) <= 1.0); \
+        MPIR_Assert(0.0 <= (val_) && (val_) <= 1.0); \
         *(ptr_) = (val_); \
     } while (0)
 #define MPIR_T_PVAR_PERCENTAGE_GET_VAR_impl(ptr_) \
@@ -621,10 +541,10 @@ extern void MPIR_T_PVAR_REGISTER_impl(
     do { \
         void *addr_; \
         /* Allowable datatypes only */ \
-        MPIU_Assert((dtype_) == MPI_DOUBLE); \
+        MPIR_Assert((dtype_) == MPI_DOUBLE); \
         /* Double check if dtype_ and name_ match */ \
-        MPIU_Assert(sizeof(PVAR_PERCENTAGE_##name_) == MPID_Datatype_get_basic_size(dtype_)); \
-        MPIU_Assert((flags_) & MPIR_T_PVAR_FLAG_CONTINUOUS); \
+        MPIR_Assert(sizeof(PVAR_PERCENTAGE_##name_) == MPIR_Datatype_get_basic_size(dtype_)); \
+        MPIR_Assert((flags_) & MPIR_T_PVAR_FLAG_CONTINUOUS); \
         addr_ = &PVAR_PERCENTAGE_##name_; \
         PVAR_PERCENTAGE_##name_ = (initval_); \
         MPIR_T_PVAR_REGISTER_impl(MPI_T_PVAR_CLASS_PERCENTAGE, dtype_, #name_, \
@@ -636,9 +556,9 @@ extern void MPIR_T_PVAR_REGISTER_impl(
             addr_, count_, verb_, bind_, flags_, get_value_, get_count_, cat_, desc_) \
     do { \
         /* Allowable datatypes */ \
-        MPIU_Assert((dtype_) == MPI_DOUBLE); \
-        MPIU_Assert((flags_) & MPIR_T_PVAR_FLAG_CONTINUOUS); \
-        MPIU_Assert((addr_) != NULL || (get_value_) != NULL); \
+        MPIR_Assert((dtype_) == MPI_DOUBLE); \
+        MPIR_Assert((flags_) & MPIR_T_PVAR_FLAG_CONTINUOUS); \
+        MPIR_Assert((addr_) != NULL || (get_value_) != NULL); \
         MPIR_T_PVAR_REGISTER_impl(MPI_T_PVAR_CLASS_PERCENTAGE, dtype_, #name_, \
             addr_, count_, MPI_T_ENUM_NULL, verb_, bind_, flags_, get_value_, \
             get_count_, cat_, desc_); \
@@ -650,42 +570,11 @@ extern void MPIR_T_PVAR_REGISTER_impl(
 
 typedef struct pvar_bucket
 {
-int min;
-int max;
+    int min;
+    int max;
 } pvar_bucket;
 
 #define counter_pvar_array_size 32
-
-extern pvar_bucket counter_pvar_buckets[counter_pvar_array_size];
-extern int num_counter_pvar_buckets;
-
-/* Declaration -- static pvar */
-#define MPIR_T_PVAR_UINT_COUNTER_DECL_impl(name_) \
-    unsigned PVAR_COUNTER_##name_;
-#define MPIR_T_PVAR_ULONG_COUNTER_DECL_impl(name_) \
-    unsigned long PVAR_COUNTER_##name_;
-#define MPIR_T_PVAR_ULONG2_COUNTER_DECL_impl(name_) \
-    unsigned long long PVAR_COUNTER_##name_;
-
-#define MPIR_T_PVAR_UINT_COUNTER_DECL_STATIC_impl(name_) \
-    static unsigned PVAR_COUNTER_##name_;
-#define MPIR_T_PVAR_ULONG_COUNTER_DECL_STATIC_impl(name_) \
-    static unsigned long PVAR_COUNTER_##name_;
-#define MPIR_T_PVAR_ULONG2_COUNTER_DECL_STATIC_impl(name_) \
-    static unsigned long long PVAR_COUNTER_##name_;
-
-#define MPIR_T_PVAR_ULONG2_COUNTER_BUCKET_DECL_impl(name_) \
-    unsigned long long *PVAR_COUNTER_##name_;
-
-#define MPIR_T_PVAR_UINT_COUNTER_DECL_EXTERN_impl(name_) \
-    extern unsigned PVAR_COUNTER_##name_;
-#define MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN_impl(name_) \
-    extern unsigned long PVAR_COUNTER_##name_;
-#define MPIR_T_PVAR_ULONG2_COUNTER_DECL_EXTERN_impl(name_) \
-    extern unsigned long long PVAR_COUNTER_##name_;
-
-#define MPIR_T_PVAR_ULONG2_COUNTER_BUCKET_DECL_EXTERN_impl(name_) \
-    extern unsigned long long *PVAR_COUNTER_##name_;
 
 /* Interfaces through pointer or name */
 #define MPIR_T_PVAR_COUNTER_INIT_VAR_impl(ptr_) \
@@ -724,19 +613,6 @@ extern int num_counter_pvar_buckets;
 #else
    #define MPIR_T_PVAR_COMM_COUNTER_INC_impl(name_, inc_,comm)
 #endif
-
-#define MPIR_T_PVAR_TIMER_START_VAR_impl(ptr_) \
-    do { \
-        MPID_Wtime(&((ptr_)->curstart)); \
-        (ptr_)->count++; \
-    } while (0)
-#define MPIR_T_PVAR_TIMER_END_VAR_impl(ptr_) \
-    do { \
-        MPID_Time_t tmp; \
-        MPID_Wtime(&tmp); \
-        MPID_Wtime_acc(&((ptr_)->curstart), &tmp, &((ptr_)->total)); \
-    } while (0)
-
 
 #if ENABLE_PVAR_MV2
 #define MPIR_T_PVAR_COMM_TIMER_START_impl(name_,comm) \
@@ -799,7 +675,7 @@ extern int num_counter_pvar_buckets;
 #define MPIR_T_PVAR_COUNTER_BUCKET_INC_impl(name_, count, datatype)\
         do {\
         int _pSize = 0;                                                                          \
-        MPID_Datatype_get_size_macro(datatype, _pSize);                                          \
+        MPIR_Datatype_get_size_macro(datatype, _pSize);                                          \
         int msgsize = count * _pSize;                                                            \
         if (msgsize < 0) {                                                                       \
             msgsize = 0;                                                                         \
@@ -822,10 +698,10 @@ extern int num_counter_pvar_buckets;
     do { \
         void *addr_; \
         /* Allowable datatypes only */ \
-        MPIU_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
+        MPIR_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
                     (dtype_) == MPI_UNSIGNED_LONG_LONG); \
         /* Double check if dtype_ and name_ match*/ \
-        MPIU_Assert(sizeof(PVAR_COUNTER_##name_) == MPID_Datatype_get_basic_size(dtype_)); \
+        MPIR_Assert(sizeof(PVAR_COUNTER_##name_) == MPIR_Datatype_get_basic_size(dtype_)); \
         PVAR_COUNTER_##name_ = 0; \
         addr_ = &PVAR_COUNTER_##name_; \
         MPIR_T_PVAR_REGISTER_impl(MPI_T_PVAR_CLASS_COUNTER, dtype_, #name_, \
@@ -837,7 +713,7 @@ extern int num_counter_pvar_buckets;
             verb_, bind_, flags_, cat_, desc_) \
    do {\
     /*TODO : use MPI defined datatypes*/\
-    PVAR_COUNTER_##name_ = (unsigned long long *)MPIU_Malloc(count_ * sizeof(unsigned long long));\
+    PVAR_COUNTER_##name_ = (unsigned long long *)MPL_malloc(count_ * sizeof(unsigned long long));\
     int i = 0;\
     for(i = 0; i < count_;i++) { PVAR_COUNTER_##name_[i]=0; }\
     MPIR_T_PVAR_COUNTER_REGISTER_DYNAMIC_impl(dtype_, name_, \
@@ -849,9 +725,9 @@ extern int num_counter_pvar_buckets;
             addr_, count_, verb_, bind_, flags_, get_value_, get_count_, cat_, desc_) \
     do { \
         /* Allowable datatypes */ \
-        MPIU_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
+        MPIR_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
                     (dtype_) == MPI_UNSIGNED_LONG_LONG); \
-        MPIU_Assert((addr_) != NULL || (get_value_) != NULL); \
+        MPIR_Assert((addr_) != NULL || (get_value_) != NULL); \
         MPIR_T_PVAR_REGISTER_impl(MPI_T_PVAR_CLASS_COUNTER, dtype_, #name_, \
             addr_, count_, MPI_T_ENUM_NULL, verb_, bind_, flags_, get_value_, \
             get_count_, cat_, desc_); \
@@ -859,30 +735,8 @@ extern int num_counter_pvar_buckets;
 
 #define MPIR_T_PVAR_COUNTER_BUCKET_DYNAMIC_FREE(name_) \
     if(PVAR_COUNTER_##name_) {                         \
-        MPIU_Free(PVAR_COUNTER_##name_);               \
+        MPL_free(PVAR_COUNTER_##name_);               \
     }
-
-/* Declaration of a counter array -- static pvar */
-#define MPIR_T_PVAR_UINT_COUNTER_ARRAY_DECL_impl(name_, len_) \
-    unsigned PVAR_COUNTER_##name_[len_];
-#define MPIR_T_PVAR_ULONG_COUNTER_ARRAY_DECL_impl(name_, len_) \
-    unsigned long PVAR_COUNTER_##name_[len_];
-#define MPIR_T_PVAR_ULONG2_COUNTER_ARRAY_DECL_impl(name_, len_) \
-    unsigned long long PVAR_COUNTER_##name_[len_];
-
-#define MPIR_T_PVAR_UINT_COUNTER_ARRAY_DECL_STATIC_impl(name_, len_) \
-    static unsigned PVAR_COUNTER_##name_[len_];
-#define MPIR_T_PVAR_ULONG_COUNTER_ARRAY_DECL_STATIC_impl(name_, len_) \
-    static unsigned long PVAR_COUNTER_##name_[len_];
-#define MPIR_T_PVAR_ULONG2_COUNTER_ARRAY_DECL_STATIC_impl(name_, len_) \
-    static unsigned long long PVAR_COUNTER_##name_[len_];
-
-#define MPIR_T_PVAR_UINT_COUNTER_ARRAY_DECL_EXTERN_impl(name_, len_) \
-    extern unsigned PVAR_COUNTER_##name_[len_];
-#define MPIR_T_PVAR_ULONG_COUNTER_ARRAY_DECL_EXTERN_impl(name_, len_) \
-    extern unsigned long PVAR_COUNTER_##name_[len_];
-#define MPIR_T_PVAR_ULONG2_COUNTER_ARRAY_DECL_EXTERN_impl(name_, len_) \
-    extern unsigned long long PVAR_COUNTER_##name_[len_];
 
 /* Interfaces through pointer or name */
 #define MPIR_T_PVAR_COUNTER_ARRAY_INIT_VAR_impl(ptr_, count_) \
@@ -915,13 +769,13 @@ extern int num_counter_pvar_buckets;
         void *addr_; \
         int count_;  \
         /* Allowable datatypes only */ \
-        MPIU_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
+        MPIR_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
                     (dtype_) == MPI_UNSIGNED_LONG_LONG); \
         /* Double check if dtype_ and name_ match */ \
-        MPIU_Assert(sizeof(PVAR_COUNTER_##name_[0]) == MPID_Datatype_get_basic_size(dtype_)); \
+        MPIR_Assert(sizeof(PVAR_COUNTER_##name_[0]) == MPIR_Datatype_get_basic_size(dtype_)); \
         addr_ = PVAR_COUNTER_##name_; \
         MPIR_T_PVAR_COUNTER_ARRAY_INIT_impl(name_); \
-        count_ = sizeof(PVAR_COUNTER_##name_)/sizeof(mpit_pvar_##name_[0]); \
+        count_ = sizeof(PVAR_COUNTER_##name_)/sizeof(PVAR_COUNTER_##name_[0]); \
         MPIR_T_PVAR_REGISTER_impl(MPI_T_PVAR_CLASS_COUNTER, dtype_, #name_, \
             addr_, count_, MPI_T_ENUM_NULL, verb_, bind_, flags_, NULL, NULL, cat_, desc_); \
     } while (0)
@@ -930,34 +784,6 @@ extern int num_counter_pvar_buckets;
 
 /* MPI_T_PVAR_CLASS_AGGREGATE (continuous or not)
  */
-
-/* Declaration -- static aggregate */
-#define MPIR_T_PVAR_UINT_AGGREGATE_DECL_impl(name_) \
-    unsigned PVAR_AGGREGATE_##name_;
-#define MPIR_T_PVAR_ULONG_AGGREGATE_DECL_impl(name_) \
-    unsigned long PVAR_AGGREGATE_##name_;
-#define MPIR_T_PVAR_ULONG2_AGGREGATE_DECL_impl(name_) \
-    unsigned long long PVAR_AGGREGATE_##name_;
-#define MPIR_T_PVAR_DOUBLE_AGGREGATE_DECL_impl(name_) \
-    double PVAR_AGGREGATE_##name_;
-
-#define MPIR_T_PVAR_UINT_AGGREGATE_DECL_STATIC_impl(name_) \
-    static unsigned PVAR_AGGREGATE_##name_;
-#define MPIR_T_PVAR_ULONG_AGGREGATE_DECL_STATIC_impl(name_) \
-    static unsigned long PVAR_AGGREGATE_##name_;
-#define MPIR_T_PVAR_ULONG2_AGGREGATE_DECL_STATIC_impl(name_) \
-    static unsigned long long PVAR_AGGREGATE_##name_;
-#define MPIR_T_PVAR_DOUBLE_AGGREGATE_DECL_STATIC_impl(name_) \
-    static double PVAR_AGGREGATE_##name_;
-
-#define MPIR_T_PVAR_UINT_AGGREGATE_DECL_EXTERN_impl(name_) \
-    extern unsigned PVAR_AGGREGATE_##name_;
-#define MPIR_T_PVAR_ULONG_AGGREGATE_DECL_EXTERN_impl(name_) \
-    extern unsigned long PVAR_AGGREGATE_##name_;
-#define MPIR_T_PVAR_ULONG2_AGGREGATE_DECL_EXTERN_impl(name_) \
-    extern unsigned long long PVAR_AGGREGATE_##name_;
-#define MPIR_T_PVAR_DOUBLE_AGGREGATE_DECL_EXTERN_impl(name_) \
-    extern double PVAR_AGGREGATE_##name_;
 
 /* Interfaces through pointer or name */
 #define MPIR_T_PVAR_AGGREGATE_INIT_VAR_impl(ptr_) \
@@ -981,10 +807,10 @@ extern int num_counter_pvar_buckets;
     do { \
         void *addr; \
         /* Allowable datatypes only */ \
-        MPIU_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
+        MPIR_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
                     (dtype_) == MPI_UNSIGNED_LONG_LONG || (dtype_) == MPI_DOUBLE); \
         /* Double check if dtype_ and name_ match*/ \
-        MPIU_Assert(sizeof(PVAR_AGGREGATE_##name_) == MPID_Datatype_get_basic_size(dtype_)); \
+        MPIR_Assert(sizeof(PVAR_AGGREGATE_##name_) == MPIR_Datatype_get_basic_size(dtype_)); \
         PVAR_AGGREGATE_##name_ = 0; \
         addr_ = &PVAR_AGGREGATE_##name_; \
         MPIR_T_PVAR_REGISTER_impl(MPI_T_PVAR_CLASS_AGGREGATE, dtype_, #name_, \
@@ -996,9 +822,9 @@ extern int num_counter_pvar_buckets;
             addr_, count_, verb_, bind_, flags_, get_value_, get_count_, cat_, desc_) \
     do { \
         /* Allowable datatypes */ \
-        MPIU_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
+        MPIR_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
                     (dtype_) == MPI_UNSIGNED_LONG_LONG || (dtype_) == MPI_DOUBLE); \
-        MPIU_Assert((addr_) != NULL || (get_value_) != NULL); \
+        MPIR_Assert((addr_) != NULL || (get_value_) != NULL); \
         MPIR_T_PVAR_REGISTER_impl(MPI_T_PVAR_CLASS_AGGREGATE, dtype_, #name_, \
             addr_, count_, MPI_T_ENUM_NULL, verb_, bind_, flags_, get_value_, \
             get_count_, cat_, desc_); \
@@ -1008,36 +834,26 @@ extern int num_counter_pvar_buckets;
 /* MPI_T_PVAR_CLASS_TIMER (continuous or not)
  */
 
-/* Declaration -- static timer */
-#define MPIR_T_PVAR_DOUBLE_TIMER_DECL_impl(name_) \
-    MPIR_T_pvar_timer_t PVAR_TIMER_##name_;
-
-#define MPIR_T_PVAR_DOUBLE_TIMER_DECL_STATIC_impl(name_) \
-    static MPIR_T_pvar_timer_t PVAR_TIMER_##name_;
-
-#define MPIR_T_PVAR_DOUBLE_TIMER_DECL_EXTERN_impl(name_) \
-    extern MPIR_T_pvar_timer_t PVAR_TIMER_##name_;
-
 /* Interfaces through pointer or name */
 #define MPIR_T_PVAR_TIMER_INIT_VAR_impl(ptr_) \
     do { \
         /* FIXME: need a generic approach to init a timer */ \
-        memset(&((ptr_)->total), 0, sizeof(MPID_Time_t)); \
+        memset(&((ptr_)->total), 0, sizeof(MPL_time_t)); \
     } while (0)
 #define MPIR_T_PVAR_TIMER_GET_VAR_impl(ptr_, buf) \
     do { \
-        MPID_Wtime_todouble(&((ptr_)->total), buf); \
+        MPL_wtime_todouble(&((ptr_)->total), buf); \
     } while (0)
 #define MPIR_T_PVAR_TIMER_START_VAR_impl(ptr_) \
     do { \
-        MPID_Wtime(&((ptr_)->curstart)); \
+        MPL_wtime(&((ptr_)->curstart)); \
         (ptr_)->count++; \
     } while (0)
 #define MPIR_T_PVAR_TIMER_END_VAR_impl(ptr_) \
     do { \
-        MPID_Time_t tmp; \
-        MPID_Wtime(&tmp); \
-        MPID_Wtime_acc(&((ptr_)->curstart), &tmp, &((ptr_)->total)); \
+        MPL_time_t tmp_; \
+        MPL_wtime(&tmp_); \
+        MPL_wtime_acc(&((ptr_)->curstart), &tmp_, &((ptr_)->total)); \
     } while (0)
 
 #define MPIR_T_PVAR_TIMER_INIT_impl(name_) \
@@ -1053,12 +869,12 @@ extern int num_counter_pvar_buckets;
 
 /* Customized get_value() for MPIR_T_pvar_timer_t */
 static inline
-void get_timer_time_in_double(MPIR_T_pvar_timer_t *timer, void *obj_handle,
-                    int count, double *buf)
+    void get_timer_time_in_double(MPIR_T_pvar_timer_t * timer, void *obj_handle,
+                                  int count, double *buf)
 {
     int i;
     for (i = 0; i < count; i++)
-        MPID_Wtime_todouble(&(timer[i].total), &buf[i]);
+        MPL_wtime_todouble(&(timer[i].total), &buf[i]);
 }
 
 /* Registration for static storage */
@@ -1068,7 +884,7 @@ void get_timer_time_in_double(MPIR_T_pvar_timer_t *timer, void *obj_handle,
         void *addr_; \
         void *count_addr_; \
         /* Allowable datatypes only */ \
-        MPIU_Assert((dtype_) == MPI_DOUBLE); \
+        MPIR_Assert((dtype_) == MPI_DOUBLE); \
         MPIR_T_PVAR_TIMER_INIT_impl(name_); \
         addr_ = &PVAR_TIMER_##name_; \
         count_addr_ = &(PVAR_TIMER_##name_.count); \
@@ -1083,34 +899,6 @@ void get_timer_time_in_double(MPIR_T_pvar_timer_t *timer, void *obj_handle,
 
 /* MPI_T_PVAR_CLASS_HIGHWATERMARK (continuous or not)
  */
-
-/* Declaration -- static pvar */
-#define MPIR_T_PVAR_UINT_HIGHWATERMARK_DECL_impl(name_) \
-    MPIR_T_pvar_watermark_t PVAR_HIGHWATERMARK_##name_;
-#define MPIR_T_PVAR_ULONG_HIGHWATERMARK_DECL_impl(name_) \
-    MPIR_T_pvar_watermark_t PVAR_HIGHWATERMARK_##name_;
-#define MPIR_T_PVAR_ULONG2_HIGHWATERMARK_DECL_impl(name_) \
-    MPIR_T_pvar_watermark_t PVAR_HIGHWATERMARK_##name_;
-#define MPIR_T_PVAR_DOUBLE_HIGHWATERMARK_DECL_impl(name_) \
-    MPIR_T_pvar_watermark_t PVAR_HIGHWATERMARK_##name_;
-
-#define MPIR_T_PVAR_UINT_HIGHWATERMARK_DECL_STATIC_impl(name_) \
-    static MPIR_T_pvar_watermark_t PVAR_HIGHWATERMARK_##name_;
-#define MPIR_T_PVAR_ULONG_HIGHWATERMARK_DECL_STATIC_impl(name_) \
-    static MPIR_T_pvar_watermark_t PVAR_HIGHWATERMARK_##name_;
-#define MPIR_T_PVAR_ULONG2_HIGHWATERMARK_DECL_STATIC_impl(name_) \
-    static MPIR_T_pvar_watermark_t PVAR_HIGHWATERMARK_##name_;
-#define MPIR_T_PVAR_DOUBLE_HIGHWATERMARK_DECL_STATIC_impl(name_) \
-    static MPIR_T_pvar_watermark_t PVAR_HIGHWATERMARK_##name_;
-
-#define MPIR_T_PVAR_UINT_HIGHWATERMARK_DECL_EXTERN_impl(name_) \
-    extern MPIR_T_pvar_watermark_t PVAR_HIGHWATERMARK_##name_;
-#define MPIR_T_PVAR_ULONG_HIGHWATERMARK_DECL_EXTERN_impl(name_) \
-    extern MPIR_T_pvar_watermark_t PVAR_HIGHWATERMARK_##name_;
-#define MPIR_T_PVAR_ULONG2_HIGHWATERMARK_DECL_EXTERN_impl(name_) \
-    extern MPIR_T_pvar_watermark_t PVAR_HIGHWATERMARK_##name_;
-#define MPIR_T_PVAR_DOUBLE_HIGHWATERMARK_DECL_EXTERN_impl(name_) \
-    extern MPIR_T_pvar_watermark_t PVAR_HIGHWATERMARK_##name_;
 
 /* Interfaces through pointer or name.
  * In contrast to previous pvar classes, for each type we create a set
@@ -1245,7 +1033,7 @@ void get_timer_time_in_double(MPIR_T_pvar_timer_t *timer, void *obj_handle,
     do { \
         void *addr_; \
         /* Allowable datatypes only */ \
-        MPIU_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
+        MPIR_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
                     (dtype_) == MPI_UNSIGNED_LONG_LONG || (dtype_) == MPI_DOUBLE); \
         switch (dtype_) { \
         case MPI_UNSIGNED: \
@@ -1269,9 +1057,9 @@ void get_timer_time_in_double(MPIR_T_pvar_timer_t *timer, void *obj_handle,
             addr_, count_, verb_, bind_, flags_, get_value_, get_count_, cat_, desc_) \
     do { \
         /* Allowable datatypes */ \
-        MPIU_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
+        MPIR_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
                     (dtype_) == MPI_UNSIGNED_LONG_LONG || (dtype_) == MPI_DOUBLE); \
-        MPIU_Assert((addr_) != NULL || (get_value_) != NULL); \
+        MPIR_Assert((addr_) != NULL || (get_value_) != NULL); \
         MPIR_T_PVAR_REGISTER_impl(MPI_T_PVAR_CLASS_HIGHWATERMARK, dtype_, #name_, \
             addr_, count_, MPI_T_ENUM_NULL, verb_, bind_, flags_, get_value_, \
             get_count_, cat_, desc_); \
@@ -1280,34 +1068,6 @@ void get_timer_time_in_double(MPIR_T_pvar_timer_t *timer, void *obj_handle,
 
 /* MPI_T_PVAR_CLASS_LOWWATERMARK (continuous or not)
  */
-
-/* Declaration -- static pvar */
-#define MPIR_T_PVAR_UINT_LOWWATERMARK_DECL_impl(name_) \
-    MPIR_T_pvar_watermark_t PVAR_LOWWATERMARK_##name_;
-#define MPIR_T_PVAR_ULONG_LOWWATERMARK_DECL_impl(name_) \
-    MPIR_T_pvar_watermark_t PVAR_LOWWATERMARK_##name_;
-#define MPIR_T_PVAR_ULONG2_LOWWATERMARK_DECL_impl(name_) \
-    MPIR_T_pvar_watermark_t PVAR_LOWWATERMARK_##name_;
-#define MPIR_T_PVAR_DOUBLE_LOWWATERMARK_DECL_impl(name_) \
-    MPIR_T_pvar_watermark_t PVAR_LOWWATERMARK_##name_;
-
-#define MPIR_T_PVAR_UINT_LOWWATERMARK_DECL_STATIC_impl(name_) \
-    static MPIR_T_pvar_watermark_t PVAR_LOWWATERMARK_##name_;
-#define MPIR_T_PVAR_ULONG_LOWWATERMARK_DECL_STATIC_impl(name_) \
-    static MPIR_T_pvar_watermark_t PVAR_LOWWATERMARK_##name_;
-#define MPIR_T_PVAR_ULONG2_LOWWATERMARK_DECL_STATIC_impl(name_) \
-    static MPIR_T_pvar_watermark_t PVAR_LOWWATERMARK_##name_;
-#define MPIR_T_PVAR_DOUBLE_LOWWATERMARK_DECL_STATIC_impl(name_) \
-    static MPIR_T_pvar_watermark_t PVAR_LOWWATERMARK_##name_;
-
-#define MPIR_T_PVAR_UINT_LOWWATERMARK_DECL_EXTERN_impl(name_) \
-    extern MPIR_T_pvar_watermark_t PVAR_LOWWATERMARK_##name_;
-#define MPIR_T_PVAR_ULONG_LOWWATERMARK_DECL_EXTERN_impl(name_) \
-    extern MPIR_T_pvar_watermark_t PVAR_LOWWATERMARK_##name_;
-#define MPIR_T_PVAR_ULONG2_LOWWATERMARK_DECL_EXTERN_impl(name_) \
-    extern MPIR_T_pvar_watermark_t PVAR_LOWWATERMARK_##name_;
-#define MPIR_T_PVAR_DOUBLE_LOWWATERMARK_DECL_EXTERN_impl(name_) \
-    extern MPIR_T_pvar_watermark_t PVAR_LOWWATERMARK_##name_;
 
 #define MPIR_T_PVAR_UINT_LOWWATERMARK_INIT_VAR_impl(ptr_, val_) \
     do { \
@@ -1438,7 +1198,7 @@ void get_timer_time_in_double(MPIR_T_pvar_timer_t *timer, void *obj_handle,
     do { \
         void *addr_; \
         /* Allowable datatypes only */ \
-        MPIU_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
+        MPIR_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
                     (dtype_) == MPI_UNSIGNED_LONG_LONG || (dtype_) == MPI_DOUBLE); \
         switch (dtype_) { \
         case MPI_UNSIGNED: \
@@ -1462,9 +1222,9 @@ void get_timer_time_in_double(MPIR_T_pvar_timer_t *timer, void *obj_handle,
             addr_, count_, verb_, bind_, flags_, get_value_, get_count_, cat_, desc_) \
     do { \
         /* Allowable datatypes */ \
-        MPIU_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
+        MPIR_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
                     (dtype_) == MPI_UNSIGNED_LONG_LONG || (dtype_) == MPI_DOUBLE); \
-        MPIU_Assert((addr_) != NULL || (get_value_) != NULL); \
+        MPIR_Assert((addr_) != NULL || (get_value_) != NULL); \
         MPIR_T_PVAR_REGISTER_impl(MPI_T_PVAR_CLASS_LOWWATERMARK, dtype_, #name_, \
             addr_, count_, MPI_T_ENUM_NULL, verb_, bind_, flags_, get_value_, \
             get_count_, cat_, desc_); \
@@ -1478,67 +1238,81 @@ void get_timer_time_in_double(MPIR_T_pvar_timer_t *timer, void *obj_handle,
                 (pvar_table_entry_t *)utarray_eltptr(pvar_table, idx_); \
             if (pvar != NULL) { \
                 pvar->active = FALSE; \
-                /* Do not do MPIU_Free(pvar->info), since it may be re-activated */ \
+                /* Do not do MPL_free(pvar->info), since it may be re-activated */ \
             } \
         } \
     } while (0)
 
-static inline int MPIR_T_pvar_is_readonly(MPIR_T_pvar_handle_t *handle) {
+static inline int MPIR_T_pvar_is_readonly(MPIR_T_pvar_handle_t * handle)
+{
     return handle->flags & MPIR_T_PVAR_FLAG_READONLY;
 }
 
-static inline int MPIR_T_pvar_is_continuous(MPIR_T_pvar_handle_t *handle) {
+static inline int MPIR_T_pvar_is_continuous(MPIR_T_pvar_handle_t * handle)
+{
     return handle->flags & MPIR_T_PVAR_FLAG_CONTINUOUS;
 }
 
-static inline int MPIR_T_pvar_is_atomic(MPIR_T_pvar_handle_t *handle) {
+static inline int MPIR_T_pvar_is_atomic(MPIR_T_pvar_handle_t * handle)
+{
     return handle->flags & MPIR_T_PVAR_FLAG_ATOMIC;
 }
 
-static inline int MPIR_T_pvar_is_sum(MPIR_T_pvar_handle_t *handle) {
+static inline int MPIR_T_pvar_is_sum(MPIR_T_pvar_handle_t * handle)
+{
     return handle->flags & MPIR_T_PVAR_FLAG_SUM;
 }
 
-static inline int MPIR_T_pvar_is_watermark(MPIR_T_pvar_handle_t *handle) {
+static inline int MPIR_T_pvar_is_watermark(MPIR_T_pvar_handle_t * handle)
+{
     return handle->flags & MPIR_T_PVAR_FLAG_WATERMARK;
 }
 
-static inline int MPIR_T_pvar_is_started(MPIR_T_pvar_handle_t *handle) {
+static inline int MPIR_T_pvar_is_started(MPIR_T_pvar_handle_t * handle)
+{
     return handle->flags & MPIR_T_PVAR_FLAG_STARTED;
 }
 
-static inline void MPIR_T_pvar_set_started(MPIR_T_pvar_handle_t *handle) {
+static inline void MPIR_T_pvar_set_started(MPIR_T_pvar_handle_t * handle)
+{
     handle->flags |= (MPIR_T_PVAR_FLAG_STARTED | MPIR_T_PVAR_FLAG_ONCESTARTED);
 }
 
-static inline void MPIR_T_pvar_unset_started(MPIR_T_pvar_handle_t *handle) {
+static inline void MPIR_T_pvar_unset_started(MPIR_T_pvar_handle_t * handle)
+{
     handle->flags &= ~MPIR_T_PVAR_FLAG_STARTED;
 }
 
-static inline int MPIR_T_pvar_is_oncestarted(MPIR_T_pvar_handle_t *handle) {
+static inline int MPIR_T_pvar_is_oncestarted(MPIR_T_pvar_handle_t * handle)
+{
     return handle->flags & MPIR_T_PVAR_FLAG_ONCESTARTED;
 }
 
-static inline void MPIR_T_pvar_unset_oncestarted(MPIR_T_pvar_handle_t *handle) {
+static inline void MPIR_T_pvar_unset_oncestarted(MPIR_T_pvar_handle_t * handle)
+{
     handle->flags &= ~MPIR_T_PVAR_FLAG_ONCESTARTED;
 }
 
-static inline int MPIR_T_pvar_is_first(MPIR_T_pvar_handle_t *handle) {
+static inline int MPIR_T_pvar_is_first(MPIR_T_pvar_handle_t * handle)
+{
     return handle->flags & MPIR_T_PVAR_FLAG_FIRST;
 }
 
-static inline int MPIR_T_pvar_set_first(MPIR_T_pvar_handle_t *handle) {
+static inline int MPIR_T_pvar_set_first(MPIR_T_pvar_handle_t * handle)
+{
     return handle->flags |= MPIR_T_PVAR_FLAG_FIRST;
 }
 
-static inline int MPIR_T_pvar_unset_first(MPIR_T_pvar_handle_t *handle) {
+static inline int MPIR_T_pvar_unset_first(MPIR_T_pvar_handle_t * handle)
+{
     return handle->flags &= ~MPIR_T_PVAR_FLAG_FIRST;
 }
 
 /* A counter that keeps track of the relative balance of calls to
  * MPI_T_init_thread and MPI_T_finalize */
 extern int MPIR_T_init_balance;
-static inline int MPIR_T_is_initialized() {
+static inline int MPIR_T_is_initialized(void)
+{
     return MPIR_T_init_balance > 0;
 }
 
@@ -1547,7 +1321,7 @@ static inline int MPIR_T_is_initialized() {
     #define MPIR_PVAR_INC(_mpicoll, _algo, _operation, _count, _datatype)                        \
     do {                                                                                         \
         int _pSize = 0;                                                                          \
-        MPID_Datatype_get_size_macro(_datatype, _pSize);                                         \
+        MPIR_Datatype_get_size_macro(_datatype, _pSize);                                         \
         int _size = _count * _pSize;                                                             \
         if (_size < 0) {                                                                         \
             _size = 0;                                                                           \
@@ -1591,13 +1365,15 @@ extern int MPIR_T_is_threaded;
 #define MPIR_T_THREAD_CHECK_END }
 
 #ifdef MPICH_IS_THREADED
-extern MPIU_Thread_mutex_t mpi_t_mutex;
+extern MPID_Thread_mutex_t mpi_t_mutex;
 #define MPIR_T_THREAD_CS_INIT() \
     do { \
         int err_; \
         MPIR_T_THREAD_CHECK_BEGIN \
+        MPID_Thread_init(&err_); \
+        MPIR_Assert(err_ == 0); \
         MPID_Thread_mutex_create(&mpi_t_mutex, &err_); \
-        MPIU_Assert(err_ == 0); \
+        MPIR_Assert(err_ == 0); \
         MPIR_T_THREAD_CHECK_END \
     } while (0)
 
@@ -1606,7 +1382,9 @@ extern MPIU_Thread_mutex_t mpi_t_mutex;
         int err_; \
         MPIR_T_THREAD_CHECK_BEGIN \
         MPID_Thread_mutex_destroy(&mpi_t_mutex, &err_); \
-        MPIU_Assert(err_ == 0); \
+        MPIR_Assert(err_ == 0); \
+        MPID_Thread_finalize(&err_); \
+        MPIR_Assert(err_ == 0); \
         MPIR_T_THREAD_CHECK_END \
     } while (0)
 
@@ -1654,7 +1432,7 @@ static inline int LOOKUP_CVAR_INDEX_BY_NAME_impl(const char* cvar_name)
     } while (0)
 
 /* Init and finalize routines */
-extern void MPIR_T_env_init(void);
+extern int MPIR_T_env_init(void);
 extern void MPIR_T_env_finalize(void);
 
-#endif
+#endif /* MPITIMPL_H_INCLUDED */

@@ -1,16 +1,15 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *   Copyright (C) 1997 University of Chicago.
- *   Copyright (C) 2017 DataDirect Networks.
- *   See COPYRIGHT notice in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #ifndef AD_IME_H_INCLUDED
 #define AD_IME_H_INCLUDED
 
 #include "adio.h"
+#ifdef HAVE_IME_NATIVE_H
 #include "ime_native.h"
+#endif
 
 #define ADIOI_IME_PREFIX        "ime:"
 #define ADIOI_IME_PREFIX_LEN    (sizeof(ADIOI_IME_PREFIX) - 1)

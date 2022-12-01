@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2013 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include <stdio.h>
@@ -11,7 +9,7 @@
 
 #include <mpi.h>
 #include "mpitest.h"
-#include "mcs-mutex.h"
+#include "mcs_mutex.h"
 
 #define NUM_ITER    1000
 #define NUM_MUTEXES 1
@@ -26,7 +24,7 @@ int main(int argc, char **argv)
     MPI_Comm mtx_comm;
     MCS_Mutex mcs_mtx;
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
 
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &nproc);
@@ -54,8 +52,7 @@ int main(int argc, char **argv)
             while (!success) {
                 MCS_Mutex_trylock(mcs_mtx, &success);
             }
-        }
-        else {
+        } else {
             MCS_Mutex_lock(mcs_mtx);
         }
         MCS_Mutex_unlock(mcs_mtx);
@@ -76,7 +73,6 @@ int main(int argc, char **argv)
         MPI_Comm_free(&mtx_comm);
 
     MTest_Finalize(0);
-    MPI_Finalize();
 
     return 0;
 }

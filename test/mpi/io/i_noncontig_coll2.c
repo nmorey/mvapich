@@ -1,13 +1,13 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2014 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpi.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "mpitest.h"
 
 /* tests noncontiguous reads/writes using nonblocking collective I/O */
 
@@ -23,7 +23,8 @@
 /* we are going to muck with this later to make it evenly divisible by however many compute nodes we have */
 #define STARTING_SIZE 5000
 
-int test_file(char *filename, int mynod, int nprocs, char *cb_hosts, const char *msg, int verbose);
+int test_file(const char *filename, int mynod, int nprocs, char *cb_hosts, const char *msg,
+              int verbose);
 
 #define ADIOI_Free free
 #define ADIOI_Malloc malloc
@@ -105,8 +106,7 @@ int cb_gather_name_array(MPI_Comm comm, ADIO_cb_name_array * arrayp)
         if (procname_len == NULL) {
             return -1;
         }
-    }
-    else {
+    } else {
         /* everyone else just keeps an empty list as a placeholder */
         array->namect = 0;
         array->names = NULL;
@@ -146,15 +146,13 @@ int cb_gather_name_array(MPI_Comm comm, ADIO_cb_name_array * arrayp)
         for (i = 1; i < commsize; i++) {
             disp[i] = (int) (procname[i] - procname[0]);
         }
-
     }
 
     /* now gather strings */
     if (commrank == 0) {
         MPI_Gatherv(my_procname, my_procname_len + 1, MPI_CHAR,
                     procname[0], procname_len, disp, MPI_CHAR, 0, comm);
-    }
-    else {
+    } else {
         /* if we didn't do this, we would need to allocate procname[]
          * on all processes...which seems a little silly.
          */
@@ -258,7 +256,7 @@ int main(int argc, char **argv)
     ADIO_cb_name_array array;
 
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynod);
 
@@ -266,16 +264,13 @@ int main(int argc, char **argv)
     /* process 0 takes the file name as a command-line argument and
      * broadcasts it to other processes */
     if (!mynod) {
-        filename = "testfile";
+        filename = strdup("testfile");
         len = strlen(filename);
-        MPI_Bcast(&len, 1, MPI_INT, 0, MPI_COMM_WORLD);
-        MPI_Bcast(filename, len + 1, MPI_CHAR, 0, MPI_COMM_WORLD);
     }
-    else {
-        MPI_Bcast(&len, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&len, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    if (mynod)
         filename = (char *) malloc(len + 1);
-        MPI_Bcast(filename, len + 1, MPI_CHAR, 0, MPI_COMM_WORLD);
-    }
+    MPI_Bcast(filename, len + 1, MPI_CHAR, 0, MPI_COMM_WORLD);
 
     /* want to hint the cb_config_list, but do so in a non-sequential way */
     cb_gather_name_array(MPI_COMM_WORLD, &array);
@@ -325,29 +320,25 @@ int main(int argc, char **argv)
     errs += test_file(filename, mynod, nprocs, cb_config_string,
                       "collective w/ hinting: permutation2", verbose);
 
-    MPI_Allreduce(&errs, &sum_errs, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-
-    if (!mynod) {
-        if (sum_errs)
-            fprintf(stderr, "Found %d error cases\n", sum_errs);
-        else
-            printf(" No Errors\n");
-    }
-    if (mynod)
-        free(filename);
+    free(filename);
     free(cb_config_string);
-    MPI_Finalize();
-    return 0;
+    for (i = 0; i < array->namect; i++)
+        free(array->names[i]);
+    free(array->names);
+    free(array);
+    MTest_Finalize(errs);
+    return MTestReturnValue(errs);
 }
 
 #define SEEDER(x,y,z) ((x)*1000000 + (y) + (x)*(z))
 
-int test_file(char *filename, int mynod, int nprocs, char *cb_hosts, const char *msg, int verbose)
+int test_file(const char *filename, int mynod, int nprocs, char *cb_hosts, const char *msg,
+              int verbose)
 {
-    MPI_Datatype typevec, newtype, t[3];
-    int *buf, i, b[3], errcode, errors = 0;
+    MPI_Datatype typevec, typevec2, newtype;
+    int *buf, i, blocklength, errcode, errors = 0;
     MPI_File fh;
-    MPI_Aint d[3];
+    MPI_Aint displacement;
     MPI_Request request;
     MPI_Status status;
     int SIZE = (STARTING_SIZE / nprocs) * nprocs;
@@ -366,24 +357,20 @@ int test_file(char *filename, int mynod, int nprocs, char *cb_hosts, const char 
     if (cb_hosts != NULL) {
         MPI_Info_create(&info);
         MPI_Info_set(info, "cb_config_list", cb_hosts);
-    }
-    else {
+    } else {
         info = MPI_INFO_NULL;
     }
 
     MPI_Type_vector(SIZE / nprocs, 1, nprocs, MPI_INT, &typevec);
 
-    b[0] = b[1] = b[2] = 1;
-    d[0] = 0;
-    d[1] = mynod * sizeof(int);
-    d[2] = SIZE * sizeof(int);
-    t[0] = MPI_LB;
-    t[1] = typevec;
-    t[2] = MPI_UB;
+    blocklength = 1;
+    displacement = mynod * sizeof(int);
 
-    MPI_Type_struct(3, b, d, t, &newtype);
+    MPI_Type_create_struct(1, &blocklength, &displacement, &typevec, &typevec2);
+    MPI_Type_create_resized(typevec2, 0, SIZE * sizeof(int), &newtype);
     MPI_Type_commit(&newtype);
     MPI_Type_free(&typevec);
+    MPI_Type_free(&typevec2);
 
     if (!mynod) {
         if (verbose)
@@ -398,7 +385,10 @@ int test_file(char *filename, int mynod, int nprocs, char *cb_hosts, const char 
         handle_error(errcode, "MPI_File_open");
     }
 
-    MPI_File_set_view(fh, 0, MPI_INT, newtype, "native", info);
+    errcode = MPI_File_set_view(fh, 0, MPI_INT, newtype, "native", info);
+    if (errcode != MPI_SUCCESS) {
+        handle_error(errcode, "MPI_File_set_view");
+    }
 
     for (i = 0; i < SIZE; i++)
         buf[i] = SEEDER(mynod, i, SIZE);
@@ -519,7 +509,10 @@ int test_file(char *filename, int mynod, int nprocs, char *cb_hosts, const char 
 
     MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_CREATE | MPI_MODE_RDWR, info, &fh);
 
-    MPI_File_set_view(fh, 0, MPI_INT, newtype, "native", info);
+    errcode = MPI_File_set_view(fh, 0, MPI_INT, newtype, "native", info);
+    if (errcode != MPI_SUCCESS) {
+        handle_error(errcode, "MPI_File_set_view");
+    }
 
     for (i = 0; i < SIZE; i++)
         buf[i] = SEEDER(mynod, i, SIZE);

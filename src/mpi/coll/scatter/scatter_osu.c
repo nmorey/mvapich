@@ -1,0 +1,837 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
+/* Copyright (c) 2001-2022, The Ohio State University. All rights
+ * reserved.
+ *
+ * This file is part of the MVAPICH2 software package developed by the
+ * team members of The Ohio State University's Network-Based Computing
+ * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
+ *
+ * For detailed copyright and licensing information, please refer to the
+ * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ */
+/*
+ *
+ *  (C) 2001 by Argonne National Laboratory.
+ *      See COPYRIGHT in top-level directory.
+ */
+
+#include "mpiimpl.h"
+#include "mv2_coll_shmem.h"
+#include "mv2_common_tuning.h"
+#include "bcast_tuning.h"
+#include "scatter_tuning.h"
+
+/*
+=== BEGIN_MPI_T_MV2_CVAR_INFO_BLOCK ===
+
+cvars:
+    - name        : MV2_RED_SCAT_LARGE_MSG
+      category    : COLLECTIVE
+      type        : int
+      default     : (512*1024)
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_RED_SCAT_SHORT_MSG
+      category    : COLLECTIVE
+      type        : int
+      default     : 64
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_SCATTER_MEDIUM_MSG
+      category    : COLLECTIVE
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        When the system size is lower than 512 cores, we use the
+        "2-level" algorithm for medium message sizes. This allows
+        the user to set the threshold for medium messages. -1
+        indicates allowing the default values to be used. 
+
+    - name        : MV2_SCATTER_SMALL_MSG
+      category    : COLLECTIVE
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        When the system size is lower than 512 cores, we use the
+        "Binomial"algorithm for small message sizes. This allows the
+        user to set the threshold for small messgaes. -1 indicates
+        allowing the default values to be used.
+
+    - name        : MV2_USE_DIRECT_SCATTER
+      category    : COLLECTIVE
+      type        : boolean
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Use the "Direct" algorithm for the MPI_Scatter operation. If
+        this parameter is set to 0 at runtime, the "Direct" algorithm
+        will not be invoked.
+
+    - name        : MV2_USE_SCATTER_RD_INTER_LEADER_BCAST
+      category    : COLLECTIVE
+      type        : boolean
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_USE_SCATTER_RING_INTER_LEADER_BCAST
+      category    : COLLECTIVE
+      type        : boolean
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_USE_TWO_LEVEL_SCATTER
+      category    : COLLECTIVE
+      type        : boolean
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Use the two-level multi-core-aware algorithm for the
+        MPI_Scatter operation. If this parameter is set to 0 at
+        run-time, the two-level algorithm will not be invoked.
+
+=== END_MPI_T_MV2_CVAR_INFO_BLOCK ===
+*/
+
+int (*MV2_Scatter_function)(const void *sendbuf, int sendcount,
+                            MPI_Datatype sendtype, void *recvbuf, int recvcount,
+                            MPI_Datatype recvtype, int root,
+                            MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag) = NULL;
+
+int (*MV2_Scatter_intra_function)(const void *sendbuf, int sendcount,
+                                  MPI_Datatype sendtype, void *recvbuf,
+                                  int recvcount, MPI_Datatype recvtype,
+                                  int root, MPIR_Comm *comm_ptr,
+                                  MPIR_Errflag_t *errflag) = NULL;
+
+/* This is the default implementation of scatter. The algorithm is:
+   
+   Algorithm: MPI_Scatter
+
+   We use a binomial tree algorithm for both short and
+   long messages. At nodes other than leaf nodes we need to allocate
+   a temporary buffer to store the incoming message. If the root is
+   not rank 0, we reorder the sendbuf in order of relative ranks by 
+   copying it into a temporary buffer, so that all the sends from the
+   root are contiguous and in the right order. In the heterogeneous
+   case, we first pack the buffer by using MPI_Pack and then do the
+   scatter. 
+
+   Cost = lgp.alpha + n.((p-1)/p).beta
+   where n is the total size of the data to be scattered from the root.
+
+   Possible improvements: 
+
+   End Algorithm: MPI_Scatter
+*/
+
+int MPIR_Scatter_index_tuned_intra_MV2(const void *sendbuf,
+                           int sendcnt,
+                           MPI_Datatype sendtype,
+                           void *recvbuf,
+                           int recvcnt,
+                           MPI_Datatype recvtype,
+                           int root, MPIR_Comm * comm_ptr, MPIR_Errflag_t *errflag)
+{
+    int mpi_errno = MPI_SUCCESS;
+    int mpi_errno_ret = MPI_SUCCESS;
+    int rank, comm_size;
+    MPI_Aint nbytes;
+    MPI_Aint recvtype_size, sendtype_size;
+    int partial_sub_ok = 0;
+    int conf_index = 0;
+    int local_size = -1;
+    int comm_size_index = 0;
+    int inter_node_algo_index = 0;
+    int intra_node_algo_index = 0;
+    int table_min_comm_size = 0;
+    int table_max_comm_size = 0;
+    int table_min_inter_size = 0;
+    int table_max_inter_size = 0;
+    int table_min_intra_size = 0;
+    int table_max_intra_size = 0;
+    int last_inter;
+    int last_intra;
+    int lp2ltn; // largest power of 2 less than n
+    int lp2ltn_min;
+    MPI_Comm shmem_comm;
+    MPIR_Comm *shmem_commptr=NULL;
+
+    comm_size = MPIR_Comm_size(comm_ptr);
+    rank = MPIR_Comm_rank(comm_ptr);
+
+    if (rank == root) {
+        MPIR_Datatype_get_size_macro(sendtype, sendtype_size);
+        nbytes = sendcnt * sendtype_size;
+    } else {
+        MPIR_Datatype_get_size_macro(recvtype, recvtype_size);
+        nbytes = recvcnt * recvtype_size;
+    }
+
+#if defined (_SHARP_SUPPORT_)
+    if (comm_ptr->dev.ch.is_sharp_ok == 1 && 
+        nbytes <= mv2_sharp_tuned_msg_size / 2 && 
+        mv2_enable_sharp_coll == 1 && mv2_enable_sharp_scatter) {
+        /* Direct flat algorithm in which every process calls Sharp
+         * MV2_ENABLE_SHARP should be set to 1 */
+        mpi_errno = MPIR_Sharp_Scatter_MV2(sendbuf, sendcnt, sendtype,
+                                           recvbuf, recvcnt, recvtype,
+                                           root, comm_ptr, errflag);
+        if (mpi_errno == MPI_SUCCESS) {
+            return mpi_errno;
+        }    
+        /* SHArP collective is not supported, continue without using SHArP */
+    }    
+#endif /* end of defined (_SHARP_SUPPORT_) */
+
+    /* check if safe to use partial subscription mode */
+    if (comm_ptr->dev.ch.shmem_coll_ok == 1 && comm_ptr->dev.ch.is_uniform) {
+        shmem_comm = comm_ptr->dev.ch.shmem_comm;
+        MPIR_Comm_get_ptr(shmem_comm, shmem_commptr);
+        local_size = shmem_commptr->local_size;
+        if (mv2_scatter_indexed_table_ppn_conf[0] == -1) {
+            /* Indicating user defined tuning */
+            conf_index = 0;
+            goto conf_check_end;
+        }
+        FIND_PPN_INDEX  (scatter, local_size,conf_index, partial_sub_ok)
+    }
+    
+    if (partial_sub_ok != 1) {
+        conf_index = mv2_scatter_indexed_num_ppn_conf/2;
+    }
+
+conf_check_end:
+
+    /* Search for the corresponding system size inside the tuning table */
+    /*
+     * Comm sizes progress in powers of 2. Therefore comm_size can just be indexed instead
+     */
+    table_min_comm_size = mv2_scatter_indexed_thresholds_table[conf_index][0].numproc;
+    table_max_comm_size =
+	mv2_scatter_indexed_thresholds_table[conf_index][mv2_size_scatter_indexed_tuning_table[conf_index] - 1].numproc;
+    
+    if (comm_size < table_min_comm_size) {
+	/* Comm size smaller than smallest configuration in table: use smallest available */
+	comm_size_index = 0;
+    }
+    else if (comm_size > table_max_comm_size) {
+	/* Comm size larger than largest configuration in table: use largest available */
+	comm_size_index = mv2_size_scatter_indexed_tuning_table[conf_index] - 1;
+    }
+    else {
+	/* Comm size in between smallest and largest configuration: find closest match */
+    lp2ltn_min = pow(2, (int)log2(table_min_comm_size));
+	if (comm_ptr->dev.ch.is_pof2) {
+	    comm_size_index = log2( comm_size / lp2ltn_min );
+	}
+	else {
+	    lp2ltn = pow(2, (int)log2(comm_size));
+	    comm_size_index = (lp2ltn < lp2ltn_min) ? 0 : log2( lp2ltn / lp2ltn_min );
+	}
+    }
+
+    last_inter = mv2_scatter_indexed_thresholds_table[conf_index][comm_size_index].size_inter_table - 1;
+    table_min_inter_size = mv2_scatter_indexed_thresholds_table[conf_index][comm_size_index].inter_leader[0].msg_sz;
+    table_max_inter_size = mv2_scatter_indexed_thresholds_table[conf_index][comm_size_index].inter_leader[last_inter].msg_sz;
+    last_intra = mv2_scatter_indexed_thresholds_table[conf_index][comm_size_index].size_intra_table - 1;
+    table_min_intra_size = mv2_scatter_indexed_thresholds_table[conf_index][comm_size_index].intra_node[0].msg_sz;
+    table_max_intra_size = mv2_scatter_indexed_thresholds_table[conf_index][comm_size_index].intra_node[last_intra].msg_sz;
+    
+    if (nbytes < table_min_inter_size) {
+	/* Msg size smaller than smallest configuration in table: use smallest available */
+	inter_node_algo_index = 0;
+    }
+    else if (nbytes > table_max_inter_size) {
+	/* Msg size larger than largest configuration in table: use largest available */
+	inter_node_algo_index = last_inter;
+    }
+    else {
+	/* Msg size in between smallest and largest configuration: find closest match */
+	if (pow(2, (int)log2(nbytes)) == nbytes) {
+	    inter_node_algo_index = log2( nbytes / table_min_inter_size );
+	}
+	else {
+	    lp2ltn = pow(2, (int)log2(nbytes));
+	    inter_node_algo_index = (lp2ltn < table_min_inter_size) ? 0 : log2( lp2ltn / table_min_inter_size );
+	}
+    }
+    
+    if (nbytes < table_min_intra_size) {
+	/* Msg size smaller than smallest configuration in table: use smallest available */
+	intra_node_algo_index = 0;
+    }
+    else if (nbytes > table_max_intra_size) {
+	/* Msg size larger than largest configuration in table: use largest available */
+	intra_node_algo_index = last_intra;
+    }
+    else {
+	/* Msg size in between smallest and largest configuration: find closest match */
+	if (pow(2, (int)log2(nbytes)) == nbytes) {
+	    intra_node_algo_index = log2(nbytes / table_min_intra_size );
+	}
+	else {
+	    lp2ltn = pow(2, (int)log2(nbytes));
+	    intra_node_algo_index = (lp2ltn < table_min_intra_size) ? 0 : log2(lp2ltn / table_min_intra_size );
+	}
+    }
+
+    MV2_Scatter_function = mv2_scatter_indexed_thresholds_table[conf_index][comm_size_index].inter_leader[inter_node_algo_index]
+                            .MV2_pt_Scatter_function;
+
+    if(MV2_Scatter_function == &MPIR_Scatter_mcst_wrap_MV2) { 
+#if defined(_MCST_SUPPORT_)
+        if(comm_ptr->dev.ch.is_mcast_ok == 1 
+           && mv2_use_mcast_scatter == 1 
+           && comm_ptr->dev.ch.shmem_coll_ok == 1) {
+            MV2_Scatter_function = &MPIR_Scatter_mcst_MV2; 
+        } else
+#endif /*#if defined(_MCST_SUPPORT_) */
+        {
+            if(mv2_scatter_indexed_thresholds_table[conf_index][comm_size_index].inter_leader[inter_node_algo_index + 1].
+               MV2_pt_Scatter_function != NULL) { 
+                  MV2_Scatter_function = mv2_scatter_indexed_thresholds_table[conf_index][comm_size_index].
+		      inter_leader[inter_node_algo_index + 1].MV2_pt_Scatter_function;
+            } else { 
+                  /* Fallback! */ 
+                  MV2_Scatter_function = &MPIR_Scatter_MV2_Binomial; 
+            }  
+        } 
+    } 
+ 
+    if( (MV2_Scatter_function == &MPIR_Scatter_MV2_two_level_Direct) || 
+        (MV2_Scatter_function == &MPIR_Scatter_MV2_two_level_Binomial)) { 
+         if( comm_ptr->dev.ch.shmem_coll_ok == 1 && 
+             comm_ptr->dev.ch.is_global_block == 1 ) {
+             MV2_Scatter_intra_function = mv2_scatter_indexed_thresholds_table[conf_index][comm_size_index]
+		 .intra_node[intra_node_algo_index].MV2_pt_Scatter_function;
+
+             mpi_errno =
+                   MV2_Scatter_function(sendbuf, sendcnt, sendtype,
+                                        recvbuf, recvcnt, recvtype, root,
+                                        comm_ptr, errflag);
+         } else {
+             mpi_errno = MPIR_Scatter_MV2_Binomial(sendbuf, sendcnt, sendtype,
+                                        recvbuf, recvcnt, recvtype, root,
+                                        comm_ptr, errflag);
+
+         }
+    } else { 
+         mpi_errno = MV2_Scatter_function(sendbuf, sendcnt, sendtype,
+                                    recvbuf, recvcnt, recvtype, root,
+                                    comm_ptr, errflag);
+    } 
+
+
+    if (mpi_errno) {
+        /* for communication errors, just record the error but continue */
+        *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
+        MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
+        MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
+    }
+
+  fn_fail:
+
+    return (mpi_errno);
+
+}
+
+int MPIR_Scatter_tune_intra_MV2(const void *sendbuf,
+                           int sendcnt,
+                           MPI_Datatype sendtype,
+                           void *recvbuf,
+                           int recvcnt,
+                           MPI_Datatype recvtype,
+                           int root, MPIR_Comm * comm_ptr, MPIR_Errflag_t *errflag)
+{
+    int range = 0, range_threshold = 0, range_threshold_intra = 0;
+    int mpi_errno = MPI_SUCCESS;
+    int mpi_errno_ret = MPI_SUCCESS;
+    int rank, comm_size;
+    MPI_Aint nbytes;
+    MPI_Aint recvtype_size, sendtype_size;
+    int partial_sub_ok = 0;
+    int conf_index = 0;
+    int local_size = -1;
+    int i;
+    MPI_Comm shmem_comm;
+    MPIR_Comm *shmem_commptr=NULL;
+
+    rank = MPIR_Comm_rank(comm_ptr);
+    comm_size = MPIR_Comm_size(comm_ptr);
+
+    if (rank == root) {
+        MPIR_Datatype_get_size_macro(sendtype, sendtype_size);
+        nbytes = sendcnt * sendtype_size;
+    } else {
+        MPIR_Datatype_get_size_macro(recvtype, recvtype_size);
+        nbytes = recvcnt * recvtype_size;
+    }
+
+    /* check if safe to use partial subscription mode */
+    if (comm_ptr->dev.ch.shmem_coll_ok == 1 && comm_ptr->dev.ch.is_uniform) {
+    
+        shmem_comm = comm_ptr->dev.ch.shmem_comm;
+        MPIR_Comm_get_ptr(shmem_comm, shmem_commptr);
+        local_size = shmem_commptr->local_size;
+        i = 0;
+        if (mv2_scatter_table_ppn_conf[0] == -1) {
+            /* Indicating user defined tuning */
+            conf_index = 0;
+            goto conf_check_end;
+        }
+        do {
+            if (local_size == mv2_scatter_table_ppn_conf[i]) {
+                conf_index = i;
+                partial_sub_ok = 1;
+                break;
+            }
+            i++;
+        } while(i < mv2_scatter_num_ppn_conf);
+    }
+    
+    if (partial_sub_ok != 1) {
+        conf_index = mv2_scatter_num_ppn_conf/2;
+    }
+
+conf_check_end:
+
+    /* Search for the corresponding system size inside the tuning table */
+    while ((range < (mv2_size_scatter_tuning_table[conf_index] - 1)) &&
+           (comm_size > mv2_scatter_thresholds_table[conf_index][range].numproc)) {
+        range++;
+    }
+    /* Search for corresponding inter-leader function */
+    while ((range_threshold < (mv2_scatter_thresholds_table[conf_index][range].size_inter_table - 1))
+           && (nbytes >
+           mv2_scatter_thresholds_table[conf_index][range].inter_leader[range_threshold].max)
+           && (mv2_scatter_thresholds_table[conf_index][range].inter_leader[range_threshold].max != -1)) {
+           range_threshold++;
+    }
+
+    /* Search for corresponding intra-node function */
+    while ((range_threshold_intra <
+           (mv2_scatter_thresholds_table[conf_index][range].size_intra_table - 1))
+            && (nbytes >
+                mv2_scatter_thresholds_table[conf_index][range].intra_node[range_threshold_intra].max)
+            && (mv2_scatter_thresholds_table[conf_index][range].intra_node[range_threshold_intra].max !=
+            -1)) {
+            range_threshold_intra++;
+    }
+
+    MV2_Scatter_function = mv2_scatter_thresholds_table[conf_index][range].inter_leader[range_threshold]
+                            .MV2_pt_Scatter_function;
+
+    if(MV2_Scatter_function == &MPIR_Scatter_mcst_wrap_MV2) { 
+#if defined(_MCST_SUPPORT_)
+        if(comm_ptr->dev.ch.is_mcast_ok == 1 
+           && mv2_use_mcast_scatter == 1 
+           && comm_ptr->dev.ch.shmem_coll_ok == 1) {
+            MV2_Scatter_function = &MPIR_Scatter_mcst_MV2; 
+        } else
+#endif /*#if defined(_MCST_SUPPORT_) */
+        {
+            if(mv2_scatter_thresholds_table[conf_index][range].inter_leader[range_threshold + 1].
+               MV2_pt_Scatter_function != NULL) { 
+                  MV2_Scatter_function = mv2_scatter_thresholds_table[conf_index][range].inter_leader[range_threshold + 1]
+                                                                          .MV2_pt_Scatter_function;
+            } else { 
+                  /* Fallback! */ 
+                  MV2_Scatter_function = &MPIR_Scatter_MV2_Binomial; 
+            }  
+        } 
+    } 
+ 
+    if( (MV2_Scatter_function == &MPIR_Scatter_MV2_two_level_Direct) || 
+        (MV2_Scatter_function == &MPIR_Scatter_MV2_two_level_Binomial)) { 
+         if( comm_ptr->dev.ch.shmem_coll_ok == 1 && 
+             comm_ptr->dev.ch.is_global_block == 1 ) {
+             MV2_Scatter_intra_function = mv2_scatter_thresholds_table[conf_index][range].intra_node[range_threshold_intra]
+                                .MV2_pt_Scatter_function;
+
+             mpi_errno =
+                   MV2_Scatter_function(sendbuf, sendcnt, sendtype,
+                                        recvbuf, recvcnt, recvtype, root,
+                                        comm_ptr, errflag);
+         } else {
+             mpi_errno = MPIR_Scatter_MV2_Binomial(sendbuf, sendcnt, sendtype,
+                                        recvbuf, recvcnt, recvtype, root,
+                                        comm_ptr, errflag);
+
+         }
+    } else { 
+         mpi_errno = MV2_Scatter_function(sendbuf, sendcnt, sendtype,
+                                    recvbuf, recvcnt, recvtype, root,
+                                    comm_ptr, errflag);
+    } 
+
+
+    if (mpi_errno) {
+        /* for communication errors, just record the error but continue */
+        *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
+        MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
+        MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
+    }
+
+  fn_fail:
+
+    return (mpi_errno);
+
+}
+
+int MPIR_Scatter_intra_MV2(const void *sendbuf,
+                           int sendcnt,
+                           MPI_Datatype sendtype,
+                           void *recvbuf,
+                           int recvcnt,
+                           MPI_Datatype recvtype,
+                           int root, MPIR_Comm * comm_ptr, MPIR_Errflag_t *errflag)
+{
+    int range = 0;
+    int mpi_errno = MPI_SUCCESS;
+    int mpi_errno_ret = MPI_SUCCESS;
+    int rank, comm_size;
+    MPI_Aint nbytes;
+    MPI_Aint recvtype_size, sendtype_size;
+
+    rank = MPIR_Comm_rank(comm_ptr);
+    comm_size = MPIR_Comm_size(comm_ptr);
+
+    if (rank == root) {
+        MPIR_Datatype_get_size_macro(sendtype, sendtype_size);
+        nbytes = sendcnt * sendtype_size;
+    } else {
+        MPIR_Datatype_get_size_macro(recvtype, recvtype_size);
+        nbytes = recvcnt * recvtype_size;
+    }
+
+    while ((range < mv2_size_mv2_scatter_mv2_tuning_table)
+           && (comm_size > mv2_scatter_mv2_tuning_table[range].numproc)) {
+        range++;
+    }
+#if defined(_MCST_SUPPORT_)
+    if(comm_ptr->dev.ch.is_mcast_ok == 1
+       && mv2_use_mcast_scatter == 1
+       && nbytes <= mv2_mcast_scatter_msg_size
+       && comm_size >= mv2_mcast_scatter_small_sys_size
+       && comm_size <= mv2_mcast_scatter_large_sys_size ){
+         mpi_errno = MPIR_Scatter_mcst_MV2(sendbuf, sendcnt, sendtype,
+                                         recvbuf, recvcnt, recvtype, root,
+                                         comm_ptr, errflag);
+    } else 
+#endif /*#if defined(_MCST_SUPPORT_) */ 
+    { 
+        if (mv2_use_two_level_scatter == 1 || mv2_use_direct_scatter == 1) {
+            if (range < mv2_size_mv2_scatter_mv2_tuning_table) {
+                if (nbytes < mv2_scatter_mv2_tuning_table[range].small) {
+                    mpi_errno =
+                        MPIR_Scatter_MV2_Binomial(sendbuf, sendcnt, sendtype,
+                                                  recvbuf, recvcnt, recvtype, root,
+                                                  comm_ptr, errflag);
+                } else if (nbytes > mv2_scatter_mv2_tuning_table[range].small
+                           && nbytes < mv2_scatter_mv2_tuning_table[range].medium
+                           && comm_ptr->dev.ch.shmem_coll_ok == 1
+                           && mv2_use_two_level_scatter == 1) {
+                    mpi_errno =
+                        MPIR_Scatter_MV2_two_level_Direct(sendbuf, sendcnt,
+                                                          sendtype, recvbuf,
+                                                          recvcnt, recvtype, root,
+                                                          comm_ptr, errflag);
+
+                } else {
+                    mpi_errno = MPIR_Scatter_MV2_Direct(sendbuf, sendcnt, sendtype,
+                                                        recvbuf, recvcnt, recvtype,
+                                                        root, comm_ptr, errflag);
+                }
+            } else if (comm_size > mv2_scatter_mv2_tuning_table[range - 1].numproc
+                       && comm_ptr->dev.ch.shmem_coll_ok == 1
+                       && mv2_use_two_level_scatter == 1) {
+                mpi_errno =
+                    MPIR_Scatter_MV2_two_level_Binomial(sendbuf, sendcnt, sendtype,
+                                                        recvbuf, recvcnt, recvtype,
+                                                        root, comm_ptr, errflag);
+            } else {
+                mpi_errno = MPIR_Scatter_MV2_Binomial(sendbuf, sendcnt, sendtype,
+                                                      recvbuf, recvcnt, recvtype,
+                                                      root, comm_ptr, errflag);
+            }
+        } else {
+            mpi_errno = MPIR_Scatter_MV2_Binomial(sendbuf, sendcnt, sendtype,
+                                                  recvbuf, recvcnt, recvtype,
+                                                  root, comm_ptr, errflag);
+        }
+    } 
+
+    if (mpi_errno) {
+        /* for communication errors, just record the error but continue */
+        *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
+        MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
+        MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
+    }
+
+  fn_fail:
+
+    return (mpi_errno);
+
+}
+
+
+
+
+/* begin:nested */
+/* not declared static because a machine-specific function may call this one in some cases */
+int MPIR_Scatter_inter_MV2(void *sendbuf,
+                           int sendcnt,
+                           MPI_Datatype sendtype,
+                           void *recvbuf,
+                           int recvcnt,
+                           MPI_Datatype recvtype,
+                           int root, MPIR_Comm * comm_ptr, MPIR_Errflag_t *errflag)
+{
+/*  Intercommunicator scatter.
+    For short messages, root sends to rank 0 in remote group. rank 0
+    does local intracommunicator scatter (binomial tree). 
+    Cost: (lgp+1).alpha + n.((p-1)/p).beta + n.beta
+   
+    For long messages, we use linear scatter to avoid the extra n.beta.
+    Cost: p.alpha + n.beta
+*/
+
+    int rank, local_size, remote_size, mpi_errno = MPI_SUCCESS;
+    int mpi_errno_ret = MPI_SUCCESS;
+    int i;
+    MPI_Aint nbytes, sendtype_size, recvtype_size;
+    MPI_Status status;
+    MPI_Aint extent, true_extent, true_lb = 0;
+    void *tmp_buf = NULL;
+    MPIR_Comm *newcomm_ptr = NULL;
+
+    if (root == MPI_PROC_NULL) {
+        /* local processes other than root do nothing */
+        return MPI_SUCCESS;
+    }
+
+    remote_size = comm_ptr->remote_size;
+    local_size = comm_ptr->local_size;
+
+    if (root == MPI_ROOT) {
+        MPIR_Datatype_get_size_macro(sendtype, sendtype_size);
+        nbytes = sendtype_size * sendcnt * remote_size;
+    } else {
+        /* remote side */
+        MPIR_Datatype_get_size_macro(recvtype, recvtype_size);
+        nbytes = recvtype_size * recvcnt * local_size;
+    }
+
+    if (nbytes < MPIR_SCATTER_SHORT_MSG) {
+        if (root == MPI_ROOT) {
+            /* root sends all data to rank 0 on remote group and returns */
+            MPIR_PVAR_INC(scatter, inter, send, sendcnt * remote_size, sendtype);
+            mpi_errno = MPIC_Send(sendbuf, sendcnt * remote_size,
+                                     sendtype, 0, MPIR_SCATTER_TAG, comm_ptr,
+                                     errflag);
+            if (mpi_errno) {
+                /* for communication errors, just record the error but continue */
+                *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
+                MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
+                MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
+            }
+            goto fn_exit;
+        } else {
+            /* remote group. rank 0 receives data from root. need to
+               allocate temporary buffer to store this data. */
+
+            rank = comm_ptr->rank;
+
+            if (rank == 0) {
+                MPIR_Type_get_true_extent_impl(recvtype, &true_lb,
+                                               &true_extent);
+                MPIR_Datatype_get_extent_macro(recvtype, extent);
+                tmp_buf =
+                    MPL_malloc(recvcnt * local_size *
+                                (MPL_MAX(extent, true_extent)), MPL_MEM_COLL);
+                /* --BEGIN ERROR HANDLING-- */
+                if (!tmp_buf) {
+                    mpi_errno =
+                        MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
+                                             __func__, __LINE__, MPI_ERR_OTHER,
+                                             "**nomem", 0);
+                    return mpi_errno;
+                }
+                /* --END ERROR HANDLING-- */
+                /* adjust for potential negative lower bound in datatype */
+                tmp_buf = (void *) ((char *) tmp_buf - true_lb);
+
+                MPIR_PVAR_INC(scatter, inter, recv, recvcnt * local_size, recvtype);
+                mpi_errno = MPIC_Recv(tmp_buf, recvcnt * local_size,
+                                         recvtype, root,
+                                         MPIR_SCATTER_TAG, comm_ptr, &status,
+                                         errflag);
+                if (mpi_errno) {
+                    /* for communication errors, just record the error but continue */
+                    *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
+                    MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
+                    MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
+                }
+
+            }
+
+            /* Get the local intracommunicator */
+            if (!comm_ptr->local_comm)
+                MPII_Setup_intercomm_localcomm(comm_ptr);
+
+            newcomm_ptr = comm_ptr->local_comm;
+
+            /* now do the usual scatter on this intracommunicator */
+            mpi_errno = MPIR_Scatter_MV2(tmp_buf, recvcnt, recvtype,
+                                         recvbuf, recvcnt, recvtype, 0,
+                                         newcomm_ptr, errflag);
+            if (rank == 0) {
+                void *tmp = (void*)(tmp_buf + true_lb);
+                MPL_free(tmp);
+            }
+        }
+    } else {
+        /* long message. use linear algorithm. */
+        if (root == MPI_ROOT) {
+            MPIR_Datatype_get_extent_macro(sendtype, extent);
+            for (i = 0; i < remote_size; i++) {
+                MPIR_PVAR_INC(scatter, inter, send, sendcnt, sendtype);
+                mpi_errno =
+                    MPIC_Send(((char *) sendbuf + sendcnt * i * extent),
+                                 sendcnt, sendtype, i, MPIR_SCATTER_TAG, comm_ptr,
+                                 errflag);
+                if (mpi_errno) {
+                    /* for communication errors, just record the error but continue */
+                    *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
+                    MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
+                    MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
+                }
+            }
+        } else {
+            MPIR_PVAR_INC(scatter, inter, recv, recvcnt, recvtype);
+            mpi_errno = MPIC_Recv(recvbuf, recvcnt, recvtype, root,
+                                     MPIR_SCATTER_TAG, comm_ptr, &status, errflag);
+            if (mpi_errno) {
+                /* for communication errors, just record the error but continue */
+                *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
+                MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
+                MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
+            }
+        }
+    }
+
+  fn_exit:
+
+    return mpi_errno;
+}
+
+int MPIR_Scatter_MV2(const void *sendbuf, int sendcnt, MPI_Datatype sendtype,
+                     void *recvbuf, int recvcnt, MPI_Datatype recvtype,
+                     int root, MPIR_Comm * comm_ptr, MPIR_Errflag_t *errflag)
+{
+    int mpi_errno = MPI_SUCCESS;
+
+#ifdef _ENABLE_CUDA_
+   MPI_Aint sendtype_extent, recvtype_extent;
+   MPIR_Datatype_get_extent_macro(sendtype, sendtype_extent);
+   MPIR_Datatype_get_extent_macro(recvtype, recvtype_extent);
+   MPI_Aint nbytes = recvtype_extent * recvcnt;
+   int send_mem_type = 0;
+   int recv_mem_type = 0;
+   int comm_size = comm_ptr->local_size;
+   int rank = comm_ptr->rank;
+   if (mv2_enable_device) {
+       send_mem_type = is_device_buffer(sendbuf);
+       recv_mem_type = is_device_buffer(recvbuf);
+   }
+
+   if (mv2_enable_device && (send_mem_type || recv_mem_type) &&
+       mv2_device_coll_use_stage && (nbytes <= mv2_device_scatter_stage_limit*comm_size)) {
+       if (sendbuf != MPI_IN_PLACE) {
+            if (rank == root) {
+                mpi_errno = device_stage_alloc ((void **)&sendbuf, sendcnt*sendtype_extent*comm_size,
+                          NULL, 0, 
+                          send_mem_type, 0, 
+                          0);
+            } else {
+                mpi_errno = device_stage_alloc (NULL, 0,
+                          &recvbuf, recvcnt*recvtype_extent, 
+                          0, recv_mem_type, 
+                          0);
+            }
+       } else {
+            mpi_errno = device_stage_alloc ((void **)&sendbuf, recvcnt*recvtype_extent*comm_size,
+                      &recvbuf, recvcnt*recvtype_extent, 
+                      0, recv_mem_type, 
+                      rank*recvcnt*recvtype_extent);
+       }
+       MPIR_ERR_CHECK(mpi_errno);
+   }
+#endif /*#ifdef _ENABLE_CUDA_*/    
+
+    if (mv2_use_old_scatter == 1 ) {
+        mpi_errno = MPIR_Scatter_intra_MV2(sendbuf, sendcnt, sendtype,
+                                       recvbuf, recvcnt, recvtype, root,
+                                       comm_ptr, errflag);
+    } else {
+	if (mv2_use_indexed_tuning || mv2_use_indexed_scatter_tuning) {
+	    mpi_errno = MPIR_Scatter_index_tuned_intra_MV2(sendbuf, sendcnt, sendtype,
+						    recvbuf, recvcnt, recvtype, root,
+						    comm_ptr, errflag);
+	}
+	else {
+	    mpi_errno = MPIR_Scatter_tune_intra_MV2(sendbuf, sendcnt, sendtype,
+						    recvbuf, recvcnt, recvtype, root,
+						    comm_ptr, errflag);
+	}
+    }
+
+#ifdef _ENABLE_CUDA_ 
+    if (mv2_enable_device && (send_mem_type || recv_mem_type) &&
+        mv2_device_coll_use_stage && (nbytes <= mv2_device_scatter_stage_limit*comm_size)){
+        if (rank == root) {
+            device_stage_free ((void **)&sendbuf,
+                        &recvbuf, 0,
+                        send_mem_type, recv_mem_type);
+        } else {
+            device_stage_free (NULL,
+                        &recvbuf, recvcnt*recvtype_extent,
+                        send_mem_type, recv_mem_type);
+        }
+    }
+#endif                          /*#ifdef _ENABLE_CUDA_*/     
+    comm_ptr->dev.ch.intra_node_done = 0;
+    MPIR_ERR_CHECK(mpi_errno);
+
+  fn_exit:
+    return mpi_errno;
+  fn_fail:
+
+    goto fn_exit;
+}

@@ -1,8 +1,8 @@
-C -*- Mode: Fortran; -*- 
 C
-C  (C) 2004 by Argonne National Laboratory.
-C      See COPYRIGHT in top-level directory.
+C Copyright (C) by Argonne National Laboratory
+C     See COPYRIGHT in top-level directory
 C
+
 C Test various combinations of periodic and non-periodic Cartesian 
 C communicators
 C
@@ -98,5 +98,4 @@ C                  print *, i, '(', outcoords(i), ')'
       enddo
       
       call mtest_finalize( errs )
-      call mpi_finalize( ierr )
       end

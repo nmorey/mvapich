@@ -19,16 +19,15 @@
 #include "mpidi_ch3_impl.h"
 #include "vbuf.h"
 #include "upmi.h"
-#include "mpiutil.h"
 #include "rdma_impl.h"
 #include "smp_smpi.h"
 #include "dreg.h"
 #include "ibv_send_inline.h"
 
-static int MPIDI_CH3_SMP_Rendezvous_push(MPIDI_VC_t *, MPID_Request *);
+static int MPIDI_CH3_SMP_Rendezvous_push(MPIDI_VC_t *, MPIR_Request *);
 
 #if defined(_SMP_CMA_)
-static int MPIDI_CH3_CMA_Rendezvous_push(MPIDI_VC_t *, MPID_Request *);
+static int MPIDI_CH3_CMA_Rendezvous_push(MPIDI_VC_t *, MPIR_Request *);
 extern int MPIDI_CH3I_SMP_do_cma_put(MPIDI_VC_t * vc, const void *src, void *dst, ssize_t len);
 extern int MPIDI_CH3I_SMP_do_cma_get(MPIDI_VC_t * vc, const void *src, void *dst, ssize_t len);
 #endif
@@ -52,23 +51,18 @@ do {                                                          \
 extern void FLUSH_SQUEUE_NOINLINE(MPIDI_VC_t *vc);
 #endif /*#if defined(MPIDI_MRAILI_COALESCE_ENABLED)*/
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_Prepare_rndv_get
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 
 int MPIDI_CH3_Prepare_rndv_get(MPIDI_VC_t * vc,
-                               MPID_Request * rreq)
+                               MPIR_Request * rreq)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_PREPARE_RNDV_GET);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_PREPARE_RNDV_GET);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_PREPARE_RNDV_GET);
 
 #ifdef CKPT
     MPIDI_CH3I_CR_lock();
 #endif
 
-    MPIU_Assert(MV2_RNDV_PROTOCOL_RGET == rreq->mrail.protocol);
+    MPIR_Assert(MV2_RNDV_PROTOCOL_RGET == rreq->mrail.protocol);
 
     MPIDI_CH3I_MRAIL_Prepare_rndv(vc, rreq);
 
@@ -76,21 +70,16 @@ int MPIDI_CH3_Prepare_rndv_get(MPIDI_VC_t * vc,
     MPIDI_CH3I_CR_unlock();
 #endif
 
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_PREPARE_RNDV_GET);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_PREPARE_RNDV_GET);
     return mpi_errno;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_Prepare_rndv_cts
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_Prepare_rndv_cts(MPIDI_VC_t * vc,
                                MPIDI_CH3_Pkt_rndv_clr_to_send_t * cts_pkt,
-                               MPID_Request * rreq)
+                               MPIR_Request * rreq)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_PREPARE_RNDV_CTS);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_PREPARE_RNDV_CTS);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_PREPARE_RNDV_CTS);
 
 #ifdef CKPT
     MPIDI_CH3I_CR_lock();
@@ -167,23 +156,18 @@ int MPIDI_CH3_Prepare_rndv_cts(MPIDI_VC_t * vc,
     MPIDI_CH3I_CR_unlock();
 #endif
 
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_PREPARE_RNDV_CTS);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_PREPARE_RNDV_CTS);
     return mpi_errno;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_iStartRndvTransfer
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDI_CH3_iStartRndvTransfer(MPIDI_VC_t * vc, MPID_Request * rreq)
+int MPIDI_CH3_iStartRndvTransfer(MPIDI_VC_t * vc, MPIR_Request * rreq)
 {
     MPIDI_CH3_Pkt_t upkt;
     MPIDI_CH3_Pkt_rndv_clr_to_send_t *cts_pkt = &upkt.rndv_clr_to_send;
-    MPID_Request *cts_req;
+    MPIR_Request *cts_req;
     MPID_Seqnum_t seqnum;
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_ISTARTRNDVTRANSFER);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_ISTARTRNDVTRANSFER);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_ISTARTRNDVTRANSFER);
 
 #ifdef CKPT
     MPIDI_CH3I_CR_lock();
@@ -191,9 +175,9 @@ int MPIDI_CH3_iStartRndvTransfer(MPIDI_VC_t * vc, MPID_Request * rreq)
        
     MPIDI_Pkt_init(cts_pkt, MPIDI_CH3_PKT_RNDV_CLR_TO_SEND);
     if (rreq->dev.iov_count == 1 && rreq->dev.OnDataAvail == NULL)
-	cts_pkt->recv_sz = rreq->dev.iov[0].MPL_IOV_LEN;
+	cts_pkt->recv_sz = rreq->dev.iov[0].iov_len;
     else
-	cts_pkt->recv_sz = rreq->dev.segment_size;
+	cts_pkt->recv_sz = rreq->dev.msgsize;
     
     cts_pkt->sender_req_id = rreq->dev.sender_req_id;
     cts_pkt->receiver_req_id = rreq->handle;
@@ -221,7 +205,7 @@ int MPIDI_CH3_iStartRndvTransfer(MPIDI_VC_t * vc, MPID_Request * rreq)
 
     if (mpi_errno != MPI_SUCCESS) {
 	mpi_errno = MPIR_Err_create_code(mpi_errno, MPIR_ERR_FATAL,
-					 FCNAME, __LINE__,
+					 __func__, __LINE__,
 					 MPI_ERR_OTHER, "**ch3|ctspkt", 0);
 	goto fn_exit;
     }
@@ -231,38 +215,33 @@ int MPIDI_CH3_iStartRndvTransfer(MPIDI_VC_t * vc, MPID_Request * rreq)
     if (mpi_errno != MPI_SUCCESS) {
         mpi_errno =
             MPIR_Err_create_code(mpi_errno, MPIR_ERR_FATAL,
-                                 FCNAME, __LINE__,
+                                 __func__, __LINE__,
                                  MPI_ERR_OTHER, "**ch3|ctspkt", 0);
         goto fn_exit;
     }
     /* --END ERROR HANDLING-- */
     if (cts_req != NULL) {
-        MPID_Request_release(cts_req);
+        MPIR_Request_free(cts_req);
     }
 
   fn_exit:
 #ifdef CKPT
     MPIDI_CH3I_CR_unlock();
 #endif
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_ISTARTRNDVTRANSFER);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_ISTARTRNDVTRANSFER);
     return mpi_errno;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_Rndv_transfer
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_Rndv_transfer(MPIDI_VC_t * vc,
-        MPID_Request * sreq,
-        MPID_Request * rreq,
+        MPIR_Request * sreq,
+        MPIR_Request * rreq,
         MPIDI_CH3_Pkt_rndv_clr_to_send_t * cts_pkt,
         MPIDI_CH3_Pkt_rndv_req_to_send_t * rts_pkt)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIDI_CH3I_MRAILI_Rndv_info_t *rndv;        /* contains remote info */
-    MPID_Request * req;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_RNDV_TRANSFER);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_RNDV_TRANSFER);
+    MPIR_Request * req;
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_RNDV_TRANSFER);
 
 
 #ifdef CKPT
@@ -313,11 +292,11 @@ int MPIDI_CH3_Rndv_transfer(MPIDI_VC_t * vc,
     case MV2_RNDV_PROTOCOL_R3:
             rndv = (cts_pkt == NULL) ? NULL : &cts_pkt->rndv;
             sreq->mrail.partner_id = cts_pkt->receiver_req_id;
-            MPIU_Assert(rndv->protocol == MV2_RNDV_PROTOCOL_R3);
+            MPIR_Assert(rndv->protocol == MV2_RNDV_PROTOCOL_R3);
         break;
     case MV2_RNDV_PROTOCOL_RGET:
             rndv = (rts_pkt == NULL) ? ((cts_pkt == NULL) ? NULL : &cts_pkt->rndv) : &rts_pkt->rndv;
-            MPIU_Assert (rndv != NULL);
+            MPIR_Assert (rndv != NULL);
             if (sreq != NULL && cts_pkt != NULL) sreq->mrail.partner_id = cts_pkt->receiver_req_id;
             MPIDI_CH3I_MRAIL_Prepare_rndv_transfer(req, rndv);
         break;
@@ -335,7 +314,7 @@ int MPIDI_CH3_Rndv_transfer(MPIDI_VC_t * vc,
     case MV2_RNDV_PROTOCOL_CUDAIPC:
             if (cts_pkt->rndv.protocol != MV2_RNDV_PROTOCOL_CUDAIPC) {
                 sreq->mrail.protocol = cts_pkt->rndv.protocol;
-                MPIU_Assert(sreq->mrail.protocol == MV2_RNDV_PROTOCOL_R3);
+                MPIR_Assert(sreq->mrail.protocol == MV2_RNDV_PROTOCOL_R3);
             }
             rndv = (cts_pkt == NULL) ? NULL : &cts_pkt->rndv;
             sreq->mrail.partner_id = cts_pkt->receiver_req_id;
@@ -345,7 +324,7 @@ int MPIDI_CH3_Rndv_transfer(MPIDI_VC_t * vc,
             mpi_errno = MPIR_Err_create_code(
                 0,
                 MPIR_ERR_FATAL,
-                FCNAME,
+                __func__,
                 __LINE__,
                 MPI_ERR_OTHER,
                 "**fail",
@@ -372,18 +351,13 @@ int MPIDI_CH3_Rndv_transfer(MPIDI_VC_t * vc,
     MPIDI_CH3I_CR_unlock();
 #endif /* defined(CKPT) */
 
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_RNDV_TRANSFER);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_RNDV_TRANSFER);
     return MPI_SUCCESS;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_Rendezvous_push
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDI_CH3_Rendezvous_push(MPIDI_VC_t * vc, MPID_Request * sreq)
+int MPIDI_CH3_Rendezvous_push(MPIDI_VC_t * vc, MPIR_Request * sreq)
 {
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_RNDV_PUSH);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_RNDV_PUSH);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_RNDV_PUSH);
 
     if (SMP_INIT
         && vc->smp.local_nodes >= 0
@@ -420,17 +394,13 @@ int MPIDI_CH3_Rendezvous_push(MPIDI_VC_t * vc, MPID_Request * sreq)
         break;
     }
     
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_RNDV_PUSH);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_RNDV_PUSH);
     return MPI_SUCCESS;
 }
 
 #if defined(_SMP_CMA_)
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_CMA_Rendezvous_push
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 static int MPIDI_CH3_CMA_Rendezvous_push(MPIDI_VC_t * vc,
-                                                MPID_Request * sreq)
+                                                MPIR_Request * sreq)
 {
     int mpi_errno = MPI_SUCCESS;
     int complete = 0, rail = -1;
@@ -438,22 +408,21 @@ static int MPIDI_CH3_CMA_Rendezvous_push(MPIDI_VC_t * vc,
     ssize_t len, offset  ATTRIBUTE((unused));
     int type  ATTRIBUTE((unused)) = MPIDI_Request_get_type(sreq);
 
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_CMA_RNDV_PUSH);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_CMA_RNDV_PUSH);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_CMA_RNDV_PUSH);
 
     PRINT_DEBUG(DEBUG_RNDV_verbose>2,
             "req type: %d, protocol: %d, partner_id: %08x, iov count: %d, offset %lu, len: %lu\n", 
             type, sreq->mrail.protocol, sreq->mrail.partner_id, sreq->dev.iov_count,
-            sreq->dev.iov_offset, sreq->dev.iov[0].MPL_IOV_LEN);
+            sreq->dev.iov_offset, sreq->dev.iov[0].iov_len);
 
     /* Non-contig sends are handled using the R3 protocol */
-    MPIU_Assert(sreq->dev.iov_count == 1);
-    MPIU_Assert(sreq->mrail.protocol == MV2_RNDV_PROTOCOL_RPUT ||
+    MPIR_Assert(sreq->dev.iov_count == 1);
+    MPIR_Assert(sreq->mrail.protocol == MV2_RNDV_PROTOCOL_RPUT ||
                 sreq->mrail.protocol == MV2_RNDV_PROTOCOL_RGET );
 
     if (sreq->mrail.protocol == MV2_RNDV_PROTOCOL_RPUT) {
-        src = sreq->dev.iov[0].MPL_IOV_BUF;
-        len = sreq->dev.iov[0].MPL_IOV_LEN;
+        src = sreq->dev.iov[0].iov_base;
+        len = sreq->dev.iov[0].iov_len;
         dst = sreq->mrail.remote_addr;
 
         mpi_errno = MPIDI_CH3I_SMP_do_cma_put(vc, src, dst, len);
@@ -468,8 +437,8 @@ static int MPIDI_CH3_CMA_Rendezvous_push(MPIDI_VC_t * vc,
         MRAILI_RDMA_Put_finish(vc, sreq, rail);
         sreq->mrail.nearly_complete = 1;
     } else if (sreq->mrail.protocol == MV2_RNDV_PROTOCOL_RGET) {
-        dst = sreq->dev.iov[0].MPL_IOV_BUF;
-        len = sreq->dev.iov[0].MPL_IOV_LEN;
+        dst = sreq->dev.iov[0].iov_base;
+        len = sreq->dev.iov[0].iov_len;
         src = sreq->mrail.remote_addr;
 
         mpi_errno = MPIDI_CH3I_SMP_do_cma_get(vc, src, dst, len);
@@ -485,35 +454,30 @@ static int MPIDI_CH3_CMA_Rendezvous_push(MPIDI_VC_t * vc,
         MRAILI_RDMA_Get_finish(vc, sreq, rail);
     } else {
          mpi_errno =
-             MPIR_Err_create_code(mpi_errno, MPIR_ERR_FATAL, FCNAME,
+             MPIR_Err_create_code(mpi_errno, MPIR_ERR_FATAL, __func__,
                               __LINE__, MPI_ERR_OTHER, "**notimpl", 0);
         return mpi_errno;
     }
 
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_CMA_RNDV_PUSH);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_CMA_RNDV_PUSH);
     return mpi_errno;
 }
 #endif
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_SMP_Rendezvous_push
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 static int MPIDI_CH3_SMP_Rendezvous_push(MPIDI_VC_t * vc,
-                                                MPID_Request * sreq)
+                                                MPIR_Request * sreq)
 {
     int nb;
     int complete = 0;
     int seqnum;
     int mpi_errno;
     MPIDI_CH3_Pkt_rndv_r3_data_t pkt_head;
-    MPID_Request * send_req;
+    MPIR_Request * send_req;
 #if defined (_ENABLE_CUDA_)
     int iov_isdev = 0;
 #endif
 
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_SMP_RNDV_PUSH);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_SMP_RNDV_PUSH);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_SMP_RNDV_PUSH);
 
     if (sreq->mrail.protocol != MV2_RNDV_PROTOCOL_R3
 #if defined (_ENABLE_CUDA_)
@@ -551,7 +515,7 @@ static int MPIDI_CH3_SMP_Rendezvous_push(MPIDI_VC_t * vc,
 
 #if defined(_SMP_CMA_)
     if (use_cma && (!g_smp_max_switch || 
-            (g_smp_max_switch && sreq->dev.iov[0].MPL_IOV_LEN < s_smp_cma_max_size))
+            (g_smp_max_switch && sreq->dev.iov[0].iov_len < s_smp_cma_max_size))
             && sreq->dev.OnDataAvail != MPIDI_CH3_ReqHandler_SendReloadIOV
             && sreq->dev.iov_count == 1
 #if defined(_ENABLE_CUDA_)
@@ -566,7 +530,7 @@ static int MPIDI_CH3_SMP_Rendezvous_push(MPIDI_VC_t * vc,
 
 #if defined(_SMP_LIMIC_)
     if (use_limic && (!g_smp_max_switch ||
-            (g_smp_max_switch && sreq->dev.iov[0].MPL_IOV_LEN < s_smp_limic2_max_size))
+            (g_smp_max_switch && sreq->dev.iov[0].iov_len < s_smp_limic2_max_size))
             && sreq->dev.OnDataAvail != MPIDI_CH3_ReqHandler_SendReloadIOV
             && sreq->dev.iov_count == 1
 #if defined(_ENABLE_CUDA_)
@@ -597,11 +561,11 @@ static int MPIDI_CH3_SMP_Rendezvous_push(MPIDI_VC_t * vc,
                                     &send_req);
 
     if (mpi_errno != MPI_SUCCESS) {
-         MPIU_Object_set_ref(sreq, 0);
-         MPIDI_CH3_Request_destroy(sreq);
+         MPIR_Object_set_ref(sreq, 0);
+         MPIR_Request_free(sreq);
          sreq = NULL;
          mpi_errno =
-             MPIR_Err_create_code(mpi_errno, MPIR_ERR_FATAL, FCNAME,
+             MPIR_Err_create_code(mpi_errno, MPIR_ERR_FATAL, __func__,
                               __LINE__, MPI_ERR_OTHER, "**ch3|rtspkt",
                               0);
         return mpi_errno;
@@ -609,7 +573,7 @@ static int MPIDI_CH3_SMP_Rendezvous_push(MPIDI_VC_t * vc,
     /* --END ERROR HANDLING-- */
     if (send_req != NULL) {
         DEBUG_PRINT("r3 packet not sent \n");
-        MPID_Request_release(send_req);
+        MPIR_Request_free(send_req);
     }
 
 #if defined(_SMP_LIMIC_) || defined(_SMP_CMA_)
@@ -623,7 +587,7 @@ static int MPIDI_CH3_SMP_Rendezvous_push(MPIDI_VC_t * vc,
     if (MPIDI_CH3I_SMP_SendQ_empty(vc)) {
 #if defined(_ENABLE_CUDA_)
         if (mv2_enable_device && mv2_device_smp_pipeline) {
-            iov_isdev = is_device_buffer((void *) sreq->dev.iov[sreq->dev.iov_offset].MPL_IOV_BUF);
+            iov_isdev = is_device_buffer((void *) sreq->dev.iov[sreq->dev.iov_offset].iov_base);
         }
 #endif
 
@@ -632,7 +596,7 @@ static int MPIDI_CH3_SMP_Rendezvous_push(MPIDI_VC_t * vc,
             PRINT_DEBUG(DEBUG_RNDV_verbose>1,
                     "sreq: %p, iov count: %d, offset %lu, len[0]: %lu\n",
                     sreq, sreq->dev.iov_count, sreq->dev.iov_offset,
-                    sreq->dev.iov[0].MPL_IOV_LEN);
+                    sreq->dev.iov[0].iov_len);
 
             if (vc->smp.send_current_pkt_type == SMP_RNDV_MSG) {
 #if defined(_ENABLE_CUDA_)
@@ -653,7 +617,7 @@ static int MPIDI_CH3_SMP_Rendezvous_push(MPIDI_VC_t * vc,
                                     &nb);
                 }
             } else {
-                MPIU_Assert(vc->smp.send_current_pkt_type == SMP_RNDV_MSG_CONT);
+                MPIR_Assert(vc->smp.send_current_pkt_type == SMP_RNDV_MSG_CONT);
 #if defined(_ENABLE_CUDA_)
                 if (iov_isdev) {
                     mpi_errno = MPIDI_CH3I_SMP_writev_rndv_data_device(vc,
@@ -703,7 +667,7 @@ static int MPIDI_CH3_SMP_Rendezvous_push(MPIDI_VC_t * vc,
                     }
                 } else {
                     sreq->ch.reqtype = REQUEST_RNDV_R3_DATA;
-                    MPIU_Assert(vc->smp.send_active == NULL);
+                    MPIR_Assert(vc->smp.send_active == NULL);
                     MPIDI_CH3I_SMP_SendQ_enqueue_head(vc, sreq);
                     vc->smp.send_active = sreq;
                     sreq->mrail.nearly_complete = 1;
@@ -716,7 +680,7 @@ static int MPIDI_CH3_SMP_Rendezvous_push(MPIDI_VC_t * vc,
                 }
             } else {
                 sreq->ch.reqtype = REQUEST_RNDV_R3_DATA;
-                MPIU_Assert(vc->smp.send_active == NULL);
+                MPIR_Assert(vc->smp.send_active == NULL);
                 MPIDI_CH3I_SMP_SendQ_enqueue_head(vc, sreq);
                 vc->smp.send_active = sreq;
                 sreq->mrail.nearly_complete = 1;
@@ -736,18 +700,14 @@ static int MPIDI_CH3_SMP_Rendezvous_push(MPIDI_VC_t * vc,
                 vc->pg_rank, sreq);
     }
 
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_SMP_RNDV_PUSH);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_SMP_RNDV_PUSH);
     return MPI_SUCCESS;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_Rendezvous_r3_push
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-void MPIDI_CH3_Rendezvous_r3_push(MPIDI_VC_t * vc, MPID_Request * sreq)
+void MPIDI_CH3_Rendezvous_r3_push(MPIDI_VC_t * vc, MPIR_Request * sreq)
 {
     vbuf *buf;
-    MPL_IOV iov[MPL_IOV_LIMIT + 1] = {0};
+    struct iovec iov[MPL_IOV_LIMIT + 1] = {0};
     int n_iov;
     int msg_buffered = 0;
     int nb = 0;
@@ -756,8 +716,7 @@ void MPIDI_CH3_Rendezvous_r3_push(MPIDI_VC_t * vc, MPID_Request * sreq)
     int finished = 0;
     int mpi_errno;
     int wait_for_rndv_r3_ack = 0;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_RNDV_R3_PUSH);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_RNDV_R3_PUSH);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_RNDV_R3_PUSH);
 
     MPIDI_CH3_Pkt_rndv_r3_data_t pkt_head;
 
@@ -767,8 +726,8 @@ void MPIDI_CH3_Rendezvous_r3_push(MPIDI_VC_t * vc, MPID_Request * sreq)
 #endif /*if defined(MPIDI_MRAILI_COALESCE_ENABLED)*/
 
     MPIDI_Pkt_init(&pkt_head, MPIDI_CH3_PKT_RNDV_R3_DATA);
-    iov[0].MPL_IOV_LEN = sizeof(MPIDI_CH3_Pkt_rndv_r3_data_t);
-    iov[0].MPL_IOV_BUF = (void*) &pkt_head;
+    iov[0].iov_len = sizeof(MPIDI_CH3_Pkt_rndv_r3_data_t);
+    iov[0].iov_base = (void*) &pkt_head;
     pkt_head.receiver_req_id = sreq->mrail.partner_id;
 
     do {
@@ -804,21 +763,21 @@ void MPIDI_CH3_Rendezvous_r3_push(MPIDI_VC_t * vc, MPID_Request * sreq)
             MPIDI_Pkt_set_seqnum(&pkt_head, seqnum);
             MPIDI_Request_set_seqnum(sreq, seqnum);
 
-            MPIU_Memcpy((void *) &iov[1],
+            MPIR_Memcpy((void *) &iov[1],
                    &sreq->dev.iov[sreq->dev.iov_offset],
                    (sreq->dev.iov_count -
-                    sreq->dev.iov_offset) * sizeof(MPL_IOV));
+                    sreq->dev.iov_offset) * sizeof(struct iovec));
             n_iov = sreq->dev.iov_count - sreq->dev.iov_offset + 1;
 
             DEBUG_PRINT("iov count (sreq): %d, offset %d, len[1] %d\n",
                         sreq->dev.iov_count, sreq->dev.iov_offset,
-                        sreq->dev.iov[0].MPL_IOV_LEN);
+                        sreq->dev.iov[0].iov_len);
 
             {
                 int i = 0;
                 size_t  total_len = 0;
                 for (i = 0; i < n_iov; i++) {
-                    total_len += (iov[i].MPL_IOV_LEN);
+                    total_len += (iov[i].iov_len);
                 }
 
                 mpi_errno =
@@ -879,7 +838,7 @@ void MPIDI_CH3_Rendezvous_r3_push(MPIDI_VC_t * vc, MPID_Request * sreq)
     }
 
 fn_exit:
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_RNDV_R3_PUSH);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_RNDV_R3_PUSH);
 #if defined(MPIDI_MRAILI_COALESCE_ENABLED)
     /* TODO: Ticket #1433 */
     FLUSH_SQUEUE_NOINLINE(vc);
@@ -887,18 +846,13 @@ fn_exit:
     return;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_MRAILI_Process_rndv
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 void MPIDI_CH3I_MRAILI_Process_rndv()
 {
-    MPID_Request *sreq;
+    MPIR_Request *sreq;
     MPIDI_VC_t *pending_flowlist = NULL, *temp_vc = NULL;
     int need_vc_enqueue = 0;
 
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_PROCESS_RNDV);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_PROCESS_RNDV);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_PROCESS_RNDV);
     while (flowlist) {
         /* Push on the the first ongoing receive with
          * MPIDI_CH3_Rendezvous_push. If the receive
@@ -986,22 +940,17 @@ void MPIDI_CH3I_MRAILI_Process_rndv()
         PUSH_FLOWLIST(temp_vc);
     }
 
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_PROCESS_RNDV);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_PROCESS_RNDV);
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_Rendezvouz_r3_recv_data
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_Rendezvouz_r3_recv_data(MPIDI_VC_t * vc, vbuf * buffer)
 {
     int mpi_errno = MPI_SUCCESS;
     int skipsize = sizeof(MPIDI_CH3_Pkt_rndv_r3_data_t);
     int nb, complete;
-    MPID_Request *rreq;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_RNDV_R3_RCV_DATA);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_RNDV_R3_RCV_DATA);
-    MPID_Request_get_ptr(((MPIDI_CH3_Pkt_rndv_r3_data_t *) (buffer->
+    MPIR_Request *rreq;
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_RNDV_R3_RCV_DATA);
+    MPIR_Request_get_ptr(((MPIDI_CH3_Pkt_rndv_r3_data_t *) (buffer->
                                                             pheader))->
                          receiver_req_id, rreq);
 
@@ -1010,10 +959,10 @@ int MPIDI_CH3_Rendezvouz_r3_recv_data(MPIDI_VC_t * vc, vbuf * buffer)
         int rank;
         UPMI_GET_RANK(&rank);
 
-        PRINT_ERROR("Got wrong req protocol from rank %d: req %08x, protocol %d\n",
-                    vc->pg_rank, rreq, rreq->mrail.protocol);
-        MPIU_Assert(MV2_RNDV_PROTOCOL_R3 == rreq->mrail.protocol ||
-               MV2_RNDV_PROTOCOL_RPUT == rreq->mrail.protocol);
+        PRINT_ERROR("Got wrong req protocol from rank %d: req %08x, "
+                    "protocol %d\n", vc->pg_rank, rreq, rreq->mrail.protocol);
+        MPIR_Assert(MV2_RNDV_PROTOCOL_R3 == rreq->mrail.protocol ||
+                    MV2_RNDV_PROTOCOL_RPUT == rreq->mrail.protocol);
     }
 
     rreq->mrail.protocol = MV2_RNDV_PROTOCOL_R3;
@@ -1024,7 +973,7 @@ int MPIDI_CH3_Rendezvouz_r3_recv_data(MPIDI_VC_t * vc, vbuf * buffer)
         mpi_errno = MPIR_Err_create_code(
             mpi_errno,
             MPIR_ERR_FATAL,
-            FCNAME,
+            __func__,
             __LINE__,
             MPI_ERR_OTHER,
             "**fail",
@@ -1043,7 +992,7 @@ int MPIDI_CH3_Rendezvouz_r3_recv_data(MPIDI_VC_t * vc, vbuf * buffer)
         if (mpi_errno != MPI_SUCCESS) {
             mpi_errno =
                 MPIR_Err_create_code(mpi_errno,
-                                     MPIR_ERR_RECOVERABLE, FCNAME,
+                                     MPIR_ERR_RECOVERABLE, __func__,
                                      __LINE__, MPI_ERR_OTHER, "**fail", 0);
             goto fn_exit;
         }
@@ -1056,7 +1005,7 @@ int MPIDI_CH3_Rendezvouz_r3_recv_data(MPIDI_VC_t * vc, vbuf * buffer)
                 mpi_errno = MPIR_Err_create_code(
                     mpi_errno,
                     MPIR_ERR_FATAL,
-                    FCNAME,
+                    __func__,
                     __LINE__,
                     MPI_ERR_OTHER,
                     "**fail",
@@ -1076,7 +1025,7 @@ int MPIDI_CH3_Rendezvouz_r3_recv_data(MPIDI_VC_t * vc, vbuf * buffer)
             if (mpi_errno != MPI_SUCCESS) {
                 mpi_errno =
                     MPIR_Err_create_code(mpi_errno,
-                                         MPIR_ERR_RECOVERABLE, FCNAME,
+                                         MPIR_ERR_RECOVERABLE, __func__,
                                          __LINE__, MPI_ERR_OTHER, "**fail",
                                          0);
                 goto fn_exit;
@@ -1095,49 +1044,39 @@ int MPIDI_CH3_Rendezvouz_r3_recv_data(MPIDI_VC_t * vc, vbuf * buffer)
     }
 
     DEBUG_PRINT("Successfully return from r3 recv\n");
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_RNDV_R3_RCV_DATA);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_RNDV_R3_RCV_DATA);
     return mpi_errno;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_Rendezvouz_r3_ack_recv
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 void MPIDI_CH3_Rendezvouz_r3_ack_recv(MPIDI_VC_t * vc, 
 				MPIDI_CH3_Pkt_rndv_r3_ack_t *r3ack_pkt)
 {
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_RNDV_R3_ACK_RECV);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_RNDV_R3_ACK_RECV);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_RNDV_R3_ACK_RECV);
 
     DEBUG_PRINT("Received R3 Ack %d\n", r3ack_pkt->ack_data);
     vc->ch.pending_r3_data -= r3ack_pkt->ack_data;
-    MPIU_Assert(vc->ch.pending_r3_data == 0);
+    MPIR_Assert(vc->ch.pending_r3_data == 0);
     PUSH_FLOWLIST(vc);
     
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_RNDV_R3_ACK_RECV);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_RNDV_R3_ACK_RECV);
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_Rendezvous_rget_send_finish
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_Rendezvous_rget_send_finish(MPIDI_VC_t * vc,
                                      MPIDI_CH3_Pkt_rget_finish_t *rget_pkt)
 {
     int mpi_errno = MPI_SUCCESS;
     int complete;
-    MPID_Request *sreq;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_RNDV_RGET_SEND_FINISH);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_RNDV_RGET_SEND_FINISH);
+    MPIR_Request *sreq;
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_RNDV_RGET_SEND_FINISH);
 
-    MPID_Request_get_ptr(rget_pkt->sender_req_id, sreq);
+    MPIR_Request_get_ptr(rget_pkt->sender_req_id, sreq);
     PRINT_DEBUG(DEBUG_RNDV_verbose,
             "Received RGET finish, sreq: %p, protocol: %d, local: %d, remote: %d\n",
             sreq, sreq->mrail.protocol, sreq->mrail.local_complete, sreq->mrail.remote_complete);
 
 #if defined (_ENABLE_CUDA_) && defined(HAVE_CUDA_IPC)
     if (mv2_enable_device && sreq->mrail.ipc_device_event) {
-        MPIU_Device_StreamWaitEvent(0, sreq->mrail.ipc_device_event->event, 0);
+        MV2_MPIDI_Device_StreamWaitEvent(0, sreq->mrail.ipc_device_event->event, 0);
         if (sreq->mrail.ipc_device_event) {
             release_cudaipc_event(sreq->mrail.ipc_device_event);
         }
@@ -1173,7 +1112,7 @@ int MPIDI_CH3_Rendezvous_rget_send_finish(MPIDI_VC_t * vc,
         mpi_errno = MPIR_Err_create_code(
             mpi_errno,
             MPIR_ERR_FATAL,
-            FCNAME,
+            __func__,
             __LINE__,
             MPI_ERR_OTHER,
             "**fail",
@@ -1186,22 +1125,17 @@ int MPIDI_CH3_Rendezvous_rget_send_finish(MPIDI_VC_t * vc,
 #endif /* defined(CKPT) */
 
 fn_exit:
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_RNDV_RGET_SEND_FINISH);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_RNDV_RGET_SEND_FINISH);
     return mpi_errno;
 
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_Rendezvous_rget_recv_finish
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_Rendezvous_rget_recv_finish(MPIDI_VC_t * vc,
-                                     MPID_Request * rreq)
+                                     MPIR_Request * rreq)
 {
     int mpi_errno = MPI_SUCCESS;
     int complete;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_RGET_RECV_FINISH);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_RGET_RECV_FINISH);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_RGET_RECV_FINISH);
 
     if (!MPIDI_CH3I_MRAIL_Finish_request(rreq))
     {
@@ -1217,10 +1151,10 @@ int MPIDI_CH3_Rendezvous_rget_recv_finish(MPIDI_VC_t * vc,
 
         for (; iter < rreq->dev.iov_count; ++iter)
         {
-          MPIU_Memcpy(rreq->dev.iov[iter].MPL_IOV_BUF,
-                   (void *) buf, rreq->dev.iov[iter].MPL_IOV_LEN);
-            buf += rreq->dev.iov[iter].MPL_IOV_LEN;
-            copied += rreq->dev.iov[iter].MPL_IOV_LEN;
+          MPIR_Memcpy(rreq->dev.iov[iter].iov_base,
+                   (void *) buf, rreq->dev.iov[iter].iov_len);
+            buf += rreq->dev.iov[iter].iov_len;
+            copied += rreq->dev.iov[iter].iov_len;
         }
 
         MPIDI_CH3I_Request_adjust_iov(rreq, copied);
@@ -1237,7 +1171,7 @@ int MPIDI_CH3_Rendezvous_rget_recv_finish(MPIDI_VC_t * vc,
                 mpi_errno = MPIR_Err_create_code(
                     mpi_errno,
                     MPIR_ERR_FATAL,
-                    FCNAME,
+                    __func__,
                     __LINE__,
                     MPI_ERR_OTHER,
                     "**fail",
@@ -1249,10 +1183,10 @@ int MPIDI_CH3_Rendezvous_rget_recv_finish(MPIDI_VC_t * vc,
 
             for (iter = 0; iter < rreq->dev.iov_count; ++iter)
             {
-              MPIU_Memcpy(rreq->dev.iov[iter].MPL_IOV_BUF,
-                       (void *) buf, rreq->dev.iov[iter].MPL_IOV_LEN);
-                buf += rreq->dev.iov[iter].MPL_IOV_LEN;
-                copied += rreq->dev.iov[iter].MPL_IOV_LEN;
+              MPIR_Memcpy(rreq->dev.iov[iter].iov_base,
+                       (void *) buf, rreq->dev.iov[iter].iov_len);
+                buf += rreq->dev.iov[iter].iov_len;
+                copied += rreq->dev.iov[iter].iov_len;
             }
 
             MPIDI_CH3I_Request_adjust_iov(rreq, copied);
@@ -1275,7 +1209,7 @@ int MPIDI_CH3_Rendezvous_rget_recv_finish(MPIDI_VC_t * vc,
     {
         mpi_errno =
             MPIR_Err_create_code(mpi_errno,
-                                 MPIR_ERR_RECOVERABLE, FCNAME,
+                                 MPIR_ERR_RECOVERABLE, __func__,
                                  __LINE__, MPI_ERR_OTHER, "**fail", 0);
     }
 
@@ -1287,38 +1221,33 @@ int MPIDI_CH3_Rendezvous_rget_recv_finish(MPIDI_VC_t * vc,
     {
         mpi_errno =
             MPIR_Err_create_code(mpi_errno, MPIR_ERR_FATAL,
-                                 FCNAME, __LINE__,
+                                 __func__, __LINE__,
                                  MPI_ERR_OTHER, "**fail", 0);
         goto fn_exit;
     }
 
   fn_exit:
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_RGET_RECV_FINISH);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_RGET_RECV_FINISH);
     return mpi_errno;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_Rendezvous_unpack_data
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDI_CH3_Rendezvous_unpack_data(MPIDI_VC_t *vc, MPID_Request *rreq) 
+int MPIDI_CH3_Rendezvous_unpack_data(MPIDI_VC_t *vc, MPIR_Request *rreq) 
 {
         /* If we are using datatype, then need to unpack data from tmpbuf */
         int iter = 0;
-        MPIDI_msg_sz_t copied = 0;
+        intptr_t copied = 0;
         int mpi_errno = MPI_SUCCESS;
         int complete;
         uintptr_t buf = (uintptr_t) rreq->mrail.rndv_buf;
     
-        MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_RNDV_UNPACK_DATA);
-        MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_RNDV_UNPACK_DATA);
+        MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_RNDV_UNPACK_DATA);
 
         for (iter=0; iter < rreq->dev.iov_count; ++iter)
         {
-          MPIU_Memcpy(rreq->dev.iov[iter].MPL_IOV_BUF,
-                   (void *) buf, rreq->dev.iov[iter].MPL_IOV_LEN);
-            buf += rreq->dev.iov[iter].MPL_IOV_LEN;
-            copied += rreq->dev.iov[iter].MPL_IOV_LEN;
+          MPIR_Memcpy(rreq->dev.iov[iter].iov_base,
+                   (void *) buf, rreq->dev.iov[iter].iov_len);
+            buf += rreq->dev.iov[iter].iov_len;
+            copied += rreq->dev.iov[iter].iov_len;
         }
 
         MPIDI_CH3I_Request_adjust_iov(rreq, copied);
@@ -1335,7 +1264,7 @@ int MPIDI_CH3_Rendezvous_unpack_data(MPIDI_VC_t *vc, MPID_Request *rreq)
                 mpi_errno = MPIR_Err_create_code(
                     mpi_errno,
                     MPIR_ERR_FATAL,
-                    FCNAME,
+                    __func__,
                     __LINE__,
                     MPI_ERR_OTHER,
                     "**fail",
@@ -1347,33 +1276,28 @@ int MPIDI_CH3_Rendezvous_unpack_data(MPIDI_VC_t *vc, MPID_Request *rreq)
 
             for (iter = 0; iter < rreq->dev.iov_count; ++iter)
             {
-              MPIU_Memcpy(rreq->dev.iov[iter].MPL_IOV_BUF,
-                       (void *) buf, rreq->dev.iov[iter].MPL_IOV_LEN);
-                buf += rreq->dev.iov[iter].MPL_IOV_LEN;
-                copied += rreq->dev.iov[iter].MPL_IOV_LEN;
+              MPIR_Memcpy(rreq->dev.iov[iter].iov_base,
+                       (void *) buf, rreq->dev.iov[iter].iov_len);
+                buf += rreq->dev.iov[iter].iov_len;
+                copied += rreq->dev.iov[iter].iov_len;
             }
 
             MPIDI_CH3I_Request_adjust_iov(rreq, copied);
         }
   fn_exit:
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_RNDV_UNPACK_DATA);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_RNDV_UNPACK_DATA);
     return mpi_errno;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_Rendezvous_rput_finish
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_Rendezvous_rput_finish(MPIDI_VC_t * vc,
                                      MPIDI_CH3_Pkt_rput_finish_t * rf_pkt)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Request *rreq;
+    MPIR_Request *rreq;
     int complete;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_RNDV_RPUT_FINISH);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_RNDV_RPUT_FINISH);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_RNDV_RPUT_FINISH);
 
-    MPID_Request_get_ptr(rf_pkt->receiver_req_id, rreq);
+    MPIR_Request_get_ptr(rf_pkt->receiver_req_id, rreq);
     PRINT_DEBUG(DEBUG_RNDV_verbose, "Received RPUT finish, rreq: %p, protocol: %d, local: %d, remote: %d\n",
             rreq, rreq->mrail.protocol, rreq->mrail.local_complete, rreq->mrail.remote_complete);
 
@@ -1419,7 +1343,7 @@ int MPIDI_CH3_Rendezvous_rput_finish(MPIDI_VC_t * vc,
     {
         mpi_errno =
             MPIR_Err_create_code(mpi_errno,
-                                 MPIR_ERR_RECOVERABLE, FCNAME,
+                                 MPIR_ERR_RECOVERABLE, __func__,
                                  __LINE__, MPI_ERR_OTHER, "**fail", 0);
     }
 
@@ -1432,26 +1356,21 @@ int MPIDI_CH3_Rendezvous_rput_finish(MPIDI_VC_t * vc,
     {
         mpi_errno =
             MPIR_Err_create_code(mpi_errno, MPIR_ERR_FATAL,
-                                 FCNAME, __LINE__,
+                                 __func__, __LINE__,
                                  MPI_ERR_OTHER, "**fail", 0);
         goto fn_exit;
     }
 
   fn_exit:
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_RNDV_RPUT_FINISH);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_RNDV_RPUT_FINISH);
     return mpi_errno;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_Get_rndv_push
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_Get_rndv_push(MPIDI_VC_t * vc,
                             MPIDI_CH3_Pkt_t *resp_pkt,
-                            MPID_Request * req)
+                            MPIR_Request * req)
 {
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_GET_RNDV_PUSH);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_GET_RNDV_PUSH);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_GET_RNDV_PUSH);
 
 #ifdef CKPT
     MPIDI_CH3I_CR_lock();
@@ -1469,11 +1388,11 @@ int MPIDI_CH3_Get_rndv_push(MPIDI_VC_t * vc,
             req->mrail.nearly_complete = 0;
             PUSH_FLOWLIST(vc);
         } else {
-            MPL_IOV iov;
+            struct iovec iov;
             MPIDI_CH3I_MRAILI_Rndv_info_t rndv;
  
-            iov.MPL_IOV_BUF = (void*) get_resp_pkt;
-            iov.MPL_IOV_LEN = sizeof(MPIDI_CH3_Pkt_get_resp_t);
+            iov.iov_base = (void*) get_resp_pkt;
+            iov.iov_len = sizeof(MPIDI_CH3_Pkt_get_resp_t);
             get_resp_pkt->protocol = MV2_RNDV_PROTOCOL_RPUT;
  
             MPIDI_CH3I_MRAIL_SET_REMOTE_RNDV_INFO(&rndv, req);
@@ -1502,11 +1421,11 @@ int MPIDI_CH3_Get_rndv_push(MPIDI_VC_t * vc,
             req->mrail.nearly_complete = 0;
             PUSH_FLOWLIST(vc);
         } else {
-            MPL_IOV iov;
+            struct iovec iov;
             MPIDI_CH3I_MRAILI_Rndv_info_t rndv;
 
-            iov.MPL_IOV_BUF = (void*) get_accum_resp_pkt;
-            iov.MPL_IOV_LEN = sizeof(MPIDI_CH3_Pkt_get_accum_resp_t);
+            iov.iov_base = (void*) get_accum_resp_pkt;
+            iov.iov_len = sizeof(MPIDI_CH3_Pkt_get_accum_resp_t);
             get_accum_resp_pkt->protocol = MV2_RNDV_PROTOCOL_RPUT;
 
             MPIDI_CH3I_MRAIL_SET_REMOTE_RNDV_INFO(&rndv, req);
@@ -1529,22 +1448,17 @@ int MPIDI_CH3_Get_rndv_push(MPIDI_VC_t * vc,
     MPIDI_CH3I_CR_unlock();
 #endif
 
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_GET_RNDV_PUSH);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_GET_RNDV_PUSH);
     return MPI_SUCCESS;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_Get_rndv_recv
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDI_CH3_Get_rndv_recv(MPIDI_VC_t * vc, MPID_Request * req)
+int MPIDI_CH3_Get_rndv_recv(MPIDI_VC_t * vc, MPIR_Request * req)
 {
     int mpi_errno = MPI_SUCCESS;
     int complete;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_RNDV_RECV);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_RNDV_RECV);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_RNDV_RECV);
 
-    MPIU_Assert(req->mrail.protocol == MV2_RNDV_PROTOCOL_RPUT);
+    MPIR_Assert(req->mrail.protocol == MV2_RNDV_PROTOCOL_RPUT);
 
 #ifdef CKPT
     MPIDI_CH3I_CR_lock();
@@ -1558,9 +1472,9 @@ int MPIDI_CH3_Get_rndv_recv(MPIDI_VC_t * vc, MPID_Request * req)
 
         for (iter=0; iter < req->dev.iov_count; ++iter)
         {
-          MPIU_Memcpy(req->dev.iov[iter].MPL_IOV_BUF,
-                   (void *) buf, req->dev.iov[iter].MPL_IOV_LEN);
-            buf += req->dev.iov[iter].MPL_IOV_LEN;
+          MPIR_Memcpy(req->dev.iov[iter].iov_base,
+                   (void *) buf, req->dev.iov[iter].iov_len);
+            buf += req->dev.iov[iter].iov_len;
         }
 
         while (req->dev.OnDataAvail == MPIDI_CH3_ReqHandler_UnpackSRBufReloadIOV
@@ -1576,9 +1490,9 @@ int MPIDI_CH3_Get_rndv_recv(MPIDI_VC_t * vc, MPID_Request * req)
 
             for (iter = 0; iter < req->dev.iov_count; ++iter)
             {
-              MPIU_Memcpy(req->dev.iov[iter].MPL_IOV_BUF,
-                       (void *) buf, req->dev.iov[iter].MPL_IOV_LEN);
-                buf += req->dev.iov[iter].MPL_IOV_LEN;
+              MPIR_Memcpy(req->dev.iov[iter].iov_base,
+                       (void *) buf, req->dev.iov[iter].iov_len);
+                buf += req->dev.iov[iter].iov_len;
             }
         }
     }
@@ -1596,13 +1510,13 @@ int MPIDI_CH3_Get_rndv_recv(MPIDI_VC_t * vc, MPID_Request * req)
         goto fn_exit;
     }
 
-    MPIU_Assert(complete == TRUE);
+    MPIR_Assert(complete == TRUE);
 
   fn_exit:
 #if defined(CKPT)
     MPIDI_CH3I_CR_unlock();
 #endif /* defined(CKPT) */
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_RNDV_RECV);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_RNDV_RECV);
     return mpi_errno;
 }
 

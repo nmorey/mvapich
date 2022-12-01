@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2014 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /* Test case from John Bent (ROMIO req #835)
@@ -15,6 +14,7 @@
 #include <mpi.h>
 #include <stdio.h>
 #include <string.h>
+#include "mpitest.h"
 
 #define NUM_OBJS 4
 #define OBJ_SIZE 1048576
@@ -73,7 +73,7 @@ static void print_hints(int rank, MPI_File * mfh)
 static void fill_buffer(char *buffer, int bufsize, int rank, MPI_Offset offset)
 {
     memset((void *) buffer, 0, bufsize);
-    snprintf(buffer, bufsize, "Hello from %d at %lld\n", rank, offset);
+    snprintf(buffer, bufsize, "Hello from %d at %lld\n", rank, (long long) offset);
 }
 
 static MPI_Offset get_offset(int rank, int num_objs, int obj_size, int which_obj)
@@ -137,18 +137,7 @@ static void write_file(char *target, int rank, MPI_Info * info)
     free(request);
 }
 
-static int reduce_corruptions(int corrupt_blocks)
-{
-    int mpi_ret;
-    int sum;
-    if ((mpi_ret = MPI_Reduce(&corrupt_blocks, &sum, 1, MPI_INT, MPI_SUM, 0,
-                              MPI_COMM_WORLD)) != MPI_SUCCESS) {
-        fatal_error(mpi_ret, NULL, "MPI_Reduce");
-    }
-    return sum;
-}
-
-static void read_file(char *target, int rank, MPI_Info * info, int *corrupt_blocks)
+static void read_file(const char *target, int rank, MPI_Info * info, int *corrupt_blocks)
 {
     MPI_File rfh;
     MPI_Offset *offset;
@@ -194,7 +183,7 @@ static void read_file(char *target, int rank, MPI_Info * info, int *corrupt_bloc
     for (i = 0; i < NUM_OBJS; i++) {
         if (memcmp(verify_buf[i], buffer[i], OBJ_SIZE) != 0) {
             (*corrupt_blocks)++;
-            printf("Corruption at %lld\n", offset[i]);
+            printf("Corruption at %lld\n", (long long) offset[i]);
             if (debug) {
                 printf("\tExpecting %s\n" "\tRecieved  %s\n", verify_buf[i], buffer[i]);
             }
@@ -247,13 +236,13 @@ set_hints(MPI_Info *info, char *hints) {
 int main(int argc, char *argv[])
 {
     int nproc = 1, rank = 0;
-    char *target = NULL;
+    const char *target = NULL;
     int c;
     MPI_Info info;
     int mpi_ret;
     int corrupt_blocks = 0;
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &nproc);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -267,24 +256,23 @@ int main(int argc, char *argv[])
     if (argc > 1) {
         while ((c = getopt(argc, argv, "df:h")) != EOF) {
             switch (c) {
-            case 'd':
-                debug = 1;
-                break;
-            case 'f':
-                target = strdup(optarg);
-                break;
-            case 'h':
-                set_hints(&info);
-                break;
-            default:
-                Usage(__LINE__);
+                case 'd':
+                    debug = 1;
+                    break;
+                case 'f':
+                    target = strdup(optarg);
+                    break;
+                case 'h':
+                    set_hints(&info);
+                    break;
+                default:
+                    Usage(__LINE__);
             }
         }
         if (!target) {
             Usage(__LINE__);
         }
-    }
-    else {
+    } else {
         target = "testfile";
         set_hints(&info);
     }
@@ -292,18 +280,9 @@ int main(int argc, char *argv[])
     write_file(target, rank, &info);
     read_file(target, rank, &info, &corrupt_blocks);
 
-    corrupt_blocks = reduce_corruptions(corrupt_blocks);
-    if (rank == 0) {
-        if (corrupt_blocks == 0) {
-            fprintf(stdout, " No Errors\n");
-        }
-        else {
-            fprintf(stdout, "%d/%d blocks corrupt\n", corrupt_blocks, nproc * NUM_OBJS);
-        }
-    }
     MPI_Info_free(&info);
 
-    MPI_Finalize();
+    MTest_Finalize(corrupt_blocks);
     free(prog);
-    exit(0);
+    return MTestReturnValue(corrupt_blocks);
 }

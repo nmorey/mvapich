@@ -23,7 +23,7 @@
 #include <sys/stat.h>
 #include <sys/sendfile.h>
 #include "mpichconf.h"
-#include "debug_utils.h"
+#include "mv2_debug_utils.h"
 #include <mpispawn_error_codes.h>
 
 #if defined(CKPT) && defined(CR_FTB)
@@ -385,6 +385,19 @@ int check_pending_puts(void)
 
     /* Check if one of the messages in the pending list is listed in flushing_messages.
        If so, we send them now */
+
+    /* TODO: Removing this logic because it breaks asymetric PUTs
+     * when using the MPIR_pmi_bcast in MPICH we get a single push per node, but
+     * this batched put logic relies on having exactly NCHILD pushes, which we won't
+     * have. The bcast push is delayed, which then get's combined with an allgather
+     * push later and changes the offset. This eventually propegates to the last
+     * piece of the allgather which has no partner and is lost.
+     *
+     * This also violates the PMI standard, which has never required that PUSHs be
+     * symetric. Until we can find a better design (or some kind of on-demand flush
+     * from the requesting process kind of like a page fault) we are removing this
+     * logic and flushing everything
+
     iter = kv_pending_puts;
     while (iter && !msg_flush) {
         i = 0;
@@ -401,6 +414,7 @@ int check_pending_puts(void)
     if ((!msg_flush) && (npending_puts != NCHILD + NCHILD_INCL)) {
         return 0;
     }
+    */
 #define REC_SIZE (KVS_MAX_KEY + KVS_MAX_VAL + 2)
     hdr.msg_len = REC_SIZE * npending_puts + 1;
     buf = (char *) malloc(hdr.msg_len * sizeof(char));
@@ -842,6 +856,8 @@ int parse_str(int rank, int fd, char *msg, int msg_len, int src)
                     writeline(MPISPAWN_CHILD_FDS[i], resp, hdr.msg_len);
                     close(MPISPAWN_CHILD_FDS[i]);
                 }
+                /* delay leader process so child processes can read first */
+                sleep(!!MPISPAWN_NCHILD);
                 for (i = 0; i < NCHILD; i++) {
                     writeline(children[i].fd, resp, hdr.msg_len);
                     close(children[i].fd);

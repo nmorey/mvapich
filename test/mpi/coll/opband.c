@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include "mpitestconf.h"
 #include <stdio.h>
@@ -39,7 +38,7 @@ int main(int argc, char *argv[])
     comm = MPI_COMM_WORLD;
     /* Set errors return so that we can provide better information
      * should a routine reject one of the operand/datatype pairs */
-    MPI_Errhandler_set(comm, MPI_ERRORS_RETURN);
+    MPI_Comm_set_errhandler(comm, MPI_ERRORS_RETURN);
 
     MPI_Comm_rank(comm, &rank);
     MPI_Comm_size(comm, &size);
@@ -58,8 +57,7 @@ int main(int argc, char *argv[])
     if (rc) {
         MTestPrintErrorMsg("MPI_BAND and MPI_CHAR", rc);
         errs++;
-    }
-    else {
+    } else {
         if (rank == 0) {
             if (coutbuf[0] != (char) 0xff) {
                 errs++;
@@ -90,8 +88,7 @@ int main(int argc, char *argv[])
     if (rc) {
         MTestPrintErrorMsg("MPI_BAND and MPI_SIGNED_CHAR", rc);
         errs++;
-    }
-    else {
+    } else {
         if (rank == 0) {
             if (scoutbuf[0] != (signed char) 0xff) {
                 errs++;
@@ -121,8 +118,7 @@ int main(int argc, char *argv[])
     if (rc) {
         MTestPrintErrorMsg("MPI_BAND and MPI_UNSIGNED_CHAR", rc);
         errs++;
-    }
-    else {
+    } else {
         if (rank == 0) {
             if (ucoutbuf[0] != 0xff) {
                 errs++;
@@ -152,8 +148,7 @@ int main(int argc, char *argv[])
     if (rc) {
         MTestPrintErrorMsg("MPI_BAND and MPI_BYTE", rc);
         errs++;
-    }
-    else {
+    } else {
         if (rank == 0) {
             if (coutbuf[0] != (char) 0xff) {
                 errs++;
@@ -183,8 +178,7 @@ int main(int argc, char *argv[])
     if (rc) {
         MTestPrintErrorMsg("MPI_BAND and MPI_SHORT", rc);
         errs++;
-    }
-    else {
+    } else {
         if (rank == 0) {
             if (soutbuf[0] != (short) 0xffff) {
                 errs++;
@@ -214,8 +208,7 @@ int main(int argc, char *argv[])
     if (rc) {
         MTestPrintErrorMsg("MPI_BAND and MPI_UNSIGNED_SHORT", rc);
         errs++;
-    }
-    else {
+    } else {
         if (rank == 0) {
             if (usoutbuf[0] != 0xffff) {
                 errs++;
@@ -245,8 +238,7 @@ int main(int argc, char *argv[])
     if (rc) {
         MTestPrintErrorMsg("MPI_BAND and MPI_UNSIGNED", rc);
         errs++;
-    }
-    else {
+    } else {
         if (rank == 0) {
             if (uoutbuf[0] != 0xffffffff) {
                 errs++;
@@ -276,8 +268,7 @@ int main(int argc, char *argv[])
     if (rc) {
         MTestPrintErrorMsg("MPI_BAND and MPI_LONG", rc);
         errs++;
-    }
-    else {
+    } else {
         if (rank == 0) {
             if (loutbuf[0] != 0xffffffff) {
                 errs++;
@@ -307,8 +298,7 @@ int main(int argc, char *argv[])
     if (rc) {
         MTestPrintErrorMsg("MPI_BAND and MPI_UNSIGNED_LONG", rc);
         errs++;
-    }
-    else {
+    } else {
         if (rank == 0) {
             if (uloutbuf[0] != 0xffffffff) {
                 errs++;
@@ -342,8 +332,7 @@ int main(int argc, char *argv[])
             if (rc) {
                 MTestPrintErrorMsg("MPI_BAND and MPI_LONG_LONG", rc);
                 errs++;
-            }
-            else {
+            } else {
                 if (rank == 0) {
                     if (lloutbuf[0] != 0xffffffff) {
                         errs++;
@@ -363,8 +352,7 @@ int main(int argc, char *argv[])
     }
 #endif
 
-    MPI_Errhandler_set(comm, MPI_ERRORS_ARE_FATAL);
+    MPI_Comm_set_errhandler(comm, MPI_ERRORS_ARE_FATAL);
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

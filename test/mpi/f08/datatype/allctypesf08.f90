@@ -1,9 +1,10 @@
+!
+! Copyright (C) by Argonne National Laboratory
+!     See COPYRIGHT in top-level directory
+!
+
 ! This file created from test/mpi/f77/datatype/allctypesf.f with f77tof90
-! -*- Mode: Fortran; -*-
-!
-!  (C) 2004 by Argonne National Laboratory.
-!      See COPYRIGHT in top-level directory.
-!
+
       program main
       use mpi_f08
       integer atype, ierr
@@ -71,10 +72,9 @@
           call checkdtype( MPI_UINT64_T, "MPI_UINT64_T", ierr )
 ! other C99 types
           call checkdtype( MPI_C_BOOL, "MPI_C_BOOL", ierr )
-          call checkdtype( MPI_C_FLOAT_COMPLEX, "MPI_C_FLOAT_COMPLEX", &
-      &                     ierr)
-          call checkdtype2( MPI_C_COMPLEX, "MPI_C_COMPLEX",  &
-      &                      "MPI_C_FLOAT_COMPLEX", ierr )
+          call checkdtype2( MPI_C_FLOAT_COMPLEX, "MPI_C_COMPLEX", &
+      &                     "MPI_C_FLOAT_COMPLEX", ierr)
+          call checkdtype( MPI_C_COMPLEX, "MPI_C_COMPLEX", ierr )
           call checkdtype( MPI_C_DOUBLE_COMPLEX, "MPI_C_DOUBLE_COMPLEX",  &
       &                     ierr )
           if (MPI_C_LONG_DOUBLE_COMPLEX .ne. MPI_DATATYPE_NULL) then
@@ -87,7 +87,6 @@
        endif
 !
        call mtest_finalize( ierr )
-       call MPI_Finalize( ierr )
        end
 !
 ! Check name of datatype

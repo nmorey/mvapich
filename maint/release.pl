@@ -1,8 +1,8 @@
-#!/usr/bin/env perl
-#
-# (C) 2008 by Argonne National Laboratory.
-#     See COPYRIGHT in top-level directory.
-#
+#! /usr/bin/env perl
+##
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
+##
 
 use strict;
 use warnings;
@@ -165,7 +165,7 @@ my $local_git_clone = "${tdir}/${prefix}-clone";
 
 # clone git repo
 print("===> Cloning git repo... ");
-run_cmd("git clone ${git_repo} ${local_git_clone}");
+run_cmd("git clone --recursive -b ${branch} ${git_repo} ${local_git_clone}");
 print("done\n");
 
 # chdirs to $local_git_clone if valid
@@ -200,6 +200,7 @@ print("===> Exporting code from git... ");
 run_cmd("rm -rf ${expdir}");
 run_cmd("mkdir -p ${expdir}");
 run_cmd("git archive --remote=${git_repo} --prefix='${prefix}-${version}/' --format=tar ${branch} | tar -x -C $tdir");
+run_cmd("git submodule foreach --recursive \'git archive HEAD --prefix='' | tar -x -C `echo \${toplevel}/\${path} | sed -e s/clone/${version}/`'");
 print("done\n");
 
 print("===> Create release date and version information... ");
@@ -240,10 +241,10 @@ print("done\n");
 # Disable unnecessary tests in the release tarball
 print("===> Disabling unnecessary tests in the main codebase... ");
 chdir($expdir);
-run_cmd(q{perl -p -i -e 's/^\@perfdir\@/#\@perfdir@/' test/mpi/testlist.in});
-run_cmd(q{perl -p -i -e 's/^\@ftdir\@/#\@ftdir@/' test/mpi/testlist.in});
+run_cmd(q{perl -p -i -e 's/^\@perfdir\@/#\@perfdir\@/' test/mpi/testlist.in});
+run_cmd(q{perl -p -i -e 's/^\@ftdir\@/#\@ftdir\@/' test/mpi/testlist.in});
 run_cmd("perl -p -i -e 's/^large_message /#large_message /' test/mpi/pt2pt/testlist");
-run_cmd("perl -p -i -e 's/^large-count /#large-count /' test/mpi/datatype/testlist");
+run_cmd("perl -p -i -e 's/^large_count /#large_count /' test/mpi/datatype/testlist");
 print("done\n");
 
 # Remove unnecessary files
@@ -257,8 +258,7 @@ print("done\n");
 print("===> Creating secondary codebase for the docs... ");
 run_cmd("mkdir ${expdir}-build");
 chdir("${expdir}-build");
-run_cmd("${expdir}/configure --with-device=ch3:nemesis:tcp --disable-fortran --disable-cxx");
-#export TEXTFILTER_PATH=/usr/local/share DOCTEXT_PATH=/usr/local/share/doctext/
+run_cmd("${expdir}/configure --with-device=ch4:stubnm --disable-fortran --disable-cxx");
 run_cmd("(make mandoc && make htmldoc && make latexdoc)");
 print("done\n");
 

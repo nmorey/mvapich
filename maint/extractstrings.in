@@ -1,6 +1,9 @@
 #! /usr/bin/env perl
-# -*- Mode: perl; -*-
-# 
+##
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
+##
+
 # This script is a replacement for several scripts that process source
 # files, extracting information from them.  This file provides a set 
 # of routines for processing files and maintaining a cache of the results.
@@ -73,7 +76,7 @@ sub GetFileNamesInDirectory {
     my @filesFound = ();
 
     opendir DIR, $dir || die "Could not open $dir\n";
-    while (my $file = readdir DIR) {
+    for my $file (sort readdir DIR) {
 	if (! -f "$dir/$file") { next; }
 	if ($file =~ /^\.$/ || $file =~ /^\.\.$/) { next; }
 	if ($file =~ /$pattern/) {
@@ -246,7 +249,7 @@ sub processDirs {
     my @dirs = ();
     # Find the directories
     opendir DIR, "$dir" || die "Cannot open $dir\n";
-    while (my $file = readdir DIR) {
+    for my $file (sort readdir DIR) {
 	if (! -d "$dir/$file") { next; }
 	if ($file =~ /^\./) { next; }
 	if ($file =~ /^.svn/) { next; }
@@ -273,7 +276,7 @@ sub processDirsAndAction {
     my @dirs = ();
     # Find the directories
     opendir DIR, "$dir" || die "Cannot open $dir\n";
-    while (my $file = readdir DIR) {
+    for my $file (sort readdir DIR) {
 	if (! -d "$dir/$file") { next; }
 	if ($file =~ /^\./) { next; }
 	if ($file =~ /^.svn/) { next; }

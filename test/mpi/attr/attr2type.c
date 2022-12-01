@@ -1,12 +1,12 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2007 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "mpitest.h"
 
 static int foo_keyval = MPI_KEYVAL_INVALID;
 
@@ -28,8 +28,9 @@ int main(int argc, char *argv[])
     int mpi_errno;
     MPI_Datatype type, duptype;
     int rank;
+    int errs = 0;
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
 
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -50,7 +51,6 @@ int main(int argc, char *argv[])
     foo_finalize();
 
     if (rank == 0) {
-        int errs = 0;
         if (copy_called != 1) {
             printf("Copy called %d times; expected once\n", copy_called);
             errs++;
@@ -59,17 +59,12 @@ int main(int argc, char *argv[])
             printf("Delete called %d times; expected twice\n", delete_called);
             errs++;
         }
-        if (errs == 0) {
-            printf(" No Errors\n");
-        }
-        else {
-            printf(" Found %d errors\n", errs);
-        }
         fflush(stdout);
     }
 
-    MPI_Finalize();
-    return 0;
+    MTest_Finalize(errs);
+
+    return MTestReturnValue(errs);
 }
 
 int foo_copy_attr_function(MPI_Datatype type,

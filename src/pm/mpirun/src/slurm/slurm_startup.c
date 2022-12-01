@@ -42,12 +42,8 @@ static char const * slurm_get_tasks_per_node()
     return getenv("SLURM_TASKS_PER_NODE");
 }
 
-static int slurm_fill_plist (
-        int const nprocs,
-        int const nnodes,
-        char const * nodelist,
-        char const * tasks_per_node
-        )
+static int slurm_fill_plist(int const nprocs, int const nnodes,
+                            char const * nodelist, char const * tasks_per_node)
 {
     char hostname[nnodes][256];
     size_t ntasks[nnodes];
@@ -81,6 +77,7 @@ static int slurm_fill_plist (
             task_index = 0;
         }
 
+        plist[plist_index].block_size = ntasks[hostname_index];
         plist[plist_index++].hostname = db_add_text(hostname[hostname_index]);
         task_index++;
     }

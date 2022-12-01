@@ -57,7 +57,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "mv2_clock.h"
-#include "debug_utils.h"
+#include "mv2_debug_utils.h"
 
 static double global_mhz = 0.0;
 

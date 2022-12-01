@@ -1,8 +1,8 @@
-/* -*- Mode: C++; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2014 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 /*
  * Test of reduce scatter with large data (needed in MPICH to trigger the
  * long-data algorithm)
@@ -16,6 +16,8 @@
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "mpitestconf.h"
+#include "mpitestcxx.h"
 
 int main(int argc, char **argv)
 {
@@ -63,13 +65,10 @@ int main(int argc, char **argv)
         }
     }
 
-    delete [] sendbuf;
-    delete [] recvbuf;
+    delete[]sendbuf;
+    delete[]recvbuf;
 
-    MPI_Finalize();
-
-    if (err == 0 && rank == 0)
-        printf(" No Errors\n");
+    MTest_Finalize(err);
 
     return 0;
 }

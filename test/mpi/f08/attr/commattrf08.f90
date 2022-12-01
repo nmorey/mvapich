@@ -1,9 +1,10 @@
+!
+! Copyright (C) by Argonne National Laboratory
+!     See COPYRIGHT in top-level directory
+!
+
 ! This file created from test/mpi/f77/attr/commattrf.f with f77tof90
-! -*- Mode: Fortran; -*-
-!
-!  (C) 2003 by Argonne National Laboratory.
-!      See COPYRIGHT in top-level directory.
-!
+
       program main
       use mpi_f08
       integer errs, ierr
@@ -113,7 +114,6 @@
       call mpi_comm_free( comm1, ierr )
 
       call mtest_finalize( errs )
-      call mpi_finalize( ierr )
       end
 !
       subroutine mycopyfn( oldcomm, keyval, extrastate, valin, valout, &

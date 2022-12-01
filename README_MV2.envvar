@@ -1,0 +1,1887 @@
+Copyright (C) by Argonne National Laboratory
+    See COPYRIGHT in top-level directory
+
+Automatically generated
+  by:   ./maint/extractmv2cvars
+  at:   Mon Aug 15 15:07:19 2022 UTC
+DO NOT EDIT!!!
+
+This file lists the various environment variables available to change the
+behavior of the MPICH library.  These are intended to be used by advanced
+users.
+---------------------------------------------------------------------------
+
+MV2_ALLGATHER_BRUCK_THRESHOLD
+    Aliases: UCR_ALLGATHER_BRUCK_THRESHOLD
+    Description: TODO-DESC
+    Default: -1
+
+MV2_ALLGATHER_RD_THRESHOLD
+    Aliases: UCR_ALLGATHER_RD_THRESHOLD
+    Description: TODO-DESC
+    Default: -1
+
+MV2_ALLGATHER_REVERSE_RANKING
+    Aliases: UCR_ALLGATHER_REVERSE_RANKING
+    Description: TODO-DESC
+    Default: 1
+
+MV2_ALLGATHERV_RD_THRESHOLD
+    Aliases: UCR_ALLGATHERV_RD_THRESHOLD
+    Description: TODO-DESC Defaults to 0 if not specified. If specified
+        then mv2_tune_parameter is set to 1 regardless of value.
+    Default: -1
+
+MV2_ALLREDUCE_2LEVEL_MSG
+    Aliases: UCR_ALLREDUCE_2LEVEL_MSG
+    Description: This parameter can be used to determine the threshold for
+        the 2-level Allreduce algorithm. We now use the shared-memory-based
+        algorithm for messages smaller than the MV2_SHMEM_ALLREDUCE_MSG
+        threshold, the 2-level algorithm for medium sized messages up to
+        the threshold defined by this parameter. We use the default
+        point-to-point algorithms messages larger than this threshold.
+    Default: -1
+
+MV2_ALLREDUCE_SHORT_MSG
+    Aliases: UCR_ALLREDUCE_SHORT_MSG
+    Description: TODO-DESC
+    Default: -1
+
+MV2_SHMEM_ALLREDUCE_MSG
+    Aliases: UCR_SHMEM_ALLREDUCE_MSG
+    Description: The SHMEM AllReduce is used for messages less than this
+        threshold.
+    Default: (1<<15)
+
+MV2_USE_SHMEM_ALLREDUCE
+    Aliases: UCR_USE_SHMEM_ALLREDUCE
+    Description: This parameter can be used to turn off shared memory based
+        MPI_Allreduce for OFA-IB-CH3 over IBA by setting this to 0.
+    Default: 1
+
+MV2_USE_SOCKET_AWARE_ALLREDUCE
+    Aliases: UCR_USE_SOCKET_AWARE_ALLREDUCE
+    Description: TODO-DESC
+    Default: 0
+
+MV2_USE_SOCKET_AWARE_SHARP_ALLREDUCE
+    Aliases: UCR_USE_SOCKET_AWARE_SHARP_ALLREDUCE
+    Description: TODO-DESC
+    Default: 1
+
+MV2_SOCKET_AWARE_ALLREDUCE_MAX_MSG
+    Aliases: UCR_SOCKET_AWARE_ALLREDUCE_MAX_MSG
+    Description: TODO-DESC
+    Default: 2048
+
+MV2_SOCKET_AWARE_ALLREDUCE_MIN_MSG
+    Aliases: UCR_SOCKET_AWARE_ALLREDUCE_MIN_MSG
+    Description: TODO-DESC
+    Default: 1
+
+MV2_ALLTOALL_MEDIUM_MSG
+    Aliases: UCR_ALLTOALL_MEDIUM_MSG
+    Description: TODO-DESC
+    Default: -1
+
+MV2_ALLTOALL_SMALL_MSG
+    Aliases: UCR_ALLTOALL_SMALL_MSG
+    Description: TODO-DESC
+    Default: -1
+
+MV2_ALLTOALL_THROTTLE_FACTOR
+    Aliases: UCR_ALLTOALL_THROTTLE_FACTOR
+    Description: TODO-DESC
+    Default: -1
+
+MV2_USE_XOR_ALLTOALL
+    Aliases: UCR_USE_XOR_ALLTOALL
+    Description: TODO-DESC
+    Default: 1
+
+MV2_USE_SHMEM_BARRIER
+    Aliases: UCR_USE_SHMEM_BARRIER
+    Description: This parameter can be used to turn off shared memory based
+        MPI_Barrier for OFA-IB-CH3 over IBA by setting this to 0.
+    Default: 1
+
+MV2_USE_SOCKET_AWARE_BARRIER
+    Aliases: UCR_USE_SOCKET_AWARE_BARRIER
+    Description: TODO-DESC
+    Default: 0
+
+MV2_BCAST_TWO_LEVEL_SYSTEM_SIZE
+    Aliases: UCR_BCAST_TWO_LEVEL_SYSTEM_SIZE
+    Description: TODO-DESC
+    Default: 64
+
+MV2_KNOMIAL_2LEVEL_BCAST_MESSAGE_SIZE_THRESHOLD
+    Aliases: UCR_KNOMIAL_2LEVEL_BCAST_MESSAGE_SIZE_THRESHOLD
+    Description: TODO-DESC
+    Default: 2048
+
+MV2_KNOMIAL_2LEVEL_BCAST_SYSTEM_SIZE_THRESHOLD
+    Aliases: UCR_KNOMIAL_2LEVEL_BCAST_SYSTEM_SIZE_THRESHOLD
+    Description: TODO-DESC
+    Default: 64
+
+MV2_USE_BCAST_SHORT_MSG
+    Aliases: UCR_USE_BCAST_SHORT_MSG
+    Description: TODO-DESC
+    Default: -1
+
+MV2_USE_KNOMIAL_2LEVEL_BCAST
+    Aliases: UCR_USE_KNOMIAL_2LEVEL_BCAST
+    Description: TODO-DESC
+    Default: 1
+
+MV2_USE_KNOMIAL_INTER_LEADER_BCAST
+    Aliases: UCR_USE_KNOMIAL_INTER_LEADER_BCAST
+    Description: TODO-DESC
+    Default: 1
+
+MV2_USE_SHMEM_BCAST
+    Aliases: UCR_USE_SHMEM_BCAST
+    Description: This parameter can be used to turn off shared memory based
+        MPI_Bcast for OFA-IB-CH3 over IBA by setting this to 0.
+    Default: 1
+
+MV2_GATHER_SWITCH_PT
+    Aliases: UCR_GATHER_SWITCH_PT
+    Description: We use different algorithms depending on the system size.
+        For small system sizes (up to 386 cores), we use the "2-level"
+        algorithm  followed by the "Direct" algorithm. For medium system
+        sizes (up to 1k), we use the "Binomial" algorithm followed by the
+        "Direct" algorithm. Users can set the switching point between
+        algorithms using this runtime parameter.
+    Default: -1
+
+MV2_USE_DIRECT_GATHER
+    Aliases: UCR_USE_DIRECT_GATHER
+    Description: Use the "Direct" algorithm for the MPI_Gather operation.
+        If this parameter is set to 0 at run-time, the "Direct" algorithm
+        will not be invoked.
+    Default: 1
+
+MV2_USE_DIRECT_GATHER_SYSTEM_SIZE_MEDIUM
+    Aliases: UCR_USE_DIRECT_GATHER_SYSTEM_SIZE_MEDIUM
+    Description: TODO-DESC
+    Default: 1024
+
+MV2_USE_DIRECT_GATHER_SYSTEM_SIZE_SMALL
+    Aliases: UCR_USE_DIRECT_GATHER_SYSTEM_SIZE_SMALL
+    Description: TODO-DESC
+    Default: 384
+
+MV2_USE_TWO_LEVEL_GATHER
+    Aliases: UCR_USE_TWO_LEVEL_GATHER
+    Description: Use the two-level multi-core-aware algorithm for the
+        MPI_Gather operation. If this parameter is set to 0 at run-time,
+        the two-level algorithm will not be invoked.
+    Default: 1
+
+MV2_INTRA_SHMEM_REDUCE_MSG
+    Aliases: UCR_INTRA_SHMEM_REDUCE_MSG
+    Description: TODO-DESC
+    Default: (1<<11)
+
+MV2_REDUCE_2LEVEL_MSG
+    Aliases: UCR_REDUCE_2LEVEL_MSG
+    Description: This parameter can be used to determine the threshold for
+        the 2-level reduce algorithm. We now use the shared-memory-based
+        algorithm for messages smaller than the MV2_SHMEM_REDUCE_MSG, the
+        2-level algorithm for medium sized messages up to the threshold
+        defined by this parameter. We use the default point-to-point
+        algorithms messages larger than this threshold.
+    Default: (1<<18)
+
+MV2_REDUCE_SHORT_MSG
+    Aliases: UCR_REDUCE_SHORT_MSG
+    Description: TODO-DESC
+    Default: 2048
+
+MV2_SHMEM_REDUCE_MSG
+    Aliases: UCR_SHMEM_REDUCE_MSG
+    Description: The SHMEM reduce is used for messages less than this
+        threshold.
+    Default: (1<<12)
+
+MV2_USE_SHMEM_REDUCE
+    Aliases: UCR_USE_SHMEM_REDUCE
+    Description: This parameter can be used to turn off shared memory based
+        MPI_Reduce for OFA-IB-CH3 over IBA by setting this to 0.
+    Default: 1
+
+MV2_RED_SCAT_LARGE_MSG
+    Aliases: UCR_RED_SCAT_LARGE_MSG
+    Description: TODO-DESC
+    Default: (512*1024)
+
+MV2_RED_SCAT_SHORT_MSG
+    Aliases: UCR_RED_SCAT_SHORT_MSG
+    Description: TODO-DESC
+    Default: 64
+
+MV2_SCATTER_MEDIUM_MSG
+    Aliases: UCR_SCATTER_MEDIUM_MSG
+    Description: When the system size is lower than 512 cores, we use the
+        "2-level" algorithm for medium message sizes. This allows the user
+        to set the threshold for medium messages. -1 indicates allowing the
+        default values to be used. 
+    Default: -1
+
+MV2_SCATTER_SMALL_MSG
+    Aliases: UCR_SCATTER_SMALL_MSG
+    Description: When the system size is lower than 512 cores, we use the
+        "Binomial"algorithm for small message sizes. This allows the user
+        to set the threshold for small messgaes. -1 indicates allowing the
+        default values to be used.
+    Default: -1
+
+MV2_USE_DIRECT_SCATTER
+    Aliases: UCR_USE_DIRECT_SCATTER
+    Description: Use the "Direct" algorithm for the MPI_Scatter operation.
+        If this parameter is set to 0 at runtime, the "Direct" algorithm
+        will not be invoked.
+    Default: 1
+
+MV2_USE_SCATTER_RD_INTER_LEADER_BCAST
+    Aliases: UCR_USE_SCATTER_RD_INTER_LEADER_BCAST
+    Description: TODO-DESC
+    Default: 1
+
+MV2_USE_SCATTER_RING_INTER_LEADER_BCAST
+    Aliases: UCR_USE_SCATTER_RING_INTER_LEADER_BCAST
+    Description: TODO-DESC
+    Default: 1
+
+MV2_USE_TWO_LEVEL_SCATTER
+    Aliases: UCR_USE_TWO_LEVEL_SCATTER
+    Description: Use the two-level multi-core-aware algorithm for the
+        MPI_Scatter operation. If this parameter is set to 0 at run-time,
+        the two-level algorithm will not be invoked.
+    Default: 1
+
+MV2_KNOMIAL_INTER_LEADER_THRESHOLD
+    Aliases: UCR_KNOMIAL_INTER_LEADER_THRESHOLD
+    Description: TODO-DESC
+    Default: (64 * 1024)
+
+MV2_KNOMIAL_INTER_NODE_FACTOR
+    Aliases: UCR_KNOMIAL_INTER_NODE_FACTOR
+    Description: This defines the degree of the knomial operation during
+        the inter-node knomial broadcast phase.
+    Default: 4
+
+MV2_KNOMIAL_INTRA_NODE_FACTOR
+    Aliases: UCR_KNOMIAL_INTRA_NODE_FACTOR
+    Description: This defines the degree of the knomial operation during
+        the intra-node knomial broadcast phase.
+    Default: 4
+
+MV2_KNOMIAL_INTRA_NODE_THRESHOLD
+    Aliases: UCR_KNOMIAL_INTRA_NODE_THRESHOLD
+    Description: TODO-DESC
+    Default: (128 * 1024)
+
+MV2_SHMEM_COLL_MAX_MSG_SIZE
+    Aliases: UCR_SHMEM_COLL_MAX_MSG_SIZE
+    Description: This parameter can be used to select the max buffer size
+        of message for shared memory collectives.
+    Default: (128 * 1024)
+
+MV2_SHMEM_COLL_NUM_COMM
+    Aliases: UCR_SHMEM_COLL_NUM_COMM
+    Description: This parameter can be used to select the number of
+        communicators using shared memory collectives.
+    Default: 32
+
+MV2_SHMEM_COLL_NUM_PROCS
+    Aliases: UCR_SHMEM_COLL_NUM_PROCS
+    Description: TODO-DESC
+    Default: -1
+
+MV2_SHMEM_COLL_SPIN_COUNT
+    Aliases: UCR_SHMEM_COLL_SPIN_COUNT
+    Description: TODO-DESC
+    Default: 5
+
+MV2_USE_OSU_COLLECTIVES
+    Aliases: UCR_USE_OSU_COLLECTIVES
+    Description: TODO-DESC
+    Default: 1
+
+MV2_USE_OSU_NB_COLLECTIVES
+    Aliases: UCR_USE_OSU_NB_COLLECTIVES
+    Description: TODO-DESC
+    Default: 1
+
+MV2_USE_SHMEM_COLL
+    Aliases: UCR_USE_SHMEM_COLL
+    Description: Use shared memory for collective communication. Set this
+        to 0 for disabling shared memory collectives.
+    Default: 1
+
+MV2_ENABLE_SOCKET_AWARE_COLLECTIVES
+    Aliases: UCR_ENABLE_SOCKET_AWARE_COLLECTIVES
+    Description: This parameter enables/disables support for socket-aware
+        collective communication. The parameter MV2_USE_SHMEM_COLL must be
+        set to 1 for this to work.
+    Default: 0
+
+MV2_CPU_BINDING_LEVEL
+    Aliases: UCR_CPU_BINDING_LEVEL
+    Description: This CVAR allows users to specify process to CPU (core)
+        mapping at different binding levels. This parameters will not take
+        effect if MV2_ENABLE_AFFINITY or MV2_USE_SHARED_MEM CVARs are set
+        to 0,  if MV2_CPU_MAPPING is set, or if the library was configured
+        with the "--disable-hwloc" option. The value of
+        MV2_CPU_BINDING_LEVEL can be "core", "socket", or "numanode". When
+        this value is not set "core" will be used as the default binding
+        level. 
+    Default: NULL
+
+MV2_CPU_MAPPING
+    Aliases: UCR_CPU_MAPPING
+    Description: This CVAR allows users to specify process to CPU(core)
+        mapping. This parameter will not take effect if either
+        MV2_ENABLE_AFFINITY or MV2_USE_SHARED_MEM CVARs are set to 0 or if
+        the library was configured with the "--disable-hwloc" option.
+        MV2_CPU_MAPPING is currently not supported on Solaris.
+    Default: NULL
+
+MV2_ENABLE_AFFINITY
+    Aliases: UCR_ENABLE_AFFINITY
+    Description: Enable CPU affinity by setting MV2_ENABLE_AFFINITY to 1 or
+        disable it by setting MV2_ENABLE_AFFINITY to 0. MV2_ENABLE_AFFINITY
+        is currently not supported on Solaris. CPU affinity is also not
+        supported if MV2_USE_SHARED_MEM is set to 0.
+    Default: -1
+
+MV2_ENABLE_LEASTLOAD
+    Aliases: UCR_ENABLE_LEASTLOAD
+    Description: TODO-DESC
+    Default: 0
+
+MV2_CPU_BINDING_POLICY
+    Aliases: UCR_CPU_BINDING_POLICY
+    Description: We have changed the default value of
+        MV2_CPU_BINDING_POLICY to "hybrid" along with
+        MV2_HYBRID_BINDING_POLICY=bunch. It is the  same as setting
+        MV2_CPU_BINDING_POLICY to bunch. However, it also  works well for
+        systems with hyper-threading enabled or systems that have vendor
+        specific core mappings. This allows users to specify process to CPU
+        (core) mapping with the CPU binding policy. This parameter will no
+        take effect if MV2_ENABLE_AFFINITY or MV2_USE_SHARED_MEM CVARs are
+        set to 0, if MV2_CPU_MAPPING is set, or if the library was
+        configured with the "--disable-hwloc" option. The value of
+        MV2_CPU_BINDING_POLICY can be "bunch", "scatter", or "hybrid". When
+        this parameter is unset the "hybrid" policy will be used. 
+    Default: NULL
+
+MV2_CM_MAX_SPIN_COUNT
+    Aliases: UCR_CM_MAX_SPIN_COUNT
+    Description: TODO-DESC
+    Default: 5000
+
+MV2_CM_RECV_BUFFERS
+    Aliases: UCR_CM_RECV_BUFFERS
+    Description: This defines the number of buffers used by connection
+        manager to establish new connections. These buffers are quite small
+        and are shared for all connections, so this value may be increased
+        to 8192 for large clusters to avoid retries in case of packet
+        drops.
+    Default: 1024
+
+MV2_CM_SEND_DEPTH
+    Aliases: UCR_CM_SEND_DEPTH
+    Description: TODO-DESC
+    Default: 10
+
+MV2_CM_TIMEOUT
+    Aliases: UCR_CM_TIMEOUT
+    Description: This is the timeout value associated with connection
+        management messages via UD channel. Decreasing this value may lead
+        to faster retries but at the cost of generating duplicate messages.
+    Default: -1
+
+MV2_CM_UD_PSN
+    Aliases: UCR_CM_UD_PSN
+    Description: TODO-DESC
+    Default: 0
+
+MV2_CM_THREAD_STACKSIZE
+    Aliases: UCR_CM_THREAD_STACKSIZE
+    Description: TODO-DESC
+    Default: (1024*1024)
+
+MV2_FORCE_HCA_TYPE
+    Aliases: UCR_FORCE_HCA_TYPE
+    Description: TODO-DESC
+    Default: -1
+
+MV2_HCA_AWARE_PROCESS_MAPPING
+    Aliases: UCR_HCA_AWARE_PROCESS_MAPPING
+    Description: TODO-DESC - Not used currently.
+    Default: 1
+
+MV2_RDMA_CM_ARP_TIMEOUT
+    Aliases: UCR_RDMA_CM_ARP_TIMEOUT
+    Description: This parameter specifies the ARP timeout to be used by
+        RDMA CM module.
+    Default: 2000
+
+MV2_RDMA_CM_PORT
+    Aliases: UCR_RDMA_CM_PORT
+    Description: TODO-DESC
+    Default: -1
+
+MV2_RDMA_CM_MAX_PORT
+    Aliases: UCR_RDMA_CM_MAX_PORT
+    Description: This parameter specifies the upper limit of the port range
+        to be used by the RDMA CM module when choosing the port on which it
+        listens for connections. If not specified, defaults to 65536.
+    Default: -1
+
+MV2_RDMA_CM_MIN_PORT
+    Aliases: UCR_RDMA_CM_MIN_PORT
+    Description: This parameter specifies the lower limit of the port range
+        to be used by the RDMA CM module when choosing the port on which it
+        listens for connections. If not specified, defaults to 1024.
+    Default: -1
+
+MV2_SHMEM_DIR
+    Aliases: UCR_SHMEM_DIR
+    Description: This parameter can be used to specify the path to the
+        shared memory files for intra-node communication.
+    Default: NULL
+
+MV2_EAGER_CUDAHOST_REG
+    Aliases: UCR_EAGER_CUDAHOST_REG
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_VECTOR_OPT
+    Aliases: UCR_CUDA_VECTOR_OPT
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_KERNEL_OPT
+    Aliases: UCR_CUDA_KERNEL_OPT
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_KERNEL_VECTOR_TIDBLK_SIZE
+    Aliases: UCR_CUDA_KERNEL_VECTOR_TIDBLK_SIZE
+    Description: This controls the number of CUDA threads per block in
+        pack/unpack kernels for MPI vector datatype in communication
+        involving GPU device buffers.
+    Default: 1024
+
+MV2_CUDA_KERNEL_VECTOR_YSIZE
+    Aliases: UCR_CUDA_KERNEL_VECTOR_YSIZE
+    Description: This controls the y-dimension of a thread block in
+        pack/unpack kernels for MPI vector datatype in communication
+        involving GPU device buffers. It controls the number of threads
+        operating on each block of data in a vector.
+    Default: -1
+
+MV2_CUDA_KERNEL_SUBARR_TIDBLK_SIZE
+    Aliases: UCR_CUDA_KERNEL_SUBARR_TIDBLK_SIZE
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_KERNEL_SUBARR_XDIM
+    Aliases: UCR_CUDA_KERNEL_SUBARR_XDIM
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_KERNEL_SUBARR_YDIM
+    Aliases: UCR_CUDA_KERNEL_SUBARR_YDIM
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_KERNEL_SUBARR_ZDIM
+    Aliases: UCR_CUDA_KERNEL_SUBARR_ZDIM
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_NUM_EVENTS
+    Aliases: UCR_CUDA_NUM_EVENTS
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_INIT_CONTEXT
+    Aliases: UCR_CUDA_INIT_CONTEXT
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CHECK_CUDA_ATTRIBUTE
+    Aliases: UCR_CHECK_CUDA_ATTRIBUTE
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_USE_NAIVE
+    Aliases: UCR_CUDA_USE_NAIVE
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_ALLTOALL_DYNAMIC
+    Aliases: UCR_CUDA_ALLTOALL_DYNAMIC
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_REGISTER_NAIVE_BUF
+    Aliases: UCR_CUDA_REGISTER_NAIVE_BUF
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_GATHER_NAIVE_LIMIT
+    Aliases: UCR_CUDA_GATHER_NAIVE_LIMIT
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_SCATTER_NAIVE_LIMIT
+    Aliases: UCR_CUDA_SCATTER_NAIVE_LIMIT
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_ALLTOALL_NAIVE_LIMIT
+    Aliases: UCR_CUDA_ALLTOALL_NAIVE_LIMIT
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_ALLTOALLV_NAIVE_LIMIT
+    Aliases: UCR_CUDA_ALLTOALLV_NAIVE_LIMIT
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_ALLGATHER_NAIVE_LIMIT
+    Aliases: UCR_CUDA_ALLGATHER_NAIVE_LIMIT
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_ALLGATHERV_NAIVE_LIMIT
+    Aliases: UCR_CUDA_ALLGATHERV_NAIVE_LIMIT
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_BCAST_NAIVE_LIMIT
+    Aliases: UCR_CUDA_BCAST_NAIVE_LIMIT
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_GATHERV_NAIVE_LIMIT
+    Aliases: UCR_CUDA_GATHERV_NAIVE_LIMIT
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_SCATTERV_NAIVE_LIMIT
+    Aliases: UCR_CUDA_SCATTERV_NAIVE_LIMIT
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_ALLGATHER_RD_LIMIT
+    Aliases: UCR_CUDA_ALLGATHER_RD_LIMIT
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_ALLGATHER_FGP
+    Aliases: UCR_CUDA_ALLGATHER_FGP
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_IPC
+    Aliases: UCR_CUDA_IPC
+    Description: This enables intra-node GPU-GPU communication using IPC
+        feature available from CUDA 4.1
+    Default: 1
+
+MV2_CUDA_IPC_SHARE_GPU
+    Aliases: UCR_CUDA_IPC_SHARE_GPU
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_SMP_IPC
+    Aliases: UCR_CUDA_SMP_IPC
+    Description: This enables an optimization for short message GPU
+        device-to-device communication using IPC feature available from
+        CUDA 4.1
+    Default: 0
+
+MV2_CUDA_ENABLE_IPC_CACHE
+    Aliases: UCR_CUDA_ENABLE_IPC_CACHE
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_IPC_MAX_CACHE_ENTRIES
+    Aliases: UCR_CUDA_IPC_MAX_CACHE_ENTRIES
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_IPC_NUM_STAGE_BUFFERS
+    Aliases: UCR_CUDA_IPC_NUM_STAGE_BUFFERS
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_IPC_STAGE_BUF_SIZE
+    Aliases: UCR_CUDA_IPC_STAGE_BUF_SIZE
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_IPC_BUFFERED
+    Aliases: UCR_CUDA_IPC_BUFFERED
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_IPC_THRESHOLD
+    Aliases: UCR_CUDA_IPC_THRESHOLD
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_IPC_BUFFERED_LIMIT
+    Aliases: UCR_CUDA_IPC_BUFFERED_LIMIT
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_IPC_SYNC_LIMIT
+    Aliases: UCR_CUDA_IPC_SYNC_LIMIT
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_DYNAMIC_INIT
+    Aliases: UCR_CUDA_DYNAMIC_INIT
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CUDA_NONBLOCKING_STREAMS
+    Aliases: UCR_CUDA_NONBLOCKING_STREAMS
+    Description: This controls the use of non-blocking streams for
+        asynchronous CUDA memory copies in communication involving GPU
+        memory.
+    Default: 1
+
+MV2_SMP_EAGERSIZE
+    Aliases: UCR_SMP_EAGERSIZE
+    Description: This parameter defines the size of shared buffer between
+        every two processes on the same node for transferring messages
+        smaller than or equal to MV2_SMP_EAGERSIZE. Note that this variable
+        can be set with suffixes such as 'K'/'k', 'M'/'m' or 'G'/'g' to
+        denote Kilobyte, Megabyte or Gigabyte respectively.
+    Default: -1
+
+MV2_IBA_HCA
+    Aliases: UCR_IBA_HCA
+    Description: This specifies the HCA's to be used for performing network
+        operations.
+    Default: NULL
+
+MV2_SMP_USE_CMA
+    Aliases: UCR_SMP_USE_CMA
+    Description: This parameter enables/disables CMA based intra-node
+        communication at run time. It does not take effect if MVAPICH2 is
+        configured with -without-cma. When -with-limic2 is included in the
+        configure flags, LiMIC2 is used in preference over CMA. Please set
+        MV2_SMP_USE_LIMIC2 to 0 in order to choose CMA if MVAPICH2 is
+        configured with -with-limic2.
+    Default: -1
+
+MV2_SMP_USE_LIMIC2
+    Aliases: UCR_SMP_USE_LIMIC2
+    Description: This parameter enables/disables LiMIC2 at run time. It
+        does not take effect if MVAPICH2 is not configured with
+        -with-limic2. Not used currently.
+    Default: -1
+
+MV2_SMP_POLLING_THRESHOLD
+    Aliases: UCR_SMP_POLLING_THRESHOLD
+    Description: TODO-DESC
+    Default: 200
+
+MV2_SMP_CMA_MAX_SIZE
+    Aliases: UCR_SMP_CMA_MAX_SIZE
+    Description: TODO-DESC
+    Default: -1
+
+MV2_SMP_LIMIC2_MAX_SIZE
+    Aliases: UCR_SMP_LIMIC2_MAX_SIZE
+    Description: TODO-DESC
+    Default: -1
+
+MV2_SMP_QUEUE_LENGTH
+    Aliases: UCR_SMP_QUEUE_LENGTH
+    Description: This parameter defines the size of the shared buffer
+        between every two processes on the same node for transferring
+        intra-node messages smaller than or equal to MV2_SMP_EAGERSIZE.
+        This variable can be set with suffixes suck as 'K'/'k', 'M'/'m', or
+        'G'/'g' to  denote Kilobyte, Megabyte, or Gigabyte respectively.
+    Default: -1
+
+MV2_LIMIC_PUT_THRESHOLD
+    Aliases: UCR_LIMIC_PUT_THRESHOLD
+    Description: TODO-DESC
+    Default: -1
+
+MV2_LIMIC_GET_THRESHOLD
+    Aliases: UCR_LIMIC_GET_THRESHOLD
+    Description: TODO-DESC
+    Default: -1
+
+MV2_R3_THRESHOLD
+    Aliases: UCR_R3_THRESHOLD
+    Description: The value of this variable controls what message sizes go
+        over the R3 rendezvous protocol. Messages above this message size
+        use MV2_RNDV_PROTOCOL.
+    Default: 4096
+
+MV2_INTRA_NODE_R3_THRESHOLD
+    Aliases: UCR_INTRA_NODE_R3_THRESHOLD
+    Description: TODO-DESC
+    Default: 1
+
+MV2_INTER_NODE_R3_THRESHOLD
+    Aliases: UCR_INTER_NODE_R3_THRESHOLD
+    Description: TODO-DESC
+    Default: 4096
+
+MV2_R3_NOCACHE_THRESHOLD
+    Aliases: UCR_R3_NOCACHE_THRESHOLD
+    Description: The value of this variable controls what message sizes go
+        over the R3 rendezvous protocol when the registration cache is
+        disabled (MV2_USE_LAZY_MEM_UNREGISTER=0). Messages above this
+        message size use MV2_RNDV_PROTOCOL.
+    Default: 32768
+
+MV2_MAX_R3_PENDING_DATA
+    Aliases: UCR_MAX_R3_PENDING_DATA
+    Description: TODO-DESC
+    Default: (512 * 1024)
+
+MV2_USE_LIMIC2_COLL
+    Aliases: UCR_USE_LIMIC2_COLL
+    Description: TODO-DESC
+    Default: 0
+
+MV2_SMP_USE_MAX_SWITCH
+    Aliases: UCR_SMP_USE_MAX_SWITCH
+    Description: TODO-DESC
+    Default: 0
+
+MV2_CUDA_SMP_PIPELINE
+    Aliases: UCR_CUDA_SMP_PIPELINE
+    Description: TODO-DESC
+    Default: 1
+
+MV2_SMP_DELAY_SHMEM_POOL_INIT
+    Aliases: UCR_SMP_DELAY_SHMEM_POOL_INIT
+    Description: TODO-DESC
+    Default: 1
+
+MV2_SMP_PRIORITY_POLLING
+    Aliases: UCR_SMP_PRIORITY_POLLING
+    Description: TODO-DESC
+    Default: 1
+
+MV2_SMP_NUM_SEND_BUFFER
+    Aliases: UCR_SMP_NUM_SEND_BUFFER
+    Description: This parameter defines the number of internal send buffers
+        for sending intra-node messages larger than MV2_SMP_EAGERSIZE.
+    Default: -1
+
+MV2_SMP_BATCH_SIZE
+    Aliases: UCR_SMP_BATCH_SIZE
+    Description: TODO-DESC
+    Default: -1
+
+MV2_SMP_SEND_BUF_SIZE
+    Aliases: UCR_SMP_SEND_BUF_SIZE
+    Description: This parameter defines the packet size when sending
+        intra-node messages larger than MV2_SMP_EAGERSIZE.
+    Default: -1
+
+MV2_USE_OPT_EAGER_RECV
+    Aliases: UCR_USE_OPT_EAGER_RECV
+    Description: TODO-DESC
+    Default: 0
+
+MV2_NUM_NODES_IN_JOB
+    Aliases: UCR_NUM_NODES_IN_JOB
+    Description: TODO-DESC
+    Default: -1
+
+MV2_USE_MCAST
+    Aliases: UCR_USE_MCAST
+    Description: Set this to 1, to enable hardware multicast support in
+        collective communication.
+    Default: -1
+
+MV2_USE_RDMA_CM_MCAST
+    Aliases: UCR_USE_RDMA_CM_MCAST
+    Description: This parameter enables support for RDMA_CM based multicast
+        group setup. Requires the parameter MV2_USE_MCAST to be set to 1.
+    Default: -1
+
+MV2_USE_QOS
+    Aliases: UCR_USE_QOS
+    Description: TODO-DESC
+    Default: 0
+
+MV2_3DTORUS_SUPPORT
+    Aliases: UCR_3DTORUS_SUPPORT
+    Description: TODO-DESC
+    Default: -1
+
+MV2_PATH_SL_QUERY
+    Aliases: UCR_PATH_SL_QUERY
+    Description: TODO-DESC
+    Default: 0
+
+MV2_NUM_SLS
+    Aliases: UCR_NUM_SLS
+    Description: TODO-DESC
+    Default: 8
+
+MV2_NUM_SA_QUERY_RETRIES
+    Aliases: UCR_NUM_SA_QUERY_RETRIES
+    Description: Number of times the MPI library will attempt to query the
+        subnet to obtain the path record information before giving up.
+    Default: 20
+
+MV2_MAX_RDMA_CONNECT_ATTEMPTS
+    Aliases: UCR_MAX_RDMA_CONNECT_ATTEMPTS
+    Description: TODO-DESC
+    Default: 20
+
+MV2_RDMA_CM_CONNECT_RETRY_INTERVAL
+    Aliases: UCR_RDMA_CM_CONNECT_RETRY_INTERVAL
+    Description: TODO-DESC
+    Default: 100
+
+MV2_USE_HSAM
+    Aliases: UCR_USE_HSAM
+    Description: This parameter is used for utilizing hot-spot avoidance
+        with InfiniBand clusters. To leverage this functionality, the
+        subnet should be configured with lmc greater than zero.
+    Default: -1
+
+MV2_USE_APM
+    Aliases: UCR_USE_APM
+    Description: This parameter is used for recovery from network faults
+        using Automatic Path Migration. This functionality is beneficial in
+        the presence of multiple paths in the network, which can be enabled
+        by using lmc mechanism.
+    Default: -1
+
+MV2_USE_APM_TEST
+    Aliases: UCR_USE_APM_TEST
+    Description: This parameter is used for testing the Automatic Path
+        Migration functionality. It periodically moves the alternate path
+        as the primary path of communication and re-loads another alternate
+        path.
+    Default: -1
+
+MV2_USE_IWARP_MODE
+    Aliases: UCR_USE_IWARP_MODE
+    Description: This parameter enables the library to run in iWARP mode.
+    Default: -1
+
+MV2_USE_RDMA_CM
+    Aliases: UCR_USE_RDMA_CM
+    Description: This parameter enables the use of RDMA CM for establishing
+        the connections.
+    Default: -1
+
+MV2_RDMA_CM_MULTI_SUBNET_SUPPORT
+    Aliases: UCR_RDMA_CM_MULTI_SUBNET_SUPPORT
+    Description: This parameter allows MPI jobs to be run across multiple
+        subnets interconnected by InfiniBand routers. Note that this
+        requires RDMA_CM support to be enabled at configure time and
+        runtime. Note that, RDMA_CM support is enabled by default at
+        configure time.
+    Default: 0
+
+MV2_SUPPORT_DPM
+    Aliases: UCR_SUPPORT_DPM
+    Description: This option enables the dynamic process management
+        interface and on-demand connection management.
+    Default: 0
+
+MV2_ON_DEMAND_THRESHOLD
+    Aliases: UCR_ON_DEMAND_THRESHOLD
+    Description: This defines threshold for enabling on-demand connection
+        management scheme. When the size of the job is larger than the
+        threshold value, on-demand connection management will be used.
+    Default: -1
+
+MV2_USE_XRC
+    Aliases: UCR_USE_XRC
+    Description: Use the XRC InfiniBand transport available since Mellanox
+        ConnectX adapters. This features requires OFED version later than
+        1.3. It also automatically enables SRQ and ON-DEMAND connection
+        management. Note that the MVAPICH2 library needs to have been
+        configured with -enable-xrc=yes to use this feature.
+    Default: 0
+
+MV2_USE_SRQ
+    Aliases: UCR_USE_SRQ
+    Description: Setting this parameter enables MVAPICH2 to use shared
+        receive queue.
+    Default: 1
+
+MV2_IWARP_MULTIPLE_CQ_THRESHOLD
+    Aliases: UCR_IWARP_MULTIPLE_CQ_THRESHOLD
+    Description: This defines the process size beyond which we use multiple
+        completion queues for iWARP interface.
+    Default: 32
+
+MV2_USE_LAZY_MEM_UNREGISTER
+    Aliases: UCR_USE_LAZY_MEM_UNREGISTER
+    Description: Setting this parameter enables MVAPICH2 to use memory
+        registration cache.
+    Default: 1
+
+MV2_USE_RMA_FAST_PATH
+    Aliases: UCR_USE_RMA_FAST_PATH
+    Description: TODO-DESC
+    Default: 1
+
+MV2_FORCE_IB_ATOMIC
+    Aliases: UCR_FORCE_IB_ATOMIC
+    Description: TODO-DESC
+    Default: 0
+
+MV2_USE_RDMA_ONE_SIDED
+    Aliases: UCR_USE_RDMA_ONE_SIDED
+    Description: Setting this parameter allows MVAPICH2 to use optimized
+        one sided implementation based RDMA operations.
+    Default: 1
+
+MV2_RNDV_EXT_SENDQ_SIZE
+    Aliases: UCR_RNDV_EXT_SENDQ_SIZE
+    Description: TODO-DESC
+    Default: 5
+
+MV2_RDMA_NUM_EXTRA_POLLS
+    Aliases: UCR_RDMA_NUM_EXTRA_POLLS
+    Description: TODO-DESC
+    Default: 1
+
+MV2_COALESCE_THRESHOLD
+    Aliases: UCR_COALESCE_THRESHOLD
+    Description: This parameter determines the threshold for message
+        coalescing.
+    Default: 6
+
+MV2_USE_COALESCE
+    Aliases: UCR_USE_COALESCE
+    Description: Setting this parameter enables message coalescing to
+        increase small message throughput.
+    Default: 1
+
+MV2_SPIN_COUNT
+    Aliases: UCR_SPIN_COUNT
+    Description: TODO-DESC
+    Default: 5000
+
+MV2_PROCESS_TO_RAIL_MAPPING
+    Aliases: UCR_PROCESS_TO_RAIL_MAPPING
+    Description: When MV2_RAIL_SHARING_POLICY is set to the value
+        "FIXED_MAPPING" this variable decides the manner in which the HCAs
+        will be mapped to the rails. The <CUSTOM LIST> is colon(:)
+        separated list with the HCA ranks specified. e.g. 0:1:1:0. This
+        list must map equally to the number of local processes on the nodes
+        failing which, the default policy will be used. Similarly the
+        number of processes on each node must be the same.
+    Default: NULL
+
+MV2_SM_SCHEDULING
+    Aliases: UCR_SM_SCHEDULING
+    Description: TODO-DESC
+    Default: "USE_FIRST"
+
+MV2_SMALL_MSG_RAIL_SHARING_POLICY
+    Aliases: UCR_SMALL_MSG_RAIL_SHARING_POLICY
+    Description: This specifies the policy that will be used to assign HCAs
+        to each of the processes with small message sizes.
+    Default: "ROUND_ROBIN"
+
+MV2_MED_MSG_RAIL_SHARING_POLICY
+    Aliases: UCR_MED_MSG_RAIL_SHARING_POLICY
+    Description: This specifies the policy that will be used to assign HCAs
+        to each of the processes with medium message sizes.
+    Default: "ROUND_ROBIN"
+
+MV2_RAIL_SHARING_POLICY
+    Aliases: UCR_RAIL_SHARING_POLICY
+    Description: This specifies the policy that will be used to assign HCAs
+        to each of the processes. In the previous versions of MVAPICH2 it
+        was known as MV2_SM_SCHEDULING. Value Domain: USE_FIRST,
+        ROUND_ROBIN, FIXED_MAPPING
+    Default: NULL
+
+MV2_RNDV_PROTOCOL
+    Aliases: UCR_RNDV_PROTOCOL
+    Description: The value of this variable can be set to choose different
+        Rendezvous protocols. RPUT (default RDMA-Write) RGET (RDMA Read
+        based), R3 (send/recv based).
+    Default: NULL
+
+MV2_SMP_RNDV_PROTOCOL
+    Aliases: UCR_SMP_RNDV_PROTOCOL
+    Description: TODO-DESC
+    Default: NULL
+
+MV2_SUPPRESS_JOB_STARTUP_PERFORMANCE_WARNING
+    Aliases: UCR_SUPPRESS_JOB_STARTUP_PERFORMANCE_WARNING
+    Description: Set to 1 to suppress performance warnings.
+    Default: 0
+
+MV2_USE_RDMA_FAST_PATH
+    Aliases: UCR_USE_RDMA_FAST_PATH
+    Description: Setting this parameter enables MVAPICH2 to use adaptive
+        RDMA fast path features for OFA-IB-CH3 interface.
+    Default: -1
+
+MV2_RDMA_FAST_PATH_BUF_SIZE
+    Aliases: UCR_RDMA_FAST_PATH_BUF_SIZE
+    Description: The size of the buffer used in RDMA fast path
+        communication. This value will be ineffective if
+        MV2_USE_RDMA_FAST_PATH is not set
+    Default: 4096
+
+MV2_POLLING_SET_LIMIT
+    Aliases: UCR_POLLING_SET_LIMIT
+    Description: TODO-DESC
+    Default: 64
+
+MV2_POLLING_SET_THRESHOLD
+    Aliases: UCR_POLLING_SET_THRESHOLD
+    Description: TODO-DESC
+    Default: 256
+
+MV2_RDMA_EAGER_LIMIT
+    Aliases: UCR_RDMA_EAGER_LIMIT
+    Description: TODO-DESC
+    Default: 32
+
+MV2_NUM_RDMA_BUFFER
+    Aliases: UCR_NUM_RDMA_BUFFER
+    Description: The number of RDMA buffers used for the RDMA fast path.
+        This fast path is used to reduce latency and overhead of small data
+        and control messages. This value will be ineffective if
+        MV2_USE_RDMA_FAST_PATH is not set.
+    Default: -1
+
+MV2_RDMA_FAST_PATH_PREALLOCATE_BUFFERS
+    Aliases: UCR_RDMA_FAST_PATH_PREALLOCATE_BUFFERS
+    Description: TODO-DESC
+    Default: 0
+
+MV2_SYSREPORT
+    Aliases: UCR_SYSREPORT
+    Description: TODO-DESC
+    Default: 0
+
+MV2_DEFAULT_MTU
+    Aliases: UCR_DEFAULT_MTU
+    Description: The internal MTU size. For OFA-IB-CH3, this parameter
+        should be a string instead of an integer. Valid values are:
+        IBV_MTU_256, IBV_MTU_512, IBV_MTU_1024, IBV_MTU_2048, IBV_MTU_4096.
+    Default: NULL
+
+MV2_NUM_CQES_PER_POLL
+    Aliases: UCR_NUM_CQES_PER_POLL
+    Description: Set this to 1, to enable hardware multicast support in
+        collective communication
+    Default: 96
+
+MV2_NUM_PORTS
+    Aliases: UCR_NUM_PORTS
+    Description: This parameter indicates number of ports per InfiniBand
+        adapter to be used for communication per adapter on an end node.
+    Default: 1
+
+MV2_NUM_QP_PER_PORT
+    Aliases: UCR_NUM_QP_PER_PORT
+    Description: This parameter indicates number of queue pairs per port to
+        be used for communication on an end node. This is useful in the
+        presence of multiple send/recv engines available per port for data
+        transfer.
+    Default: 1
+
+MV2_PIN_POOL_SIZE
+    Aliases: UCR_PIN_POOL_SIZE
+    Description: TODO-DESC
+    Default: (2 * 1024 * 1024)
+
+MV2_DEFAULT_MAX_CQ_SIZE
+    Aliases: UCR_DEFAULT_MAX_CQ_SIZE
+    Description: Setting this value forces a different CQ size. By default
+        the value is 40000 or the max value supported by the hardware. A
+        value of -1 indicates deferal to the hardware/default value.
+    Default: -1
+
+MV2_IBA_EAGER_THRESHOLD
+    Aliases: UCR_IBA_EAGER_THRESHOLD
+    Description: This specifies the switch point between eager and
+        rendezvous protocol in MVAPICH2. For better performance, the value
+        of MPIR_CVAR_MV2_IBA_EAGER_THRESHOLD should be set the same as
+        MPIR_CVAR_MV2_VBUF_TOTAL_SIZE. The default value is architecture
+        dependent.
+    Default: -1
+
+MV2_STRIPING_THRESHOLD
+    Aliases: UCR_STRIPING_THRESHOLD
+    Description: This parameter specifies the message size above which we
+        begin the stripe the message across multiple rails (if present).
+    Default: 8192
+
+MV2_RAIL_SHARING_MED_MSG_THRESHOLD
+    Aliases: UCR_RAIL_SHARING_MED_MSG_THRESHOLD
+    Description: This specifies the threshold for the message size beyond
+        which striping will take place. In the previous versions of
+        MVAPICH2 it was known as MV2_STRIPING_THRESHOLD.
+    Default: 2048
+
+MV2_RAIL_SHARING_LARGE_MSG_THRESHOLD
+    Aliases: UCR_RAIL_SHARING_LARGE_MSG_THRESHOLD
+    Description: This specifies the threshold for the message size beyond
+        which striping will take place. In the previous versions of
+        MVAPICH2 it was known as MV2_STRIPING_THRESHOLD
+    Default: -1
+
+MV2_DEFAULT_PUT_GET_LIST_SIZE
+    Aliases: UCR_DEFAULT_PUT_GET_LIST_SIZE
+    Description: TODO-DESC
+    Default: 200
+
+MV2_EAGERSIZE_1SC
+    Aliases: UCR_EAGERSIZE_1SC
+    Description: TODO-DESC
+    Default: -1
+
+MV2_PUT_FALLBACK_THRESHOLD
+    Aliases: UCR_PUT_FALLBACK_THRESHOLD
+    Description: This defines the threshold beyond which the MPI_Put
+        implementation is based on direct one sided RDMA operations.
+    Default: -1
+
+MV2_GET_FALLBACK_THRESHOLD
+    Aliases: UCR_GET_FALLBACK_THRESHOLD
+    Description: TODO-DESC
+    Default: -1
+
+MV2_DEFAULT_QP_OUS_RD_ATOM
+    Aliases: UCR_DEFAULT_QP_OUS_RD_ATOM
+    Description: The maximum number of outstanding RDMA reads and atomic
+        operations per QP. Default value is 1 if supported. A value of -1
+        indicates defering to the hardware support.
+    Default: -1
+
+MV2_DEFAULT_MAX_RDMA_DST_OPS
+    Aliases: UCR_DEFAULT_MAX_RDMA_DST_OPS
+    Description: TODO-DESC
+    Default: 4
+
+MV2_DEFAULT_PSN
+    Aliases: UCR_DEFAULT_PSN
+    Description: TODO-DESC
+    Default: 0
+
+MV2_DEFAULT_PKEY
+    Aliases: UCR_DEFAULT_PKEY
+    Description: Select the partition to be used for the job.
+    Default: NULL
+
+MV2_DEFAULT_QKEY
+    Aliases: UCR_DEFAULT_QKEY
+    Description: TODO-DESC
+    Default: NULL
+
+MV2_DEFAULT_MIN_RNR_TIMER
+    Aliases: UCR_DEFAULT_MIN_RNR_TIMER
+    Description: TODO-DESC
+    Default: 12
+
+MV2_DEFAULT_SERVICE_LEVEL
+    Aliases: UCR_DEFAULT_SERVICE_LEVEL
+    Description: TODO-DESC
+    Default: 0
+
+MV2_DEFAULT_TIME_OUT
+    Aliases: UCR_DEFAULT_TIME_OUT
+    Description: TODO-DESC
+    Default: 20
+
+MV2_DEFAULT_STATIC_RATE
+    Aliases: UCR_DEFAULT_STATIC_RATE
+    Description: TODO-DESC
+    Default: 0
+
+MV2_DEFAULT_SRC_PATH_BITS
+    Aliases: UCR_DEFAULT_SRC_PATH_BITS
+    Description: TODO-DESC
+    Default: 0
+
+MV2_DEFAULT_RETRY_COUNT
+    Aliases: UCR_DEFAULT_RETRY_COUNT
+    Description: TODO-DESC
+    Default: 7
+
+MV2_DEFAULT_RNR_RETRY
+    Aliases: UCR_DEFAULT_RNR_RETRY
+    Description: TODO-DESC
+    Default: 7
+
+MV2_DEFAULT_MAX_SG_LIST
+    Aliases: UCR_DEFAULT_MAX_SG_LIST
+    Description: TODO-DESC
+    Default: 1
+
+MV2_DEFAULT_MAX_SEND_WQE
+    Aliases: UCR_DEFAULT_MAX_SEND_WQE
+    Description: This specifies the maximum number of send WQEs on each QP.
+        Please note that for OFA-IB-CH3 and OFA-iWARP-CH3, the default
+        value of this parameter will be 16 if the number of processes is
+        larger than 256 for better memory scalability.
+    Default: 64
+
+MV2_CM_WAIT_TIME
+    Aliases: UCR_CM_WAIT_TIME
+    Description: TODO-DESC
+    Default: 5
+
+MV2_USE_UD_HYBRID
+    Aliases: UCR_USE_UD_HYBRID
+    Description: Set this to Zero, to disable UD transport in hybrid
+        configuration mode.
+    Default: 1
+
+MV2_UD_MTU
+    Aliases: UCR_UD_MTU
+    Description: TODO-DESC
+    Default: 0
+
+MV2_HYBRID_MAX_RC_CONN
+    Aliases: UCR_HYBRID_MAX_RC_CONN
+    Description: Maximum number of RC or XRC connections created per
+        process. This limits the amount of connection memory and prevents
+        HCA QP cache thrashing. Default value is dependent on the process
+        count, setting this value to -1 will use  the default value for the
+        process count.
+    Default: -1
+
+MV2_UD_NUM_MSG_LIMIT
+    Aliases: UCR_UD_NUM_MSG_LIMIT
+    Description: TODO-DESC
+    Default: 100
+
+MV2_UD_SENDWINDOW_SIZE
+    Aliases: UCR_UD_SENDWINDOW_SIZE
+    Description: TODO-DESC
+    Default: 400
+
+MV2_UD_RECVWINDOW_SIZE
+    Aliases: UCR_UD_RECVWINDOW_SIZE
+    Description: TODO-DESC
+    Default: 2501
+
+MV2_UD_RETRY_TIMEOUT
+    Aliases: UCR_UD_RETRY_TIMEOUT
+    Description: Time (usec) after which an unacknowledged message will be
+        retried.
+    Default: 500000
+
+MV2_UD_MAX_RETRY_TIMEOUT
+    Aliases: UCR_UD_MAX_RETRY_TIMEOUT
+    Description: TODO-DESC
+    Default: 20000000
+
+MV2_UD_PROGRESS_SPIN
+    Aliases: UCR_UD_PROGRESS_SPIN
+    Description: TODO-DESC
+    Default: 1200
+
+MV2_UD_RETRY_COUNT
+    Aliases: UCR_UD_RETRY_COUNT
+    Description: Number of retries of a message before the job is aborted.
+        This is needed in case of HCA fails. The default value is based on 
+        the process count. Setting this to -1 will use the default for the
+        process count. 
+    Default: -1
+
+MV2_UD_PROGRESS_TIMEOUT
+    Aliases: UCR_UD_PROGRESS_TIMEOUT
+    Description: Time (usec) until ACK status is checked (and ACKs are sent
+        if needed). To avoid unnecessary retries, set this value less than
+        MV2_UD_RETRY_TIMEOUT. It is recommended to set this to 1/10 of
+        MV2_UD_RETRY_TIMEOUT. The default value is based on  the process
+        count. Setting this to -1 will use the default for the process
+        count. 
+    Default: -1
+
+MV2_UD_MAX_SEND_WQE
+    Aliases: UCR_UD_MAX_SEND_WQE
+    Description: TODO-DESC
+    Default: 256
+
+MV2_UD_MAX_RECV_WQE
+    Aliases: UCR_UD_MAX_RECV_WQE
+    Description: TODO-DESC
+    Default: 4096
+
+MV2_USE_UD_SRQ
+    Aliases: UCR_USE_UD_SRQ
+    Description: TODO-DESC
+    Default: 0
+
+MV2_UD_VBUF_POOL_SIZE
+    Aliases: UCR_UD_VBUF_POOL_SIZE
+    Description: TODO-DESC
+    Default: 8192
+
+MV2_UD_MAX_ACK_PENDING
+    Aliases: UCR_UD_MAX_ACK_PENDING
+    Description: Maximum number of outstanding UD buffers waiting for ACK.
+        Setting this value to -1 will use the default value of
+        MV2_UD_SENDWINDOW_SIZE / 4.
+    Default: -1
+
+MV2_SHMEM_BACKED_UD_CM
+    Aliases: UCR_SHMEM_BACKED_UD_CM
+    Description: TODO-DESC - Not used currently.
+    Default: 0
+
+MV2_USE_UD_ZCOPY
+    Aliases: UCR_USE_UD_ZCOPY
+    Description: Whether or not to use the zero-copy transfer mechanism to
+        transfer large messages on UD transport.
+    Default: 1
+
+MV2_UD_ZCOPY_THRESHOLD
+    Aliases: UCR_UD_ZCOPY_THRESHOLD
+    Description: Defines the threshold for transitioning to UD ZCOPY
+        algorithm  from R3 protocol for rndv messages. Defaults to
+        MV2_IBA_EAGER_THRESHOLD. Setting this value to -1 will use the
+        eager threshold (MV2_IBA_EAGER_THRESHOLD) as the default value
+        causing all rndv messages to use UD_ZCOPY.
+    Default: -1
+
+MV2_UD_NUM_ZCOPY_RNDV_QPS
+    Aliases: UCR_UD_NUM_ZCOPY_RNDV_QPS
+    Description: Number of UD QPs to create for ZCOPY transfers. Setting
+        this to -1 will use the default value of 64 * <number_of_hcas>.
+    Default: -1
+
+MV2_UD_ZCOPY_RQ_SIZE
+    Aliases: UCR_UD_ZCOPY_RQ_SIZE
+    Description: TODO-DESC
+    Default: 4096
+
+MV2_UD_ZCOPY_NUM_RETRY
+    Aliases: UCR_UD_ZCOPY_NUM_RETRY
+    Description: TODO-DESC
+    Default: 50000
+
+MV2_UD_ZCOPY_ENABLE_POLLING
+    Aliases: UCR_UD_ZCOPY_ENABLE_POLLING
+    Description: TODO-DESC
+    Default: 0
+
+MV2_UD_ZCOPY_PUSH_SEGMENT
+    Aliases: UCR_UD_ZCOPY_PUSH_SEGMENT
+    Description: TODO-DESC
+    Default: 32
+
+MV2_UD_DROP_PACKET_RATE
+    Aliases: UCR_UD_DROP_PACKET_RATE
+    Description: TODO-DESC
+    Default: 0
+
+MV2_MCAST_ENABLE_REL
+    Aliases: UCR_MCAST_ENABLE_REL
+    Description: TODO-DESC
+    Default: 1
+
+MV2_MCAST_USE_MCAST_NACK
+    Aliases: UCR_MCAST_USE_MCAST_NACK
+    Description: TODO-DESC
+    Default: 1
+
+MV2_MCAST_NUM_NODES_THRESHOLD
+    Aliases: UCR_MCAST_NUM_NODES_THRESHOLD
+    Description: This defines the threshold for enabling multicast support
+        in collective communication. When MV2_USE_MCAST is set to 1 and the
+        number of nodes in the job is greater than or equal to the
+        threshold value, it uses multicast support in collective
+        communication.
+    Default: -1
+
+MV2_MCAST_MAX_RECV_WQE
+    Aliases: UCR_MCAST_MAX_RECV_WQE
+    Description: TODO-DESC
+    Default: 2096
+
+MV2_MCAST_WINDOW_SIZE
+    Aliases: UCR_MCAST_WINDOW_SIZE
+    Description: TODO-DESC
+    Default: 256
+
+MV2_MCAST_DROP_PACKET_RATE
+    Aliases: UCR_MCAST_DROP_PACKET_RATE
+    Description: TODO-DESC
+    Default: 0
+
+MV2_MCAST_RETRY_TIMEOUT
+    Aliases: UCR_MCAST_RETRY_TIMEOUT
+    Description: TODO-DESC
+    Default: 500000
+
+MV2_MCAST_MAX_RETRY_TIMEOUT
+    Aliases: UCR_MCAST_MAX_RETRY_TIMEOUT
+    Description: TODO-DESC
+    Default: 20000000
+
+MV2_MCAST_NSPIN_THRESHOLD
+    Aliases: UCR_MCAST_NSPIN_THRESHOLD
+    Description: TODO-DESC
+    Default: 1200
+
+MV2_MCAST_COMM_INIT_TIMEOUT
+    Aliases: UCR_MCAST_COMM_INIT_TIMEOUT
+    Description: TODO-DESC
+    Default: 10000
+
+MV2_MCAST_COMM_INIT_RETRIES
+    Aliases: UCR_MCAST_COMM_INIT_RETRIES
+    Description: TODO-DESC
+    Default: 128
+
+MV2_MCAST_SKIP_LOOPBACK
+    Aliases: UCR_MCAST_SKIP_LOOPBACK
+    Description: TODO-DESC
+    Default: 1
+
+MV2_MCAST_BCAST_MIN_MSG
+    Aliases: UCR_MCAST_BCAST_MIN_MSG
+    Description: TODO-DESC
+    Default: 1
+
+MV2_MCAST_BCAST_MAX_MSG
+    Aliases: UCR_MCAST_BCAST_MAX_MSG
+    Description: TODO-DESC
+    Default: 512 * 1042
+
+MV2_DEFAULT_MAX_RECV_WQE
+    Aliases: UCR_DEFAULT_MAX_RECV_WQE
+    Description: This specifies the maximum number of receive WQEs on each
+        QP (maximum number of receives that can be posted on a single QP).
+    Default: 128
+
+MV2_NDREG_ENTRIES_MAX
+    Aliases: UCR_NDREG_ENTRIES_MAX
+    Description: TODO-DESC
+    Default: -1
+
+MV2_NDREG_ENTRIES
+    Aliases: UCR_NDREG_ENTRIES
+    Description: This defines the total number of buffers that can be
+        stored in the registration cache. It has no effect if
+        MV2_USE_LAZY_MEM_UNREGISTER is not set. A larger value will lead to
+        less frequent lazy de-registration.
+    Default: -1
+
+MV2_DREG_CACHE_LIMIT
+    Aliases: UCR_DREG_CACHE_LIMIT
+    Description: TODO-DESC
+    Default: 0
+
+MV2_USE_HWLOC_CPU_BINDING
+    Aliases: UCR_USE_HWLOC_CPU_BINDING
+    Description: TODO-DESC
+    Default: 1
+
+MV2_THREAD_YIELD_SPIN_THRESHOLD
+    Aliases: UCR_THREAD_YIELD_SPIN_THRESHOLD
+    Description: TODO-DESC
+    Default: 5
+
+MV2_USE_THREAD_YIELD
+    Aliases: UCR_USE_THREAD_YIELD
+    Description: TODO-DESC
+    Default: 1
+
+MV2_NUM_SPINS_BEFORE_LOCK
+    Aliases: UCR_NUM_SPINS_BEFORE_LOCK
+    Description: TODO-DESC
+    Default: 2000
+
+MV2_ASYNC_THREAD_STACK_SIZE
+    Aliases: UCR_ASYNC_THREAD_STACK_SIZE
+    Description: TODO-DESC
+    Default: (1 << 20)
+
+MV2_USE_HUGEPAGES
+    Aliases: UCR_USE_HUGEPAGES
+    Description: Set this to 0, to not use any HugePages.
+    Default: 1
+
+MV2_MEMORY_OPTIMIZATION
+    Aliases: UCR_MEMORY_OPTIMIZATION
+    Description: TODO-DESC
+    Default: 1
+
+MV2_SRQ_MAX_SIZE
+    Aliases: UCR_SRQ_MAX_SIZE
+    Description: This is the maximum number of work requests allowed on the
+        Shared Receive Queue. Upon receiving a SRQ limit event, the current
+        value of MV2_SRQ_SIZE will be doubled or moved to the maximum of
+        MV2_SRQ_MAX_SIZE, whichever is smaller. When using RDMA_CM, we
+        cannot support very large SRQ. So, unless user set it, reduce the
+        max_srq_size to 4K.
+    Default: -1
+
+MV2_SRQ_SIZE
+    Aliases: UCR_SRQ_SIZE
+    Description: This is the initial number of work requests posted to the
+        Shared Receive Queue.
+    Default: -1
+
+MV2_SRQ_LIMIT
+    Aliases: UCR_SRQ_LIMIT
+    Description: This is the low water-mark limit for the Shared Receive
+        Queue. If the number of available work entries on the SRQ drops
+        below this limit, the flow control will be activated.
+    Default: -1
+
+MV2_UD_SRQ_MAX_SIZE
+    Aliases: UCR_UD_SRQ_MAX_SIZE
+    Description: TODO-DESC
+    Default: -1
+
+MV2_UD_SRQ_SIZE
+    Aliases: UCR_UD_SRQ_SIZE
+    Description: TODO-DESC
+    Default: 4096
+
+MV2_UD_SRQ_LIMIT
+    Aliases: UCR_UD_SRQ_LIMIT
+    Description: TODO-DESC
+    Default: 128
+
+MV2_MAX_NUM_UD_VBUFS
+    Aliases: UCR_MAX_NUM_UD_VBUFS
+    Description: TODO-DESC
+    Default: (INT_MAX)
+
+MV2_MAX_INLINE_SIZE
+    Aliases: UCR_MAX_INLINE_SIZE
+    Description: This defines the maximum inline size for data transfer.
+        Please note that the default value of this parameter will be 0 when
+        the number of processes is larger than 256 to improve memory usage
+        scalability.
+    Default: -1
+
+MV2_VBUF_TOTAL_SIZE
+    Aliases: UCR_VBUF_TOTAL_SIZE
+    Description: The size of each vbuf, the basic communication buffer of
+        MVAPICH2. For better performance, the value of
+        MV2_IBA_EAGER_THRESHOLD should be set the same as
+        MV2_VBUF_TOTAL_SIZE.
+    Default: -1
+
+MV2_VBUF_MAX
+    Aliases: UCR_VBUF_MAX
+    Description: Max (total) number of vbufs to allocate, after which
+        process terminates with a fatal error. -1 means no limit.
+    Default: -1
+
+MV2_INITIAL_PREPOST_DEPTH
+    Aliases: UCR_INITIAL_PREPOST_DEPTH
+    Description: This defines the initial number of pre-posted receive
+        buffers for each connection. If communication happen for a
+        particular connection, the number of buffers will be increased to
+        RDMA_PREPOST_DEPTH.
+    Default: 10
+
+MV2_PREPOST_DEPTH
+    Aliases: UCR_PREPOST_DEPTH
+    Description: This defines the number of buffers pre-posted for each
+        connection to handle send/receive operations.
+    Default: 64
+
+MV2_VBUF_POOL_SIZE
+    Aliases: UCR_VBUF_POOL_SIZE
+    Description: The number of vbufs in the initial pool. This pool is
+        shared among all the connections.
+    Default: -1
+
+MV2_MAX_NUM_VBUFS
+    Aliases: UCR_MAX_NUM_VBUFS
+    Description: TODO-DESC
+    Default: 8192
+
+MV2_VBUF_SECONDARY_POOL_SIZE
+    Aliases: UCR_VBUF_SECONDARY_POOL_SIZE
+    Description: The number of vbufs allocated each time when the global
+        pool is running out in the initial pool. This is also shared among
+        all the connections.
+    Default: -1
+
+MV2_CUDA_BLOCK_SIZE
+    Aliases: UCR_CUDA_BLOCK_SIZE
+    Description: The chunk size used in large message transfer from device
+        memory to host memory. The other suggested values for this
+        parameter are 131072 and 524288.
+    Default: (256 * 1024)
+
+MV2_CUDA_NUM_RNDV_BLOCKS
+    Aliases: UCR_CUDA_NUM_RNDV_BLOCKS
+    Description: TODO-DESC
+    Default: 8
+
+MV2_MPIRUN_RSH_LAUNCH
+    Aliases: UCR_MPIRUN_RSH_LAUNCH
+    Description: TODO-DESC
+    Default: 0
+
+MV2_USE_ROCE
+    Aliases: UCR_USE_ROCE
+             MV2_USE_RoCE
+             UCR_USE_RoCE
+    Description: This parameter enables the use of RDMA over Ethernet for
+        MPI communication. The underlying HCA and network must support this
+        feature.
+    Default: 0
+
+MV2_USE_ROCE_MODE
+    Aliases: UCR_USE_ROCE_MODE
+             MV2_USE_RoCE_MODE
+             UCR_USE_RoCE_MODE
+    Description: TODO-DESC
+    Default: -1
+
+MV2_USE_RING_STARTUP
+    Aliases: UCR_USE_RING_STARTUP
+    Description: Setting this parameter enables MVAPICH2 to use ring based
+        start up.
+    Default: -1
+
+MV2_ON_DEMAND_UD_INFO_EXCHANGE
+    Aliases: UCR_ON_DEMAND_UD_INFO_EXCHANGE
+    Description: Setting MV2_ON_DEMAND_UD_INFO_EXCHANGE to 1 will enable
+        on-demand Address Handle creation for hybrid mode.
+    Default: -1
+
+MV2_USE_PMI_IBARRIER
+    Aliases: UCR_USE_PMI_IBARRIER
+    Description: TODO-DESC
+    Default: 1
+
+MV2_USE_PMI_IALLGATHER
+    Aliases: UCR_USE_PMI_IALLGATHER
+    Description: TODO-DESC
+    Default: 0
+
+MV2_NUM_HCAS
+    Aliases: UCR_NUM_HCAS
+    Description: This parameter indicates number of InfiniBand adapters to
+        be used for communication on an end node. Value is potentially
+        computed.
+    Default: 0
+
+MV2_HOMOGENEOUS_CLUSTER
+    Aliases: UCR_HOMOGENEOUS_CLUSTER
+    Description: Set to 1 if using a homogeneous cluster.
+    Default: 0
+
+MV2_USE_BLOCKING
+    Aliases: UCR_USE_BLOCKING
+    Description: Setting this parameter enables mvapich2 to use blocking
+        mode progress. MPI applications do not take up any CPU when they
+        are waiting for incoming messages.
+    Default: 0
+
+MV2_USE_SHARED_MEM
+    Aliases: UCR_USE_SHARED_MEM
+    Description: Use shared memory for intra-node communication.
+    Default: 1
+
+MV2_LIBIBVERBS_PATH
+    Aliases: UCR_LIBIBVERBS_PATH
+    Description: TODO-DESC
+    Default: NULL
+
+MV2_LIBIBMAD_PATH
+    Aliases: UCR_LIBIBMAD_PATH
+    Description: TODO-DESC
+    Default: NULL
+
+MV2_LIBIBUMAD_PATH
+    Aliases: UCR_LIBIBUMAD_PATH
+    Description: TODO-DESC
+    Default: NULL
+
+MV2_LIBRDMACM_PATH
+    Aliases: UCR_LIBRDMACM_PATH
+    Description: TODO-DESC
+    Default: NULL
+
+MV2_LIBSHARP_PATH
+    Aliases: UCR_LIBSHARP_PATH
+    Description: TODO-DESC
+    Default: NULL
+
+MV2_ENABLE_SHARP
+    Aliases: UCR_ENABLE_SHARP
+    Description: Set this to 1, to enable hardware SHArP support in
+        collective communication.
+    Default: 0
+
+MV2_ALLOW_HETEROGENEOUS_HCA_SELECTION
+    Aliases: UCR_ALLOW_HETEROGENEOUS_HCA_SELECTION
+    Description: TODO-DESC
+    Default: -1
+
+MV2_PROCESS_PLACEMENT_AWARE_HCA_MAPPING
+    Aliases: UCR_PROCESS_PLACEMENT_AWARE_HCA_MAPPING
+    Description: TODO-DESC
+    Default: -1
+
+MV2_DEFAULT_PORT
+    Aliases: UCR_DEFAULT_PORT
+    Description: This parameter is to select the specific HCA port on a
+        active multi port InfiniBand adapter. A value of -1 indicates no
+        user selection.
+    Default: -1
+
+MV2_DEFAULT_GID_INDEX
+    Aliases: UCR_DEFAULT_GID_INDEX
+    Description: In RoCE mode, this parameter allows to choose non-default
+        GID index in loss-less ethernet setup using VLANs.
+    Default: 0
+
+MV2_IOV_DENSITY_MIN
+    Aliases: UCR_IOV_DENSITY_MIN
+    Description: TODO-DESC
+    Default: -1
+
+MV2_ENABLE_EAGER_THRESHOLD_REDUCTION
+    Aliases: UCR_ENABLE_EAGER_THRESHOLD_REDUCTION
+    Description: TODO-DESC
+    Default: -1
+
+MV2_USE_EAGER_FAST_SEND
+    Aliases: UCR_USE_EAGER_FAST_SEND
+    Description: TODO-DESC
+    Default: -1
+
+MV2_SUPPORT_FORK_SAFETY
+    Aliases: UCR_SUPPORT_FORK_SAFETY
+    Description: TODO-DESC
+    Default: -1
+
+MV2_RDMA_MAX_TRANSFER_SIZE
+    Aliases: UCR_RDMA_MAX_TRANSFER_SIZE
+    Description: TODO-DESC
+    Default: -1
+
+MV2_RNDV_IMMEDIATE
+    Aliases: UCR_RNDV_IMMEDIATE
+    Description: TODO-DESC
+    Default: -1
+
+MV2_CHECK_CACHE_ALIGNMENT
+    Aliases: UCR_CHECK_CACHE_ALIGNMENT
+    Description: TODO-DESC
+    Default: -1
+
+MV2_HYBRID_ENABLE_THRESHOLD
+    Aliases: UCR_HYBRID_ENABLE_THRESHOLD
+    Description: This defines the threshold for enabling Hybrid
+        communication using UD and RC/XRC. When the size of the job is
+        greater than or equal to the threshold value, Hybrid mode will be
+        enabled. Otherwise, it uses default RC/XRC connections for
+        communication.
+    Default: 512
+
+MV2_USE_ONLY_UD
+    Aliases: UCR_USE_ONLY_UD
+    Description: Set this to 1, to enable only UD transport in hybrid
+        configuration mode. It will not use any RC/XRC connections in this
+        mode.
+    Default: -1
+
+MV2_SHOW_ENV_INFO
+    Aliases: UCR_SHOW_ENV_INFO
+    Description: Show the values assigned to the run time environment
+        parameters.
+    Default: -1
+
+MV2_DEBUG_CORESIZE
+    Aliases: UCR_DEBUG_CORESIZE
+    Description: TODO-DESC
+    Default: NULL
+
+MV2_DEBUG_SHOW_BACKTRACE
+    Aliases: UCR_DEBUG_SHOW_BACKTRACE
+    Description: TODO-DESC
+    Default: 0
+
+MV2_USE_THREAD_WARNING
+    Aliases: UCR_USE_THREAD_WARNING
+    Description: TODO-DESC
+    Default: 1
+
+MV2_POLLING_LEVEL
+    Aliases: UCR_POLLING_LEVEL
+    Description: Defines the frequency at which the IB device is polled
+    Default: 1
+
+MV2_WALK_SHARED_PAGES
+    Aliases: UCR_WALK_SHARED_PAGES
+    Description: TODO-DESC
+    Default: -1
+
+MV2_SMP_PRIORITY_FACTOR
+    Aliases: UCR_SMP_PRIORITY_FACTOR
+    Description: TODO-DESC
+    Default: -1
+
+MV2_USE_PT2PT_SHMEM
+    Aliases: UCR_USE_PT2PT_SHMEM
+    Description: Enable shared memory for pt2pt communications
+    Default: 1
+
+MV2_ABORT_SLEEP_SECONDS
+    Aliases: UCR_ABORT_SLEEP_SECONDS
+    Description: TODO-DESC
+    Default: 0
+
+MV2_FORCE_ARCH_TYPE
+    Aliases: UCR_FORCE_ARCH_TYPE
+    Description: This parameter forces the architecture type.
+    Default: 0
+
+MV2_SHOW_CPU_BINDING
+    Aliases: UCR_SHOW_CPU_BINDING
+    Description: Possible values: 0, 1, 2 If set to 1, prints the CPU
+        mapping of all processes on the node where rank 0 exists. If set to
+        2, prints the CPU mapping of all processes on all nodes. 
+    Default: 0
+
+MV2_SHOW_HCA_BINDING
+    Aliases: UCR_SHOW_HCA_BINDING
+    Description: Possible values: 0, 1, 2 If set to 1, prints the HCA
+        mapping of all processes on the node where rank 0 exists. If set to
+        2, prints the HCA mapping of all processes on all nodes. 
+    Default: 0
+
+MV2_SHOW_HW_BINDING
+    Aliases: UCR_SHOW_HW_BINDING
+    Description: Possible values: 0, 1, 2 If set to 1, prints the CPU and
+        HCA mappings of all processes on the node where rank 0 exists. If
+        set to 2, prints the CPU and HCA mappings of all processes on all
+        nodes. 
+    Default: 0
+

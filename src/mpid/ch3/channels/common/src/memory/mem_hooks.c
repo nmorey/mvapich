@@ -34,7 +34,7 @@
 #include <unistd.h>
 #include <assert.h>
 #include <pthread.h>
-#include "debug_utils.h"
+#include "mv2_debug_utils.h"
 
 #define PT_TEST_ALLOC_SIZE (64)
 static int mem_hook_init = 0;

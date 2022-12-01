@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 /* Copyright (c) 2001-2022, The Ohio State University. All rights
  * reserved.
@@ -17,49 +16,27 @@
 
 #include "mpidimpl.h"
 
-int (*MPIDI_Anysource_iprobe_fn)(int tag, MPID_Comm * comm, int context_offset, int *flag,
+int (*MPIDI_Anysource_iprobe_fn)(int tag, MPIR_Comm * comm, int context_offset, int *flag,
                                  MPI_Status * status) = NULL;
 
-#undef FUNCNAME
-#define FUNCNAME MPID_Iprobe
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-int MPID_Iprobe(int source, int tag, MPID_Comm *comm, int context_offset, 
+int MPID_Iprobe(int source, int tag, MPIR_Comm *comm, int context_offset,
 		int *flag, MPI_Status *status)
 {
     const int context = comm->recvcontext_id + context_offset;
     int found = 0;
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_MPID_IPROBE);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_IPROBE);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPID_IPROBE);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_IPROBE);
 
     MV2_INC_NUM_UNEXP_RECV();
-    if (source == MPI_PROC_NULL)
-    {
-	MPIR_Status_set_procnull(status);
-	/* We set the flag to true because an MPI_Recv with this rank will
-	   return immediately */
-	*flag = TRUE;
-	goto fn_exit;
-    }
 
     /* Check to make sure the communicator hasn't already been revoked */
     if (comm->revoked &&
-            MPIR_AGREE_TAG != MPIR_TAG_MASK_ERROR_BITS(tag & ~MPIR_Process.tagged_coll_mask) &&
-            MPIR_SHRINK_TAG != MPIR_TAG_MASK_ERROR_BITS(tag & ~MPIR_Process.tagged_coll_mask)) {
+            MPIR_AGREE_TAG != MPIR_TAG_MASK_ERROR_BITS(tag & ~MPIR_TAG_COLL_BIT) &&
+            MPIR_SHRINK_TAG != MPIR_TAG_MASK_ERROR_BITS(tag & ~MPIR_TAG_COLL_BIT)) {
         MPIR_ERR_SETANDJUMP(mpi_errno,MPIX_ERR_REVOKED,"**revoked");
     }
-
-#if defined (CHANNEL_PSM)
-		int complete = FALSE;
-        MPID_Progress_poke();
-        mpi_errno = MPIDI_CH3_Probe(source, tag, context, status,
-                                    &complete, PSM_NONBLOCKING);
-        if(mpi_errno)   MPIR_ERR_POP(mpi_errno);
-        *flag = complete;
-        goto fn_exit;
-#endif
 
 #ifdef ENABLE_COMM_OVERRIDES
     if (MPIDI_Anysource_iprobe_fn) {
@@ -74,11 +51,11 @@ int MPID_Iprobe(int source, int tag, MPID_Comm *comm, int context_offset,
             if (!found) {
                 /* not found, check network */
                 mpi_errno = MPIDI_Anysource_iprobe_fn(tag, comm, context_offset, &found, status);
-                if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+                MPIR_ERR_CHECK(mpi_errno);
                 if (!found) {
                     /* still not found, make some progress*/
                     mpi_errno = MPIDI_CH3_Progress_poke();
-                    if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+                    MPIR_ERR_CHECK(mpi_errno);
                     /* check shm again */
                     MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_POBJ_MSGQ_MUTEX);
                     found = MPIDI_CH3U_Recvq_FU(source, tag, context, status);
@@ -86,7 +63,7 @@ int MPID_Iprobe(int source, int tag, MPID_Comm *comm, int context_offset,
                     if (!found) {
                         /* check network again */
                         mpi_errno = MPIDI_Anysource_iprobe_fn(tag, comm, context_offset, &found, status);
-                        if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+                        MPIR_ERR_CHECK(mpi_errno);
                     }
                 }
             }
@@ -98,7 +75,7 @@ int MPID_Iprobe(int source, int tag, MPID_Comm *comm, int context_offset,
             MPIDI_Comm_get_vc_set_active(comm, source, &vc);
             if (vc->comm_ops && vc->comm_ops->iprobe) {
                 mpi_errno = vc->comm_ops->iprobe(vc, source, tag, comm, context_offset, &found, status);
-                if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+                MPIR_ERR_CHECK(mpi_errno);
                 *flag = found;
                 goto fn_exit;
             }
@@ -132,7 +109,7 @@ int MPID_Iprobe(int source, int tag, MPID_Comm *comm, int context_offset,
 
  fn_exit:    
     MV2_DEC_NUM_UNEXP_RECV();
-    MPIDI_FUNC_EXIT(MPID_STATE_MPID_IPROBE);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_IPROBE);
     return mpi_errno;
  fn_fail:
     goto fn_exit;

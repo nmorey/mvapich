@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,13 +43,11 @@ int main(int argc, char *argv[])
             errs++;
             fprintf(stderr, "Error in recvbuf = %d on %d, expected %d\n", recvbuf[0], rank, result);
         }
-    }
-    else if (recvbuf[0] != -2) {
+    } else if (recvbuf[0] != -2) {
         errs++;
         fprintf(stderr, "Error in recvbuf on zero, is %d\n", recvbuf[0]);
     }
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

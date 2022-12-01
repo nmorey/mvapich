@@ -11,7 +11,6 @@
  */
 
 #include "mpidi_ch3_impl.h"
-#include "mpiutil.h"
 #include "ibv_send_inline.h"
 
 #undef DEBUG_PRINT
@@ -78,17 +77,13 @@ do {                                                          \
     }   \
 }
 
-static MPL_IOV iov[MPL_IOV_LIMIT + 1];
+static struct iovec iov[MPL_IOV_LIMIT + 1];
 
 #if defined(MPIDI_MRAILI_COALESCE_ENABLED)
 extern void FLUSH_SQUEUE_NOINLINE(MPIDI_VC_t *vc);
 #endif /*#if defined(MPIDI_MRAILI_COALESCE_ENABLED)*/
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_Packetized_send
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDI_CH3_Packetized_send(MPIDI_VC_t * vc, MPID_Request * sreq)
+int MPIDI_CH3_Packetized_send(MPIDI_VC_t * vc, MPIR_Request * sreq)
 {
     MPIDI_CH3_Pkt_packetized_send_start_t send_start;
     MPIDI_CH3_Pkt_packetized_send_data_t pkt_head;
@@ -102,10 +97,8 @@ int MPIDI_CH3_Packetized_send(MPIDI_VC_t * vc, MPID_Request * sreq)
     int pkt_len;
     int seqnum;
 
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3_SENDV);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_SENDV);
-    MPIU_DBG_PRINTF(("ch3_isendv\n"));
-    MPIDI_DBG_PRINTF((50, FCNAME, "entering"));
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3_SENDV);
+    MPL_DBG_MSG_S(MPIDI_CH3_DBG_CHANNEL,VERBOSE,"entering %s", __func__);
 
 #if defined(MPIDI_MRAILI_COALESCE_ENABLED)
     /* TODO: Ticket #1433 */
@@ -113,19 +106,19 @@ int MPIDI_CH3_Packetized_send(MPIDI_VC_t * vc, MPID_Request * sreq)
 #endif /*if defined(MPIDI_MRAILI_COALESCE_ENABLED)*/
 
     MPIDI_Pkt_init(&send_start, MPIDI_CH3_PKT_PACKETIZED_SEND_START);
-    iov[0].MPL_IOV_LEN = sizeof(MPIDI_CH3_Pkt_packetized_send_start_t);
-    iov[0].MPL_IOV_BUF = (void*) &send_start;
-    MPIU_Memcpy(&iov[1], sreq->dev.iov, sreq->dev.iov_count * sizeof(MPL_IOV));
+    iov[0].iov_len = sizeof(MPIDI_CH3_Pkt_packetized_send_start_t);
+    iov[0].iov_base = (void*) &send_start;
+    MPIR_Memcpy(&iov[1], sreq->dev.iov, sreq->dev.iov_count * sizeof(struct iovec));
     n_iov = 1 + sreq->dev.iov_count;
 
-    GET_SEQ_NUM(sreq->dev.iov[0].MPL_IOV_BUF, seqnum);
+    GET_SEQ_NUM(sreq->dev.iov[0].iov_base, seqnum);
     
     if (-1 == seqnum) {
         MPIDI_VC_FAI_send_seqnum(vc, seqnum);
     }
     MPIDI_Pkt_set_seqnum(&send_start, seqnum);
     MPIDI_Request_set_seqnum(sreq, seqnum);
-    send_start.origin_head_size = sreq->dev.iov[0].MPL_IOV_LEN;
+    send_start.origin_head_size = sreq->dev.iov[0].iov_len;
 
     Calculate_IOV_len(iov, n_iov, pkt_len);
 
@@ -144,8 +137,8 @@ int MPIDI_CH3_Packetized_send(MPIDI_VC_t * vc, MPID_Request * sreq)
     nb -= sizeof(MPIDI_CH3_Pkt_packetized_send_start_t);
 
     MPIDI_Pkt_init(&pkt_head, MPIDI_CH3_PKT_PACKETIZED_SEND_DATA);
-    iov[0].MPL_IOV_LEN = sizeof(MPIDI_CH3_Pkt_packetized_send_data_t);
-    iov[0].MPL_IOV_BUF = (void*) &pkt_head;
+    iov[0].iov_len = sizeof(MPIDI_CH3_Pkt_packetized_send_data_t);
+    iov[0].iov_base = (void*) &pkt_head;
 
     do {
         while (!MPIDI_CH3I_Request_adjust_iov(sreq, nb)) {
@@ -153,10 +146,10 @@ int MPIDI_CH3_Packetized_send(MPIDI_VC_t * vc, MPID_Request * sreq)
             MPIDI_Pkt_set_seqnum(&pkt_head, seqnum);
             MPIDI_Request_set_seqnum(sreq, seqnum);
 
-            MPIU_Memcpy((void *) &iov[1],
+            MPIR_Memcpy((void *) &iov[1],
                    &sreq->dev.iov[sreq->dev.iov_offset],
                    (sreq->dev.iov_count -
-                    sreq->dev.iov_offset) * sizeof(MPL_IOV));
+                    sreq->dev.iov_offset) * sizeof(struct iovec));
             n_iov = sreq->dev.iov_count - sreq->dev.iov_offset + 1;
 
             Calculate_IOV_len(iov, n_iov, pkt_len);
@@ -166,7 +159,7 @@ int MPIDI_CH3_Packetized_send(MPIDI_VC_t * vc, MPID_Request * sreq)
                         &buf);
             DEBUG_PRINT("[istartmsgv] mpierr %d, nb %d\n", mpi_errno,
                     nb);
-            MPIU_Assert(NULL == buf->sreq);
+            MPIR_Assert(NULL == buf->sreq);
 
             if (MPI_SUCCESS != mpi_errno
                 && MPI_MRAIL_MSG_QUEUED != mpi_errno) {
@@ -201,52 +194,42 @@ int MPIDI_CH3_Packetized_send(MPIDI_VC_t * vc, MPID_Request * sreq)
     /* TODO: Ticket #1433 */
     FLUSH_SQUEUE_NOINLINE(vc);
 #endif /*if defined(MPIDI_MRAILI_COALESCE_ENABLED)*/
-    MPIDI_DBG_PRINTF((50, FCNAME, "exiting"));
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3_SENDV);
+    MPL_DBG_MSG_S(MPIDI_CH3_DBG_CHANNEL,VERBOSE,"exiting %s", __func__);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3_SENDV);
     return mpi_errno;
 
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_Packetized_recv_req
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDI_CH3_Packetized_recv_req(MPIDI_VC_t * vc, MPID_Request * rreq)
+int MPIDI_CH3_Packetized_recv_req(MPIDI_VC_t * vc, MPIR_Request * rreq)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3_PACKETIZED_RECV_REQ);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_PACKETIZED_RECV_REQ);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3_PACKETIZED_RECV_REQ);
     if (NULL == vc->mrail.packetized_recv) {
         vc->mrail.packetized_recv = (void *) rreq;
     } else {
         mpi_errno =
             MPIR_Err_create_code(mpi_errno, MPIR_ERR_FATAL,
-                                 FCNAME, __LINE__,
+                                 __func__, __LINE__,
                                  MPI_ERR_OTHER,
                                  "**fail", 0);
     }
     DEBUG_PRINT("Add rreq %p to packetized recv\n", rreq);
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3_PACKETIZED_RECV_REQ);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3_PACKETIZED_RECV_REQ);
     return mpi_errno;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_Packetized_recv_data
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_Packetized_recv_data(MPIDI_VC_t * vc, vbuf *v)
 {
     int mpi_errno = MPI_SUCCESS;
     int skipsize = sizeof(MPIDI_CH3_Pkt_packetized_send_data_t);
     int nb, complete;
-    MPID_Request *rreq = vc->mrail.packetized_recv;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3_PACKETIZED_RECV_DATA);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_PACKETIZED_RECV_DATA);
+    MPIR_Request *rreq = vc->mrail.packetized_recv;
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3_PACKETIZED_RECV_DATA);
 
     if (NULL == vc->mrail.packetized_recv) {
         mpi_errno =
             MPIR_Err_create_code(mpi_errno, MPIR_ERR_FATAL,
-                                 FCNAME, __LINE__,
+                                 __func__, __LINE__,
                                  MPI_ERR_OTHER,
                                  "**fail", 0);
         goto fn_exit;
@@ -259,7 +242,7 @@ int MPIDI_CH3_Packetized_recv_data(MPIDI_VC_t * vc, vbuf *v)
     if (mpi_errno != MPI_SUCCESS) {
         mpi_errno =
             MPIR_Err_create_code(mpi_errno, MPIR_ERR_FATAL,
-                                 FCNAME, __LINE__,
+                                 __func__, __LINE__,
                                  MPI_ERR_OTHER, "**fail",
                                  0);
         goto fn_exit;
@@ -274,7 +257,7 @@ int MPIDI_CH3_Packetized_recv_data(MPIDI_VC_t * vc, vbuf *v)
         if (mpi_errno != MPI_SUCCESS) {
             mpi_errno =
                 MPIR_Err_create_code(mpi_errno,
-                                     MPIR_ERR_RECOVERABLE, FCNAME,
+                                     MPIR_ERR_RECOVERABLE, __func__,
                                      __LINE__, MPI_ERR_OTHER, "**fail", 0);
             goto fn_exit;
         }
@@ -283,7 +266,7 @@ int MPIDI_CH3_Packetized_recv_data(MPIDI_VC_t * vc, vbuf *v)
             if (mpi_errno != MPI_SUCCESS) {
                 mpi_errno =
                     MPIR_Err_create_code(mpi_errno, MPIR_ERR_FATAL,
-                                 FCNAME, __LINE__,
+                                 __func__, __LINE__,
                                  MPI_ERR_OTHER, "**fail",
                                  0);
                 goto fn_exit;
@@ -299,7 +282,7 @@ int MPIDI_CH3_Packetized_recv_data(MPIDI_VC_t * vc, vbuf *v)
             if (mpi_errno != MPI_SUCCESS) {
                 mpi_errno =
                     MPIR_Err_create_code(mpi_errno,
-                                     MPIR_ERR_RECOVERABLE, FCNAME,
+                                     MPIR_ERR_RECOVERABLE, __func__,
                                      __LINE__, MPI_ERR_OTHER, "**fail", 0);
                 goto fn_exit;
             }
@@ -309,6 +292,6 @@ int MPIDI_CH3_Packetized_recv_data(MPIDI_VC_t * vc, vbuf *v)
         }
     }
   fn_exit:
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3_PACKETIZED_RECV_DATA);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3_PACKETIZED_RECV_DATA);
     return mpi_errno;
 }

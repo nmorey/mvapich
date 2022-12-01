@@ -1,8 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2006 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 /* Based on test code provided by Lisandro Dalcí. */
 #include <mpi.h>
 #include <stdio.h>
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
             verbose = 1;
     }
 
-    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+    MTest_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
     if (provided != MPI_THREAD_MULTIPLE) {
         printf("This test requires MPI_THREAD_MULTIPLE\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
@@ -92,6 +92,7 @@ int main(int argc, char *argv[])
     flag = 0;
     while (!flag) {
         MPI_Test(&request, &flag, &status);
+        MTest_thread_yield();
     }
     MTest_Join_threads();
 
@@ -102,6 +103,7 @@ int main(int argc, char *argv[])
     outcount = 0;
     while (!outcount) {
         MPI_Testsome(1, &request, &outcount, indices, &status);
+        MTest_thread_yield();
     }
     MTest_Join_threads();
 
@@ -112,11 +114,11 @@ int main(int argc, char *argv[])
     flag = 0;
     while (!flag) {
         MPI_Testall(1, &request, &flag, &status);
+        MTest_thread_yield();
     }
     MTest_Join_threads();
 
     IF_VERBOSE(("Goodbye !!!\n"));
     MTest_Finalize(0);
-    MPI_Finalize();
     return 0;
 }

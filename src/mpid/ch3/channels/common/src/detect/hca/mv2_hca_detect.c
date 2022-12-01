@@ -23,7 +23,7 @@
 
 #include "mv2_arch_hca_detect.h"
 #include "upmi.h"
-#include "debug_utils.h"
+#include "mv2_debug_utils.h"
 
 #include "upmi.h"
 #include "mpi.h"
@@ -49,6 +49,32 @@ cvars:
         This parameter forces the HCA type.
 
 === END_MPI_T_CVAR_INFO_BLOCK ===
+
+=== BEGIN_MPI_T_MV2_CVAR_INFO_BLOCK ===
+
+cvars:
+    - name        : MV2_FORCE_HCA_TYPE
+      category    : CH3
+      type        : int
+      default     : -1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC
+
+    - name        : MV2_HCA_AWARE_PROCESS_MAPPING
+      category    : CH3
+      type        : int
+      default     : 1
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        TODO-DESC - Not used currently.
+
+=== END_MPI_T_MV2_CVAR_INFO_BLOCK ===
+
 */
 
 int mv2_suppress_hca_warnings = 0;
@@ -75,7 +101,7 @@ extern int mv2_set_force_hca_type();
 extern void mv2_free_hca_handle ();
 void mv2_free_hca_handle () {
     if (mv2_force_hca_type_handle) {
-        MPIU_Free(mv2_force_hca_type_handle);
+        MPL_free(mv2_force_hca_type_handle);
         mv2_force_hca_type_handle = NULL;
     }
 }
@@ -294,8 +320,8 @@ mv2_hca_type mv2_new_get_hca_type(struct ibv_context *ctx,
     }
 #endif /*ENABLE_PVAR_MV2 && CHANNEL_MRAIL*/
 
-    if ((value = getenv("MV2_FORCE_HCA_TYPE")) != NULL) {
-        hca_type = atoi(value);
+    if (MV2_FORCE_HCA_TYPE != -1) {
+        hca_type = MV2_FORCE_HCA_TYPE;
         PRINT_DEBUG(DEBUG_INIT_verbose, "Attempting to force HCA %s\n", mv2_get_hca_name(hca_type));
         int retval = mv2_check_hca_type(hca_type, my_rank);
         if (retval) {
@@ -451,8 +477,8 @@ mv2_hca_type mv2_get_hca_type( struct ibv_device *dev )
     }
 #endif /*ENABLE_PVAR_MV2 && CHANNEL_MRAIL*/
 
-    if ((value = getenv("MV2_FORCE_HCA_TYPE")) != NULL) {
-        hca_type = atoi(value);
+    if (MV2_FORCE_HCA_TYPE != -1) {
+        hca_type = MV2_FORCE_HCA_TYPE;
         PRINT_DEBUG(DEBUG_INIT_verbose, "Attempting to force HCA %s\n", mv2_get_hca_name(hca_type));
         int retval = mv2_check_hca_type(hca_type, my_rank);
         if (retval) {
@@ -684,8 +710,8 @@ mv2_hca_type mv2_get_hca_type(void *dev)
     }
 #endif /*ENABLE_PVAR_MV2 && CHANNEL_MRAIL*/
 
-    if ((value = getenv("MV2_FORCE_HCA_TYPE")) != NULL) {
-        hca_type = atoi(value);
+    if (MV2_FORCE_HCA_TYPE != -1) {
+        hca_type = MV2_FORCE_HCA_TYPE;
         PRINT_DEBUG(DEBUG_INIT_verbose, "Attempting to force HCA %s\n", mv2_get_hca_name(hca_type));
         int retval = mv2_check_hca_type(hca_type, my_rank);
         if (retval) {

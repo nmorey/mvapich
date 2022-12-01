@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2013 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include <stdio.h>
@@ -26,8 +24,7 @@ int main(int argc, char **argv)
     MPI_Comm_free(&scomm);
     MPI_Comm_free_keyval(&key);
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }
 
 int delete_fn(MPI_Comm comm, int keyval, void *attr_val, void *extra_state)

@@ -1,25 +1,234 @@
 ===============================================================================
-                               Changes in 3.2.1
+                               Changes in 3.4.3
 ===============================================================================
 
- # Fixes for platforms with strict memory alignment requirements.
+# Fix bugs in GPFS ROMIO driver
 
- # Fixes for MPI_Win info management.
+# Fix bugs in DAOS ROMIO driver
 
- # Fixed a progress bug with MPI generalized requests.
+# Fix nemesis shm bug on systems with weak memory consistency
 
- # Fixed multiple integer overflow bugs in CH3 and ROMIO.
+# Fix progress issue in ch4:ucx finalize
 
- # Improved detection for Fortran 2008 binding support.
+# Fix nonblocking collective issue during finalize
 
- # Enhanced support for libfabric (OFI) netmod.
+# Fix UBSan warnings in 32-bit builds
+
+# Fix predefined datatype handle leaks
+
+# Fix bug in topology-aware communicator creation
+
+# Fix Slurm nodelist parsing
+
+# Fix testcase for out-of-tree configuration
+
+# Fix truncation testcase for possible disconnection error
+
+# Hydra help message improvements
+
+# Add support for DAOS pool and container labels
+
+===============================================================================
+                               Changes in 3.4.2
+===============================================================================
+
+# Update configure options to support --disable-ze and --disable-cuda
+  to explicitly disable GPU-awareness
+
+# Update embedded hwloc to version 2.4.1. Fixes a build issue on
+  systems with OpenCL.
+
+# Fixes for Argobots thread package support.
+
+# Fixes for the DAOS ROMIO driver (thanks to Intel for contributing)
+
+# Fix additional bugs in GPU-aware nonblocking op collectives
+
+# Fix 'make check' errors with embedded MPL and json-c libraries
+
+# Fix support for GNI provider in ch4:ofi netmod
+
+# Fix bug in dynamic window memory registration with ch4:ofi netmod
+
+# Fix bug in persistent pt2pt when used with MPI_PROC_NULL
+
+# Fix bug in hydra nameserver when freeing published entries
+
+# Fix bugs in GPFS ROMIO driver (thanks to IBM for contributing)
+
+# Fix bug in darray type creation (thanks to IBM for contributing)
+
+# Fix bugs in XPMEM support
+
+# Fix bug in MPI_Comm_spawn_multiple where non-root args were not ignored
+
+===============================================================================
+                               Changes in 3.4.1
+===============================================================================
+
+# Fix bug in GPU memory hooks that caused failures with NCCL
+
+# Fix bug in GPU-aware nonblocking op collectives
+
+# Hide symbols from embedded json-c module
+
+# Removed anonymous struct/union usage in MPL
+
+# Disable Java support in embedded UCX module
+
+===============================================================================
+                               Changes in 3.4
+===============================================================================
+
+# ch4 replaces ch3 as the default device configuration. If no network
+  module is specified at configuration-time, MPICH will search the
+  user environment in order to select one to build. The user will be
+  prompted to choose if no preferred network library is dectected.
+
+# Add support for Yaksa datatype engine (default in ch4).
+
+# Add support for GPU buffers (CUDA, Level Zero) in pt2pt,
+  collectives, and one-sided communication.
+
+# Add support for XPMEM.
+
+# Add support for multiple virtual communication interfaces for more
+  efficient MPI_THREAD_MULTIPLE (experimental).
+
+# Add DAOS ADIO driver to ROMIO (contributed by Intel).
+
+# Add Quobyte ADIO driver to ROMIO (contributed by Quobyte).
+
+# Add support for Arm compiler toolchain
+
+# Add support for flang/f18 Fortran compiler
+
+# Add support for AddressSanitizer and UndefinedBehaviorSanitizer to
+  debug configuration
+
+# Remove mxm, llc, and portals4 netmods from ch3.
+
+# Remove support for logical reduction operations on floating point
+  types.
+
+# Remove MPIX_Mutex interfaces.
+
+# Further improvements to ch4 business card exchange: extra
+  long address support and fixes for PMIx integration.
+
+# Un-inline non-critical ch4 code for improved build times.
+
+# Fix several test program bugs.
+
+# Fix several static analysis and compiler warnings.
+
+# Change the signature of MPID_Init to include requested and provided
+  thread levels.
+
+===============================================================================
+                               Changes in 3.3.2
+===============================================================================
+
+# Add support for struct sockaddr in MPICH, Hydra, and PMI socket
+  code. Works with both IPv4 and IPv6 addresses.
+
+# Fix localhost detection on FreeBSD and macOS, avoiding long delay
+  during startup.
+
+# Fix thread-local storage detection.
+
+# Fix several test program bugs.
+
+# Fix several static analysis and compiler warnings.
+
+===============================================================================
+                               Changes in 3.3.1
+===============================================================================
+
+ # Fix bug in MPI_Testany/MPI_Waitany that could cause deadlock
+
+ # Add missing functionality in Argobots library support
+
+ # Fix configure-time detection for thread local storage support
+
+ # Better support for reproducible builds. Thanks to Bernhard
+   Wiedemann for the report and fixes
+
+ # Fix support for XL compiler toolchain
+
+ # Add support for -static-intel linking option
+
+ # Fix building on systems without weak symbols
+
+ # Fix several static analysis and compiler warnings
+
+===============================================================================
+                               Changes in 3.3
+===============================================================================
+
+ # CH4 Device: A new device layer implementation designed for low software
+   overheads. CH4 has experimental support for OFI and UCX network libraries,
+   and POSIX shared memory. Thanks to Intel, Mellanox, and RIKEN AICS for
+   participating in the CH4 coding effort.
+
+ # Fixed SLURM integration in Hydra for new node list format.
+
+ # Added support for PMIx (https://pmix.github.io/pmix/) client
+   library in CH4 netmods. Note that you must use a compatible PMIx
+   server in this configuration.
+
+ # Better organization of collectives in the MPI layer. The new
+   scheme, which de-couples implementation from selection logic,
+   enables easier integration of additional algorithms.
+
+ # TSP collectives framework: A C++-template style framework for
+   collective algorithms is added to allow single collective
+   implementation to move data over generic or device-specific
+   transport functions.
+
+ # Improvements to derived datatype testing (DTPools -
+   https://wiki.mpich.org/mpich/index.php/DTPools).
+
+ # Added new "non-catastrophic" error codes to expose internal
+   resource exhaustion.
+
+ # Added info hints to MPI_Comm_split_type to support splitting
+   communicators by machine topology. Both on-node (socket, core,
+   etc.) and off-node (switch-level) hints are defined.
+
+ # Improvements to MPI_THREAD_MULTIPLE in CH4 through new thread safety
+   models at the Virtual Network Interface (VNI) level. This introduces two
+   new models that leverage work-queues to offload operations and improve
+   scalability under contention.
+
+ # Message Driven Thread Activation (MDTA). An alternative locking
+   model is defined for MPI_THREAD_MULTIPLE in CH4.
+
+ # Added PMI usage optimizations for business card exchange in CH4
+   netmods.
+
+ # Improvements on MPI_Abort. MPI_Abort invoked on subcommunicators will
+   only abort the connected processes within that communicator.
+`
+ # Cleanup of whitespace (ch3 excluded) using the
+   maint/code-cleanup.sh script. For instructions on how to update
+   PRs/branches based on MPICH before the cleanup, see
+   https://github.com/pmodels/mpich/wiki/Code-Cleanup-Procedure.
+
+ # Removed the PAMI device and poe PMI client.
+
+ # C99 compiler support is now required to build MPICH.
 
  # Several other minor bug fixes, memory leak fixes, and code cleanup.
 
    A full list of changes is available at the following link:
 
-     http://git.mpich.org/mpich.git/shortlog/v3.2..v3.2.1
+     http://git.mpich.org/mpich.git/shortlog/v3.2..v3.3
 
+   A list of bugs that have been fixed is available at the following
+   link:
+
+     https://github.com/pmodels/mpich/milestone/25?closed=1
 
 ===============================================================================
                                Changes in 3.2
@@ -1263,11 +1472,11 @@ www.mcs.anl.gov/mpi/mpich2/mpich2_1_0_6changes.htm.
   reorder == true cases in Cart_create and Graph_create).  
 
 - New memory allocation macros, MPIU_CHK[PL]MEM_*(), have been added to help
-  prevent memory leaks.  See mpich2/src/include/mpimem.h.
+  prevent memory leaks.  See mpich2/src/include/mpir_mem.h.
 
 - New error reporting macros, MPIU_ERR_*, have been added to simplify the error
   handling throughout the code, making the code easier to read.  See
-  mpich2/src/include/mpierrs.h.
+  mpich2/src/include/mpir_err.h.
 
 - Interprocess communication using the Sock interface (sock and ssm channels)
   may now be bound to a particular destination interface using the environment

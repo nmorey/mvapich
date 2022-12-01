@@ -27,7 +27,7 @@
 
 #include "crfs.h"
 #include "debug.h"
-#include "debug_utils.h"
+#include "mv2_debug_utils.h"
 
 #define    MAX_PATH_LEN    (128)    // length of mount-point
 #define MAX_CMD_LEN    (MAX_PATH_LEN*2)

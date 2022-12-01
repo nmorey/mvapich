@@ -12,7 +12,7 @@
 
 #include "mpichconf.h"
 #include "mpirun_util.h"
-#include "debug_utils.h"
+#include "mv2_debug_utils.h"
 #include "string.h"
 #include "stdio.h"
 #include <errno.h>

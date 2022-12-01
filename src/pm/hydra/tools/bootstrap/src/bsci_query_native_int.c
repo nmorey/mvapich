@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2008 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "hydra.h"
@@ -17,8 +16,7 @@ HYD_status HYDT_bsci_query_native_int(int *ret)
     if (HYDT_bsci_fns.query_native_int) {
         status = HYDT_bsci_fns.query_native_int(ret);
         HYDU_ERR_POP(status, "RMK returned error querying native integration\n");
-    }
-    else {
+    } else {
         *ret = 0;
     }
 

@@ -46,12 +46,12 @@ int MPID_nem_ib_init_hash_table(
 {
     int mpi_errno = MPI_SUCCESS;
 
-    table->entries = MPIU_Malloc(
+    table->entries = MPL_malloc(
             sizeof(MPID_nem_ib_hash_elem_t) * nentries);
     table->num_entries = nentries;
 
     if(NULL == table->entries) {
-        MPIU_CHKMEM_SETERR(mpi_errno,
+        MPIR_CHKMEM_SETERR(mpi_errno,
                 sizeof(MPID_nem_ib_hash_elem_t) * nentries,
                 "IB Module Hash Table");
     }
@@ -83,7 +83,7 @@ int MPID_nem_ib_insert_hash_elem(
     MPID_nem_ib_hash_elem_ptr_t new_elem;
     MPID_nem_ib_hash_elem_ptr_t elem;
 
-    MPIU_Assert(NULL != table);
+    MPIR_Assert(NULL != table);
 
     pthread_mutex_lock(&table->hash_table_lock);
 
@@ -94,7 +94,7 @@ int MPID_nem_ib_insert_hash_elem(
      * to be non-null */
     start_elem = &table->entries[hash_index];
 
-    MPIU_Assert(start_elem != NULL);
+    MPIR_Assert(start_elem != NULL);
 
     /* Walk to end of list in this hash slot */
     elem = start_elem;
@@ -103,10 +103,10 @@ int MPID_nem_ib_insert_hash_elem(
     }
 
     /* Insert the element */
-    new_elem = MPIU_Malloc(sizeof(MPID_nem_ib_hash_elem_t));
+    new_elem = MPL_malloc(sizeof(MPID_nem_ib_hash_elem_t));
 
     if(NULL == new_elem) {
-        MPIU_CHKMEM_SETERR(mpi_errno,
+        MPIR_CHKMEM_SETERR(mpi_errno,
                 sizeof(MPID_nem_ib_hash_elem_t),
                 "IB Module Hash Table New Element");
     }
@@ -189,7 +189,7 @@ void MPID_nem_ib_finalize_hash_table(
 
     pthread_mutex_lock(&table->hash_table_lock);
 
-    MPIU_Assert(table->entries != NULL);
+    MPIR_Assert(table->entries != NULL);
 
     for(i = 0; i < table->num_entries; i++) {
 
@@ -201,14 +201,14 @@ void MPID_nem_ib_finalize_hash_table(
 
         while(elem != NULL) {
             next_elem = elem->next;
-            MPIU_Free(elem);
+            MPL_free(elem);
             elem = next_elem;
         }
     }
 
     pthread_mutex_unlock(&table->hash_table_lock);
 
-    MPIU_Free(table->entries);
+    MPL_free(table->entries);
 }
 
 

@@ -17,27 +17,27 @@
 #include <mpidimpl.h>
 
 int MPID_MRAIL_RndvSend (
-    MPID_Request** sreq_p,
+    MPIR_Request** sreq_p,
     const void* buf,
     MPI_Aint count,
     MPI_Datatype datatype,
     int dt_contig,
-    MPIDI_msg_sz_t data_sz,
+    intptr_t data_sz,
     MPI_Aint dt_true_lb,
     int rank,
     int tag,
-    MPID_Comm* comm,
+    MPIR_Comm* comm,
     int context_offset);
 
 int MPID_MRAIL_RndvRecv (
     MPIDI_VC_t* vc,
-    MPID_Request* rreq);
+    MPIR_Request* rreq);
 
 int MPIDI_CH3_iStartRndvMsg(MPIDI_VC_t * vc,
-                            MPID_Request * sreq, 
+                            MPIR_Request * sreq, 
                             MPIDI_CH3_Pkt_t * rts_pkt);
 
 int MPIDI_CH3_iStartRndvTransfer(MPIDI_VC_t * vc,
-                                 MPID_Request * rreq);
+                                 MPIR_Request * rreq);
 #endif /* __MPID_MRAIL_RNDV_H_ */
 

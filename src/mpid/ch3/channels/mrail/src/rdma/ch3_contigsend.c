@@ -12,23 +12,22 @@
  */
 
 #include "mpidi_ch3_impl.h"
-#include "mpiutil.h"
 #include "rdma_impl.h"
 
 #undef FUNCNAME
 #define FUNCNAME create_eagercontig_request_inline
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-static inline MPID_Request * create_eagercontig_request_inline(MPIDI_VC_t * vc,
+static inline MPIR_Request * create_eagercontig_request_inline(MPIDI_VC_t * vc,
                          MPIDI_CH3_Pkt_type_t reqtype,
-                         const void * buf, MPIDI_msg_sz_t data_sz, int rank,
-                         int tag, MPID_Comm * comm, int context_offset)
+                         const void * buf, intptr_t data_sz, int rank,
+                         int tag, MPIR_Comm * comm, int context_offset)
 {
-    MPID_Request * sreq;
+    MPIR_Request * sreq;
     MPIDI_CH3_Pkt_t upkt;
     MPIDI_CH3_Pkt_eager_send_t * const eager_pkt = &upkt.eager_send;
-    MPIDI_STATE_DECL(MPID_STATE_CREATE_EAGERCONTIG_REQUEST);
-    MPIDI_FUNC_ENTER(MPID_STATE_CREATE_EAGERCONTIG_REQUEST);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_CREATE_EAGERCONTIG_REQUEST);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_CREATE_EAGERCONTIG_REQUEST);
 #if defined(MPID_USE_SEQUENCE_NUMBERS)
     MPID_Seqnum_t seqnum;
 #endif /* defined(MPID_USE_SEQUENCE_NUMBERS) */
@@ -42,31 +41,30 @@ static inline MPID_Request * create_eagercontig_request_inline(MPIDI_VC_t * vc,
 
     MPIDI_VC_FAI_send_seqnum(vc, seqnum);
     MPIDI_Pkt_set_seqnum(eager_pkt, seqnum);
-    MPIU_DBG_MSGPKT(vc,tag,eager_pkt->match.parts.context_id,rank,data_sz,"EagerContig");
-    sreq = MPID_Request_create();
+    MPL_DBG_MSGPKT(vc,tag,eager_pkt->match.parts.context_id,rank,data_sz,"EagerContig");
+    sreq = MPIR_Request_create(MPIR_REQUEST_KIND__SEND);
     /* --BEGIN ERROR HANDLING-- */
     if (sreq == NULL)
         return NULL;
     /* --END ERROR HANDLING-- */
-    MPIU_Object_set_ref(sreq, 2);
-    sreq->kind = MPID_REQUEST_SEND;
+    MPIR_Object_set_ref(sreq, 2);
     MV2_INC_NUM_POSTED_SEND();
 
-    sreq->dev.iov[0].MPL_IOV_BUF = (MPL_IOV_BUF_CAST)eager_pkt;
-    sreq->dev.iov[0].MPL_IOV_LEN = sizeof(*eager_pkt);
-    MPIU_DBG_MSG_FMT(CH3_OTHER,VERBOSE,(MPIU_DBG_FDEST,
+    sreq->dev.iov[0].iov_base = (void *)eager_pkt;
+    sreq->dev.iov[0].iov_len = sizeof(*eager_pkt);
+    MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_OTHER,VERBOSE,(MPL_DBG_FDEST,
                 "sending smp contiguous eager message, data_sz=" 
-                MPIDI_MSG_SZ_FMT, data_sz));
-    sreq->dev.iov[1].MPL_IOV_BUF = (MPL_IOV_BUF_CAST) buf;
-    sreq->dev.iov[1].MPL_IOV_LEN = data_sz;
+                PRIdPTR, data_sz));
+    sreq->dev.iov[1].iov_base = (void *) buf;
+    sreq->dev.iov[1].iov_len = data_sz;
 #ifdef _ENABLE_CUDA_
-    sreq->dev.pending_pkt = MPIU_Malloc(sreq->dev.iov[0].MPL_IOV_LEN);
-    MPIU_Memcpy(sreq->dev.pending_pkt, 
-            sreq->dev.iov[0].MPL_IOV_BUF, sreq->dev.iov[0].MPL_IOV_LEN);
-    sreq->dev.iov[0].MPL_IOV_BUF = (MPL_IOV_BUF_CAST) sreq->dev.pending_pkt;
+    sreq->dev.pending_pkt = MPL_malloc(sreq->dev.iov[0].iov_len);
+    MPIR_Memcpy(sreq->dev.pending_pkt, 
+            sreq->dev.iov[0].iov_base, sreq->dev.iov[0].iov_len);
+    sreq->dev.iov[0].iov_base = (void *) sreq->dev.pending_pkt;
 #else
-    MPIU_Memcpy(&sreq->dev.pending_pkt, sreq->dev.iov[0].MPL_IOV_BUF, sizeof(MPIDI_CH3_Pkt_t));
-    sreq->dev.iov[0].MPL_IOV_BUF = (void *)&sreq->dev.pending_pkt;
+    MPIR_Memcpy(&sreq->dev.pending_pkt, sreq->dev.iov[0].iov_base, sizeof(MPIDI_CH3_Pkt_t));
+    sreq->dev.iov[0].iov_base = (void *)&sreq->dev.pending_pkt;
 #endif
     sreq->ch.reqtype = REQUEST_NORMAL;
     sreq->dev.iov_offset = 0;
@@ -76,7 +74,7 @@ static inline MPID_Request * create_eagercontig_request_inline(MPIDI_VC_t * vc,
     MPIDI_Request_set_seqnum(sreq, seqnum);
     MPIDI_Request_set_type(sreq, MPIDI_REQUEST_TYPE_SEND);
     
-    MPIDI_FUNC_EXIT(MPID_STATE_CREATE_EAGERCONTIG_REQUEST);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_CREATE_EAGERCONTIG_REQUEST);
     return sreq;
 }
 
@@ -84,10 +82,10 @@ static inline MPID_Request * create_eagercontig_request_inline(MPIDI_VC_t * vc,
 #define FUNCNAME create_eagercontig_request
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPID_Request * create_eagercontig_request(MPIDI_VC_t * vc,
+MPIR_Request * create_eagercontig_request(MPIDI_VC_t * vc,
                          MPIDI_CH3_Pkt_type_t reqtype,
-                         const void * buf, MPIDI_msg_sz_t data_sz, int rank,
-                         int tag, MPID_Comm * comm, int context_offset)
+                         const void * buf, intptr_t data_sz, int rank,
+                         int tag, MPIR_Comm * comm, int context_offset)
 {
     return create_eagercontig_request_inline(vc, reqtype, buf, data_sz, rank,
             tag, comm, context_offset);
@@ -99,14 +97,14 @@ MPID_Request * create_eagercontig_request(MPIDI_VC_t * vc,
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 static int MPIDI_CH3_SMP_ContigSend(MPIDI_VC_t * vc,
-                MPID_Request **sreq_p, MPIDI_CH3_Pkt_type_t reqtype,
-                const void * buf, MPIDI_msg_sz_t data_sz, int rank,
-                int tag, MPID_Comm * comm, int context_offset)
+                MPIR_Request **sreq_p, MPIDI_CH3_Pkt_type_t reqtype,
+                const void * buf, intptr_t data_sz, int rank,
+                int tag, MPIR_Comm * comm, int context_offset)
 {
-    MPID_Request *sreq = NULL;
+    MPIR_Request *sreq = NULL;
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3_SMP_CONTIGSEND);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_SMP_CONTIGSEND);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3_SMP_CONTIGSEND);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3_SMP_CONTIGSEND);
 
     /* If send queue is empty attempt to send
        data, queuing any unsent data. */
@@ -148,7 +146,7 @@ static int MPIDI_CH3_SMP_ContigSend(MPIDI_VC_t * vc,
 
     *sreq_p = sreq;
 
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3_SMP_CONTIGSEND);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3_SMP_CONTIGSEND);
 fn_fail:
     return mpi_errno;
 }
@@ -157,13 +155,13 @@ fn_fail:
 #define FUNCNAME MPIDI_CH3_ContigSend
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDI_CH3_ContigSend(MPID_Request **sreq_p,
+int MPIDI_CH3_ContigSend(MPIR_Request **sreq_p,
                          MPIDI_CH3_Pkt_type_t reqtype,
-                         const void * buf, MPIDI_msg_sz_t data_sz, int rank,
-                         int tag, MPID_Comm * comm, int context_offset)
+                         const void * buf, intptr_t data_sz, int rank,
+                         int tag, MPIR_Comm * comm, int context_offset)
 {
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3_CONTIGSEND);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_CONTIGSEND);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3_CONTIGSEND);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3_CONTIGSEND);
 
     MPIDI_VC_t * vc;
     MPIDI_Comm_get_vc_set_active(comm, rank, &vc);
@@ -194,6 +192,6 @@ int MPIDI_CH3_ContigSend(MPID_Request **sreq_p,
 #ifdef CKPT
     MPIDI_CH3I_CR_unlock();
 #endif
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3_CONTIGSEND);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3_CONTIGSEND);
     return 1;
 }

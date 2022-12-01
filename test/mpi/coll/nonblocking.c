@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2010 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /* This is a very weak sanity test that all nonblocking collectives specified by
@@ -12,6 +11,7 @@
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "mpitest.h"
 
 #define NUM_INTS (2)
 
@@ -34,14 +34,11 @@ int main(int argc, char **argv)
     int *rcounts = NULL;
     int *sdispls = NULL;
     int *rdispls = NULL;
-    int *types = NULL;
+    MPI_Datatype *types = NULL;
     MPI_Comm comm;
     MPI_Request req;
 
-    /* intentionally not using MTest_Init/MTest_Finalize in order to make it
-     * easy to take this test and use it as an NBC sanity test outside of the
-     * MPICH test suite */
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
 
     comm = MPI_COMM_WORLD;
 
@@ -62,7 +59,7 @@ int main(int argc, char **argv)
     my_assert(sdispls);
     rdispls = malloc(size * sizeof(int));
     my_assert(rdispls);
-    types = malloc(size * sizeof(int));
+    types = malloc(size * sizeof(MPI_Datatype));
     my_assert(types);
 
     for (i = 0; i < size; ++i) {
@@ -207,12 +204,6 @@ int main(int argc, char **argv)
     if (types)
         free(types);
 
-    if (rank == 0) {
-        if (errs)
-            fprintf(stderr, "Found %d errors\n", errs);
-        else
-            printf(" No errors\n");
-    }
-    MPI_Finalize();
-    return 0;
+    MTest_Finalize(errs);
+    return MTestReturnValue(errs);
 }

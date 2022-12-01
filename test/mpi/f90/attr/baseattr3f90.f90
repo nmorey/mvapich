@@ -1,9 +1,8 @@
-! -*- Mode: Fortran; -*-
 !
+! Copyright (C) by Argonne National Laboratory
+!     See COPYRIGHT in top-level directory
 !
-! (C) 2012 by Argonne National Laboratory.
-!     See COPYRIGHT in top-level directory.
-!
+
 ! This is a MPI-2 version of baseattr2f90.f90 which uses COMM_GET_ATTR 
 ! instead of ATTR_GET, using an address-sized integer instead of 
 ! an INTEGER.
@@ -15,7 +14,7 @@
         integer (KIND=MPI_ADDRESS_KIND) value
 
         errs = 0
-        call mpi_init( ierr )
+        call mtest_init( ierr )
 
         call mpi_comm_size( MPI_COMM_WORLD, commsize, ierr )
         call mpi_comm_rank( MPI_COMM_WORLD, commrank, ierr )
@@ -106,13 +105,6 @@
             print *, "MPI_LASTUSECODE is not defined"
          endif
 
-!     Check for errors
-      if (errs .eq. 0) then
-         print *, " No Errors"
-      else
-         print *, " Found ", errs, " errors"
-      endif
-
-      call MPI_Finalize( ierr )
+      call MTEST_Finalize( errs )
 
       end

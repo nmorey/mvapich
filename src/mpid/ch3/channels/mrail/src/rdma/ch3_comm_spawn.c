@@ -18,7 +18,7 @@
 #define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_Comm_spawn(const char *command, const char *argv[],
                          const int maxprocs, MPI_Info info, const int root,
-                         MPID_Comm * comm, MPID_Comm * intercomm,
+                         MPIR_Comm * comm, MPIR_Comm * intercomm,
                          int array_of_errcodes[])
 {
     MPIDI_STATE_DECL(MPID_STATE_MPIDI_COMM_SPAWN);

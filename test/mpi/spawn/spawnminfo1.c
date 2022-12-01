@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2005 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include "mpitest.h"
 #include <stdio.h>
@@ -67,8 +66,7 @@ int main(int argc, char *argv[])
                                     spawninfos, 0, MPI_COMM_WORLD, &intercomm, errcodes);
             MPI_Info_free(&spawninfos[0]);
             MPI_Info_free(&spawninfos[1]);
-        }
-        else
+        } else
             intercomm = parentcomm;
 
         /* We now have a valid intercomm */
@@ -78,7 +76,7 @@ int main(int argc, char *argv[])
         MPI_Comm_rank(intercomm, &rank);
 
         if (parentcomm == MPI_COMM_NULL) {
-            /* Master */
+            /* Parent */
             if (rsize != sumnp) {
                 errs++;
                 printf("Did not create %d processes (got %d)\n", sumnp, rsize);
@@ -111,8 +109,7 @@ int main(int argc, char *argv[])
                     }
                 }
             }
-        }
-        else {
+        } else {
             /* Child */
             char cname[MPI_MAX_OBJECT_NAME];
             int rlen;
@@ -131,8 +128,7 @@ int main(int argc, char *argv[])
                 printf("Name of parent is not correct\n");
                 if (rlen > 0 && cname[0]) {
                     printf(" Got %s but expected MPI_COMM_PARENT\n", cname);
-                }
-                else {
+                } else {
                     printf(" Expected MPI_COMM_PARENT but no name set\n");
                 }
             }
@@ -144,7 +140,7 @@ int main(int argc, char *argv[])
             /* Send our notion of the current directory to the parent */
             MPI_Send(curdir, strlen(curdir) + 1, MPI_CHAR, 0, 2, intercomm);
 
-            /* Send the errs back to the master process */
+            /* Send the errs back to the parent process */
             MPI_Ssend(&errs, 1, MPI_INT, 0, 1, intercomm);
         }
 
@@ -156,12 +152,12 @@ int main(int argc, char *argv[])
          * if both call MTest_Finalize */
         if (parentcomm == MPI_COMM_NULL) {
             MTest_Finalize(errs);
+        } else {
+            MPI_Finalize();
         }
-    }
-    else {
+    } else {
         MTest_Finalize(errs);
     }
 
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

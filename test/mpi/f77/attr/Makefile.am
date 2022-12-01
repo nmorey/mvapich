@@ -1,9 +1,7 @@
-# -*- Mode: Makefile; -*-
-# vim: set ft=automake :
-#
-# (C) 2011 by Argonne National Laboratory.
-#     See COPYRIGHT in top-level directory.
-#
+##
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
+##
 
 include $(top_srcdir)/Makefile_f77.mtest
 
@@ -28,4 +26,3 @@ commattr3f.$(OBJEXT): attraints.h
 typeattrf.$(OBJEXT): attraints.h
 typeattr2f.$(OBJEXT): attraints.h
 typeattr3f.$(OBJEXT): attraints.h
-

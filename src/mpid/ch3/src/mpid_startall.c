@@ -1,14 +1,9 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpidimpl.h"
-/* FIXME: This bsend header shouldn't be needed (the function prototype
-   should be in mpiimpl.h), to allow a devices MPID_Startall to use the
-   MPIR_Bsend_isend function */
-#include "../../../mpi/pt2pt/bsendutil.h"
 
 /* FIXME: Consider using function pointers for invoking persistent requests;
    if we made those part of the public request structure, the top-level routine
@@ -22,17 +17,16 @@
 /* This macro initializes all of the fields in a persistent request */
 #define MPIDI_Request_create_psreq(sreq_, mpi_errno_, FAIL_)		\
 {									\
-    (sreq_) = MPID_Request_create();				\
+    (sreq_) = MPIR_Request_create(MPIR_REQUEST_KIND__PREQUEST_SEND);                  \
     if ((sreq_) == NULL)						\
     {									\
-	MPIU_DBG_MSG(CH3_OTHER,VERBOSE,"send request allocation failed");\
+	MPL_DBG_MSG(MPIDI_CH3_DBG_OTHER,VERBOSE,"send request allocation failed");\
 	(mpi_errno_) = MPIR_ERR_MEMALLOCFAILED;				\
 	FAIL_;								\
     }									\
 									\
-    MPIU_Object_set_ref((sreq_), 1);					\
-    MPID_cc_set(&(sreq_)->cc, 0);                                       \
-    (sreq_)->kind = MPID_PREQUEST_SEND;					\
+    MPIR_Object_set_ref((sreq_), 1);					\
+    MPIR_cc_set(&(sreq_)->cc, 0);                                       \
     (sreq_)->comm = comm;						\
     MPIR_Comm_add_ref(comm);						\
     (sreq_)->dev.match.parts.rank = rank;				\
@@ -41,29 +35,29 @@
     (sreq_)->dev.user_buf = (void *) buf;				\
     (sreq_)->dev.user_count = count;					\
     (sreq_)->dev.datatype = datatype;					\
-    (sreq_)->partner_request = NULL;					\
+    (sreq_)->u.persist.real_request = NULL;                             \
 }
 
 	
 /*
  * MPID_Startall()
  */
-#undef FUNCNAME
-#define FUNCNAME MPID_Startall
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-int MPID_Startall(int count, MPID_Request * requests[])
+int MPID_Startall(int count, MPIR_Request * requests[])
 {
     int i;
     int rc;
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_MPID_STARTALL);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_STARTALL);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPID_STARTALL);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_STARTALL);
 
     for (i = 0; i < count; i++)
     {
-	MPID_Request * const preq = requests[i];
+	MPIR_Request * const preq = requests[i];
+
+        /* continue if the source/dest is MPI_PROC_NULL */
+        if (preq->dev.match.parts.rank == MPI_PROC_NULL)
+            continue;
 
 	/* FIXME: The odd 7th arg (match.context_id - comm->context_id) 
 	   is probably to get the context offset.  Do we really need the
@@ -74,7 +68,7 @@ int MPID_Startall(int count, MPID_Request * requests[])
 	    {
 		rc = MPID_Irecv(preq->dev.user_buf, preq->dev.user_count, preq->dev.datatype, preq->dev.match.parts.rank,
 		    preq->dev.match.parts.tag, preq->comm, preq->dev.match.parts.context_id - preq->comm->recvcontext_id,
-		    &preq->partner_request);
+		    &preq->u.persist.real_request);
 		break;
 	    }
 	    
@@ -82,7 +76,7 @@ int MPID_Startall(int count, MPID_Request * requests[])
 	    {
 		rc = MPID_Isend(preq->dev.user_buf, preq->dev.user_count, preq->dev.datatype, preq->dev.match.parts.rank,
 		    preq->dev.match.parts.tag, preq->comm, preq->dev.match.parts.context_id - preq->comm->context_id,
-		    &preq->partner_request);
+		    &preq->u.persist.real_request);
 		break;
 	    }
 		
@@ -90,7 +84,7 @@ int MPID_Startall(int count, MPID_Request * requests[])
 	    {
 		rc = MPID_Irsend(preq->dev.user_buf, preq->dev.user_count, preq->dev.datatype, preq->dev.match.parts.rank,
 		    preq->dev.match.parts.tag, preq->comm, preq->dev.match.parts.context_id - preq->comm->context_id,
-		    &preq->partner_request);
+		    &preq->u.persist.real_request);
 		break;
 	    }
 		
@@ -98,21 +92,22 @@ int MPID_Startall(int count, MPID_Request * requests[])
 	    {
 		rc = MPID_Issend(preq->dev.user_buf, preq->dev.user_count, preq->dev.datatype, preq->dev.match.parts.rank,
 		    preq->dev.match.parts.tag, preq->comm, preq->dev.match.parts.context_id - preq->comm->context_id,
-		    &preq->partner_request);
+		    &preq->u.persist.real_request);
 		break;
 	    }
 
 	    case MPIDI_REQUEST_TYPE_BSEND:
 	    {
-		MPI_Request sreq_handle;
-
-                rc = MPIR_Ibsend_impl(preq->dev.user_buf, preq->dev.user_count,
+                rc = MPIR_Bsend_isend(preq->dev.user_buf, preq->dev.user_count,
                                       preq->dev.datatype, preq->dev.match.parts.rank,
                                       preq->dev.match.parts.tag, preq->comm,
-                                      &sreq_handle);
-                if (rc == MPI_SUCCESS)
-                {
-                    MPID_Request_get_ptr(sreq_handle, preq->partner_request);
+                                      &preq->u.persist.real_request);
+                if (rc == MPI_SUCCESS) {
+                    preq->status.MPI_ERROR = MPI_SUCCESS;
+                    preq->cc_ptr = &preq->cc;
+                    /* bsend is local-complete */
+                    MPIR_cc_set(preq->cc_ptr, 0);
+                    goto fn_exit;
                 }
 		break;
 	    }
@@ -120,7 +115,7 @@ int MPID_Startall(int count, MPID_Request * requests[])
 	    default:
 	    {
 		/* --BEGIN ERROR HANDLING-- */
-		rc = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_FATAL, FCNAME, __LINE__, MPI_ERR_INTERN, "**ch3|badreqtype",
+		rc = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_FATAL, __func__, __LINE__, MPI_ERR_INTERN, "**ch3|badreqtype",
 					  "**ch3|badreqtype %d", MPIDI_Request_get_type(preq));
 		/* --END ERROR HANDLING-- */
 	    }
@@ -129,7 +124,7 @@ int MPID_Startall(int count, MPID_Request * requests[])
 	if (rc == MPI_SUCCESS)
 	{
 	    preq->status.MPI_ERROR = MPI_SUCCESS;
-	    preq->cc_ptr = &preq->partner_request->cc;
+	    preq->cc_ptr = &preq->u.persist.real_request->cc;
 	}
 	/* --BEGIN ERROR HANDLING-- */
 	else
@@ -139,15 +134,16 @@ int MPID_Startall(int count, MPID_Request * requests[])
 	       the error code in the persistent request.  The wait and test
 	       routines will look at the error code in the persistent
 	       request if a partner request is not present. */
-	    preq->partner_request = NULL;
+	    preq->u.persist.real_request = NULL;
 	    preq->status.MPI_ERROR = rc;
 	    preq->cc_ptr = &preq->cc;
-            MPID_cc_set(&preq->cc, 0);
+            MPIR_cc_set(&preq->cc, 0);
 	}
 	/* --END ERROR HANDLING-- */
     }
 
-    MPIDI_FUNC_EXIT(MPID_STATE_MPID_STARTALL);
+  fn_exit:
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_STARTALL);
     return mpi_errno;
 }
 
@@ -158,120 +154,104 @@ int MPID_Startall(int count, MPID_Request * requests[])
 /*
  * MPID_Send_init()
  */
-#undef FUNCNAME
-#define FUNCNAME MPID_Send_init
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-int MPID_Send_init(const void * buf, int count, MPI_Datatype datatype, int rank, int tag, MPID_Comm * comm, int context_offset,
-		   MPID_Request ** request)
+int MPID_Send_init(const void * buf, int count, MPI_Datatype datatype, int rank, int tag, MPIR_Comm * comm, int context_offset,
+		   MPIR_Request ** request)
 {
-    MPID_Request * sreq;
+    MPIR_Request * sreq;
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_MPID_SEND_INIT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_SEND_INIT);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPID_SEND_INIT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_SEND_INIT);
 
     MPIDI_Request_create_psreq(sreq, mpi_errno, goto fn_exit);
     MPIDI_Request_set_type(sreq, MPIDI_REQUEST_TYPE_SEND);
-    if (HANDLE_GET_KIND(datatype) != HANDLE_KIND_BUILTIN)
+    if (!HANDLE_IS_BUILTIN(datatype))
     {
-	MPID_Datatype_get_ptr(datatype, sreq->dev.datatype_ptr);
-	MPID_Datatype_add_ref(sreq->dev.datatype_ptr);
+	MPIR_Datatype_get_ptr(datatype, sreq->dev.datatype_ptr);
+    MPIR_Datatype_ptr_add_ref(sreq->dev.datatype_ptr);
     }
     *request = sreq;
 
   fn_exit:    
-    MPIDI_FUNC_EXIT(MPID_STATE_MPID_SEND_INIT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_SEND_INIT);
     return mpi_errno;
 }
 
 /*
  * MPID_Ssend_init()
  */
-#undef FUNCNAME
-#define FUNCNAME MPID_Ssend_init
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-int MPID_Ssend_init(const void * buf, int count, MPI_Datatype datatype, int rank, int tag, MPID_Comm * comm, int context_offset,
-		    MPID_Request ** request)
+int MPID_Ssend_init(const void * buf, int count, MPI_Datatype datatype, int rank, int tag, MPIR_Comm * comm, int context_offset,
+		    MPIR_Request ** request)
 {
-    MPID_Request * sreq;
+    MPIR_Request * sreq;
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_MPID_SSEND_INIT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_SSEND_INIT);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPID_SSEND_INIT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_SSEND_INIT);
 
     MPIDI_Request_create_psreq(sreq, mpi_errno, goto fn_exit);
     MPIDI_Request_set_type(sreq, MPIDI_REQUEST_TYPE_SSEND);
-    if (HANDLE_GET_KIND(datatype) != HANDLE_KIND_BUILTIN)
+    if (!HANDLE_IS_BUILTIN(datatype))
     {
-	MPID_Datatype_get_ptr(datatype, sreq->dev.datatype_ptr);
-	MPID_Datatype_add_ref(sreq->dev.datatype_ptr);
+	MPIR_Datatype_get_ptr(datatype, sreq->dev.datatype_ptr);
+    MPIR_Datatype_ptr_add_ref(sreq->dev.datatype_ptr);
     }
     *request = sreq;
 
   fn_exit:    
-    MPIDI_FUNC_EXIT(MPID_STATE_MPID_SSEND_INIT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_SSEND_INIT);
     return mpi_errno;
 }
 
 /*
  * MPID_Rsend_init()
  */
-#undef FUNCNAME
-#define FUNCNAME MPID_Rsend_init
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-int MPID_Rsend_init(const void * buf, int count, MPI_Datatype datatype, int rank, int tag, MPID_Comm * comm, int context_offset,
-		    MPID_Request ** request)
+int MPID_Rsend_init(const void * buf, int count, MPI_Datatype datatype, int rank, int tag, MPIR_Comm * comm, int context_offset,
+		    MPIR_Request ** request)
 {
-    MPID_Request * sreq;
+    MPIR_Request * sreq;
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_MPID_RSEND_INIT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_RSEND_INIT);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPID_RSEND_INIT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_RSEND_INIT);
 
     MPIDI_Request_create_psreq(sreq, mpi_errno, goto fn_exit);
     MPIDI_Request_set_type(sreq, MPIDI_REQUEST_TYPE_RSEND);
-    if (HANDLE_GET_KIND(datatype) != HANDLE_KIND_BUILTIN)
+    if (!HANDLE_IS_BUILTIN(datatype))
     {
-	MPID_Datatype_get_ptr(datatype, sreq->dev.datatype_ptr);
-	MPID_Datatype_add_ref(sreq->dev.datatype_ptr);
+	MPIR_Datatype_get_ptr(datatype, sreq->dev.datatype_ptr);
+    MPIR_Datatype_ptr_add_ref(sreq->dev.datatype_ptr);
     }
     *request = sreq;
 
   fn_exit:    
-    MPIDI_FUNC_EXIT(MPID_STATE_MPID_RSEND_INIT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_RSEND_INIT);
     return mpi_errno;
 }
 
 /*
  * MPID_Bsend_init()
  */
-#undef FUNCNAME
-#define FUNCNAME MPID_Bsend_init
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-int MPID_Bsend_init(const void * buf, int count, MPI_Datatype datatype, int rank, int tag, MPID_Comm * comm, int context_offset,
-		    MPID_Request ** request)
+int MPID_Bsend_init(const void * buf, int count, MPI_Datatype datatype, int rank, int tag, MPIR_Comm * comm, int context_offset,
+		    MPIR_Request ** request)
 {
-    MPID_Request * sreq;
+    MPIR_Request * sreq;
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_MPID_BSEND_INIT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_BSEND_INIT);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPID_BSEND_INIT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_BSEND_INIT);
 
     MPIDI_Request_create_psreq(sreq, mpi_errno, goto fn_exit);
     MPIDI_Request_set_type(sreq, MPIDI_REQUEST_TYPE_BSEND);
-    if (HANDLE_GET_KIND(datatype) != HANDLE_KIND_BUILTIN)
+    if (!HANDLE_IS_BUILTIN(datatype))
     {
-	MPID_Datatype_get_ptr(datatype, sreq->dev.datatype_ptr);
-	MPID_Datatype_add_ref(sreq->dev.datatype_ptr);
+	MPIR_Datatype_get_ptr(datatype, sreq->dev.datatype_ptr);
+    MPIR_Datatype_ptr_add_ref(sreq->dev.datatype_ptr);
     }
     *request = sreq;
 
   fn_exit:    
-    MPIDI_FUNC_EXIT(MPID_STATE_MPID_BSEND_INIT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_BSEND_INIT);
     return mpi_errno;
 }
 
@@ -286,32 +266,27 @@ int MPID_Bsend_init(const void * buf, int count, MPI_Datatype datatype, int rank
 /*
  * MPID_Recv_init()
  */
-#undef FUNCNAME
-#define FUNCNAME MPID_Recv_init
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-int MPID_Recv_init(void * buf, int count, MPI_Datatype datatype, int rank, int tag, MPID_Comm * comm, int context_offset,
-		   MPID_Request ** request)
+int MPID_Recv_init(void * buf, int count, MPI_Datatype datatype, int rank, int tag, MPIR_Comm * comm, int context_offset,
+		   MPIR_Request ** request)
 {
-    MPID_Request * rreq;
+    MPIR_Request * rreq;
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_MPID_RECV_INIT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_RECV_INIT);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPID_RECV_INIT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_RECV_INIT);
     
-    rreq = MPID_Request_create();
+    rreq = MPIR_Request_create(MPIR_REQUEST_KIND__PREQUEST_RECV);
     if (rreq == NULL)
     {
 	/* --BEGIN ERROR HANDLING-- */
-	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_FATAL, FCNAME, __LINE__, MPI_ERR_OTHER, "**nomemreq", 0);
+	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_FATAL, __func__, __LINE__, MPI_ERR_OTHER, "**nomemreq", 0);
 	/* --END ERROR HANDLING-- */
 	goto fn_exit;
     }
     
-    MPIU_Object_set_ref(rreq, 1);
-    rreq->kind = MPID_PREQUEST_RECV;
+    MPIR_Object_set_ref(rreq, 1);
     rreq->comm = comm;
-    MPID_cc_set(&rreq->cc, 0);
+    MPIR_cc_set(&rreq->cc, 0);
     MPIR_Comm_add_ref(comm);
     rreq->dev.match.parts.rank = rank;
     rreq->dev.match.parts.tag = tag;
@@ -319,16 +294,16 @@ int MPID_Recv_init(void * buf, int count, MPI_Datatype datatype, int rank, int t
     rreq->dev.user_buf = (void *) buf;
     rreq->dev.user_count = count;
     rreq->dev.datatype = datatype;
-    rreq->partner_request = NULL;
+    rreq->u.persist.real_request = NULL;
     MPIDI_Request_set_type(rreq, MPIDI_REQUEST_TYPE_RECV);
-    if (HANDLE_GET_KIND(datatype) != HANDLE_KIND_BUILTIN)
+    if (!HANDLE_IS_BUILTIN(datatype))
     {
-	MPID_Datatype_get_ptr(datatype, rreq->dev.datatype_ptr);
-	MPID_Datatype_add_ref(rreq->dev.datatype_ptr);
+	MPIR_Datatype_get_ptr(datatype, rreq->dev.datatype_ptr);
+    MPIR_Datatype_ptr_add_ref(rreq->dev.datatype_ptr);
     }
     *request = rreq;
 
   fn_exit:
-    MPIDI_FUNC_EXIT(MPID_STATE_MPID_RECV_INIT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_RECV_INIT);
     return mpi_errno;
 }

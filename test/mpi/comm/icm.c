@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2004 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,8 +49,7 @@ int main(int argc, char *argv[])
                     errs++;
                     printf("(1) rank for high process is %d should be %d\n", nrank, rsize + rank);
                 }
-            }
-            else {
+            } else {
                 /* The right processes should be low */
                 if (nrank != rank) {
                     errs++;
@@ -73,8 +71,7 @@ int main(int argc, char *argv[])
                     errs++;
                     printf("(2) rank for high process is %d should be %d\n", nrank, rsize + rank);
                 }
-            }
-            else {
+            } else {
                 /* The left processes should be low */
                 if (nrank != rank) {
                     errs++;
@@ -97,6 +94,5 @@ int main(int argc, char *argv[])
     }
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

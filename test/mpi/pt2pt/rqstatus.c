@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include "mpitest.h"
@@ -84,8 +83,7 @@ int main(int argc, char *argv[])
                 errs++;
                 fprintf(stderr, "Count value %d should be 2\n", count);
             }
-        }
-        else {
+        } else {
             errs++;
             fprintf(stderr, "Unexpected flag value from get_status\n");
         }
@@ -108,6 +106,5 @@ int main(int argc, char *argv[])
     }
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

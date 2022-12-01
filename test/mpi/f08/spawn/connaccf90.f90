@@ -1,8 +1,8 @@
-! -*- Mode: Fortran; -*-
 !
-!  (C) 2003 by Argonne National Laboratory.
-!      See COPYRIGHT in top-level directory.
+! Copyright (C) by Argonne National Laboratory
+!     See COPYRIGHT in top-level directory
 !
+
       program main
       use mpi_f08
       integer size, rank, ierr, errs, eclass
@@ -122,6 +122,5 @@
       call mpi_comm_disconnect( intercomm, ierr )
 
       call mtest_finalize( errs )
-      call mpi_finalize( ierr )
 
       end

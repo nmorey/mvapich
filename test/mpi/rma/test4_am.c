@@ -1,8 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include "stdio.h"
 #include "stdlib.h"
@@ -73,8 +73,7 @@ int main(int argc, char *argv[])
                              (-4) * (i + SIZE1)););
                     errs++;
                 }
-        }
-        else {  /* rank=1 */
+        } else {        /* rank=1 */
             for (i = 0; i < SIZE2; i++)
                 B[i] = (-4) * i;
             MPI_Win_create(B, SIZE2 * sizeof(int), sizeof(int), MPI_INFO_NULL, CommDeuce, &win);
@@ -94,6 +93,5 @@ int main(int argc, char *argv[])
     }
     MPI_Comm_free(&CommDeuce);
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

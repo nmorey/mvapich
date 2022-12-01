@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2014 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpiimpl.h"
@@ -15,7 +13,7 @@
 #elif defined(HAVE_PRAGMA_CRI_DUP)
 #pragma _CRI duplicate MPI_Aint_add as PMPI_Aint_add
 #elif defined(HAVE_WEAK_ATTRIBUTE)
-MPI_Aint MPI_Aint_add(MPI_Aint base, MPI_Aint disp) __attribute__((weak,alias("PMPI_Aint_add")));
+MPI_Aint MPI_Aint_add(MPI_Aint base, MPI_Aint disp) __attribute__ ((weak, alias("PMPI_Aint_add")));
 #endif
 /* -- End Profiling Symbol Block */
 
@@ -27,8 +25,6 @@ MPI_Aint MPI_Aint_add(MPI_Aint base, MPI_Aint disp) __attribute__((weak,alias("P
 
 #endif
 
-#undef FUNCNAME
-#define FUNCNAME MPI_Aint_add
 
 /*@
 MPI_Aint_add - Returns the sum of base and disp
@@ -58,13 +54,13 @@ as if the process that originally produced base had called\:
 MPI_Aint MPI_Aint_add(MPI_Aint base, MPI_Aint disp)
 {
     MPI_Aint result;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_AINT_ADD);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_AINT_ADD);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
 
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_AINT_ADD);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_AINT_ADD);
     result = MPID_Aint_add(base, disp);
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_AINT_ADD);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_AINT_ADD);
 
     return result;
 }

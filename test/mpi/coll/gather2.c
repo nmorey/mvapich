@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpi.h"
@@ -51,8 +49,7 @@ int main(int argc, char **argv)
                     }
                     MPI_Gather(MPI_IN_PLACE, -1, MPI_DATATYPE_NULL,
                                vecout, n, MPI_DOUBLE, root, comm);
-                }
-                else {
+                } else {
                     MPI_Gather(vecin, 1, vec, NULL, -1, MPI_DATATYPE_NULL, root, comm);
                 }
                 if (rank == root) {
@@ -77,12 +74,10 @@ int main(int argc, char **argv)
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     if (rank == 0) {
         MPI_Gather(MPI_IN_PLACE, -1, MPI_DATATYPE_NULL, NULL, 0, MPI_BYTE, 0, MPI_COMM_WORLD);
-    }
-    else {
+    } else {
         MPI_Gather(NULL, 0, MPI_BYTE, NULL, 0, MPI_BYTE, 0, MPI_COMM_WORLD);
     }
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

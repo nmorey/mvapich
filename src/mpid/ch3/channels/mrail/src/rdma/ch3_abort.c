@@ -17,14 +17,10 @@
 #include "src/pm/hydra/include/hydra_config.h"
 #endif
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_Abort
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_Abort(int exit_code, const char *error_msg)
 {
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3_ABORT);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_ABORT);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPIDI_CH3_ABORT);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPIDI_CH3_ABORT);
 
     /* print backtrace */
     if (show_backtrace) print_backtrace();
@@ -42,7 +38,7 @@ int MPIDI_CH3_Abort(int exit_code, const char *error_msg)
 #if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
 #pragma error_messages(off, E_STATEMENT_NOT_REACHED)
 #endif /* defined(__SUNPRO_C) || defined(__SUNPRO_CC) */
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3_ABORT);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPIDI_CH3_ABORT);
     return MPI_ERR_INTERN;
 #if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
 #pragma error_messages(default, E_STATEMENT_NOT_REACHED)

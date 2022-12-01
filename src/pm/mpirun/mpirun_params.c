@@ -30,7 +30,7 @@
 #include <signal.h>
 #include <stdint.h>
 #include <math.h>
-#include <debug_utils.h>
+#include <mv2_debug_utils.h>
 #include "mpispawn_tree.h"
 #include "mpirun_util.h"
 #include "mpmd.h"
@@ -498,16 +498,14 @@ void commandLine(int argc, char *argv[], char *totalview_cmd, char **env)
         for (i = 0; i < nprocs; i++) {
             plist[i].hostname = argv[optind + i];
         }
-    }
-    /* check if we are under an RM with a supported node list */
-    else if (using_pbs) {
+    } else if (using_pbs) {
+        /* check if we are under an RM with a supported node list */
         /* job allocated via pbs - node file created by RM */
         if (read_hostfile(pbs_nodefile(), 1)) {
             PRINT_ERROR("Unable to parse PBS_NODEFILE [%s]", pbs_nodefile());
             exit(EXIT_FAILURE);
         }
-    }
-    else if (using_slurm) {
+    } else if (using_slurm) {
         /* job allocated via slurm - a node list exists */
         if (slurm_startup(nprocs, nprocs_per_node)) {
             PRINT_ERROR("Slurm startup failed");

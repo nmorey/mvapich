@@ -1,13 +1,14 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2014 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include <mpi.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "mpitest.h"
 
 #define DATA_SIZE 324*4
 #define PAD 256
@@ -32,21 +33,16 @@ int main(int argc, char **argv)
     int *data = NULL;
     int *verify = NULL;
     int data_size = DATA_SIZE;
-    int i, j, k, nr_errors = 0;
+    int i, j, k, errs = 0;
     MPI_Aint disp[BLK_COUNT];
-    int block_lens[BLK_COUNT];
-    char *filename = "unnamed.dat";
+    const char *filename = "unnamed.dat";
     MPI_Status status;
     MPI_Request request;
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
     disp[0] = (MPI_Aint) (PAD);
     disp[1] = (MPI_Aint) (data_size * 1 + PAD);
     disp[2] = (MPI_Aint) (data_size * 2 + PAD);
-
-    block_lens[0] = data_size;
-    block_lens[1] = data_size;
-    block_lens[2] = data_size;
 
     data = malloc(data_size);
     verify = malloc(data_size * BLK_COUNT + HEADER + PAD);
@@ -82,7 +78,7 @@ int main(int argc, char **argv)
     /* header and block padding should have no data */
     for (i = 0; i < (HEADER + PAD) / sizeof(int); i++) {
         if (verify[i] != 0) {
-            nr_errors++;
+            errs++;
             fprintf(stderr, "expected 0, read %d\n", verify[i]);
         }
     }
@@ -91,7 +87,7 @@ int main(int argc, char **argv)
         for (k = 0; k < (DATA_SIZE / sizeof(int)); k++) {
             if (verify[(HEADER + PAD) / sizeof(int) + k + j * (DATA_SIZE / sizeof(int))]
                 != data[k]) {
-                nr_errors++;
+                errs++;
                 fprintf(stderr, "expcted %d, read %d\n", data[k],
                         verify[(HEADER + PAD) / sizeof(int) + k + j * (DATA_SIZE / sizeof(int))]);
             }
@@ -104,12 +100,9 @@ int main(int argc, char **argv)
     MPI_Type_free(&mem_type);
     MPI_Type_free(&file_type);
 
-    if (nr_errors == 0)
-        printf(" No Errors\n");
-
-    MPI_Finalize();
+    MTest_Finalize(errs);
 
     free(data);
     free(verify);
-    return 0;
+    return MTestReturnValue(errs);
 }

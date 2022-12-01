@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2008 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "hydra_server.h"
@@ -12,39 +11,10 @@
 #include "pmiserv.h"
 #include "pmiserv_utils.h"
 
-static HYD_status send_cmd_to_proxies(struct HYD_pmcd_hdr hdr)
-{
-    struct HYD_pg *pg = &HYD_server_info.pg_list;
-    struct HYD_proxy *proxy;
-    int sent, closed;
-    HYD_status status = HYD_SUCCESS;
-
-    HYDU_FUNC_ENTER();
-
-    if (pg->next && hdr.cmd == CKPOINT)
-        HYDU_ERR_POP(status, "checkpointing is not supported for dynamic processes\n");
-
-    /* Send the command to all proxies */
-    for (proxy = pg->proxy_list; proxy; proxy = proxy->next) {
-        status = HYDU_sock_write(proxy->control_fd, &hdr, sizeof(hdr), &sent, &closed,
-                                 HYDU_SOCK_COMM_MSGWAIT);
-        HYDU_ERR_POP(status, "unable to send checkpoint message\n");
-        HYDU_ASSERT(!closed, status);
-    }
-
-  fn_exit:
-    HYDU_FUNC_EXIT();
-    return status;
-
-  fn_fail:
-    goto fn_exit;
-}
-
 static HYD_status ui_cmd_cb(int fd, HYD_event_t events, void *userp)
 {
     struct HYD_cmd cmd;
     int count, closed;
-    struct HYD_pmcd_hdr hdr;
     struct HYD_pg *pg;
     struct HYD_proxy *proxy;
     HYD_status status = HYD_SUCCESS;
@@ -55,13 +25,7 @@ static HYD_status ui_cmd_cb(int fd, HYD_event_t events, void *userp)
     HYDU_ERR_POP(status, "read error\n");
     HYDU_ASSERT(!closed, status);
 
-    if (cmd.type == HYD_CKPOINT) {
-        HYD_pmcd_init_header(&hdr);
-        hdr.cmd = CKPOINT;
-        status = send_cmd_to_proxies(hdr);
-        HYDU_ERR_POP(status, "error checkpointing processes\n");
-    }
-    else if (cmd.type == HYD_CLEANUP) {
+    if (cmd.type == HYD_CLEANUP) {
         HYDU_dump_noprefix(stdout, "Ctrl-C caught... cleaning up processes\n");
         status = HYD_pmcd_pmiserv_cleanup_all_pgs();
         HYDU_ERR_POP(status, "cleanup of processes failed\n");
@@ -71,16 +35,14 @@ static HYD_status ui_cmd_cb(int fd, HYD_event_t events, void *userp)
         HYDU_ERR_POP(status, "launcher returned error waiting for completion\n");
 
         exit(1);
-    }
-    else if (cmd.type == HYD_SIGNAL) {
+    } else if (cmd.type == HYD_SIGNAL) {
         for (pg = &HYD_server_info.pg_list; pg; pg = pg->next) {
             for (proxy = pg->proxy_list; proxy; proxy = proxy->next) {
                 status = HYD_pmcd_pmiserv_send_signal(proxy, cmd.signum);
                 HYDU_ERR_POP(status, "unable to send signal downstream\n");
             }
         }
-    }
-    else {
+    } else {
         HYDU_ERR_SETANDJUMP(status, HYD_INTERNAL_ERROR, "unrecognized command\n");
     }
 
@@ -100,6 +62,8 @@ HYD_status HYD_pmci_launch_procs(void)
     HYD_status status = HYD_SUCCESS;
 
     HYDU_FUNC_ENTER();
+
+    proxy_stash.strlist = NULL;
 
     status = HYDT_dmx_register_fd(1, &HYD_server_info.cmd_pipe[0], POLLIN, NULL, ui_cmd_cb);
     HYDU_ERR_POP(status, "unable to register fd\n");
@@ -126,7 +90,7 @@ HYD_status HYD_pmci_launch_procs(void)
     for (proxy = HYD_server_info.pg_list.proxy_list; proxy; proxy = proxy->next)
         node_count++;
 
-    HYDU_MALLOC(control_fd, int *, node_count * sizeof(int), status);
+    HYDU_MALLOC_OR_JUMP(control_fd, int *, node_count * sizeof(int), status);
     for (i = 0; i < node_count; i++)
         control_fd[i] = HYD_FD_UNSET;
 
@@ -143,11 +107,10 @@ HYD_status HYD_pmci_launch_procs(void)
             HYDU_ERR_POP(status, "unable to register fd\n");
         }
 
-    HYDU_FREE(control_fd);
+    MPL_free(control_fd);
 
   fn_exit:
-    if (control_port)
-        HYDU_FREE(control_port);
+    MPL_free(control_port);
     HYD_STRING_STASH_FREE(proxy_stash);
     HYDU_FUNC_EXIT();
     return status;
@@ -179,7 +142,7 @@ HYD_status HYD_pmci_wait_for_completion(int timeout)
             time_left = timeout;
             if (timeout > 0) {
                 if (time_elapsed > timeout) {
-                    HYDU_dump(stdout, "APPLICATION TIMED OUT\n");
+                    HYDU_dump(stdout, "APPLICATION TIMED OUT, TIMEOUT = %ds\n", timeout);
 
                     status = HYD_pmcd_pmiserv_cleanup_all_pgs();
                     HYDU_ERR_POP(status, "cleanup of processes failed\n");
@@ -187,8 +150,7 @@ HYD_status HYD_pmci_wait_for_completion(int timeout)
                     /* Force kill all bootstrap processes that we launched */
                     status = HYDT_bsci_wait_for_completion(0);
                     HYDU_ERR_POP(status, "launcher returned error waiting for completion\n");
-                }
-                else
+                } else
                     time_left = timeout - time_elapsed;
             }
 
@@ -210,8 +172,7 @@ HYD_status HYD_pmci_wait_for_completion(int timeout)
         time_left = timeout - time_elapsed;
         if (time_left < 0)
             time_left = 0;
-    }
-    else
+    } else
         time_left = timeout;
 
     status = HYDT_bsci_wait_for_completion(time_left);

@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include "mpitest.h"
@@ -21,6 +20,14 @@ int main(int argc, char *argv[])
 
     MTest_Init(&argc, &argv);
 
+    int do_randomize;
+    MTestArgList *head = MTestArgListCreate(argc, argv);
+    do_randomize = MTestArgListGetInt_with_default(head, "randomize", 0);
+    MTestArgListDestroy(head);
+
+    if (do_randomize) {
+        MTestCommRandomize();
+    }
     while (MTestGetIntercomm(&comm, &leftGroup, 4)) {
         if (comm == MPI_COMM_NULL)
             continue;
@@ -29,8 +36,7 @@ int main(int argc, char *argv[])
             MPI_Comm_rank(comm, &rank);
             buf = rank;
             MPI_Send(&buf, 1, MPI_INT, 0, 0, comm);
-        }
-        else {
+        } else {
             MPI_Comm_remote_size(comm, &remote_size);
             MPI_Comm_rank(comm, &rank);
             if (rank == 0) {
@@ -49,8 +55,7 @@ int main(int argc, char *argv[])
             MPI_Comm_rank(comm, &rank);
             buf = rank;
             MPI_Send(&buf, 1, MPI_INT, 0, 0, comm);
-        }
-        else {
+        } else {
             MPI_Comm_remote_size(comm, &remote_size);
             MPI_Comm_rank(comm, &rank);
             if (rank == 0) {
@@ -68,6 +73,5 @@ int main(int argc, char *argv[])
     }
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

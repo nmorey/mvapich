@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include "mpitest.h"
 #include <stdio.h>
@@ -40,8 +39,6 @@ static mpi_names_t mpi_names[] = {
 #endif
 
     {MPI_PACKED, "MPI_PACKED"},
-    {MPI_LB, "MPI_LB"},
-    {MPI_UB, "MPI_UB"},
     {MPI_FLOAT_INT, "MPI_FLOAT_INT"},
     {MPI_DOUBLE_INT, "MPI_DOUBLE_INT"},
     {MPI_LONG_INT, "MPI_LONG_INT"},
@@ -56,14 +53,6 @@ static mpi_names_t mpi_names[] = {
     {MPI_DOUBLE_PRECISION, "MPI_DOUBLE_PRECISION"},
     {MPI_INTEGER, "MPI_INTEGER"},
     {MPI_2INTEGER, "MPI_2INTEGER"},
-    /* 2COMPLEX (and the 2DOUBLE_COMPLEX) were in MPI 1.0 but not later */
-#ifdef HAVE_MPI_2COMPLEX
-    {MPI_2COMPLEX, "MPI_2COMPLEX"},
-#endif
-#ifdef HAVE_MPI_2DOUBLE_COMPLEX
-    /* MPI_2DOUBLE_COMPLEX is an extension - it is not part of MPI 2.1 */
-    {MPI_2DOUBLE_COMPLEX, "MPI_2DOUBLE_COMPLEX"},
-#endif
     {MPI_2REAL, "MPI_2REAL"},
     {MPI_2DOUBLE_PRECISION, "MPI_2DOUBLE_PRECISION"},
     {MPI_CHARACTER, "MPI_CHARACTER"},
@@ -79,6 +68,7 @@ static mpi_names_t mpi_names[] = {
     {MPI_UINT32_T, "MPI_UINT32_T"},
     {MPI_UINT64_T, "MPI_UINT64_T"},
     {MPI_C_BOOL, "MPI_C_BOOL"},
+    {MPI_C_COMPLEX, "MPI_C_COMPLEX"},
     {MPI_C_FLOAT_COMPLEX, "MPI_C_FLOAT_COMPLEX"},
     {MPI_C_DOUBLE_COMPLEX, "MPI_C_DOUBLE_COMPLEX"},
     {MPI_AINT, "MPI_AINT"},
@@ -107,6 +97,13 @@ static mpi_names_t mpi_names[] = {
      * this ifdef allows the test to be built and run. */
     {MPI_INTEGER16, "MPI_INTEGER16"},
 #endif
+
+    /* C++ types */
+    {MPI_CXX_BOOL, "MPI_CXX_BOOL"},
+    {MPI_CXX_FLOAT_COMPLEX, "MPI_CXX_FLOAT_COMPLEX"},
+    {MPI_CXX_DOUBLE_COMPLEX, "MPI_CXX_DOUBLE_COMPLEX"},
+    {MPI_CXX_LONG_DOUBLE_COMPLEX, "MPI_CXX_LONG_DOUBLE_COMPLEX"},
+
     /* Semi-optional types - if the compiler doesn't support long double
      * or long long, these might be MPI_DATATYPE_NULL */
     {MPI_LONG_DOUBLE, "MPI_LONG_DOUBLE"},
@@ -130,7 +127,7 @@ static mpi_names_t mpi_names[] = {
 int main(int argc, char **argv)
 {
     char name[MPI_MAX_OBJECT_NAME];
-    int namelen, i, inOptional;
+    int namelen, i, inOptional, isSynonymName;
     int errs = 0;
 
     MTest_Init(&argc, &argv);
@@ -141,17 +138,18 @@ int main(int argc, char **argv)
     MPI_Type_get_name(MPI_DOUBLE, name, &namelen);
     if (strncmp(name, "MPI_DOUBLE", MPI_MAX_OBJECT_NAME)) {
         errs++;
-        fprintf(stderr, "Expected MPI_DOUBLE but got :%s:\n", name);
+        fprintf(stderr, "Expected MPI_DOUBLE but got :%s:, namelen %d\n", name, namelen);
     }
 
     MPI_Type_get_name(MPI_INT, name, &namelen);
     if (strncmp(name, "MPI_INT", MPI_MAX_OBJECT_NAME)) {
         errs++;
-        fprintf(stderr, "Expected MPI_INT but got :%s:\n", name);
+        fprintf(stderr, "Expected MPI_INT but got :%s:, namelen %d\n", name, namelen);
     }
 
     /* Now we try them ALL */
     inOptional = 0;
+    isSynonymName = 0;
     for (i = 0; mpi_names[i].name != 0; i++) {
         /* Are we in the optional types? */
         if (strcmp(mpi_names[i].name, "MPI_REAL4") == 0)
@@ -169,9 +167,20 @@ int main(int argc, char **argv)
         MTestPrintfMsg(10, "Checking type %s\n", mpi_names[i].name);
         name[0] = 0;
         MPI_Type_get_name(mpi_names[i].dtype, name, &namelen);
-        if (strncmp(name, mpi_names[i].name, namelen)) {
+
+        /* LONG_LONG is a synonym of LONG_LONG_INT, thus LONG_LONG_INT is a vaild name */
+        isSynonymName = (mpi_names[i].dtype == MPI_LONG_LONG &&
+                         !strncmp(name, "MPI_LONG_LONG_INT", MPI_MAX_OBJECT_NAME));
+#if MTEST_HAVE_MIN_MPI_VERSION(2,2)
+        /* C_FLOAT_COMPLEX is a synonym of C_COMPLEX, thus C_COMPLEX is a vaild name */
+        isSynonymName = isSynonymName || (mpi_names[i].dtype == MPI_C_FLOAT_COMPLEX &&
+                                          !strncmp(name, "MPI_C_COMPLEX", MPI_MAX_OBJECT_NAME));
+#endif
+
+        if (strncmp(name, mpi_names[i].name, MPI_MAX_OBJECT_NAME) && !isSynonymName) {
             errs++;
-            fprintf(stderr, "Expected %s but got %s\n", mpi_names[i].name, name);
+            fprintf(stderr, "Expected %s but got :%s:, namelen %d\n", mpi_names[i].name, name,
+                    namelen);
         }
     }
 
@@ -181,15 +190,13 @@ int main(int argc, char **argv)
     MPI_Type_get_name(MPI_INT, name, &namelen);
     if (strncmp(name, "int", MPI_MAX_OBJECT_NAME)) {
         errs++;
-        fprintf(stderr, "Expected int but got :%s:\n", name);
+        fprintf(stderr, "Expected int but got :%s:, namelen %d\n", name, namelen);
     }
-
 #ifndef HAVE_MPI_INTEGER16
     errs++;
     fprintf(stderr, "MPI_INTEGER16 is not available\n");
 #endif
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

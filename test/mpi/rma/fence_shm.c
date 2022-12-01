@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2014 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include <stdio.h>
@@ -11,7 +9,7 @@
 
 #define ELEM_PER_PROC 1
 
-static int errors = 0;
+static int errs = 0;
 
 int main(int argc, char *argv[])
 {
@@ -48,7 +46,7 @@ int main(int argc, char *argv[])
             MPI_Win_fence(0, shm_win);
 
             if (my_base[0] != one) {
-                errors++;
+                errs++;
                 printf("Expected: my_base[0] = %d   Actual: my_base[0] = %d\n", one, my_base[0]);
             }
         }
@@ -56,6 +54,12 @@ int main(int argc, char *argv[])
         if (shm_rank == 0) {
             MPI_Win_fence(0, shm_win);
             MPI_Put(&one, 1, MPI_INT, 1, 0, 1, MPI_INT, shm_win);
+            MPI_Win_fence(0, shm_win);
+        }
+
+        /* Other ranks simply join fence */
+        if (shm_rank > 1) {
+            MPI_Win_fence(0, shm_win);
             MPI_Win_fence(0, shm_win);
         }
 
@@ -77,9 +81,15 @@ int main(int argc, char *argv[])
             MPI_Win_fence(0, shm_win);
 
             if (result_data != one) {
-                errors++;
+                errs++;
                 printf("Expected: result_data = %d   Actual: result_data = %d\n", one, result_data);
             }
+        }
+
+        /* Other ranks simply join fence */
+        if (shm_rank > 1) {
+            MPI_Win_fence(MPI_MODE_NOPRECEDE, shm_win);
+            MPI_Win_fence(0, shm_win);
         }
 
         MPI_Win_free(&shm_win);
@@ -87,7 +97,6 @@ int main(int argc, char *argv[])
 
     MPI_Comm_free(&shm_comm);
 
-    MTest_Finalize(errors);
-    MPI_Finalize();
-    return 0;
+    MTest_Finalize(errs);
+    return MTestReturnValue(errs);
 }

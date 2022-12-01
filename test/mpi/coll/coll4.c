@@ -1,8 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include "mpitest.h"
@@ -28,8 +28,7 @@ int main(int argc, char **argv)
     if (size > MAX_PROCESSES) {
         participants = MAX_PROCESSES;
         MPI_Comm_split(MPI_COMM_WORLD, rank < MAX_PROCESSES, rank, &comm);
-    }
-    else {
+    } else {
         participants = size;
         MPI_Comm_dup(MPI_COMM_WORLD, &comm);
     }
@@ -55,6 +54,5 @@ int main(int argc, char **argv)
     MPI_Comm_free(&comm);
 
     MTest_Finalize(errors);
-    MPI_Finalize();
     return MTestReturnValue(errors);
 }

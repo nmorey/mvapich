@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2009 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "hydra.h"
@@ -11,7 +10,7 @@
 #include "hwloc/topo_hwloc.h"
 #endif /* HAVE_HWLOC */
 
-struct HYDT_topo_info HYDT_topo_info = { 0 };
+struct HYDT_topo_info HYDT_topo_info = {.topolib = NULL,.debug = -1 };
 
 static int ignore_binding = 0;
 
@@ -24,11 +23,11 @@ HYD_status HYDT_topo_init(char *user_topolib, char *user_binding, char *user_map
     HYDU_FUNC_ENTER();
 
     if (user_topolib)
-        HYDT_topo_info.topolib = HYDU_strdup(user_topolib);
+        HYDT_topo_info.topolib = MPL_strdup(user_topolib);
     else if (MPL_env2str("HYDRA_TOPOLIB", &topolib))
-        HYDT_topo_info.topolib = HYDU_strdup(topolib);
-    else if (HYDRA_DEFAULT_TOPOLIB)
-        HYDT_topo_info.topolib = HYDU_strdup(HYDRA_DEFAULT_TOPOLIB);
+        HYDT_topo_info.topolib = MPL_strdup(topolib);
+    else if (HYDRA_DEFAULT_TOPOLIB != NULL)
+        HYDT_topo_info.topolib = MPL_strdup(HYDRA_DEFAULT_TOPOLIB);
     else
         HYDT_topo_info.topolib = NULL;
 
@@ -47,14 +46,13 @@ HYD_status HYDT_topo_init(char *user_topolib, char *user_binding, char *user_map
     else if (MPL_env2str("HYDRA_MEMBIND", &membind) == 0)
         membind = NULL;
 
-    if (MPL_env2bool("HYDRA_TOPO_DEBUG", &HYDT_topo_info.debug) == 0)
-        HYDT_topo_info.debug = 0;
-
     if (!binding || !strcmp(binding, "none")) {
         ignore_binding = 1;
         goto fn_exit;
     }
 
+    /* Reaching here means that user specified some binding */
+    setenv("HYDRA_USER_PROVIDED_BINDING", "1", 1);
     /* Initialize the topology library requested by the user */
 #if defined HAVE_HWLOC
     if (!strcmp(HYDT_topo_info.topolib, "hwloc")) {
@@ -112,8 +110,7 @@ HYD_status HYDT_topo_finalize(void)
     }
 #endif /* HAVE_HWLOC */
 
-    if (HYDT_topo_info.topolib)
-        HYDU_FREE(HYDT_topo_info.topolib);
+    MPL_free(HYDT_topo_info.topolib);
 
   fn_exit:
     HYDU_FUNC_EXIT();

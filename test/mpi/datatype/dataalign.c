@@ -1,8 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2014 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 /* The next is for isprint */
@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
     int j;
     int errs = 0;
     int rank, size, tsize;
-    MPI_Aint text;
+    MPI_Aint text, tmp_lb;
     int blens[2];
     MPI_Aint disps[2];
     MPI_Datatype bases[2];
@@ -40,12 +40,12 @@ int main(int argc, char *argv[])
     disps[1] = sizeof(int);
     bases[0] = MPI_INT;
     bases[1] = MPI_CHAR;
-    MPI_Type_struct(2, blens, disps, bases, &str);
+    MPI_Type_create_struct(2, blens, disps, bases, &str);
     MPI_Type_commit(&str);
     MPI_Type_contiguous(10, str, &con);
     MPI_Type_commit(&con);
     MPI_Type_size(con, &tsize);
-    MPI_Type_extent(con, &text);
+    MPI_Type_get_extent(con, &tmp_lb, &text);
 
     MTestPrintfMsg(0, "Size of MPI array is %d, extent is %d\n", tsize, text);
 
@@ -53,13 +53,13 @@ int main(int argc, char *argv[])
     {
         void *p1, *p2;
         p1 = s;
-        p2 = &(s[10].i);        /* This statement may fail on some systems */
+        p2 = s + 10;
         MTestPrintfMsg(0,
                        "C array starts at %p and ends at %p for a length of %d\n",
                        s, &(s[9].c), (char *) p2 - (char *) p1);
     }
 
-    MPI_Type_extent(str, &text);
+    MPI_Type_get_extent(str, &tmp_lb, &text);
     MPI_Type_size(str, &tsize);
     MTestPrintfMsg(0, "Size of MPI struct is %d, extent is %d\n", tsize, (int) text);
     MTestPrintfMsg(0, "Size of C struct is %d\n", sizeof(struct a));
@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
             errs++;
             fprintf(stderr, "Got s[%d].i = %d; expected %d\n", j, s1[j].i, j + status.MPI_SOURCE);
         }
-        if (s1[j].c != 'a' + j + status.MPI_SOURCE) {
+        if (s1[j].c != (char) ('a' + j + status.MPI_SOURCE)) {
             errs++;
             /* If the character is not a printing character,
              * this can generate a file that diff, for example,
@@ -87,8 +87,7 @@ int main(int argc, char *argv[])
             if (isprint((int) (s1[j].c))) {
                 fprintf(stderr, "Got s[%d].c = %c; expected %c\n",
                         j, s1[j].c, j + status.MPI_SOURCE + 'a');
-            }
-            else {
+            } else {
                 fprintf(stderr, "Got s[%d].c = %x; expected %c\n",
                         j, (int) s1[j].c, j + status.MPI_SOURCE + 'a');
             }
@@ -99,6 +98,5 @@ int main(int argc, char *argv[])
     MPI_Type_free(&con);
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

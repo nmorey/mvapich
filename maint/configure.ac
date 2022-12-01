@@ -1,4 +1,8 @@
-# -*- Mode: shell-script; -*-
+##
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
+##
+
 AC_PREREQ(2.59)
 AC_INIT
 #
@@ -27,7 +31,7 @@ if test "$xargs_out" != "0" ; then
 fi
 AC_SUBST(XARGS_NODATA_OPT)
 
-AC_OUTPUT_COMMANDS([chmod a+x checkbuilds getcoverage genstates clmake f77tof90 extractstrings extractcvars extractstates extractfixme createcoverage gcovmerge createhtmlindex])
+AC_OUTPUT_COMMANDS([chmod a+x checkbuilds getcoverage genstates clmake extractstrings extractcvars extractmv2cvars extractstates extractfixme createcoverage gcovmerge createhtmlindex getfuncstack])
 # We have to redefine the variables that autoconf always substitutes and that
 # are used in simplemake
 CFLAGS='@CFLAGS@'
@@ -38,4 +42,4 @@ CXXFLAGS='@CXXFLAGS@'
 # autoconf replacement.
 # Note that top_srcdir and srcdir are special cases (they must not
 # be changed in configure.ac because configure uses them to find other files)
-AC_OUTPUT(checkbuilds getcoverage genstates clmake f77tof90 extractstrings extractcvars extractstates extractfixme createcoverage gcovmerge createhtmlindex cvardirs)
+AC_OUTPUT(checkbuilds getcoverage genstates clmake extractstrings extractcvars extractmv2cvars extractstates extractfixme createcoverage gcovmerge createhtmlindex cvardirs getfuncstack)

@@ -24,7 +24,7 @@
  * This function takes care of 'K', 'M' and 'G' present in user parameters
  * and returns equivalent binary value
  */
-int user_val_to_bytes(char* value, const char* param)
+int user_val_to_bytes(const char* value, const char* param)
 {
 
     int factor=1;
@@ -79,5 +79,3 @@ int user_val_to_bytes(char* value, const char* param)
 
     return atoi(str) * factor;
 }
-
-

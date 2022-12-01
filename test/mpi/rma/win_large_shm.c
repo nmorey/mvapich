@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /* test MPI_WIN_ALLOCATE and MPI_WIN_ALLOCATE_SHARED when allocating
@@ -10,6 +9,7 @@
 #include "mpi.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include "mpitest.h"
 
 int main(int argc, char **argv)
 {
@@ -22,7 +22,7 @@ int main(int argc, char **argv)
     size_t npages, local_size, pagesize, avail;
     int shm_win_size = 1024 * 1024 * 1024 * sizeof(char);       /* 1GB */
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
 
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
@@ -30,8 +30,7 @@ int main(int argc, char **argv)
         if (i == 0) {
             MPI_Info_create(&win_info);
             MPI_Info_set(win_info, (char *) "alloc_shm", (char *) "true");
-        }
-        else {
+        } else {
             win_info = MPI_INFO_NULL;
         }
 
@@ -90,10 +89,7 @@ int main(int argc, char **argv)
             MPI_Info_free(&win_info);
     }
 
-    if (my_rank == 0)
-        printf(" No Errors\n");
-
-    MPI_Finalize();
+    MTest_Finalize(0);
 
     return 0;
 }

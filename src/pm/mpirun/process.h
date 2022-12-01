@@ -38,6 +38,7 @@ typedef struct {
     char *executable_name;
     char *executable_args;
     int argc;
+    int block_size;
 } process;
 
 typedef struct {
@@ -46,7 +47,7 @@ typedef struct {
     int *plist_indices;
     size_t npids, npids_allocated;
     spawn_info_t * si;
-
+    int block_size;
     pid_t local_pid;            //the local forked() proc pid
 } process_group;
 

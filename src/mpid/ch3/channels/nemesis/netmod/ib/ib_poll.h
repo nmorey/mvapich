@@ -20,6 +20,6 @@ int MPID_nem_ib_poll(int in_blocking_progress);
 int MPIDI_nem_ib_cq_poll(vbuf **vbuf_handle, MPIDI_VC_t * vc_req, int receiving, int is_blocking);
 int MPIDI_nem_ib_get_next_vbuf(MPIDI_VC_t** vc_ptr, vbuf** vbuf_ptr);
 int MPIDI_nem_ib_waiting_msg(MPIDI_VC_t * vc, vbuf ** vbuf_handle, int blocking);
-int MPIDI_nem_ib_request_adjust_iov(MPID_Request * req, MPIDI_msg_sz_t nb);
+int MPIDI_nem_ib_request_adjust_iov(MPIR_Request * req, intptr_t nb);
 
 #endif

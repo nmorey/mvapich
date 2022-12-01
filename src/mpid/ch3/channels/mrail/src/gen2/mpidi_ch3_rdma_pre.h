@@ -160,13 +160,13 @@ struct dreg_entry;
     struct __attribute__((__aligned__(64))) MPIDI_CH3I_MRAILI_Request {     \
         void * rndv_buf;                                                    \
         void     *remote_addr;                                              \
-        MPIDI_msg_sz_t rndv_buf_sz;                                         \
-        MPIDI_msg_sz_t rndv_buf_off;                                        \
-        struct MPID_Request *next_inflow;                                   \
+        intptr_t rndv_buf_sz;                                               \
+        intptr_t rndv_buf_off;                                              \
+        struct MPIR_Request *next_inflow;                                   \
         struct vbuf *eager_vbuf_head;                                       \
         struct vbuf *eager_vbuf_tail;                                       \
         struct dreg_entry *d_entry;                                         \
-        MPIDI_msg_sz_t eager_unexp_size;                                    \
+        intptr_t eager_unexp_size;                                          \
         uint32_t rkey[MAX_NUM_HCAS];                                        \
         MPI_Request partner_id;                                             \
         MRAILI_Protocol_t protocol;                                         \
@@ -188,13 +188,13 @@ struct dreg_entry;
     struct __attribute__((__aligned__(64))) MPIDI_CH3I_MRAILI_Request {     \
         void * rndv_buf;                                                    \
         void     *remote_addr;                                              \
-        MPIDI_msg_sz_t rndv_buf_sz;                                         \
-        MPIDI_msg_sz_t rndv_buf_off;                                        \
+        intptr_t rndv_buf_sz;                                               \
+        intptr_t rndv_buf_off;                                              \
         struct MPID_Request *next_inflow;                                   \
         struct vbuf *eager_vbuf_head;                                       \
         struct vbuf *eager_vbuf_tail;                                       \
         struct dreg_entry *d_entry;                                         \
-        MPIDI_msg_sz_t eager_unexp_size;                                    \
+        intptr_t eager_unexp_size;                                          \
         uint32_t rkey[MAX_NUM_HCAS];                                        \
         MPI_Request partner_id;                                             \
         MRAILI_Protocol_t protocol;                                         \

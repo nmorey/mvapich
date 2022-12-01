@@ -1,8 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include "stdio.h"
 #include "stdlib.h"
@@ -41,13 +41,11 @@ int main(int argc, char *argv[])
             for (i = 0; i < SIZE2; i++) {
                 A[i] = B[i] = i;
             }
-        }
-        else if (rank == 2) {
+        } else if (rank == 2) {
             for (i = 0; i < SIZE2; i++) {
                 A[i] = B[i] = -1;
             }
-        }
-        else if (rank == 1) {
+        } else if (rank == 1) {
             for (i = 0; i < SIZE2; i++) {
                 B[i] = (-4) * i;
             }
@@ -65,8 +63,7 @@ int main(int argc, char *argv[])
             }
 
             MPI_Win_free(&win);
-        }
-        else if (rank == 2) {
+        } else if (rank == 2) {
             for (i = 0; i < SIZE1; i++) {
                 MPI_Win_lock(MPI_LOCK_EXCLUSIVE, trank, 0, win);
                 MPI_Get(A + i, 1, MPI_INT, trank, SIZE1 + i, 1, MPI_INT, win);
@@ -96,6 +93,5 @@ int main(int argc, char *argv[])
     MPI_Comm_free(&CommThree);
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

@@ -207,9 +207,9 @@ struct shared_buffer_pool {
 #if defined(_SMP_CMA_)
 struct cma_header {
     struct iovec remote[1]; 
-    MPIDI_msg_sz_t total_bytes;
+    intptr_t total_bytes;
     pid_t pid;
-    struct MPID_Request *csend_req_id;
+    struct MPIR_Request *csend_req_id;
 };
 extern int g_smp_use_cma;
 #endif
@@ -217,8 +217,8 @@ extern int g_smp_use_cma;
 #if defined(_SMP_LIMIC_)
 struct limic_header {
     limic_user lu; 
-    MPIDI_msg_sz_t total_bytes;
-    struct MPID_Request *send_req_id;
+    intptr_t total_bytes;
+    struct MPIR_Request *send_req_id;
 };
 extern int g_smp_use_limic2;
 extern int g_use_limic2_coll;

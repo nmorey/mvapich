@@ -1,8 +1,8 @@
-C -*- Mode: Fortran; -*- 
 C
-C  (C) 2004 by Argonne National Laboratory.
-C      See COPYRIGHT in top-level directory.
+C Copyright (C) by Argonne National Laboratory
+C     See COPYRIGHT in top-level directory
 C
+
 C  This tests the null copy function (returns flag false; thus the
 C  attribute should not be propagated to a dup'ed communicator
 C  This is must like the test in commattr2f
@@ -80,5 +80,4 @@ C
       call mpi_comm_free( comm1, ierr )
 
       call mtest_finalize( errs )
-      call mpi_finalize( ierr )
       end

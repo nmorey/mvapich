@@ -1,8 +1,6 @@
-## -*- Mode: Makefile; -*-
-## vim: set ft=automake :
 ##
-## (C) 2011 by Argonne National Laboratory.
-##     See COPYRIGHT in top-level directory.
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
 ##
 
 if BUILD_CH3_NEMESIS
@@ -21,7 +19,6 @@ noinst_HEADERS +=							\
     src/mpid/ch3/channels/nemesis/include/mpid_nem_debug.h		\
     src/mpid/ch3/channels/nemesis/include/mpid_nem_defs.h		\
     src/mpid/ch3/channels/nemesis/include/mpid_nem_fbox.h		\
-    src/mpid/ch3/channels/nemesis/include/mpid_nem_generic_queue.h	\
     src/mpid/ch3/channels/nemesis/include/mpid_nem_impl.h		\
     src/mpid/ch3/channels/nemesis/include/mpid_nem_inline.h		\
     src/mpid/ch3/channels/nemesis/include/mpid_nem_nets.h		\
@@ -35,4 +32,3 @@ include $(top_srcdir)/src/mpid/ch3/channels/nemesis/utils/monitor/Makefile.mk
 include $(top_srcdir)/src/mpid/ch3/channels/nemesis/utils/replacements/Makefile.mk
 
 endif BUILD_CH3_NEMESIS
-

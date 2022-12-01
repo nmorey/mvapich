@@ -36,7 +36,7 @@
 #include <param.h>
 #include <mv2_config.h>
 #include <error_handling.h>
-#include <debug_utils.h>
+#include <mv2_debug_utils.h>
 #include <signal_processor.h>
 #include <wfe_mpirun.h>
 #include <m_state.h>
@@ -119,7 +119,7 @@ static const char *alarm_msg = NULL;
 
 void free_memory(void);
 void pglist_print(void);
-void pglist_insert(const char *const, const int);
+void pglist_insert(const char *const, const int, const int);
 void rkill_fast(void);
 void rkill_linear(void);
 void spawn_fast(int, char *[], char *, char *);
@@ -277,8 +277,7 @@ signal_processor (int signal)
     }
 }
 
-void
-setup_signal_handling_thread (void)
+void setup_signal_handling_thread (void)
 {
     sigset_t sigmask;
 
@@ -291,6 +290,72 @@ setup_signal_handling_thread (void)
     sigaddset(&sigmask, SIGCHLD);
 
     start_sp_thread(sigmask, signal_processor, 0);
+}
+
+char *mpirun_create_process_mapping()
+{
+    char *pm_mapping = NULL, *tmp;
+    int field_count = 2;
+    int has_parent = 0;
+    int VECTOR_SIZE = 9;
+    int core_count = 0;
+    int node_count = 0;
+    int start_index = 0;
+    int len = 0, tmp_len = 0;
+    int i;
+
+    /* (vector,(0,2,1)) */
+    tmp = malloc((pglist->npgs + 1) * VECTOR_SIZE);
+    tmp_len = (pglist->npgs + 1) * VECTOR_SIZE;
+    if (!tmp) {
+        /* malloc failed to get that much memory, fall back to small alloc */
+        tmp = malloc(field_count * VECTOR_SIZE);
+        tmp_len = field_count * VECTOR_SIZE;
+    }
+    memset(tmp, '\0', tmp_len);
+    strcpy(tmp, "(vector");
+    len = strlen(tmp);
+
+    for (i = 0; i < pglist->npgs; i++) {
+        if (node_count == 0) {
+            node_count++;
+            core_count = pglist->data[i].block_size;
+            continue;
+        }
+        if (core_count == pglist->data[i].block_size) {
+            node_count++;
+        } else {
+            len += sprintf(tmp + len, ",(%d,%d,%d)", start_index, node_count,
+                           core_count);
+            start_index = i;
+            node_count = 1;
+            core_count = pglist->data[i].block_size;
+
+            /* we are overflowing the tmp pointer */
+            if (len + VECTOR_SIZE > tmp_len) {
+                /* copy to pm_mapping in case this is it */
+                if (pm_mapping) {
+                    free(pm_mapping);
+                }
+                pm_mapping = strdup(tmp);
+                free(tmp);
+                tmp = malloc(tmp_len + VECTOR_SIZE);
+                strcpy(tmp, pm_mapping);
+            }
+        }
+    }
+
+    /* copy tmp to pm_mapping */
+    len += sprintf(tmp + len, ",(%d,%d,%d))", start_index, node_count,
+                   core_count);
+    if (pm_mapping) {
+        free(pm_mapping);
+    }
+    pm_mapping = strdup(tmp);
+    dbg("Mapping: %s\n", pm_mapping);
+    free(tmp);
+
+    return pm_mapping;
 }
 
 int main(int argc, char *argv[])
@@ -406,7 +471,7 @@ int main(int argc, char *argv[])
          * situations where people might use two different hostnames for the
          * same host.
          */
-        pglist_insert(plist[i].hostname, i);
+        pglist_insert(plist[i].hostname, plist[i].block_size, i);
     }
 
 #if defined(CKPT) && defined(CR_FTB)
@@ -525,8 +590,10 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (show_on)
+    if (show_on) {
+        while (wait(NULL) > 0);
         exit(EXIT_SUCCESS);
+    }
 
     /*
      * Create Communication Thread
@@ -682,8 +749,7 @@ void pglist_print(void)
 
 }
 
-int
-pglist_cmp (char const * hostname, int index, spawn_info_t const * si)
+int pglist_cmp (char const * hostname, int index, spawn_info_t const * si)
 {
     int result = strcmp(hostname, pglist->index[index]->hostname);
 
@@ -697,7 +763,8 @@ pglist_cmp (char const * hostname, int index, spawn_info_t const * si)
     return result;
 }
 
-void pglist_insert(const char *const hostname, const int plist_index)
+void pglist_insert(const char *const hostname, const int block_size,
+                   const int plist_index)
 {
     const size_t increment = nprocs > 4 ? nprocs / 4 : 1;
     size_t i, index = 0;
@@ -850,6 +917,7 @@ add_process_group:
     }
 
     pglist->data[pglist->npgs].hostname = hostname;
+    pglist->data[pglist->npgs].block_size = block_size;
     pglist->data[pglist->npgs].pid = -1;
     pglist->data[pglist->npgs].plist_indices = NULL;
     pglist->data[pglist->npgs].npids = 0;
@@ -1529,6 +1597,16 @@ void spawn_fast(int argc, char *argv[], char *totalview_cmd, char *env)
     getpath_status = (getpath(pathbuf, PATH_MAX) && file_exists(pathbuf));
 
     dbg("%d forks to be done, with env:=  %s\n", pglist->npgs, mpispawn_env);
+
+    /* put this in the environment */
+    char *mapping = mpirun_create_process_mapping();
+    tmp = mkstr("%s MPIRUN_PMI_PROCESS_MAPPING=\"%s\"", mpispawn_env, mapping);
+    if (tmp) {
+        free(mpispawn_env);
+        mpispawn_env = tmp;
+    } else {
+        goto allocation_error;
+    }
 
     for (i = 0; i < pglist->npgs; i++) {
         if (!(pglist->data[i].pid = fork())) {

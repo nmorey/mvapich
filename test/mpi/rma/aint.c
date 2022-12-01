@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2014 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /*
@@ -40,8 +38,7 @@ int main(int argc, char **argv)
         target_rank = 1;
         array[0] = 1234;
         MPI_Get_address(&array[512], &bases[0]);
-    }
-    else if (rank == 1) {
+    } else if (rank == 1) {
         target_rank = 0;
         array[1023] = 1234;
         MPI_Get_address(&array[512], &bases[1]);
@@ -50,15 +47,24 @@ int main(int argc, char **argv)
     /* Exchange bases */
     MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, bases, 1, MPI_AINT, MPI_COMM_WORLD);
 
-    MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &win);
+    MPI_Info info = MPI_INFO_NULL;
+#ifdef USE_INFO_COLL_ATTACH
+    MPI_Info_create(&info);
+    MPI_Info_set(info, "coll_attach", "true");
+#endif
+
+    MPI_Win_create_dynamic(info, MPI_COMM_WORLD, &win);
     MPI_Win_attach(win, array, sizeof(int) * 1024);
+
+#ifdef USE_INFO_COLL_ATTACH
+    MPI_Info_free(&info);
+#endif
 
     /* Do MPI_Aint addressing arithmetic */
     if (rank == 0) {
         disp = sizeof(int) * 511;
         offset = MPI_Aint_add(bases[1], disp);  /* offset points to array[1023] */
-    }
-    else if (rank == 1) {
+    } else if (rank == 1) {
         disp = sizeof(int) * 512;
         offset = MPI_Aint_diff(bases[0], disp); /* offset points to array[0] */
     }
@@ -77,6 +83,5 @@ int main(int argc, char **argv)
     MPI_Win_free(&win);
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

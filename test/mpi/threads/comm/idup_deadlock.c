@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2012 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include <stdio.h>
@@ -41,6 +40,7 @@ MTEST_THREAD_RETURN_TYPE test_comm_dup(void *arg)
             wait = 0;
             for (i = 0; i < NUM_THREADS; i++)
                 wait += start_idup[i];
+            MTest_thread_yield();
         } while (wait > NUM_THREADS / 2);
     }
 
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
     int thread_args[NUM_THREADS];
     int i, provided;
 
-    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+    MTest_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
     check(provided == MPI_THREAD_MULTIPLE);
 
@@ -80,10 +80,7 @@ int main(int argc, char **argv)
         MPI_Comm_free(&comms[i]);
     }
 
-    if (rank == 0)
-        printf(" No Errors\n");
-
-    MPI_Finalize();
+    MTest_Finalize(0);
 
     return 0;
 }

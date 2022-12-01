@@ -1,6 +1,8 @@
-/* ---------------------------------------------------------------- */
-/* (C)Copyright IBM Corp.  2007, 2008                               */
-/* ---------------------------------------------------------------- */
+/*
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
+ */
+
 /**
  * \file ad_pe_aggrs.h
  * \brief ???
@@ -14,17 +16,17 @@
  *
  */
 
-#ifndef AD_PE_AGGRS_H_
-#define AD_PE_AGGRS_H_
+#ifndef AD_PE_AGGRS_H_INCLUDED
+#define AD_PE_AGGRS_H_INCLUDED
 
 #include "adio.h"
 #include <sys/stat.h>
 
 #if !defined(GPFS_SUPER_MAGIC)
-  #define GPFS_SUPER_MAGIC (0x47504653)
+#define GPFS_SUPER_MAGIC (0x47504653)
 #endif
 
     /* generate a list of I/O aggregators following a methodology specific for PE */
-    int ADIOI_PE_gen_agg_ranklist(ADIO_File fd);
+int ADIOI_PE_gen_agg_ranklist(ADIO_File fd);
 
-#endif  /* AD_PE_AGGRS_H_ */
+#endif /* AD_PE_AGGRS_H_INCLUDED */

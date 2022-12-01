@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "mpi.h"
@@ -33,7 +32,7 @@ int main(int argc, char *argv[])
 
     MTest_Init(&argc, &argv);
 
-    MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
+    MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
 
     comm = MPI_COMM_WORLD;
     MPI_Comm_rank(comm, &rank);
@@ -84,8 +83,7 @@ int main(int argc, char *argv[])
         /* Detach waits until all messages received */
         MPI_Buffer_detach(&buf, &bsize);
         free(buf);
-    }
-    else if (rank == dest) {
+    } else if (rank == dest) {
 
         MPI_Barrier(comm);
         MPI_Recv(b2, MSG_SIZE, MPI_INT, src, 1, comm, &status);
@@ -116,14 +114,11 @@ int main(int argc, char *argv[])
                     printf("b4[%d] is %d\n", i, b4[i]);
             }
         }
-    }
-    else {
+    } else {
         MPI_Barrier(comm);
     }
 
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
-
+    return MTestReturnValue(errs);
 }

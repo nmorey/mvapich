@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include "mpitestconf.h"
 #include <stdio.h>
@@ -226,7 +225,7 @@ int main(int argc, char *argv[])
             long double val;
             int loc;
         } cinbuf[3], coutbuf[3];
-        MTEST_VG_MEM_INIT(cinbuf, 3* sizeof(cinbuf[0]));
+        MTEST_VG_MEM_INIT(cinbuf, 3 * sizeof(cinbuf[0]));
 
         cinbuf[0].val = 1;
         cinbuf[0].loc = rank;
@@ -262,6 +261,5 @@ int main(int argc, char *argv[])
 #endif
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

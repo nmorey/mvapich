@@ -1,10 +1,9 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
-#if !defined(MPID_RMA_TYPES_H_INCLUDED)
+#ifndef MPID_RMA_TYPES_H_INCLUDED
 #define MPID_RMA_TYPES_H_INCLUDED
 
 #include "mpidi_ch3_impl.h"
@@ -28,6 +27,11 @@ typedef enum MPIDI_RMA_Pool_type {
     MPIDI_RMA_POOL_GLOBAL = 7
 } MPIDI_RMA_Pool_type_t;
 
+typedef enum MPIDI_RMA_Acc_srcbuf_kind {
+    MPIDI_RMA_ACC_SRCBUF_DEFAULT,
+    MPIDI_RMA_ACC_SRCBUF_PACKED
+} MPIDI_RMA_Acc_srcbuf_kind_t;
+
 /* for keeping track of RMA ops, which will be executed at the next sync call */
 typedef struct MPIDI_RMA_Op {
     struct MPIDI_RMA_Op *next;  /* pointer to next element in list */
@@ -44,8 +48,8 @@ typedef struct MPIDI_RMA_Op {
     int result_count;
     MPI_Datatype result_datatype;
 
-    struct MPID_Request *single_req;    /* used for unstreamed RMA ops */
-    struct MPID_Request **multi_reqs;   /* used for streamed RMA ops */
+    struct MPIR_Request *single_req;    /* used for unstreamed RMA ops */
+    struct MPIR_Request **multi_reqs;   /* used for streamed RMA ops */
     MPI_Aint reqs_size;         /* when reqs_size == 0, neither single_req nor multi_reqs is used;
                                  * when reqs_size == 1, single_req is used;
                                  * when reqs_size > 1, multi_reqs is used. */
@@ -59,9 +63,9 @@ typedef struct MPIDI_RMA_Op {
     int issued_stream_count;    /* when >= 0, it specifies number of stream units that have been issued;
                                  * when < 0, it means all stream units of this operation haven been issued. */
 
-    MPID_Request *ureq;
+    MPIR_Request *ureq;
 #if defined (CHANNEL_PSM)
-    MPID_Comm *comm_ptr; 
+    MPIR_Comm *comm_ptr; 
 #endif
 
 } MPIDI_RMA_Op_t;

@@ -1,8 +1,8 @@
-C -*- Mode: Fortran; -*- 
 C
-C  (C) 2003 by Argonne National Laboratory.
-C      See COPYRIGHT in top-level directory.
+C Copyright (C) by Argonne National Laboratory
+C     See COPYRIGHT in top-level directory
 C
+
 C This is a special test that requires an getarg/iargc routine 
 C
         program main
@@ -54,7 +54,7 @@ C       We now have a valid intercomm
         call MPI_Comm_rank( intercomm, rank, ierr )
 
         if (parentcomm .eq. MPI_COMM_NULL) then
-C           Master 
+C           Parent
         if (rsize .ne. np) then
             errs = errs + 1
             print *, "Did not create ", np, " processes (got
@@ -110,7 +110,7 @@ C       We had too few args in the spawned command
             errs = errs + 1
             print *, "Too few arguments to spawned command"
          endif
-C       Send the errs back to the master process 
+C       Send the errs back to the parent process 
          call MPI_Ssend( errs, 1, MPI_INTEGER, 0, 1, intercomm, ierr )
         endif
 
@@ -120,8 +120,9 @@ C       It isn't necessary to free the intercomm, but it should not hurt
 C       Note that the MTest_Finalize get errs only over COMM_WORLD 
         if (parentcomm .eq. MPI_COMM_NULL) then
            call MTest_Finalize( errs )
+        else
+           call MPI_Finalize( ierr )
         endif
 
  300    continue
-        call MPI_Finalize( ierr )
         end

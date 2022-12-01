@@ -1,8 +1,8 @@
-C -*- Mode: Fortran; -*- 
 C
-C  (C) 2003 by Argonne National Laboratory.
-C      See COPYRIGHT in top-level directory.
+C Copyright (C) by Argonne National Laboratory
+C     See COPYRIGHT in top-level directory
 C
+
       program main
       implicit none
 C     Test support for MPI_STATUS_IGNORE and MPI_STATUSES_IGNORE
@@ -52,5 +52,4 @@ C     Test support for MPI_STATUS_IGNORE and MPI_STATUSES_IGNORE
       endif
 
       call mtest_finalize( errs )
-      call mpi_finalize( ierr )
       end

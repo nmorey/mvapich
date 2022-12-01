@@ -289,9 +289,9 @@ do {                                                                    \
                 (_c)->pg_rank, (_c)->mrail.rails[(_rail)].qp_hndl->qp_num,  \
                 (_c)->mrail.rails[(_rail)].qp_hndl->state, (_c)->ch.state,  \
                 (_c)->state, __FILE__, __LINE__);                           \
-        MPIU_Assert ((_c)->mrail.rails[(_rail)].send_wqes_avail >= 0);      \
-        MPIU_Assert (!USE_XRC || VC_XST_ISUNSET ((_c), XF_INDIRECT_CONN));  \
-        MPIU_Assert((_rail) == (_v)->rail);                           \
+        MPIR_Assert ((_c)->mrail.rails[(_rail)].send_wqes_avail >= 0);      \
+        MPIR_Assert (!USE_XRC || VC_XST_ISUNSET ((_c), XF_INDIRECT_CONN));  \
+        MPIR_Assert((_rail) == (_v)->rail);                           \
         mv2_MPIDI_CH3I_RDMA_Process.global_used_send_cq++;            \
         __ret = ibv_post_send((_c)->mrail.rails[(_rail)].qp_hndl,     \
                   &((_v)->desc.u.sr),&((_v)->desc.y.bad_sr));         \
@@ -344,7 +344,7 @@ inline static void print_info(vbuf* v, char* title, int err)
 #define  IBV_POST_SR(_v, _c, _rail, err_string) {                     \
     {                                                                 \
         int __ret;                                                    \
-        MPIU_Assert((_rail) == (_v)->rail);                           \
+        MPIR_Assert((_rail) == (_v)->rail);                           \
         mv2_MPIDI_CH3I_RDMA_Process.global_used_send_cq++;            \
         __ret = ibv_post_send((_c)->mrail.rails[(_rail)].qp_hndl,     \
                   &((_v)->desc.u.sr),&((_v)->desc.y.bad_sr));         \
@@ -531,7 +531,7 @@ int MPIDI_CH3I_UD_Generate_addr_handle_for_rank(MPIDI_PG_t * pg, int tgt_rank);
 void MRAILI_RC_Enable(MPIDI_VC_t *vc);
 void MPIDI_CH3I_UD_Stats(MPIDI_PG_t *pg);
 #endif /* _ENABLE_UD_ */
-int MRAILI_Fill_start_buffer(vbuf *v, MPL_IOV *iov, int n_iov);
+int MRAILI_Fill_start_buffer(vbuf *v, struct iovec *iov, int n_iov);
 int MPIDI_CH3I_MRAILI_Recv_addr(MPIDI_VC_t * vc, void *vstart);
 int MPIDI_CH3I_MRAILI_Recv_addr_reply(MPIDI_VC_t * vc, void *vstart);
 void MRAILI_RDMA_Put(MPIDI_VC_t * vc, vbuf *v,
@@ -546,10 +546,10 @@ int MRAILI_Send_select_rail(MPIDI_VC_t * vc, uint32_t size);
 void vbuf_address_send(MPIDI_VC_t *vc);
 void vbuf_address_reply_send(MPIDI_VC_t *vc, uint8_t);
 int vbuf_fast_rdma_alloc (struct MPIDI_VC *, int dir);
-int MPIDI_CH3I_MRAILI_rput_complete(MPIDI_VC_t *, MPL_IOV *,
+int MPIDI_CH3I_MRAILI_rput_complete(MPIDI_VC_t *, struct iovec *,
                                     int, int *num_bytes_ptr, 
                                     vbuf **, int rail);
-int MPIDI_CH3I_MRAILI_rget_finish(MPIDI_VC_t *, MPL_IOV *,
+int MPIDI_CH3I_MRAILI_rget_finish(MPIDI_VC_t *, struct iovec *,
                                     int, int *num_bytes_ptr, 
                                     vbuf **, int rail);
 int MRAILI_Handle_one_sided_completions(vbuf * v);                            
@@ -573,9 +573,9 @@ void set_pkey_index(uint16_t * pkey_index, int hca_num, int port_num);
 void init_apm_lock(void);
 
 void MRAILI_RDMA_Put_finish(MPIDI_VC_t * vc, 
-        MPID_Request * sreq, int rail);
+        MPIR_Request * sreq, int rail);
 void MRAILI_RDMA_Get_finish(MPIDI_VC_t * vc, 
-        MPID_Request * rreq, int rail);
+        MPIR_Request * rreq, int rail);
         
 int reload_alternate_path(struct ibv_qp *qp);
 
@@ -585,7 +585,7 @@ int qp_required(MPIDI_VC_t* vc, int my_rank, int dst_rank);
 const int get_link_width(uint8_t width);
 const float get_link_speed(uint8_t speed);
 
-int init_MV2_collops(MPID_Comm *comm);
-int MPIDI_CH3I_comm_create(MPID_Comm *comm, void *param);
-int MPIDI_CH3I_comm_destroy(MPID_Comm *comm, void *param);
+int init_MV2_collops(MPIR_Comm *comm);
+int MPIDI_CH3I_comm_create(MPIR_Comm *comm, void *param);
+int MPIDI_CH3I_comm_destroy(MPIR_Comm *comm, void *param);
 #endif                          /* RDMA_IMPL_H */

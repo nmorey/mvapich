@@ -66,8 +66,8 @@ if test "$enable_rsh" = "yes"; then
     AC_DEFINE(USE_RSH, 1, [Define to enable use of rsh for command execution by default.])
 fi
 
-AC_DEFINE(HAVE_PMI_IBARRIER, 1, [Define if pmi client supports PMI_Ibarrier])
-AC_DEFINE(HAVE_PMI_WAIT, 1, [Define if pmi client supports PMI_Wait])
+dnl AC_DEFINE(HAVE_PMI_IBARRIER, 1, [Define if pmi client supports PMI_Ibarrier])
+dnl AC_DEFINE(HAVE_PMI_WAIT, 1, [Define if pmi client supports PMI_Wait])
 AC_DEFINE(HAVE_PMI2_KVS_IFENCE, 1, [Define if pmi client supports PMI2_KVS_Ifence])
 AC_DEFINE(HAVE_PMI2_KVS_WAIT, 1, [Define if pmi client supports PMI2_KVS_Wait])
 AC_DEFINE(HAVE_PMI2_SHMEM_IALLGATHER, 1, [Define if pmi client supports PMI2_Iallgather])
@@ -77,6 +77,9 @@ AC_DEFINE(HAVE_PMI2_SHMEM_IALLGATHER_WAIT, 1, [Define if pmi client supports PMI
 
 # MVAPICH2_VERSION is exported from the top level configure
 AC_DEFINE_UNQUOTED([MVAPICH2_VERSION], ["$MVAPICH2_VERSION"], [Set to current version of mvapich2 package])
+
+AC_SEARCH_LIBS([pthread_create], [pthread],,
+               [AC_MSG_ERROR([libpthread not found])],)
 
 ])
 

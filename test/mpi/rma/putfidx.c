@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include "mpitest.h"
@@ -25,7 +24,7 @@ int main(int argc, char *argv[])
     int *recvBuf = 0, *srcBuf = 0;
     MPI_Comm comm;
     MPI_Win win;
-    MPI_Aint extent;
+    MPI_Aint extent, tmp_lb;
     MPI_Datatype originType;
     int counts[2];
     int displs[2];
@@ -73,7 +72,7 @@ int main(int argc, char *argv[])
     }
     srcBuf[blksize] = -1;
 
-    MPI_Type_extent(MPI_INT, &extent);
+    MPI_Type_get_extent(MPI_INT, &tmp_lb, &extent);
     MPI_Win_create(recvBuf, totsize * extent, extent, MPI_INFO_NULL, comm, &win);
     MPI_Win_fence(0, win);
     if (rank == source) {
@@ -85,8 +84,7 @@ int main(int argc, char *argv[])
         errs += CheckMPIErr(err);
         err = MPI_Win_fence(0, win);
         errs += CheckMPIErr(err);
-    }
-    else if (rank == dest) {
+    } else if (rank == dest) {
         MPI_Win_fence(0, win);
         for (i = 0; i < totsize; i++) {
             if (recvBuf[i] != i) {
@@ -96,8 +94,7 @@ int main(int argc, char *argv[])
                 }
             }
         }
-    }
-    else {
+    } else {
         MPI_Win_fence(0, win);
     }
 
@@ -107,8 +104,7 @@ int main(int argc, char *argv[])
     free(srcBuf);
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }
 
 int CheckMPIErr(int err)

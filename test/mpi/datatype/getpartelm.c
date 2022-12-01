@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include <string.h>
@@ -52,7 +51,7 @@ int main(int argc, char *argv[])
         blklens[1] = 4 * sizeof(int);
         offsets[0] = 0;
         offsets[1] = sizeof(int);
-        MPI_Type_struct(2, blklens, offsets, oldtypes, &outtype);
+        MPI_Type_create_struct(2, blklens, offsets, oldtypes, &outtype);
         MPI_Type_commit(&outtype);
 
         buf[0] = 4 * sizeof(int);
@@ -68,7 +67,7 @@ int main(int argc, char *argv[])
         blklens[1] = 4 * sizeof(int) + 1;
         offsets[0] = 0;
         offsets[1] = sizeof(int);
-        MPI_Type_struct(2, blklens, offsets, oldtypes, &outtype);
+        MPI_Type_create_struct(2, blklens, offsets, oldtypes, &outtype);
         MPI_Type_commit(&outtype);
 
         buf[0] = 4 * sizeof(int) + 1;
@@ -81,8 +80,7 @@ int main(int argc, char *argv[])
         MPI_Pack(&cnt, 1, MPI_INT, buf, 128 * sizeof(int), &position, comm);
         MPI_Pack((void *) "message", 7, MPI_CHAR, buf, 128 * sizeof(int), &position, comm);
         MPI_Send(buf, position, MPI_PACKED, dest, 2, comm);
-    }
-    else if (rank == dest) {
+    } else if (rank == dest) {
         MPI_Status status;
         int buf[128], i, elms, count;
 
@@ -94,7 +92,7 @@ int main(int argc, char *argv[])
         blklens[1] = 256;
         offsets[0] = 0;
         offsets[1] = sizeof(int);
-        MPI_Type_struct(2, blklens, offsets, oldtypes, &outtype);
+        MPI_Type_create_struct(2, blklens, offsets, oldtypes, &outtype);
         MPI_Type_commit(&outtype);
 
         for (i = 0; i < 3; i++) {
@@ -116,7 +114,5 @@ int main(int argc, char *argv[])
     }
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
-
+    return MTestReturnValue(errs);
 }

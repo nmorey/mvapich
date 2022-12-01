@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
+ */
+
 /******************************************************************************
 		       Distributed Memory Implementation
 
@@ -11,7 +16,7 @@ MPID_Win_fence().
 
 ******************************************************************************/
 
-struct MPID_Win
+struct MPIR_Win
 {
     /*** insert struct MPIR_Win here ***/
     
@@ -174,4 +179,3 @@ MPID_Win_get_hdlr(header)
     {
     }
 }
-

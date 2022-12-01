@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2008 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "hydra.h"
@@ -16,9 +15,9 @@ HYD_status HYDT_bscd_ssh_launcher_finalize(void)
     HYDU_FUNC_ENTER();
 
     for (e = HYDT_bscd_ssh_time; e;) {
-        HYDU_FREE(e->hostname);
+        MPL_free(e->hostname);
         tmp = e->next;
-        HYDU_FREE(e);
+        MPL_free(e);
         e = tmp;
     }
 

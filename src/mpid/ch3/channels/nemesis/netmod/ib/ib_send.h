@@ -92,7 +92,7 @@ typedef struct MPIDI_nem_ib_pkt_fast_eager_with_req_t {
 typedef struct MPIDI_CH3_Pkt_packetized_send_start {
     uint8_t type;
     uint16_t seqnum;
-    MPIDI_msg_sz_t origin_head_size;
+    intptr_t origin_head_size;
 } MPIDI_CH3_Pkt_packetized_send_start_t;
 
 typedef struct MPIDI_CH3_Pkt_packetized_send_data {
@@ -129,24 +129,24 @@ extern MPIDI_VC_t *flowlist;
     if (NULL == VC_FIELD(c_, connection)->sreq_tail) {           \
         VC_FIELD(c_, connection)->sreq_head = (void *)(s_);      \
     } else {                                                     \
-        REQ_FIELD(((MPID_Request *)                              \
+        REQ_FIELD(((MPIR_Request *)                              \
          VC_FIELD(c_, connection)->sreq_tail),next_inflow) =     \
             (void *)(s_);                                        \
     }                                                            \
     VC_FIELD(c_, connection)->sreq_tail = (void *)(s_);          \
-    REQ_FIELD(((MPID_Request *)                                  \
+    REQ_FIELD(((MPIR_Request *)                                  \
         VC_FIELD(c_, connection)->sreq_tail),next_inflow) = NULL;\
 }
 
 #define RENDEZVOUS_DONE(c_) {                                  \
-    MPID_Request *req = VC_FIELD(c_, connection)->sreq_head;   \
+    MPIR_Request *req = VC_FIELD(c_, connection)->sreq_head;   \
     VC_FIELD(c_, connection)->sreq_head =                      \
-    REQ_FIELD(((MPID_Request *)                                \
+    REQ_FIELD(((MPIR_Request *)                                \
      VC_FIELD(c_, connection)->sreq_head),next_inflow);        \
     if (NULL == VC_FIELD(c_, connection)->sreq_head) {         \
          VC_FIELD(c_, connection)->sreq_tail = NULL;           \
     }                                                          \
-    MPID_Request_release(req);                                 \
+    MPIR_Request_free(req);                                 \
 }
 
 #define PUSH_FLOWLIST(c_) {                                      \
@@ -183,12 +183,12 @@ int MRAILI_Send_noop_if_needed(MPIDI_VC_t * vc, int rail);
 void MRAILI_Send_noop(MPIDI_VC_t * c, int rail);
 
 int MPID_nem_ib_send (MPIDI_VC_t *vc, MPID_nem_cell_ptr_t cell, int datalen);
-int MPID_nem_ib_iSendContig(MPIDI_VC_t *vc, MPID_Request *sreq, void *hdr, 
-                MPIDI_msg_sz_t hdr_sz, void *data, MPIDI_msg_sz_t data_sz);
-int MPID_nem_ib_iStartContigMsg(MPIDI_VC_t *vc, void *hdr, MPIDI_msg_sz_t hdr_sz, 
-                void *data, MPIDI_msg_sz_t data_sz, MPID_Request **sreq_ptr);
-int MPID_nem_ib_iSendNoncontig (MPIDI_VC_t *vc, MPID_Request *sreq, void *header, 
-		MPIDI_msg_sz_t hdr_sz);
+int MPID_nem_ib_iSendContig(MPIDI_VC_t *vc, MPIR_Request *sreq, void *hdr, 
+                intptr_t hdr_sz, void *data, intptr_t data_sz);
+int MPID_nem_ib_iStartContigMsg(MPIDI_VC_t *vc, void *hdr, intptr_t hdr_sz, 
+                void *data, intptr_t data_sz, MPIR_Request **sreq_ptr);
+int MPID_nem_ib_iSendNoncontig (MPIDI_VC_t *vc, MPIR_Request *sreq, void *header, 
+		intptr_t hdr_sz);
 int MRAILI_Backlog_send(MPIDI_VC_t * vc, int rail);
 
 void MRAILI_Ext_sendq_enqueue(MPIDI_VC_t *c, int rail, vbuf * v);
@@ -196,14 +196,14 @@ void vbuf_address_send(MPIDI_VC_t *vc);
 void vbuf_address_reply_send(MPIDI_VC_t *vc, uint8_t data);
 int MPIDI_nem_ib_fast_rdma_ok(MPIDI_VC_t * vc, int len);
 int MPIDI_nem_ib_fast_rdma_send_complete(MPIDI_VC_t * vc,
-                                              MPL_IOV * iov,
+                                              struct iovec * iov,
                                               int n_iov,
                                               int *num_bytes_ptr,
                                               vbuf ** vbuf_handle);
 int MPIDI_nem_ib_post_send(MPIDI_VC_t * vc, vbuf * v, int rail);
 int MPIDI_nem_ib_post_srq_send(MPIDI_VC_t* vc, vbuf* v, int rail);
 int MPIDI_nem_ib_eager_send(MPIDI_VC_t * vc,
-                        MPL_IOV * iov,
+                        struct iovec * iov,
                         int n_iov,
                         int pkt_len,
                         int *num_bytes_ptr,
@@ -211,8 +211,8 @@ int MPIDI_nem_ib_eager_send(MPIDI_VC_t * vc,
 int MPIDI_nem_ib_lmt_r3_ack_send(MPIDI_VC_t *vc);
 int MPID_nem_ib_send_queued(MPIDI_VC_t *vc, MPIDI_nem_ib_request_queue_t *send_queue);
 #ifdef ENABLE_CHECKPOINTING
-int MPID_nem_ib_iStartContigMsg_paused(MPIDI_VC_t *vc, void *hdr, MPIDI_msg_sz_t hdr_sz, void *data, MPIDI_msg_sz_t data_sz,
-                                    MPID_Request **sreq_ptr);
+int MPID_nem_ib_iStartContigMsg_paused(MPIDI_VC_t *vc, void *hdr, intptr_t hdr_sz, void *data, intptr_t data_sz,
+                                    MPIR_Request **sreq_ptr);
 #endif
 int MPIDI_nem_ib_send_select_rail(MPIDI_VC_t *vc);
 #endif

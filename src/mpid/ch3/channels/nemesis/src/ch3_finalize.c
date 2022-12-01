@@ -1,4 +1,3 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
  * Copyright (c) 2001-2022, The Ohio State University. All rights
  * reserved.
@@ -12,29 +11,25 @@
  */
 
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpid_nem_impl.h"
 #ifdef _OSU_MVAPICH_
-#include "coll_shmem.h"
+#include "mv2_ch3_shmem.h"
 #endif /* _OSU_MVAPICH_ */
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_Finalize
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_Finalize(void)
 {
     extern int finalize_coll_comm;
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3_FINALIZE);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3_FINALIZE);
 
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_FINALIZE);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3_FINALIZE);
 
     mpi_errno = MPIDI_CH3I_Progress_finalize();
-    if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+    MPIR_ERR_CHECK(mpi_errno);
     
     mpi_errno = MPID_nem_finalize();
     if (mpi_errno) MPIR_ERR_POP (mpi_errno);
@@ -42,7 +37,7 @@ int MPIDI_CH3_Finalize(void)
 #ifdef _OSU_MVAPICH_
     if (mv2_enable_shmem_collectives || finalize_coll_comm == 1) {
         /* Freeing up shared memory collective resources*/
-        mpi_errno = MPIDI_CH3I_SHMEM_COLL_finalize(MPID_nem_mem_region.local_rank,
+        mpi_errno = MPIR_MV2_SHMEM_COLL_finalize(MPID_nem_mem_region.local_rank,
                         MPID_nem_mem_region.num_local);
         if (mpi_errno) MPIR_ERR_POP (mpi_errno);
 
@@ -51,6 +46,6 @@ int MPIDI_CH3_Finalize(void)
 #endif
 
  fn_fail:
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3_FINALIZE);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3_FINALIZE);
     return mpi_errno;
 }

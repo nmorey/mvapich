@@ -1,9 +1,7 @@
-# -*- Mode: Makefile; -*-
-# vim: set ft=automake :
-#
-# (C) 2011 by Argonne National Laboratory.
-#     See COPYRIGHT in top-level directory.
-#
+##
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
+##
 
 include $(top_srcdir)/Makefile_f77.mtest
 
@@ -18,4 +16,3 @@ noinst_PROGRAMS = profile1f
 
 # ensure that dependent tests will be rebuilt when typeaints.h is updated
 greqf.$(OBJEXT): attr1aints.h
-

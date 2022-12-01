@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpiimpl.h"
@@ -16,8 +14,8 @@
 #pragma _CRI duplicate MPI_Sendrecv_replace as PMPI_Sendrecv_replace
 #elif defined(HAVE_WEAK_ATTRIBUTE)
 int MPI_Sendrecv_replace(void *buf, int count, MPI_Datatype datatype, int dest,
-                         int sendtag, int source, int recvtag, MPI_Comm comm,
-                         MPI_Status *status) __attribute__((weak,alias("PMPI_Sendrecv_replace")));
+                         int sendtag, int source, int recvtag, MPI_Comm comm, MPI_Status * status)
+    __attribute__ ((weak, alias("PMPI_Sendrecv_replace")));
 #endif
 /* -- End Profiling Symbol Block */
 
@@ -29,24 +27,21 @@ int MPI_Sendrecv_replace(void *buf, int count, MPI_Datatype datatype, int dest,
 
 #endif
 
-#undef FUNCNAME
-#define FUNCNAME MPI_Sendrecv_replace
-
 /*@
     MPI_Sendrecv_replace - Sends and receives using a single buffer
 
 Input Parameters:
-+ count - number of elements in send and receive buffer (integer) 
-. datatype - type of elements in send and receive buffer (handle) 
-. dest - rank of destination (integer) 
-. sendtag - send message tag (integer) 
-. source - rank of source (integer) 
-. recvtag - receive message tag (integer) 
-- comm - communicator (handle) 
++ count - number of elements in send and receive buffer (integer)
+. datatype - type of elements in send and receive buffer (handle)
+. dest - rank of destination (integer)
+. sendtag - send message tag (integer)
+. source - rank of source (integer)
+. recvtag - receive message tag (integer)
+- comm - communicator (handle)
 
 Output Parameters:
-+ buf - initial address of send and receive buffer (choice) 
-- status - status object (Status) 
++ buf - initial address of send and receive buffer (choice)
+- status - status object (Status)
 
 .N ThreadSafe
 
@@ -65,175 +60,175 @@ Output Parameters:
 .N MPI_ERR_EXHAUSTED
 
 @*/
-int MPI_Sendrecv_replace(void *buf, int count, MPI_Datatype datatype, 
-			 int dest, int sendtag, int source, int recvtag,
-			 MPI_Comm comm, MPI_Status *status)
+int MPI_Sendrecv_replace(void *buf, int count, MPI_Datatype datatype,
+                         int dest, int sendtag, int source, int recvtag,
+                         MPI_Comm comm, MPI_Status * status)
 {
-    static const char FCNAME[] = "MPI_Sendrecv_replace";
     int mpi_errno = MPI_SUCCESS;
-    MPID_Comm *comm_ptr = NULL;
-#ifdef MPID_LOG_ARROWS
-    /* This isn't the right test, but it is close enough for now */
-    int sendcount = count, recvcount = count;
-#endif
-    MPIU_CHKLMEM_DECL(1);
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_SENDRECV_REPLACE);
-    
+    MPIR_Comm *comm_ptr = NULL;
+    MPIR_CHKLMEM_DECL(1);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_SENDRECV_REPLACE);
+
     MPIR_ERRTEST_INITIALIZED_ORDIE();
-    
+
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_PT2PT_FUNC_ENTER_BOTH(MPID_STATE_MPI_SENDRECV_REPLACE);
+    MPIR_FUNC_TERSE_PT2PT_ENTER_BOTH(MPID_STATE_MPI_SENDRECV_REPLACE);
 
     /* Convert handles to MPI objects. */
-    MPID_Comm_get_ptr(comm, comm_ptr);
-    
-#   ifdef HAVE_ERROR_CHECKING
+    MPIR_Comm_get_ptr(comm, comm_ptr);
+
+#ifdef HAVE_ERROR_CHECKING
     {
         MPID_BEGIN_ERROR_CHECKS;
         {
-	    /* Validate communicator */
-            MPID_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
-            if (mpi_errno) goto fn_fail;
-	    
-	    /* Validate count */
-	    MPIR_ERRTEST_COUNT(count, mpi_errno);
+            /* Validate communicator */
+            MPIR_Comm_valid_ptr(comm_ptr, mpi_errno, FALSE);
+            if (mpi_errno)
+                goto fn_fail;
 
-	    /* Validate status (status_ignore is not the same as null) */
-	    MPIR_ERRTEST_ARGNULL(status, "status", mpi_errno);
+            /* Validate count */
+            MPIR_ERRTEST_COUNT(count, mpi_errno);
 
-	    /* Validate tags */
-	    MPIR_ERRTEST_SEND_TAG(sendtag, mpi_errno);
-	    MPIR_ERRTEST_RECV_TAG(recvtag, mpi_errno);
+            /* Validate status (status_ignore is not the same as null) */
+            MPIR_ERRTEST_ARGNULL(status, "status", mpi_errno);
 
-	    /* Validate source and destination */
-	    MPIR_ERRTEST_SEND_RANK(comm_ptr, dest, mpi_errno);
-	    MPIR_ERRTEST_RECV_RANK(comm_ptr, source, mpi_errno);
+            /* Validate tags */
+            MPIR_ERRTEST_SEND_TAG(sendtag, mpi_errno);
+            MPIR_ERRTEST_RECV_TAG(recvtag, mpi_errno);
 
-	    /* Validate datatype handle */
-	    MPIR_ERRTEST_DATATYPE(datatype, "datatype", mpi_errno);
-	    
-	    /* Validate datatype object */
-	    if (HANDLE_GET_KIND(datatype) != HANDLE_KIND_BUILTIN)
-	    {
-		MPID_Datatype *datatype_ptr = NULL;
+            /* Validate source and destination */
+            MPIR_ERRTEST_SEND_RANK(comm_ptr, dest, mpi_errno);
+            MPIR_ERRTEST_RECV_RANK(comm_ptr, source, mpi_errno);
 
-		MPID_Datatype_get_ptr(datatype, datatype_ptr);
-		MPID_Datatype_valid_ptr(datatype_ptr, mpi_errno);
-		if (mpi_errno) goto fn_fail;
-		MPID_Datatype_committed_ptr(datatype_ptr, mpi_errno);
-		if (mpi_errno) goto fn_fail;
-	    }
-	    
-	    /* Validate buffer */
-	    MPIR_ERRTEST_USERBUFFER(buf,count,datatype,mpi_errno);
+            /* Validate datatype handle */
+            MPIR_ERRTEST_DATATYPE(datatype, "datatype", mpi_errno);
+
+            /* Validate datatype object */
+            if (!HANDLE_IS_BUILTIN(datatype)) {
+                MPIR_Datatype *datatype_ptr = NULL;
+
+                MPIR_Datatype_get_ptr(datatype, datatype_ptr);
+                MPIR_Datatype_valid_ptr(datatype_ptr, mpi_errno);
+                if (mpi_errno)
+                    goto fn_fail;
+                MPIR_Datatype_committed_ptr(datatype_ptr, mpi_errno);
+                if (mpi_errno)
+                    goto fn_fail;
+            }
+
+            /* Validate buffer */
+            MPIR_ERRTEST_USERBUFFER(buf, count, datatype, mpi_errno);
         }
         MPID_END_ERROR_CHECKS;
     }
-#   endif /* HAVE_ERROR_CHECKING */
+#endif /* HAVE_ERROR_CHECKING */
 
     /* ... body of routine ... */
-    
-#   if defined(MPID_Sendrecv_replace)
+
+#if defined(MPID_Sendrecv_replace)
     {
-	mpi_errno = MPID_Sendrecv_replace(buf, count, datatype, dest,
-					  sendtag, source, recvtag, comm_ptr, 
-					  status)
+        mpi_errno = MPID_Sendrecv_replace(buf, count, datatype, dest,
+                                          sendtag, source, recvtag, comm_ptr, status)
     }
-#   else
+#else
     {
-	MPID_Request * sreq;
-	MPID_Request * rreq;
-	void * tmpbuf = NULL;
-	MPI_Aint tmpbuf_size = 0;
-	MPI_Aint tmpbuf_count = 0;
+        MPIR_Request *sreq = NULL;
+        MPIR_Request *rreq = NULL;
+        void *tmpbuf = NULL;
+        MPI_Aint tmpbuf_size = 0;
+        MPI_Aint actual_pack_bytes = 0;
 
-	if (count > 0 && dest != MPI_PROC_NULL)
-	{
-	    MPIR_Pack_size_impl(count, datatype, &tmpbuf_size);
+        if (count > 0 && dest != MPI_PROC_NULL) {
+            MPIR_Pack_size_impl(count, datatype, &tmpbuf_size);
 
-	    MPIU_CHKLMEM_MALLOC_ORJUMP(tmpbuf, void *, tmpbuf_size, mpi_errno, "temporary send buffer");
+            MPIR_CHKLMEM_MALLOC_ORJUMP(tmpbuf, void *, tmpbuf_size, mpi_errno,
+                                       "temporary send buffer", MPL_MEM_BUFFER);
 
-	    mpi_errno = MPIR_Pack_impl(buf, count, datatype, tmpbuf, tmpbuf_size, &tmpbuf_count);
-	    if (mpi_errno != MPI_SUCCESS) goto fn_fail;
-	}
-	
-	mpi_errno = MPID_Irecv(buf, count, datatype, source, recvtag, 
-			       comm_ptr, MPID_CONTEXT_INTRA_PT2PT, &rreq);
-	if (mpi_errno != MPI_SUCCESS) goto fn_fail;
+            mpi_errno =
+                MPIR_Typerep_pack(buf, count, datatype, 0, tmpbuf, tmpbuf_size, &actual_pack_bytes);
+            if (mpi_errno != MPI_SUCCESS)
+                goto fn_fail;
+        }
 
-	mpi_errno = MPID_Isend(tmpbuf, tmpbuf_count, MPI_PACKED, dest, 
-			       sendtag, comm_ptr, MPID_CONTEXT_INTRA_PT2PT, 
-			       &sreq);
-	if (mpi_errno != MPI_SUCCESS)
-	{
-	    /* --BEGIN ERROR HANDLING-- */
-	    /* FIXME: should we cancel the pending (possibly completed) receive request or wait for it to complete? */
-	    MPID_Request_release(rreq);
-	    goto fn_fail;
-	    /* --END ERROR HANDLING-- */
-	}
-	
-        if (!MPID_Request_is_complete(sreq) || !MPID_Request_is_complete(rreq))
-	{
-	    MPID_Progress_state progress_state;
-	
-	    MPID_Progress_start(&progress_state);
-            while (!MPID_Request_is_complete(sreq) || !MPID_Request_is_complete(rreq))
-	    {
-		mpi_errno = MPID_Progress_wait(&progress_state);
-		if (mpi_errno != MPI_SUCCESS)
-		{
-		    /* --BEGIN ERROR HANDLING-- */
-		    MPID_Progress_end(&progress_state);
-		    goto fn_fail;
-		    /* --END ERROR HANDLING-- */
-		}
-	    }
-	    MPID_Progress_end(&progress_state);
+        /* If source is MPI_PROC_NULL, create a completed request and return. */
+        if (unlikely(source == MPI_PROC_NULL)) {
+            rreq = MPIR_Request_create_complete(MPIR_REQUEST_KIND__RECV);
+            MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail,
+                                "**nomemreq");
+            MPIR_Status_set_procnull(&rreq->status);
+        } else {
+            mpi_errno = MPID_Irecv(buf, count, datatype, source, recvtag,
+                                   comm_ptr, MPIR_CONTEXT_INTRA_PT2PT, &rreq);
+            if (mpi_errno != MPI_SUCCESS)
+                goto fn_fail;
+        }
 
-	}
 
-	if (status != MPI_STATUS_IGNORE)
-	{
-	    *status = rreq->status;
-	}
+        /* If dest is MPI_PROC_NULL, create a completed request and return. */
+        if (unlikely(dest == MPI_PROC_NULL)) {
+            sreq = MPIR_Request_create_complete(MPIR_REQUEST_KIND__SEND);
+            MPIR_ERR_CHKANDSTMT(sreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail,
+                                "**nomemreq");
+        } else {
+            mpi_errno = MPID_Isend(tmpbuf, actual_pack_bytes, MPI_PACKED, dest,
+                                   sendtag, comm_ptr, MPIR_CONTEXT_INTRA_PT2PT, &sreq);
+            if (mpi_errno != MPI_SUCCESS) {
+                /* --BEGIN ERROR HANDLING-- */
+                if (mpi_errno == MPIX_ERR_NOREQ)
+                    MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**nomem");
+                /* FIXME: should we cancel the pending (possibly completed) receive request or wait for it to complete? */
+                MPIR_Request_free(rreq);
+                goto fn_fail;
+                /* --END ERROR HANDLING-- */
+            }
+        }
 
-	if (mpi_errno == MPI_SUCCESS)
-	{
-	    mpi_errno = rreq->status.MPI_ERROR;
+        mpi_errno = MPID_Wait(rreq, MPI_STATUS_IGNORE);
+        MPIR_ERR_CHECK(mpi_errno);
 
-	    if (mpi_errno == MPI_SUCCESS)
-	    {
-		mpi_errno = sreq->status.MPI_ERROR;
-	    }
-	}
-    
-	MPID_Request_release(sreq);
-	MPID_Request_release(rreq);
+        mpi_errno = MPID_Wait(sreq, MPI_STATUS_IGNORE);
+        MPIR_ERR_CHECK(mpi_errno);
+
+        if (status != MPI_STATUS_IGNORE) {
+            *status = rreq->status;
+        }
+
+        if (mpi_errno == MPI_SUCCESS) {
+            mpi_errno = rreq->status.MPI_ERROR;
+
+            if (mpi_errno == MPI_SUCCESS) {
+                mpi_errno = sreq->status.MPI_ERROR;
+            }
+        }
+
+        MPIR_Request_free(sreq);
+        MPIR_Request_free(rreq);
     }
-#   endif
+#endif
 
-    if (mpi_errno != MPI_SUCCESS) goto fn_fail;
-    
+    if (mpi_errno != MPI_SUCCESS)
+        goto fn_fail;
+
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPIU_CHKLMEM_FREEALL();
-    MPID_MPI_PT2PT_FUNC_EXIT_BOTH(MPID_STATE_MPI_SENDRECV_REPLACE);
+    MPIR_CHKLMEM_FREEALL();
+    MPIR_FUNC_TERSE_PT2PT_EXIT_BOTH(MPID_STATE_MPI_SENDRECV_REPLACE);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
-    
+
   fn_fail:
     /* --BEGIN ERROR HANDLING-- */
-#   ifdef HAVE_ERROR_CHECKING
+#ifdef HAVE_ERROR_CHECKING
     {
-	mpi_errno = MPIR_Err_create_code(
-	    mpi_errno, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPI_ERR_OTHER, "**mpi_sendrecv_replace",
-	    "**mpi_sendrecv_replace %p %d %D %i %t %i %t %C %p", buf, count, datatype, dest, sendtag,
-	    source, recvtag, comm, status);
+        mpi_errno =
+            MPIR_Err_create_code(mpi_errno, MPIR_ERR_RECOVERABLE, __func__, __LINE__, MPI_ERR_OTHER,
+                                 "**mpi_sendrecv_replace",
+                                 "**mpi_sendrecv_replace %p %d %D %i %t %i %t %C %p", buf, count,
+                                 datatype, dest, sendtag, source, recvtag, comm, status);
     }
-#   endif
-    mpi_errno =  MPIR_Err_return_comm( comm_ptr, FCNAME, mpi_errno );
+#endif
+    mpi_errno = MPIR_Err_return_comm(comm_ptr, __func__, mpi_errno);
     goto fn_exit;
     /* --END ERROR HANDLING-- */
 }

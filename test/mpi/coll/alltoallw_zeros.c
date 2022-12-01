@@ -1,8 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2009 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 /* Based on a test case contributed by Michael Hofmann.
  *
  * This test makes sure that zero counts with non-zero-sized types on the
@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
     int i;
 
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
 
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -98,8 +98,6 @@ int main(int argc, char *argv[])
 
     MPI_Type_free(&sendtype);
 
-    if (rank == 0)
-        printf(" No Errors\n");
 
   fn_exit:
     if (rdispls)
@@ -115,7 +113,7 @@ int main(int argc, char *argv[])
     if (sendtypes)
         free(sendtypes);
 
-    MPI_Finalize();
+    MTest_Finalize(0);
 
     return 0;
 }

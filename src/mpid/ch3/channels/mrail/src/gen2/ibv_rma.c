@@ -14,7 +14,6 @@
 #include "mpiimpl.h"
 #include "vbuf.h"
 #include "dreg.h"
-#include "mpiutil.h"
 
 #undef DEBUG_PRINT
 #ifdef DEBUG
@@ -29,30 +28,26 @@ do {                                                          \
 #define DEBUG_PRINT(args...)
 #endif
 
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_vbuf_allocated);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_vbuf_freed);
-MPIR_T_PVAR_ULONG_LEVEL_DECL_EXTERN(MV2, mv2_vbuf_available);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_ud_vbuf_allocated);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_ud_vbuf_freed);
-MPIR_T_PVAR_ULONG_LEVEL_DECL_EXTERN(MV2, mv2_ud_vbuf_available);
+extern unsigned long PVAR_COUNTER_mv2_vbuf_allocated;
+extern unsigned long PVAR_COUNTER_mv2_vbuf_freed;
+extern unsigned long PVAR_LEVEL_mv2_vbuf_available;
+extern unsigned long PVAR_COUNTER_mv2_ud_vbuf_allocated;
+extern unsigned long PVAR_COUNTER_mv2_ud_vbuf_freed;
+extern unsigned long PVAR_LEVEL_mv2_ud_vbuf_available;
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_MRAILI_Get_rndv_rput
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3I_MRAILI_Get_rndv_rput(MPIDI_VC_t *vc, 
-                                    MPID_Request * req,
+                                    MPIR_Request * req,
                                     MPIDI_CH3I_MRAILI_Rndv_info_t * rndv,
-                				    MPL_IOV *iov)
+                				    struct iovec *iov)
 {
     /* This function will register the local buf, send rdma write to target, and send
      * get_resp_kt as rput finish. Currently, we assume the local buffer is contiguous,
      * datatype cases will be considered later */
-    MPIDI_msg_sz_t nbytes;
+    intptr_t nbytes;
     int rail;
     vbuf *v;
-    MPIDI_STATE_DECL(MPIDI_STATE_GEN2_RNDV_RPUT);
-    MPIDI_FUNC_ENTER(MPIDI_STATE_GEN2_RNDV_RPUT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPIDI_STATE_GEN2_RNDV_RPUT);
+    MPIR_FUNC_VERBOSE_ENTER(MPIDI_STATE_GEN2_RNDV_RPUT);
 
     MPIDI_CH3I_MRAIL_Prepare_rndv(vc, req);
 
@@ -71,7 +66,7 @@ int MPIDI_CH3I_MRAILI_Get_rndv_rput(MPIDI_VC_t *vc,
         GET_VBUF_BY_OFFSET_WITHOUT_LOCK(v, MV2_SMALL_DATA_VBUF_POOL_OFFSET);
         v->sreq = req;
         
-        MPIU_Assert(v != NULL);
+        MPIR_Assert(v != NULL);
         
         nbytes = req->mrail.rndv_buf_sz - req->mrail.rndv_buf_off;
         
@@ -96,6 +91,6 @@ int MPIDI_CH3I_MRAILI_Get_rndv_rput(MPIDI_VC_t *vc,
         v->sreq = req;
     }
 
-    MPIDI_FUNC_EXIT(MPIDI_STATE_GEN2_RNDV_RPUT);
+    MPIR_FUNC_VERBOSE_EXIT(MPIDI_STATE_GEN2_RNDV_RPUT);
     return MPI_SUCCESS;
 }

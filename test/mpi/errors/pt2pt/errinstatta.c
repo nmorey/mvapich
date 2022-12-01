@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include "mpitest.h"
@@ -36,7 +35,7 @@ int main(int argc, char *argv[])
     src = 1;
     dest = 0;
     if (rank == dest) {
-        MPI_Errhandler_set(comm, MPI_ERRORS_RETURN);
+        MPI_Comm_set_errhandler(comm, MPI_ERRORS_RETURN);
         errval = MPI_Irecv(b1, 10, MPI_INT, src, 0, comm, &r[0]);
         if (errval) {
             errs++;
@@ -80,27 +79,23 @@ int main(int argc, char *argv[])
         if (errclass != MPI_ERR_IN_STATUS) {
             errs++;
             printf("Did not get ERR_IN_STATUS in Testall\n");
-        }
-        else if (!flag) {
+        } else if (!flag) {
             errs++;
             printf("Test returned false for test\n");
-        }
-        else {
+        } else {
             /* Check for success */
             for (i = 0; i < 2; i++) {
                 if (s[i].MPI_TAG < 10 && s[i].MPI_ERROR != MPI_SUCCESS) {
                     errs++;
                     printf("correct msg had error class %d\n", s[i].MPI_ERROR);
-                }
-                else if (s[i].MPI_TAG >= 10 && s[i].MPI_ERROR == MPI_SUCCESS) {
+                } else if (s[i].MPI_TAG >= 10 && s[i].MPI_ERROR == MPI_SUCCESS) {
                     errs++;
                     printf("truncated msg had MPI_SUCCESS\n");
                 }
             }
         }
 
-    }
-    else if (rank == src) {
+    } else if (rank == src) {
         /* Wait for Irecvs to be posted before the sender calls send */
         MPI_Ssend(NULL, 0, MPI_INT, dest, 100, comm);
 
@@ -114,7 +109,5 @@ int main(int argc, char *argv[])
     }
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
-
+    return MTestReturnValue(errs);
 }

@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2012 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /* This test test MPI_Comm_create_group tests calling by multiple threads
@@ -48,7 +47,7 @@ MTEST_THREAD_RETURN_TYPE test_comm_create_group(void *arg)
          */
         if (verbose)
             printf("%d: Thread %d - Comm_create_group %d start\n", rank, *(int *) arg, i);
-        if(rank <= size / 2){
+        if (rank <= size / 2) {
             MPI_Comm_create_group(MPI_COMM_WORLD, half_group, *(int *) arg /* tag */ , &comm);
             MPI_Barrier(comm);
             MPI_Comm_free(&comm);
@@ -66,7 +65,6 @@ MTEST_THREAD_RETURN_TYPE test_comm_create_group(void *arg)
         MPI_Comm_free(&comm);
         if (verbose)
             printf("%d: Thread %d - Comm_create_group %d finish\n", rank, *(int *) arg, i);
-
     }
 
     if (verbose)
@@ -78,9 +76,9 @@ MTEST_THREAD_RETURN_TYPE test_comm_create_group(void *arg)
 int main(int argc, char **argv)
 {
     int thread_args[NUM_THREADS];
-    int i, err, provided;
+    int i, errs, provided;
 
-    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+    MTest_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
     check(provided == MPI_THREAD_MULTIPLE);
 
@@ -94,13 +92,12 @@ int main(int argc, char **argv)
         MTest_Start_thread(test_comm_create_group, (void *) &thread_args[i]);
     }
 
-    err = MTest_Join_threads();
+    errs = MTest_Join_threads();
 
     MPI_Group_free(&global_group);
 
-    MTest_Finalize(err);
+    MTest_Finalize(errs);
 
-    MPI_Finalize();
 
-    return 0;
+    return MTestReturnValue(errs);
 }

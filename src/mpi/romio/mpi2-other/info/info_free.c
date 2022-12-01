@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
-/* 
- *
- *   Copyright (C) 1997 University of Chicago. 
- *   See COPYRIGHT notice in top-level directory.
+/*
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpioimpl.h"
@@ -31,7 +29,7 @@ Input Parameters:
 
 .N fortran
 @*/
-int MPI_Info_free(MPI_Info *info)
+int MPI_Info_free(MPI_Info * info)
 {
     MPI_Info curr, next;
 
@@ -45,11 +43,11 @@ int MPI_Info_free(MPI_Info *info)
     *info = MPI_INFO_NULL;
 
     while (curr) {
-	next = curr->next;
-	ADIOI_Free(curr->key);
-	ADIOI_Free(curr->value);
-	ADIOI_Free(curr);
-	curr = next;
+        next = curr->next;
+        ADIOI_Free(curr->key);
+        ADIOI_Free(curr->value);
+        ADIOI_Free(curr);
+        curr = next;
     }
 
     return MPI_SUCCESS;

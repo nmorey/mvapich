@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2010 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -179,12 +178,12 @@ int main(int argc, char *argv[])
                    MPI_Accumulate(rmabuf, count, MPI_INT, TARGET, 0, count, MPI_INT, MPI_SUM, win);
 );
         TEST_PT_OP("Accumulate_derived",
-                   MPI_Accumulate(rmabuf, count, derived_dtp, TARGET, 0,
-                                  count, derived_dtp, MPI_SUM, win);
+                   MPI_Accumulate(rmabuf, count, derived_dtp, TARGET, 0, count, derived_dtp,
+                                  MPI_SUM, win);
 );
         TEST_PT_OP("Get accumulate",
-                   MPI_Get_accumulate(rmabuf, count, MPI_INT, result, count,
-                                      MPI_INT, TARGET, 0, count, MPI_INT, MPI_SUM, win);
+                   MPI_Get_accumulate(rmabuf, count, MPI_INT, result, count, MPI_INT, TARGET, 0,
+                                      count, MPI_INT, MPI_SUM, win);
 );
 
         /* Note: It's not possible to generate a zero-byte FOP or CAS */
@@ -221,6 +220,5 @@ int main(int argc, char *argv[])
     free(buf);
     free(rmabuf);
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

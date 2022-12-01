@@ -1,8 +1,8 @@
-C -*- Mode: Fortran; -*- 
 C
-C  (C) 2011 by Argonne National Laboratory.
-C      See COPYRIGHT in top-level directory.
+C Copyright (C) by Argonne National Laboratory
+C     See COPYRIGHT in top-level directory
 C
+
       subroutine uop( cin, cout, count, datatype )
       implicit none
       include 'mpif.h'
@@ -80,6 +80,5 @@ C recvbuf should be size * (rank + i)
       call mpi_op_free( sumop, ierr )
 
       call mtest_finalize( errs )
-      call mpi_finalize( ierr )
 
       end

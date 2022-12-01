@@ -36,20 +36,15 @@ do {                                                          \
 int rts_send = 0;
 int cts_recv = 0;
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_Prepare_rndv
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-static inline void MPIDI_CH3_Prepare_rndv(MPIDI_VC_t *vc, MPID_Request *sreq)
+static inline void MPIDI_CH3_Prepare_rndv(MPIDI_VC_t *vc, MPIR_Request *sreq)
 {
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3_PREPARE_RNDV);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_PREPARE_RNDV);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPIDI_CH3_PREPARE_RNDV);
 
 #if defined(_ENABLE_CUDA_) && defined(HAVE_CUDA_IPC)
     if (mv2_enable_device
         && mv2_device_use_ipc) {
         if (mv2_device_use_ipc_stage_buffer &&
-            sreq->dev.iov[0].MPL_IOV_LEN < mv2_device_ipc_stage_buffer_limit) {
+            sreq->dev.iov[0].iov_len < mv2_device_ipc_stage_buffer_limit) {
             if (MPIDI_CH3I_MRAIL_Prepare_rndv_device_ipc_buffered (vc, sreq)) {
                 goto fn_exit;
             }
@@ -71,21 +66,16 @@ static inline void MPIDI_CH3_Prepare_rndv(MPIDI_VC_t *vc, MPID_Request *sreq)
 #if defined(_ENABLE_CUDA_) && defined(HAVE_CUDA_IPC)
 fn_exit:
 #endif
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3_PREPARE_RNDV);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPIDI_CH3_PREPARE_RNDV);
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_iStartRndvMsg
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_iStartRndvMsg(MPIDI_VC_t * vc,
-                            MPID_Request * sreq, MPIDI_CH3_Pkt_t * rts_pkt)
+                            MPIR_Request * sreq, MPIDI_CH3_Pkt_t * rts_pkt)
 {
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3_ISTARTRNDVMSG);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_ISTARTRNDVMSG);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPIDI_CH3_ISTARTRNDVMSG);
     int mpi_errno = MPI_SUCCESS;
     DEBUG_PRINT("ch3_istartrndvmsg\n");
-    MPIDI_DBG_PRINTF((50, FCNAME, "entering"));
+    MPL_DBG_MSG_S(MPIDI_CH3_DBG_CHANNEL,VERBOSE,"entering %s",__func__);
     /* If send queue is empty attempt to send
        data, queuing any unsent data. */
 #ifdef CKPT
@@ -94,7 +84,7 @@ int MPIDI_CH3_iStartRndvMsg(MPIDI_VC_t * vc,
 
     ++rts_send;
     if (MPIDI_CH3I_SendQ_empty(vc)) {   /* MT */
-        MPID_Request * send_req;
+        MPIR_Request * send_req;
 
         MPIDI_CH3_Pkt_rndv_req_to_send_t *rndv_pkt =
             &(rts_pkt->rndv_req_to_send);
@@ -114,14 +104,14 @@ int MPIDI_CH3_iStartRndvMsg(MPIDI_VC_t * vc,
             sizeof(MPIDI_CH3_Pkt_rndv_req_to_send_t),
             &send_req)) != MPI_SUCCESS)
         {
-            MPIU_Object_set_ref(sreq, 0);
-            MPIDI_CH3_Request_destroy(sreq);
+            MPIR_Object_set_ref(sreq, 0);
+            MPIR_Request_free(sreq);
             sreq = NULL;
             MPIR_ERR_POP(mpi_errno);
         }
 
         if (send_req != NULL) {
-            MPID_Request_release(send_req);
+            MPIR_Request_free(send_req);
         }
     } else {
         PRINT_DEBUG(DEBUG_RNDV_verbose>1,
@@ -134,8 +124,8 @@ int MPIDI_CH3_iStartRndvMsg(MPIDI_VC_t * vc,
     MPIDI_CH3I_CR_unlock();
 #endif
     DEBUG_PRINT("[send rts]successful complete\n");
-    MPIDI_DBG_PRINTF((50, FCNAME, "exiting"));
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3_ISTARTRNDVMSG);
+    MPL_DBG_MSG_S(MPIDI_CH3_DBG_CHANNEL,VERBOSE,"exiting %s",__func__);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPIDI_CH3_ISTARTRNDVMSG);
     return mpi_errno;
 
 fn_fail:
@@ -143,82 +133,75 @@ fn_fail:
 }
 
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_iStartRmaRndv
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_iStartRmaRndv(MPIDI_VC_t * vc,
-                            MPID_Request * sreq, int control_cnt, 
-                            MPIDI_msg_sz_t stream_offset,
-                            MPIDI_msg_sz_t stream_size)
+                            MPIR_Request * sreq, int control_cnt, 
+                            intptr_t stream_offset,
+                            intptr_t stream_size)
 {
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3_ISTARTRMARNDV);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_ISTARTRMARNDV);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPIDI_CH3_ISTARTRMARNDV);
     int mpi_errno = MPI_SUCCESS;
     MPIDI_CH3_Pkt_put_rndv_t *put_rndv =
-        (void *) sreq->dev.iov[0].MPL_IOV_BUF;
+        (void *) sreq->dev.iov[0].iov_base;
     MPIDI_CH3_Pkt_accum_rndv_t *accum_rndv =
-        (void *) sreq->dev.iov[0].MPL_IOV_BUF;
+        (void *) sreq->dev.iov[0].iov_base;
     MPIDI_CH3_Pkt_get_accum_rndv_t *get_accum_rndv =
-        (void *) sreq->dev.iov[0].MPL_IOV_BUF;
+        (void *) sreq->dev.iov[0].iov_base;
     MPI_Aint dt_true_lb;
-    MPID_Request *rts_sreq;
-    MPID_Request *rreq;
-    MPL_IOV *iov;
+    MPIR_Request *rts_sreq;
+    MPIR_Request *rreq;
+    struct iovec *iov;
 
 #ifdef CKPT
     MPIDI_CH3I_CR_lock();
 #endif
 
-    if ((iov = MPIU_Malloc(sizeof(MPL_IOV) * (control_cnt))) == NULL)
+    if ((iov = MPL_malloc(sizeof(struct iovec) * (control_cnt), 
+                            MPL_MEM_OBJECT)) == NULL)
     {
-        MPIU_CHKMEM_SETERR(mpi_errno, sizeof(MPL_IOV) * control_cnt, "MPID IOV");
+        MPIR_CHKMEM_SETERR(mpi_errno, sizeof(struct iovec) * control_cnt, "MPID IOV");
     }
 
     DEBUG_PRINT("sreq before adjust iov0.len %d\n",
-                sreq->dev.iov[control_cnt].MPL_IOV_LEN);
-    MPIU_Memcpy((void *) iov, (void *) sreq->dev.iov,
-           sizeof(MPL_IOV) * control_cnt);
+                sreq->dev.iov[control_cnt].iov_len);
+    MPIR_Memcpy((void *) iov, (void *) sreq->dev.iov,
+           sizeof(struct iovec) * control_cnt);
 
     /* we adjust iov because the rndv process assume the data starts from the first
      * vector of iov array */
-    /* We can't use MPIU_Memcpy due to the overlapping check when using the debug flags.*/
+    /* We can't use MPIR_Memcpy due to the overlapping check when using the debug flags.*/
     memmove((void *) sreq->dev.iov,
            (void *) &sreq->dev.iov[control_cnt],
-           sizeof(MPL_IOV) * (sreq->dev.iov_count - control_cnt));
+           sizeof(struct iovec) * (sreq->dev.iov_count - control_cnt));
 
     sreq->dev.iov_count -= control_cnt;
 
     /* MT - need some signalling to lock down our right to use the
        channel, thus insuring that the progress engine does also try to
        write */
-    int origin_seq_size = sreq->dev.segment_size;
+    int origin_seq_size = sreq->dev.msgsize;
     if (stream_offset > 0)
-        sreq->dev.segment_size = stream_size;
+        sreq->dev.msgsize = stream_size;
 
     MPIDI_CH3_Prepare_rndv(vc, sreq);
-    sreq->dev.segment_size = origin_seq_size;
+    sreq->dev.msgsize = origin_seq_size;
 
     MPIDI_CH3I_MRAIL_REVERT_RPUT(sreq);
     if (MPIDI_CH3_PKT_PUT_RNDV == put_rndv->type) {
         MPIDI_CH3I_MRAIL_SET_PKT_RNDV(put_rndv, sreq);
     } else if (MPIDI_CH3_PKT_GET_ACCUM_RNDV == get_accum_rndv->type) {
-        MPID_Request_get_ptr(get_accum_rndv->request_handle, rreq);
-        MPID_Datatype_get_true_lb(rreq->dev.datatype, &dt_true_lb);
+        MPIR_Request_get_ptr(get_accum_rndv->request_handle, rreq);
+        MPIR_Datatype_get_true_lb(rreq->dev.datatype, &dt_true_lb);
 
         if(MPIR_DATATYPE_IS_PREDEFINED(rreq->dev.datatype)) {
             rreq->dev.OnDataAvail = 0;
-            rreq->dev.iov[0].MPL_IOV_BUF = (void *) ((char*)rreq->dev.user_buf + dt_true_lb +
+            rreq->dev.iov[0].iov_base = (void *) ((char*)rreq->dev.user_buf + dt_true_lb +
                                            stream_offset);
-            rreq->dev.iov[0].MPL_IOV_LEN = stream_size;
+            rreq->dev.iov[0].iov_len = stream_size;
             rreq->dev.iov_count = 1;
         } else {
-            rreq->dev.segment_ptr = MPID_Segment_alloc( );
-            MPID_Segment_init(rreq->dev.user_buf, rreq->dev.user_count,
-                    rreq->dev.datatype, rreq->dev.segment_ptr, 0);
             rreq->dev.iov_count = MPL_IOV_LIMIT;
-            rreq->dev.segment_first = stream_offset;
-            rreq->dev.segment_size = stream_offset + stream_size;
+            rreq->dev.msg_offset = stream_offset;
+            rreq->dev.msgsize = stream_offset + stream_size;
 
             rreq->dev.OnFinal = 0;
             mpi_errno = MPIDI_CH3U_Request_load_send_iov(rreq, &rreq->dev.iov[0],
@@ -247,16 +230,16 @@ int MPIDI_CH3_iStartRmaRndv(MPIDI_VC_t * vc,
 
     if ((mpi_errno = MPIDI_CH3_iStartMsgv(vc, iov, control_cnt, &rts_sreq)) != MPI_SUCCESS)
     {
-        MPIU_Object_set_ref(sreq, 0);
-        MPIDI_CH3_Request_destroy(sreq);
+        MPIR_Object_set_ref(sreq, 0);
+        MPIR_Request_free(sreq);
         sreq = NULL;
         MPIR_ERR_POP(mpi_errno);
     }
 
     if (rts_sreq != NULL) {
-        MPID_Request_release(rts_sreq);
+        MPIR_Request_free(rts_sreq);
     }
-    MPIU_Free(iov);
+    MPL_free(iov);
 
     /* Wait until RNDV data has been sent to ensure the ordering between
      * multiple consecutive ACCUM/GET_ACCUM operations */
@@ -272,7 +255,7 @@ fn_exit:
 #endif /* defined(CKPT) */
     DEBUG_PRINT("[send rts]successful complete\n");
 
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3_ISTARTRMARNDV);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPIDI_CH3_ISTARTRMARNDV);
     return mpi_errno;
 
 fn_fail:
@@ -280,36 +263,32 @@ fn_fail:
 }
 
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_iStartGetRndv
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_iStartGetRndv(MPIDI_VC_t * vc,
                             MPIDI_CH3_Pkt_get_rndv_t * get_rndv,
-                            MPID_Request * sreq,
-                            MPL_IOV * control_iov, int num_control)
+                            MPIR_Request * sreq,
+                            struct iovec * control_iov, int num_control)
 {
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3_ISTARTGETRNDV);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_ISTARTGETRNDV);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPIDI_CH3_ISTARTGETRNDV);
     int mpi_errno = MPI_SUCCESS;
-    MPID_Request *send_req;
+    MPIR_Request *send_req;
 
 #ifdef CKPT
     MPIDI_CH3I_CR_lock();
 #endif
         
-    MPL_IOV* iov = MPIU_Malloc(sizeof(MPL_IOV) * (num_control + 1));
+    struct iovec* iov = MPL_malloc(sizeof(struct iovec) * (num_control + 1),
+                                    MPL_MEM_OBJECT);
 
     if (iov == NULL)
     {
-        MPIU_CHKMEM_SETERR(mpi_errno, sizeof(MPL_IOV) * (num_control + 1), "MPID IOV");
+        MPIR_CHKMEM_SETERR(mpi_errno, sizeof(struct iovec) * (num_control + 1), "MPID IOV");
     }
 
     int n_iov = num_control + 1;
-    iov[0].MPL_IOV_BUF = (void *) get_rndv;
-    iov[0].MPL_IOV_LEN = sizeof(MPIDI_CH3_Pkt_get_rndv_t);
-    MPIU_Memcpy((void *) &iov[1], (void *) control_iov,
-           sizeof(MPL_IOV) * num_control);
+    iov[0].iov_base = (void *) get_rndv;
+    iov[0].iov_len = sizeof(MPIDI_CH3_Pkt_get_rndv_t);
+    MPIR_Memcpy((void *) &iov[1], (void *) control_iov,
+           sizeof(struct iovec) * num_control);
 
     MPIDI_CH3_Prepare_rndv(vc, sreq);
     if (IS_VC_SMP(vc)) {
@@ -334,16 +313,16 @@ int MPIDI_CH3_iStartGetRndv(MPIDI_VC_t * vc,
 
     mpi_errno = MPIDI_CH3_iStartMsgv(vc, iov, n_iov, &send_req);
     if (NULL != send_req) {
-        MPID_Request_release(send_req);
+        MPIR_Request_free(send_req);
     }
-    MPIU_Free(iov);
+    MPL_free(iov);
 
 #ifdef CKPT
     MPIDI_CH3I_CR_unlock();
 #endif
 
 fn_exit:
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3_ISTARTGETRNDV);
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPIDI_CH3_ISTARTGETRNDV);
     return mpi_errno;
 #ifndef CHANNEL_MRAIL
 fn_fail:

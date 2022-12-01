@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
-/* 
- *
- *   Copyright (C) 1997 University of Chicago. 
- *   See COPYRIGHT notice in top-level directory.
+/*
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpioimpl.h"
@@ -17,7 +15,8 @@
 #pragma _CRI duplicate MPI_File_write_at_all_end as PMPI_File_write_at_all_end
 /* end of weak pragmas */
 #elif defined(HAVE_WEAK_ATTRIBUTE)
-int MPI_File_write_at_all_end(MPI_File fh, const void *buf, MPI_Status *status) __attribute__((weak,alias("PMPI_File_write_at_all_end")));
+int MPI_File_write_at_all_end(MPI_File fh, const void *buf, MPI_Status * status)
+    __attribute__ ((weak, alias("PMPI_File_write_at_all_end")));
 #endif
 
 /* Include mapping from MPI->PMPI */
@@ -37,7 +36,7 @@ Output Parameters:
 
 .N fortran
 @*/
-int MPI_File_write_at_all_end(MPI_File fh, ROMIO_CONST void *buf, MPI_Status *status)
+int MPI_File_write_at_all_end(MPI_File fh, ROMIO_CONST void *buf, MPI_Status * status)
 {
     int error_code;
     static char myname[] = "MPI_FILE_WRITE_AT_ALL_END";

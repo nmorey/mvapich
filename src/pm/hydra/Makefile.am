@@ -1,8 +1,7 @@
-# -*- Mode: Makefile; -*-
-#
-# (C) 2009 by Argonne National Laboratory.
-#     See COPYRIGHT in top-level directory.
-#
+##
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
+##
 
 external_subdirs = @mpl_srcdir@
 external_dist_subdirs = @mpl_dist_srcdir@
@@ -17,8 +16,9 @@ EXTRA_DIST =
 SUFFIXES =
 doc1_src_txt =
 
-ACLOCAL_AMFLAGS = -I confdb
+ACLOCAL_AMFLAGS = -I confdb -I tools/topo/hwloc/hwloc/config
 AM_CPPFLAGS = -I$(top_srcdir)/include $(external_includes)
+AM_CFLAGS =
 
 noinst_HEADERS += include/hydra.h include/hydra_server.h
 

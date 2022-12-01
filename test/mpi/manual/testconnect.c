@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2008 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /* Test from Edric Ellis
@@ -85,8 +84,7 @@ int main(int argc, char **argv)
             fflush(stdout);
         }
         comm = MPI_COMM_WORLD;
-    }
-    else {
+    } else {
         char *cerr;
         cerr = fgets(port, MPI_MAX_PORT_NAME, fh);
         fclose(fh);

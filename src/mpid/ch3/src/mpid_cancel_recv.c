@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 /* Copyright (c) 2001-2022, The Ohio State University. All rights
  * reserved.
@@ -20,29 +19,16 @@
 #include "dreg.h"
 #endif
 
-#undef FUNCNAME
-#define FUNCNAME MPID_Cancel_recv
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-int MPID_Cancel_recv(MPID_Request * rreq)
+int MPID_Cancel_recv(MPIR_Request * rreq)
 {
     int netmod_cancelled = TRUE;
     int mpi_errno = MPI_SUCCESS;
 
-    MPIDI_STATE_DECL(MPID_STATE_MPID_CANCEL_RECV);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_CANCEL_RECV);
     
-    MPIDI_FUNC_ENTER(MPID_STATE_MPID_CANCEL_RECV);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_CANCEL_RECV);
     
-    MPIU_Assert(rreq->kind == MPID_REQUEST_RECV);
-
-#if defined (CHANNEL_PSM)
-    rreq->psm_flags |= PSM_RECV_CANCEL;
-    if(psm_do_cancel(rreq) == MPI_SUCCESS) {
-        MPID_cc_set(rreq->cc_ptr, 0);
-        MPID_Request_release(rreq);
-    }
-    goto fn_exit;
-#endif
+    MPIR_Assert(rreq->kind == MPIR_REQUEST_KIND__RECV);
 
 #if defined(CHANNEL_MRAIL)
     /* OSU-MPI2 requires extra step to finish rndv request */ 
@@ -64,23 +50,21 @@ int MPID_Cancel_recv(MPID_Request * rreq)
 
     if (netmod_cancelled && MPIDI_CH3U_Recvq_DP(rreq))
     {
-	MPIU_DBG_MSG_P(CH3_OTHER,VERBOSE,
-		       "request 0x%08x cancelled", rreq->handle);
+        MPL_DBG_MSG_P(MPIDI_CH3_DBG_OTHER,VERBOSE,
+               "request 0x%08x cancelled", rreq->handle);
         MPIR_STATUS_SET_CANCEL_BIT(rreq->status, TRUE);
         MPIR_STATUS_SET_COUNT(rreq->status, 0);
         mpi_errno = MPID_Request_complete(rreq);
-        if (mpi_errno != MPI_SUCCESS) {
-            MPIR_ERR_POP(mpi_errno);
-        }
+        MPIR_ERR_CHECK(mpi_errno);
     }
     else
     {
-	MPIU_DBG_MSG_P(CH3_OTHER,VERBOSE,
-	    "request 0x%08x already matched, unable to cancel", rreq->handle);
+        MPL_DBG_MSG_P(MPIDI_CH3_DBG_OTHER,VERBOSE,
+            "request 0x%08x already matched, unable to cancel", rreq->handle);
     }
 
  fn_exit:
-    MPIDI_FUNC_EXIT(MPID_STATE_MPID_CANCEL_RECV);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_CANCEL_RECV);
     return mpi_errno;
  fn_fail:
     goto fn_exit;

@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2005 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include "mpitest.h"
@@ -42,12 +41,10 @@ int main(int argc, char *argv[])
             if (wrank == 0) {
                 MPI_Comm_spawn((char *) "./spaiccreate", MPI_ARGV_NULL, np,
                                MPI_INFO_NULL, 0, MPI_COMM_SELF, &intercomm, errcodes);
-            }
-            else {
+            } else {
                 intercomm = MPI_COMM_NULL;
             }
-        }
-        else
+        } else
             intercomm = parentcomm;
 
         /* We now have a valid intercomm.  Use it to create a NEW intercomm
@@ -58,8 +55,7 @@ int main(int argc, char *argv[])
          * parent */
         if (parentcomm == MPI_COMM_NULL) {
             MPI_Send(&wrank, 1, MPI_INT, 1, wrank, intercomm2);
-        }
-        else {
+        } else {
             if (wrank == 1) {
                 int i, rsize, rrank;
                 MPI_Status status;
@@ -90,12 +86,12 @@ int main(int argc, char *argv[])
          * if both call MTest_Finalize */
         if (parentcomm == MPI_COMM_NULL) {
             MTest_Finalize(errs);
+        } else {
+            MPI_Finalize();
         }
-    }
-    else {
+    } else {
         MTest_Finalize(errs);
     }
 
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

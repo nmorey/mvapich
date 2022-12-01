@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,8 +54,7 @@ MTEST_THREAD_RETURN_TYPE send_thread(void *p)
                MSG_SIZE, rank, rank == 0 ? 1 : 0, buffer);
         fflush(stdout);
         sendok = 0;
-    }
-    else {
+    } else {
         sendok = 1;
     }
     free(buffer);
@@ -72,10 +70,7 @@ int main(int argc, char *argv[])
     int length;
     MPI_Status status;
 
-    err = MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-    if (err != MPI_SUCCESS) {
-        MPI_Abort(MPI_COMM_WORLD, 1);
-    }
+    MTest_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -123,7 +118,8 @@ int main(int argc, char *argv[])
     }
 
     /* Loop until the send flag is set */
-    while (sendok == -1);
+    while (sendok == -1)
+        MTest_thread_yield();
     if (!sendok) {
         errs++;
     }
@@ -131,6 +127,5 @@ int main(int argc, char *argv[])
     MTest_Join_threads();
     free(buffer);
     MTest_Finalize(errs);
-    MPI_Finalize();
     return 0;
 }

@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2009 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include "mpitest.h"
@@ -80,8 +79,7 @@ int main(int argc, char *argv[])
         else
             printf(" Found %d errors\n", errs);
     }
-    return 0;
-
+    return MTestReturnValue(errs);
 }
 
 int checkAttrs(MPI_Comm comm, int n, int lkey[], int attrval[])
@@ -94,8 +92,7 @@ int checkAttrs(MPI_Comm comm, int n, int lkey[], int attrval[])
         if (!flag) {
             lerrs++;
             fprintf(stderr, "Attribute for key %d not set\n", i);
-        }
-        else if (val_p != &attrval[i]) {
+        } else if (val_p != &attrval[i]) {
             lerrs++;
             fprintf(stderr, "Atribute value for key %d not correct\n", i);
         }

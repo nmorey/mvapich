@@ -1,8 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "mpi.h"
@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
     int *buf = 0;
 
     MTest_Init(&argc, &argv);
-    MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
+    MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
 
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -47,8 +47,7 @@ int main(int argc, char *argv[])
         if (rank == source) {
             err = MPI_Send(buf, ShortLen, MPI_INT, dest, 0, MPI_COMM_WORLD);
             errs += checkOk(err, "short");
-        }
-        else if (rank == dest) {
+        } else if (rank == dest) {
             err = MPI_Recv(buf, ShortLen - 1, MPI_INT, source, 0, MPI_COMM_WORLD, &status);
             errs += checkTruncError(err, "short");
         }
@@ -57,8 +56,7 @@ int main(int argc, char *argv[])
             MPI_Sendrecv(MPI_BOTTOM, 0, MPI_INT, dest, 1,
                          MPI_BOTTOM, 0, MPI_INT, dest, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             MPI_Send(buf, ShortLen, MPI_INT, dest, 2, MPI_COMM_WORLD);
-        }
-        else if (rank == dest) {
+        } else if (rank == dest) {
             MPI_Request req;
             err = MPI_Irecv(buf, ShortLen - 1, MPI_INT, source, 2, MPI_COMM_WORLD, &req);
             errs += checkOk(err, "irecv-short");
@@ -72,8 +70,7 @@ int main(int argc, char *argv[])
         if (rank == source) {
             err = MPI_Send(buf, MidLen, MPI_INT, dest, 0, MPI_COMM_WORLD);
             errs += checkOk(err, "medium");
-        }
-        else if (rank == dest) {
+        } else if (rank == dest) {
             err = MPI_Recv(buf, MidLen - 1, MPI_INT, source, 0, MPI_COMM_WORLD, &status);
             errs += checkTruncError(err, "medium");
         }
@@ -82,19 +79,19 @@ int main(int argc, char *argv[])
         if (rank == source) {
             err = MPI_Send(buf, LongLen, MPI_INT, dest, 0, MPI_COMM_WORLD);
             errs += checkOk(err, "long");
-        }
-        else if (rank == dest) {
+        } else if (rank == dest) {
             err = MPI_Recv(buf, LongLen - 1, MPI_INT, source, 0, MPI_COMM_WORLD, &status);
             errs += checkTruncError(err, "long");
         }
     }
 
+    MPI_Barrier(MPI_COMM_WORLD);
+
     free(buf);
     MTest_Finalize(errs);
 
-    MPI_Finalize();
 
-    return 0;
+    return MTestReturnValue(errs);
 }
 
 
@@ -107,8 +104,7 @@ int checkTruncError(int err, const char *msg)
         errs++;
         fprintf(stderr, "MPI_Recv (%s) returned MPI_SUCCESS instead of truncated message\n", msg);
         fflush(stderr);
-    }
-    else {
+    } else {
         MPI_Error_class(err, &errclass);
         if (errclass != MPI_ERR_TRUNCATE) {
             errs++;

@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpidimpl.h"
@@ -18,10 +17,6 @@ static inline void setupProcessorName( void );
 /*
  * MPID_Get_processor_name()
  */
-#undef FUNCNAME
-#define FUNCNAME MPID_Get_processor_name
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPID_Get_processor_name(char * name, int namelen, int * resultlen)
 {
     int mpi_errno = MPI_SUCCESS;
@@ -32,11 +27,11 @@ int MPID_Get_processor_name(char * name, int namelen, int * resultlen)
     }
     MPIR_ERR_CHKANDJUMP(processorNameLen <= 0, mpi_errno, MPI_ERR_OTHER, "**procnamefailed");
 
-    /* MPIU_Strncpy only copies until (and including) the null,
+    /* MPL_strncpy only copies until (and including) the null,
        unlike strncpy, it does not blank pad.  This is a good thing
        here, because users don't always allocated MPI_MAX_PROCESSOR_NAME
        characters */
-    MPIU_Strncpy(name, processorName, namelen );
+    MPL_strncpy(name, processorName, namelen );
     if (resultlen)
         *resultlen = processorNameLen;
 

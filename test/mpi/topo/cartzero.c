@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2008 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include "mpitest.h"
@@ -75,15 +74,13 @@ int main(int argc, char *argv[])
 
         MPI_Comm_free(&comm);
         MPI_Comm_free(&newcomm);
-    }
-    else if (rank == 0) {
+    } else if (rank == 0) {
         errs++;
         fprintf(stderr, "Communicator returned is null!");
     }
 
     MTest_Finalize(errs);
 
-    MPI_Finalize();
 
-    return 0;
+    return MTestReturnValue(errs);
 }

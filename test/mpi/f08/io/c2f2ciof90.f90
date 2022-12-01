@@ -1,8 +1,8 @@
-! -*- Mode: Fortran; -*-
 !
-!  (C) 2014 by Argonne National Laboratory.
-!      See COPYRIGHT in top-level directory.
+! Copyright (C) by Argonne National Laboratory
+!     See COPYRIGHT in top-level directory
 !
+
 ! Test just the MPI-IO FILE object
       program main
       use mpi_f08
@@ -57,6 +57,5 @@
          endif
       endif
 
-      call mpi_finalize( ierr )
       end
 

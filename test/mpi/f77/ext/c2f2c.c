@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 /*
  * This file contains the C routines used in testing the c2f and f2c
  * handle conversion functions, except for MPI_File and MPI_Win (to
@@ -173,14 +172,14 @@ MPI_Fint c2frequest_(MPI_Fint * request)
     MPI_Status status;
     int flag;
     MPI_Test(&req, &flag, &status);
-    MPI_Test_cancelled(&status, &flag);
-    if (!flag) {
-        fprintf(stderr, "Request: Wrong value for flag\n");
-        return 1;
+    if (flag) {
+        MPI_Test_cancelled(&status, &flag);
+        if (!flag) {
+            fprintf(stderr, "Request: Wrong value for flag\n");
+            return 1;
+        }
     }
-    else {
-        *request = MPI_Request_c2f(req);
-    }
+    *request = MPI_Request_c2f(req);
     return 0;
 }
 
@@ -245,7 +244,6 @@ void f2crequest_(MPI_Fint * req)
     MPI_Irecv(NULL, 0, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &cReq);
     MPI_Cancel(&cReq);
     *req = MPI_Request_c2f(cReq);
-
 }
 
 void f2cop_(MPI_Fint * op)

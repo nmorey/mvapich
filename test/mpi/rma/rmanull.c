@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2010 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -174,12 +173,12 @@ int main(int argc, char *argv[])
         TEST_PT_OP("Get", MPI_Get(rmabuf, rcount, MPI_INT, MPI_PROC_NULL, 0, rcount, MPI_INT, win);
 );
         TEST_PT_OP("Accumulate",
-                   MPI_Accumulate(rmabuf, rcount, MPI_INT, MPI_PROC_NULL, 0,
-                                  rcount, MPI_INT, MPI_SUM, win);
+                   MPI_Accumulate(rmabuf, rcount, MPI_INT, MPI_PROC_NULL, 0, rcount, MPI_INT,
+                                  MPI_SUM, win);
 );
         TEST_PT_OP("Get accumulate",
-                   MPI_Get_accumulate(rmabuf, rcount, MPI_INT, result, rcount,
-                                      MPI_INT, MPI_PROC_NULL, 0, rcount, MPI_INT, MPI_SUM, win);
+                   MPI_Get_accumulate(rmabuf, rcount, MPI_INT, result, rcount, MPI_INT,
+                                      MPI_PROC_NULL, 0, rcount, MPI_INT, MPI_SUM, win);
 );
         TEST_PT_OP("Fetch and op",
                    MPI_Fetch_and_op(rmabuf, result, MPI_INT, MPI_PROC_NULL, 0, MPI_SUM, win);
@@ -197,13 +196,12 @@ int main(int argc, char *argv[])
                     MPI_Rget(rmabuf, rcount, MPI_INT, MPI_PROC_NULL, 0, rcount, MPI_INT, win, &req);
 );
         TEST_REQ_OP("Raccumulate", req,
-                    MPI_Raccumulate(rmabuf, rcount, MPI_INT, MPI_PROC_NULL, 0,
-                                    rcount, MPI_INT, MPI_SUM, win, &req);
+                    MPI_Raccumulate(rmabuf, rcount, MPI_INT, MPI_PROC_NULL, 0, rcount, MPI_INT,
+                                    MPI_SUM, win, &req);
 );
         TEST_REQ_OP("Rget_accumulate", req,
-                    MPI_Rget_accumulate(rmabuf, rcount, MPI_INT, result,
-                                        rcount, MPI_INT, MPI_PROC_NULL, 0,
-                                        rcount, MPI_INT, MPI_SUM, win, &req);
+                    MPI_Rget_accumulate(rmabuf, rcount, MPI_INT, result, rcount, MPI_INT,
+                                        MPI_PROC_NULL, 0, rcount, MPI_INT, MPI_SUM, win, &req);
 );
 
         MPI_Win_free(&win);
@@ -214,6 +212,5 @@ int main(int argc, char *argv[])
     free(buf);
     free(rmabuf);
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

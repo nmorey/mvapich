@@ -47,10 +47,10 @@ int MPID_nem_ib_add_cells(int n)
 
     /* pool = &MPID_nem_ib_cell_pool; */
 
-    ce = MPIU_Malloc(sizeof(MPID_nem_ib_cell_elem_t) * n);
+    ce = MPL_malloc(sizeof(MPID_nem_ib_cell_elem_t) * n);
 
     if(NULL == ce) {
-        MPIU_CHKMEM_SETERR(mpi_errno,
+        MPIR_CHKMEM_SETERR(mpi_errno,
                 sizeof(MPID_nem_ib_cell_elem_t) * n,
                 "IB Module Cell Elements");
     }
@@ -127,15 +127,15 @@ void MPID_nem_ib_finalize_cell_pool()
 
     while(!MPID_nem_ib_queue_empty(MPID_nem_ib_cell_pool.queue)) {
         MPID_nem_ib_queue_dequeue(MPID_nem_ib_cell_pool.queue, &e);
-        MPIU_Free(e);
+        MPL_free(e);
     }
 
     while(!MPID_nem_ib_queue_empty(alloc_cells_queue)) {
 
         MPID_nem_ib_queue_dequeue( alloc_cells_queue, &e);
-        MPIU_Free(e->data);
+        MPL_free(e->data);
 
-        MPIU_Free(e);
+        MPL_free(e);
     }
 }
 
@@ -161,7 +161,7 @@ int MPID_nem_ib_get_cell(
 
         *e = qe->data;
 
-        MPIU_Assert(NULL != (*e));
+        MPIR_Assert(NULL != (*e));
 
         (*e)->vc = NULL;
 
@@ -186,7 +186,7 @@ int MPID_nem_ib_get_cell(
 
         (*e)->vc = NULL;
 
-        MPIU_Assert(NULL != (*e));
+        MPIR_Assert(NULL != (*e));
     }
 
     pthread_spin_unlock(&MPID_nem_ib_cell_pool.lock);

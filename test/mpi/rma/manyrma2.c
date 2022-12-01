@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2010 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /* This test is a simplification of the one in perf/manyrma.c that tests
@@ -14,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "mpitest.h"
 
 #define MAX_COUNT 65536*4/16
 #define MAX_RMA_SIZE 2  /* 16 in manyrma performance test */
@@ -51,43 +51,36 @@ int main(int argc, char *argv[])
     int maxSz = MAX_RMA_SIZE;
     double start, end;
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
 
     for (i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-put") == 0) {
             if (rmaChoice == RMA_ALL)
                 rmaChoice = RMA_NONE;
             rmaChoice |= RMA_PUT;
-        }
-        else if (strcmp(argv[i], "-acc") == 0) {
+        } else if (strcmp(argv[i], "-acc") == 0) {
             if (rmaChoice == RMA_ALL)
                 rmaChoice = RMA_NONE;
             rmaChoice |= RMA_ACC;
-        }
-        else if (strcmp(argv[i], "-fence") == 0) {
+        } else if (strcmp(argv[i], "-fence") == 0) {
             if (syncChoice == SYNC_ALL)
                 syncChoice = SYNC_NONE;
             syncChoice |= SYNC_FENCE;
-        }
-        else if (strcmp(argv[i], "-lock") == 0) {
+        } else if (strcmp(argv[i], "-lock") == 0) {
             if (syncChoice == SYNC_ALL)
                 syncChoice = SYNC_NONE;
             syncChoice |= SYNC_LOCK;
-        }
-        else if (strcmp(argv[i], "-pscw") == 0) {
+        } else if (strcmp(argv[i], "-pscw") == 0) {
             if (syncChoice == SYNC_ALL)
                 syncChoice = SYNC_NONE;
             syncChoice |= SYNC_PSCW;
-        }
-        else if (strcmp(argv[i], "-maxsz") == 0) {
+        } else if (strcmp(argv[i], "-maxsz") == 0) {
             i++;
             maxSz = atoi(argv[i]);
-        }
-        else if (strcmp(argv[i], "-maxcount") == 0) {
+        } else if (strcmp(argv[i], "-maxcount") == 0) {
             i++;
             maxCount = atoi(argv[i]);
-        }
-        else {
+        } else {
             fprintf(stderr, "Unrecognized argument %s\n", argv[i]);
             fprintf(stderr,
                     "%s [ -put ] [ -acc ] [ -lock ] [ -fence ] [ -pscw ] [ -maxsz msgsize ]\n",
@@ -228,83 +221,100 @@ int main(int argc, char *argv[])
     MPI_Group_free(&accessGroup);
     MPI_Group_free(&exposureGroup);
 
-    /* If we get here without timing out or failing, we succeeded */
-    if (wrank == 0)
-        printf(" No Errors\n");
-
-    MPI_Finalize();
+    MTest_Finalize(0);
     return 0;
 }
 
 
 void RunAccFence(MPI_Win win, int destRank, int cnt, int sz)
 {
-    int k, i, j, one = 1;
+    int k, i, j;
+    int *buf = malloc(sz * sizeof(int));
+
+    for (i = 0; i < sz; i++) {
+        buf[i] = i;
+    }
 
     for (k = 0; k < MAX_RUNS; k++) {
         MPI_Barrier(MPI_COMM_WORLD);
         MPI_Win_fence(0, win);
         j = 0;
         for (i = 0; i < cnt; i++) {
-            MPI_Accumulate(&one, sz, MPI_INT, destRank, j, sz, MPI_INT, MPI_SUM, win);
+            MPI_Accumulate(buf, sz, MPI_INT, destRank, j, sz, MPI_INT, MPI_SUM, win);
             j += sz;
         }
         MPI_Win_fence(0, win);
     }
+
+    free(buf);
 }
 
 void RunAccLock(MPI_Win win, int destRank, int cnt, int sz)
 {
-    int k, i, j, one = 1;
+    int k, i, j;
+    int *buf = malloc(sz * sizeof(int));
+
+    for (i = 0; i < sz; i++) {
+        buf[i] = i;
+    }
 
     for (k = 0; k < MAX_RUNS; k++) {
         MPI_Barrier(MPI_COMM_WORLD);
         MPI_Win_lock(MPI_LOCK_SHARED, destRank, 0, win);
         j = 0;
         for (i = 0; i < cnt; i++) {
-            MPI_Accumulate(&one, sz, MPI_INT, destRank, j, sz, MPI_INT, MPI_SUM, win);
+            MPI_Accumulate(buf, sz, MPI_INT, destRank, j, sz, MPI_INT, MPI_SUM, win);
             j += sz;
         }
         MPI_Win_unlock(destRank, win);
     }
+
+    free(buf);
 }
 
 void RunPutFence(MPI_Win win, int destRank, int cnt, int sz)
 {
-    int k, i, j, one = 1;
+    int k, i, j;
+    int *buf = malloc(sz * sizeof(int));
 
     for (k = 0; k < MAX_RUNS; k++) {
         MPI_Barrier(MPI_COMM_WORLD);
         MPI_Win_fence(0, win);
         j = 0;
         for (i = 0; i < cnt; i++) {
-            MPI_Put(&one, sz, MPI_INT, destRank, j, sz, MPI_INT, win);
+            MPI_Put(buf, sz, MPI_INT, destRank, j, sz, MPI_INT, win);
             j += sz;
         }
         MPI_Win_fence(0, win);
     }
+
+    free(buf);
 }
 
 void RunPutLock(MPI_Win win, int destRank, int cnt, int sz)
 {
-    int k, i, j, one = 1;
+    int k, i, j;
+    int *buf = malloc(sz * sizeof(int));
 
     for (k = 0; k < MAX_RUNS; k++) {
         MPI_Barrier(MPI_COMM_WORLD);
         MPI_Win_lock(MPI_LOCK_SHARED, destRank, 0, win);
         j = 0;
         for (i = 0; i < cnt; i++) {
-            MPI_Put(&one, sz, MPI_INT, destRank, j, sz, MPI_INT, win);
+            MPI_Put(buf, sz, MPI_INT, destRank, j, sz, MPI_INT, win);
             j += sz;
         }
         MPI_Win_unlock(destRank, win);
     }
+
+    free(buf);
 }
 
 void RunPutPSCW(MPI_Win win, int destRank, int cnt, int sz,
                 MPI_Group exposureGroup, MPI_Group accessGroup)
 {
-    int k, i, j, one = 1;
+    int k, i, j;
+    int *buf = malloc(sz * sizeof(int));
 
     for (k = 0; k < MAX_RUNS; k++) {
         MPI_Barrier(MPI_COMM_WORLD);
@@ -312,18 +322,21 @@ void RunPutPSCW(MPI_Win win, int destRank, int cnt, int sz,
         MPI_Win_start(accessGroup, 0, win);
         j = 0;
         for (i = 0; i < cnt; i++) {
-            MPI_Put(&one, sz, MPI_INT, destRank, j, sz, MPI_INT, win);
+            MPI_Put(buf, sz, MPI_INT, destRank, j, sz, MPI_INT, win);
             j += sz;
         }
         MPI_Win_complete(win);
         MPI_Win_wait(win);
     }
+
+    free(buf);
 }
 
 void RunAccPSCW(MPI_Win win, int destRank, int cnt, int sz,
                 MPI_Group exposureGroup, MPI_Group accessGroup)
 {
-    int k, i, j, one = 1;
+    int k, i, j;
+    int *buf = malloc(sz * sizeof(int));
 
     for (k = 0; k < MAX_RUNS; k++) {
         MPI_Barrier(MPI_COMM_WORLD);
@@ -331,10 +344,12 @@ void RunAccPSCW(MPI_Win win, int destRank, int cnt, int sz,
         MPI_Win_start(accessGroup, 0, win);
         j = 0;
         for (i = 0; i < cnt; i++) {
-            MPI_Accumulate(&one, sz, MPI_INT, destRank, j, sz, MPI_INT, MPI_SUM, win);
+            MPI_Accumulate(buf, sz, MPI_INT, destRank, j, sz, MPI_INT, MPI_SUM, win);
             j += sz;
         }
         MPI_Win_complete(win);
         MPI_Win_wait(win);
     }
+
+    free(buf);
 }

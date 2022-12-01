@@ -1,8 +1,8 @@
-! -*- Mode: Fortran; -*-
 !
-!  (C) 2014 by Argonne National Laboratory.
-!  See COPYRIGHT in top-level directory.
+! Copyright (C) by Argonne National Laboratory
+!     See COPYRIGHT in top-level directory
 !
+
 program main
 use mpi_f08
 
@@ -41,7 +41,7 @@ type(MPI_File) :: fh
 errs = 0
 str = "iotest.txt"
 
-call MPI_INIT(ierr)
+call MTEST_INIT(ierr)
 call MPI_COMM_SIZE(MPI_COMM_WORLD, nprocs, ierr)
 call MPI_COMM_RANK(MPI_COMM_WORLD, mynod, ierr)
 
@@ -139,17 +139,7 @@ if (mynod .eq. 0) then
     endif
 endif
 
-call MPI_Allreduce( errs, toterrs, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
-
-if (mynod .eq. 0) then
-  if( toterrs .gt. 0 ) then
-     print *, 'Found ', toterrs, ' errors'
-  else
-     print *, ' No Errors'
-  endif
-endif
-
-call MPI_FINALIZE(ierr)
+call MTEST_FINALIZE(errs)
 
 stop
 end

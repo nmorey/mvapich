@@ -27,7 +27,11 @@
 #include "mv2_mpit_cvars.h"
 
 /*
-=== BEGIN_MPI_T_CVAR_INFO_BLOCK ===
+=== BEGIN_MPI_T_MV2_CVAR_INFO_BLOCK ===
+
+categories:
+    - name        : CH3
+      description : INHERITED
 
 cvars:
     - name        : USE_BLOCKING
@@ -52,257 +56,10 @@ cvars:
       description : >-
         Use shared memory for intra-node communication.
 
-    - name        : ON_DEMAND_THRESHOLD
-      category    : CH3
-      type        : int
-      default     : 64
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        This defines threshold for enabling on-demand connection management
-        scheme. When the size of the job is larger than the threshold value, on-demand
-        connection management will be used.
-
-    - name        : ENABLE_SHARP
-      category    : CH3
-      type        : int
-      default     : 0
-      class       : device
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        This enables the hardware-based SHArP collectives.
-
-    - name        : SM_SCHEDULING
-      category    : CH3
-      type        : string
-      default     : "FIXED_MAPPING"
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        This specifies the policy that will be used to assign HCAs to each of
-        the processes.
-
-    - name        : SMALL_MSG_RAIL_SHARING_POLICY
-      category    : CH3
-      type        : string
-      default     : "ROUND_ROBIN"
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        This specifies the policy that will be used to assign HCAs to each of
-        the processes with small message sizes.
-
-    - name        : MED_MSG_RAIL_SHARING_POLICY
-      category    : CH3
-      type        : string
-      default     : "ROUND_ROBIN"
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        This specifies the policy that will be used to assign HCAs to each of
-        the processes with medium message sizes.
-
-    - name        : RAIL_SHARING_POLICY
-      category    : CH3
-      type        : string
-      default     : "FIXED_MAPPING"
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        This specifies the policy that will be used to assign HCAs to each of
-        the processes.
-
-    - name        : NUM_PORTS
-      category    : CH3
-      type        : int
-      default     : 1
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        This specifies the number of ports per InfiniBand adapter to be used for
-        communication per adapter on an end node.
-
-    - name        : NUM_QP_PER_PORT
-      category    : CH3
-      type        : int
-      default     : 1
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        This parameter indicates number of queue pairs per port to be used for
-        communication on an end node. This is useful in the presence of multiple
-        send/recv engines available per port for data transfer.
-
-    - name        : IBA_EAGER_THRESHOLD
-      category    : CH3
-      type        : int
-      default     : -1
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        This specifies the switch point between eager and rendezvous protocol in
-        MVAPICH2. For better performance, the value of
-        MPIR_CVAR_MV2_IBA_EAGER_THRESHOLD should be set the same as
-        MPIR_CVAR_MV2_VBUF_TOTAL_SIZE.
-
-    - name        : STRIPING_THRESHOLD
-      category    : CH3
-      type        : int
-      default     : 8192
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        This parameter specifies the message size above which we begin to
-        stripe the message across multiple rails (if present).
-
-    - name        : RAIL_SHARING_MED_MSG_THRESHOLD
-      category    : CH3
-      type        : int
-      default     : 2048
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        This specifies the threshold for the medium message size beyond which
-        medium rail sharing striping will take place.
-
-    - name        : RAIL_SHARING_LARGE_MSG_THRESHOLD
-      category    : CH3
-      type        : int
-      default     : 16384
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        This specifies the threshold for the large message size beyond which
-        large rail sharing striping will be effective.
-
-    - name        : USE_MCAST
-      category    : CH3
-      type        : int
-      default     : 1
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        Set this to 1, to enable hardware multicast support in collective
-        communication.
-
-    - name        : COALESCE_THRESHOLD
-      category    : CH3
-      type        : int
-      default     : 6
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-         This parameter determines the threshold for message coalescing.
-
-    - name        : USE_COALESCE
-      category    : CH3
-      type        : int
-      default     : 0
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        Coalesce multiple small messages into a single message to increase small
-        message throughput.
-
-    - name        : RNDV_PROTOCOL
-      category    : CH3
-      type        : string
-      default     : "RPUT"
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        The value of this variable can be set to choose different rendezvous
-        protocols. RPUT (default RDMA-Write) RGET (RDMA Read based), R3
-        (send/recv based).
-
-    - name        : SPIN_COUNT
-      category    : CH3
-      type        : int
-      default     : 5000
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        This is the number of the connection manager polls for new control
-        messages from UD channel for each interrupt. This may be increased to
-        reduce the interrupt overhead when many incoming control messages from 
-        UD channel at the same time.
-
-    - name        : DEFAULT_MTU
-      category    : CH3
-      type        : string
-      default     : "IBV_MTU_1024"
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        The internal MTU size. For Gen2, this parameter should be a string
-        instead of an integer. Valid values are: IBV_MTU_256, IBV_MTU_512,
-        IBV_MTU_1024, IBV_MTU_2048, IBV_MTU_4096.
-
-    - name        : NUM_CQES_PER_POLL
-      category    : CH3
-      type        : int
-      default     : 96
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        Maximum number of InfiniBand messages retrieved from the completion
-        queue in one attempt.
-
-    - name        : USE_RDMA_CM
-      category    : CH3
-      type        : int 
-      default     : 0
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        This parameter enables the use of RDMA CM for establishing the
-        connections.
-
-    - name        : USE_IWARP_MODE
-      category    : CH3
-      type        : int
-      default     : 0
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        This parameter enables the library to run in iWARP mode.
-
-    - name        : SUPPORT_DPM
-      category    : CH3
-      type        : int
-      default     : 0
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        This option enables the dynamic process management interface and
-        on-demand connection management.
-
-=== END_MPI_T_CVAR_INFO_BLOCK ===
+=== END_MPI_T_MV2_CVAR_INFO_BLOCK ===
 */
 
-#if ENABLE_PVAR_MV2 
+#if ENABLE_PVAR_MV2
 /* Defining handles for CVARs */
 MPI_T_cvar_handle mv2_sm_scheduling_handle = NULL;
 MPI_T_cvar_handle mv2_small_msg_rail_sharing_policy_handle = NULL;
@@ -330,88 +87,88 @@ int mv2_set_force_arch_type();
 void mv2_free_cvar_handles()
 {
     if (mv2_sm_scheduling_handle) {
-        MPIU_Free(mv2_sm_scheduling_handle);
+        MPL_free(mv2_sm_scheduling_handle);
         mv2_sm_scheduling_handle = NULL;
     }
     if (mv2_small_msg_rail_sharing_policy_handle) {
-        MPIU_Free(mv2_small_msg_rail_sharing_policy_handle);
+        MPL_free(mv2_small_msg_rail_sharing_policy_handle);
         mv2_small_msg_rail_sharing_policy_handle = NULL;
     }
     if (mv2_med_msg_rail_sharing_policy_handle) {
-        MPIU_Free(mv2_med_msg_rail_sharing_policy_handle);
+        MPL_free(mv2_med_msg_rail_sharing_policy_handle);
         mv2_med_msg_rail_sharing_policy_handle = NULL;
     }
     if (mv2_rail_sharing_policy_handle) {
-        MPIU_Free(mv2_rail_sharing_policy_handle);
+        MPL_free(mv2_rail_sharing_policy_handle);
         mv2_rail_sharing_policy_handle = NULL;
     }
     if (mv2_num_ports_handle) {
-        MPIU_Free(mv2_num_ports_handle);
+        MPL_free(mv2_num_ports_handle);
         mv2_num_ports_handle = NULL;
     }
     if (mv2_num_qp_per_port_handle) {
-        MPIU_Free(mv2_num_qp_per_port_handle);
+        MPL_free(mv2_num_qp_per_port_handle);
         mv2_num_qp_per_port_handle = NULL;
     }
     if (mv2_iba_eager_threshold_handle) {
-        MPIU_Free(mv2_iba_eager_threshold_handle);
+        MPL_free(mv2_iba_eager_threshold_handle);
         mv2_iba_eager_threshold_handle = NULL;
     }
     if (mv2_striping_threshold_handle) {
-        MPIU_Free(mv2_striping_threshold_handle);
+        MPL_free(mv2_striping_threshold_handle);
         mv2_striping_threshold_handle = NULL;
     }
     if (mv2_rail_sharing_med_msg_threshold_handle) {
-        MPIU_Free(mv2_rail_sharing_med_msg_threshold_handle);
+        MPL_free(mv2_rail_sharing_med_msg_threshold_handle);
         mv2_rail_sharing_med_msg_threshold_handle = NULL;
     }
     if (mv2_rail_sharing_large_msg_threshold_handle) {
-        MPIU_Free(mv2_rail_sharing_large_msg_threshold_handle);
+        MPL_free(mv2_rail_sharing_large_msg_threshold_handle);
         mv2_rail_sharing_large_msg_threshold_handle = NULL;
     }
     if (mv2_use_mcast_handle) {
-        MPIU_Free(mv2_use_mcast_handle);
+        MPL_free(mv2_use_mcast_handle);
         mv2_use_mcast_handle = NULL;
     }
     if (mv2_coalesce_threshold_handle) {
-        MPIU_Free(mv2_coalesce_threshold_handle);
+        MPL_free(mv2_coalesce_threshold_handle);
         mv2_coalesce_threshold_handle = NULL;
     }
     if (mv2_use_coalesce_handle) {
-        MPIU_Free(mv2_use_coalesce_handle);
+        MPL_free(mv2_use_coalesce_handle);
         mv2_use_coalesce_handle = NULL;
     }
     if (mv2_rndv_protocol_handle) {
-        MPIU_Free(mv2_rndv_protocol_handle);
+        MPL_free(mv2_rndv_protocol_handle);
         mv2_rndv_protocol_handle = NULL;
     }
     if (mv2_spin_count_handle) {
-        MPIU_Free(mv2_spin_count_handle);
+        MPL_free(mv2_spin_count_handle);
         mv2_spin_count_handle = NULL;
     }
     if (mv2_default_mtu_handle) {
-        MPIU_Free(mv2_default_mtu_handle);
+        MPL_free(mv2_default_mtu_handle);
         mv2_default_mtu_handle = NULL;
     }
     if (mv2_num_cqes_per_poll_handle) {
-        MPIU_Free(mv2_num_cqes_per_poll_handle);
+        MPL_free(mv2_num_cqes_per_poll_handle);
         mv2_num_cqes_per_poll_handle = NULL;
     }
     if (mv2_use_rdma_cm_handle) {
-        MPIU_Free(mv2_use_rdma_cm_handle);
+        MPL_free(mv2_use_rdma_cm_handle);
         mv2_use_rdma_cm_handle = NULL;
     }
     if (mv2_use_iwarp_mode_handle) {
-        MPIU_Free(mv2_use_iwarp_mode_handle);
+        MPL_free(mv2_use_iwarp_mode_handle);
         mv2_use_iwarp_mode_handle = NULL;
     }
     if (mv2_support_dpm_handle) {
-        MPIU_Free(mv2_support_dpm_handle);
+        MPL_free(mv2_support_dpm_handle);
         mv2_support_dpm_handle = NULL;
     }
 }
 
-int mv2_read_and_check_cvar (mv2_mpit_cvar_access_t container) 
+int mv2_read_and_check_cvar (mv2_mpit_cvar_access_t container)
 {
     int mpi_errno = MPI_SUCCESS;
     int count = 0;
@@ -487,7 +244,7 @@ int mv2_read_and_check_cvar (mv2_mpit_cvar_access_t container)
 
 fn_fail:
 fn_exit:
-    MPIU_Free(container.cvar_handle);
+    MPL_free(container.cvar_handle);
     return mpi_errno;
 }
 
@@ -509,7 +266,7 @@ int mv2_set_sm_scheduling()
     if (mpi_errno != MPI_SUCCESS) {
         goto fn_fail;
     }
-    read_value = (char* )MPIU_Malloc (count * sizeof(MPI_CHAR));
+    read_value = (char* )MPL_malloc (count * sizeof(MPI_CHAR));
     /* Read value of CVAR */
     mpi_errno = MPIR_T_cvar_read_impl(mv2_sm_scheduling_handle,
                                         (void*) read_value);
@@ -537,7 +294,7 @@ int mv2_set_sm_scheduling()
 
 fn_fail:
     if(read_value) {
-        MPIU_Free(read_value);
+        MPL_free(read_value);
     }
     return mpi_errno;
 }
@@ -560,7 +317,7 @@ int mv2_set_small_msg_rail_sharing_policy()
     if (mpi_errno != MPI_SUCCESS) {
         goto fn_fail;
     }
-    read_value = (char* )MPIU_Malloc (count * sizeof(MPI_CHAR));
+    read_value = (char* )MPL_malloc (count * sizeof(MPI_CHAR));
     /* Read value of CVAR */
     mpi_errno = MPIR_T_cvar_read_impl(mv2_small_msg_rail_sharing_policy_handle,
                                         (void*) read_value);
@@ -584,12 +341,12 @@ int mv2_set_small_msg_rail_sharing_policy()
         }
     }
     rdma_multirail_usage_policy = MV2_MRAIL_SHARING;
-    rdma_small_msg_rail_sharing_policy = 
+    rdma_small_msg_rail_sharing_policy =
             rdma_get_rail_sharing_policy(read_value);
 
 fn_fail:
     if(read_value) {
-        MPIU_Free(read_value);
+        MPL_free(read_value);
     }
     return mpi_errno;
 }
@@ -612,7 +369,7 @@ int mv2_set_med_msg_rail_sharing_policy()
     if (mpi_errno != MPI_SUCCESS) {
         goto fn_fail;
     }
-    read_value = (char* )MPIU_Malloc (count * sizeof(MPI_CHAR));
+    read_value = (char* )MPL_malloc (count * sizeof(MPI_CHAR));
     /* Read value of CVAR */
     mpi_errno = MPIR_T_cvar_read_impl(mv2_med_msg_rail_sharing_policy_handle,
             (void*) read_value);
@@ -640,7 +397,7 @@ int mv2_set_med_msg_rail_sharing_policy()
 
 fn_fail:
     if(read_value) {
-        MPIU_Free(read_value);
+        MPL_free(read_value);
     }
     return mpi_errno;
 }
@@ -663,7 +420,7 @@ int mv2_set_rail_sharing_policy()
     if (mpi_errno != MPI_SUCCESS) {
         goto fn_fail;
     }
-    read_value = (char* )MPIU_Malloc (count * sizeof(MPI_CHAR));
+    read_value = (char* )MPL_malloc (count * sizeof(MPI_CHAR));
     /* Read value of CVAR */
     mpi_errno = MPIR_T_cvar_read_impl(mv2_rail_sharing_policy_handle,
             (void*) read_value);
@@ -693,7 +450,7 @@ int mv2_set_rail_sharing_policy()
 
 fn_fail:
     if(read_value) {
-        MPIU_Free(read_value);
+        MPL_free(read_value);
     }
     return mpi_errno;
 }
@@ -870,7 +627,7 @@ int mv2_set_striping_threshold()
     /* Choose algorithm based on CVAR */
     if(!skip_setting){
         sprintf(strtemp, "%d", read_value);
-        striping_threshold = user_val_to_bytes(strtemp, 
+        striping_threshold = user_val_to_bytes(strtemp,
                 "MPIR_CVAR_STRIPING_THRESHOLD");
         if (striping_threshold <= 0) {
             /* Invalid value - set to computed value */
@@ -1361,7 +1118,7 @@ int mv2_set_rndv_protocol()
     if (mpi_errno != MPI_SUCCESS) {
         goto fn_fail;
     }
-    read_value = (char*) MPIU_Malloc ( count * sizeof(char));
+    read_value = (char*) MPL_malloc ( count * sizeof(char));
     /* Read value of CVAR */
     mpi_errno = MPIR_T_cvar_read_impl(mv2_rndv_protocol_handle,
             read_value);
@@ -1411,7 +1168,7 @@ int mv2_set_rndv_protocol()
 fn_fail:
 fn_exit:
     if(read_value) {
-        MPIU_Free(read_value);
+        MPL_free(read_value);
     }
     return mpi_errno;
 }
@@ -1434,7 +1191,7 @@ int mv2_set_default_mtu()
     if (mpi_errno != MPI_SUCCESS) {
         goto fn_fail;
     }
-    read_value = (char* )MPIU_Malloc (count * sizeof(MPI_CHAR));
+    read_value = (char* )MPL_malloc (count * sizeof(MPI_CHAR));
     /* Read value of CVAR */
     mpi_errno = MPIR_T_cvar_read_impl(mv2_default_mtu_handle,
             (void*) read_value);
@@ -1456,7 +1213,7 @@ int mv2_set_default_mtu()
             MPIR_ERR_POP(mpi_errno);
         }
     }
-    /* Choose algorithm based on CVAR */    
+    /* Choose algorithm based on CVAR */
     if (strncmp(read_value, "IBV_MTU_256", 11) == 0) {
         rdma_default_mtu = IBV_MTU_256;
     } else if (strncmp(read_value, "IBV_MTU_512", 11) == 0) {
@@ -1474,7 +1231,7 @@ int mv2_set_default_mtu()
     }
 fn_fail:
     if(read_value) {
-        MPIU_Free(read_value);
+        MPL_free(read_value);
     }
     return mpi_errno;
 }

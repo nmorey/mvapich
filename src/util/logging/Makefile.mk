@@ -1,8 +1,6 @@
-## -*- Mode: Makefile; -*-
-## vim: set ft=automake :
 ##
-## (C) 2011 by Argonne National Laboratory.
-##     See COPYRIGHT in top-level directory.
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
 ##
 
 include $(top_srcdir)/src/util/logging/common/Makefile.mk
@@ -13,4 +11,3 @@ include $(top_srcdir)/src/util/logging/rlog/Makefile.mk
 # "slog_api" conditionally existed in Makefile.sm, but doesn't seem to be
 # present in the current source tree, so this is commented out for now
 #include $(top_srcdir)/src/util/logging/slog_api/Makefile.mk
-

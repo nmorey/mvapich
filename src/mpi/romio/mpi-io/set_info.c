@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
-/* 
- *
- *   Copyright (C) 1997 University of Chicago. 
- *   See COPYRIGHT notice in top-level directory.
+/*
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpioimpl.h"
@@ -17,7 +15,8 @@
 #pragma _CRI duplicate MPI_File_set_info as PMPI_File_set_info
 /* end of weak pragmas */
 #elif defined(HAVE_WEAK_ATTRIBUTE)
-int MPI_File_set_info(MPI_File fh, MPI_Info info) __attribute__((weak,alias("PMPI_File_set_info")));
+int MPI_File_set_info(MPI_File fh, MPI_Info info)
+    __attribute__ ((weak, alias("PMPI_File_set_info")));
 #endif
 
 /* Include mapping from MPI->PMPI */
@@ -52,15 +51,15 @@ int MPI_File_set_info(MPI_File fh, MPI_Info info)
     /* set new info */
     ADIO_SetInfo(adio_fh, info, &error_code);
 
-fn_exit:
+  fn_exit:
     /* --BEGIN ERROR HANDLING-- */
     if (error_code != MPI_SUCCESS)
-	error_code = MPIO_Err_return_file(adio_fh, error_code);
+        error_code = MPIO_Err_return_file(adio_fh, error_code);
     /* --END ERROR HANDLING-- */
 
     ROMIO_THREAD_CS_EXIT();
 
     return error_code;
-fn_fail:
+  fn_fail:
     goto fn_exit;
 }

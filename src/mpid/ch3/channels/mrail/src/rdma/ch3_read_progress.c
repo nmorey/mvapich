@@ -17,7 +17,6 @@
  */
 
 #include "mpidi_ch3_impl.h"
-#include "mpiutil.h"
 #include <stdio.h>
 #include "rdma_impl.h"
 
@@ -35,10 +34,6 @@ do {                                                          \
 
 MPIDI_VC_t *mv2_read_progress_pending_vc = NULL;
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_RDMA_read_progress
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3I_read_progress(MPIDI_VC_t ** vc_pptr, vbuf ** v_ptr, int *rdmafp_found, int is_blocking)
 {
     int 	type;
@@ -47,8 +42,7 @@ int MPIDI_CH3I_read_progress(MPIDI_VC_t ** vc_pptr, vbuf ** v_ptr, int *rdmafp_f
 
     MPIDI_VC_t 	*recv_vc_ptr;
 
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_READ_PROGRESS);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_READ_PROGRESS);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_READ_PROGRESS);
 
     *vc_pptr = NULL;
     *v_ptr = NULL;
@@ -61,7 +55,7 @@ int MPIDI_CH3I_read_progress(MPIDI_VC_t ** vc_pptr, vbuf ** v_ptr, int *rdmafp_f
                 fprintf(stderr, "mismatch %p %p\n", mv2_read_progress_pending_vc,
                         (*v_ptr)->vc);
             }
-            MPIU_Assert((void *) mv2_read_progress_pending_vc == (*v_ptr)->vc);
+            MPIR_Assert((void *) mv2_read_progress_pending_vc == (*v_ptr)->vc);
             *vc_pptr = mv2_read_progress_pending_vc;
         } else if(type == T_CHANNEL_EXACT_ARRIVE) {
             *vc_pptr = mv2_read_progress_pending_vc;
@@ -139,22 +133,16 @@ int MPIDI_CH3I_read_progress(MPIDI_VC_t ** vc_pptr, vbuf ** v_ptr, int *rdmafp_f
 
   fn_exit:
 
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_READ_PROGRESS);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_READ_PROGRESS);
     return MPI_SUCCESS;
 }
 
 /* non-blocking functions */
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_RDMA_post_read
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3I_post_read(MPIDI_VC_t * vc, void *buf, int len)
 {
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_RDMA_POST_READ);
-
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_RDMA_POST_READ);
-    MPIDI_DBG_PRINTF((60, FCNAME, "entering"));
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_RDMA_POST_READ);
+    MPL_DBG_MSG_S(MPIDI_CH3_DBG_OTHER,VERBOSE,"entering %s",__func__);
     vc->ch.read.total = 0;
     vc->ch.read.buffer = buf;
     vc->ch.read.bufflen = len;
@@ -164,23 +152,17 @@ int MPIDI_CH3I_post_read(MPIDI_VC_t * vc, void *buf, int len)
     if (vc->ch.unex_list)
         shmi_read_unex(vc);
 #endif
-    MPIU_DBG_PRINTF(("post_read: len = %d\n", len));
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_RDMA_POST_READ);
+    MPL_DBG_MSG_D(MPIDI_CH3_DBG_OTHER,VERBOSE,"post_read: len = %d\n", len);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_RDMA_POST_READ);
     return MPI_SUCCESS;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3I_RDMA_post_readv
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDI_CH3I_post_readv(MPIDI_VC_t * vc, MPL_IOV * iov, int n)
+int MPIDI_CH3I_post_readv(MPIDI_VC_t * vc, struct iovec * iov, int n)
 {
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3I_RDMA_POST_READV);
-
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3I_RDMA_POST_READV);
-    MPIDI_DBG_PRINTF((60, FCNAME, "entering"));
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_RDMA_POST_READV);
+    MPL_DBG_MSG_S(MPIDI_CH3_DBG_OTHER,VERBOSE,"entering %s",__func__);
     /* strip any trailing empty buffers */
-    while (n && iov[n - 1].MPL_IOV_LEN == 0)
+    while (n && iov[n - 1].iov_len == 0)
         n--;
     vc->ch.read.total = 0;
     vc->ch.read.iov = iov;
@@ -194,12 +176,13 @@ int MPIDI_CH3I_post_readv(MPIDI_VC_t * vc, MPL_IOV * iov, int n)
 #endif
 #ifdef MPICH_DBG_OUTPUT
     while (n) {
-        MPIU_DBG_PRINTF(("post_readv: iov[%d].len = %d\n", n - 1,
-                         iov[n - 1].MPL_IOV_LEN));
+        MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_OTHER,VERBOSE,(MPIR_DBG_FDEST,
+                        "post_readv: iov[%d].len = %d\n", n - 1,
+                        iov[n - 1].iov_len));
         n--;
     }
 #endif
 
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3I_RDMA_POST_READV);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_RDMA_POST_READV);
     return MPI_SUCCESS;
 }

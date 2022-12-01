@@ -1,8 +1,6 @@
-## -*- Mode: Makefile; -*-
-## vim: set ft=automake :
 ##
-## (C) 2011 by Argonne National Laboratory.
-##     See COPYRIGHT in top-level directory.
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
 ##
 
 romio_other_sources +=                  \
@@ -60,9 +58,10 @@ romio_other_sources +=                  \
     adio/common/flatten.c               \
     adio/common/get_fp_posn.c           \
     adio/common/greq_fns.c              \
-    adio/common/heap-sort.c             \
+    adio/common/heap_sort.c             \
     adio/common/iscontig.c              \
     adio/common/lock.c                  \
+    adio/common/lock_internal.c         \
     adio/common/malloc.c                \
     adio/common/shfp_fname.c            \
     adio/common/status_setb.c           \
@@ -72,5 +71,5 @@ romio_other_sources +=                  \
     adio/common/ad_threaded_io.c        \
     adio/common/p2p_aggregation.c       \
     adio/common/onesided_aggregation.c  \
+    adio/common/ad_tuning.c             \
     adio/common/utils.c
-

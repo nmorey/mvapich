@@ -21,9 +21,11 @@ bin_PROGRAMS += src/pm/mpirun/mpirun_rsh \
 AM_CPPFLAGS += -I$(top_srcdir)/src/mpid/ch3/channels/common/include
 
 if WANT_RDYNAMIC
+if !BUILD_USE_PGI
 src_pm_mpirun_mpirun_rsh_LDFLAGS = -rdynamic
 src_pm_mpirun_mpiexec_mpirun_rsh_LDFLAGS = -rdynamic
 src_pm_mpirun_mpispawn_LDFLAGS = -rdynamic
+endif
 endif
 
 if WANT_CKPT_RUNTIME
@@ -46,7 +48,7 @@ src_pm_mpirun_mpirun_rsh_SOURCES =  \
 	src/pm/mpirun/gethostip.c     \
 	src/pm/mpirun/environ.c
 
-src_pm_mpirun_mpirun_rsh_LDADD = -lm       \
+src_pm_mpirun_mpirun_rsh_LDADD = -lm -lpthread \
 	src/mpid/ch3/channels/common/src/util/mv2_config.o    \
 	src/mpid/ch3/channels/common/src/util/crc32h.o        \
 	src/mpid/ch3/channels/common/src/util/error_handling.o \
@@ -73,7 +75,7 @@ src_pm_mpirun_mpiexec_mpirun_rsh_SOURCES =     \
 	src/pm/mpirun/gethostip.c     \
 	src/pm/mpirun/environ.c
 
-src_pm_mpirun_mpiexec_mpirun_rsh_LDADD = -lm 	\
+src_pm_mpirun_mpiexec_mpirun_rsh_LDADD = -lm -lpthread \
 	src/mpid/ch3/channels/common/src/util/mv2_config.o    \
 	src/mpid/ch3/channels/common/src/util/crc32h.o        \
 	src/mpid/ch3/channels/common/src/util/error_handling.o \

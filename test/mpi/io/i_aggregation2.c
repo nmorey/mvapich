@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2014 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /* Look for regressions in aggregator code.  A more simple access pattern than
@@ -19,6 +18,7 @@
 #include <unistd.h>
 
 #include <string.h>
+#include "mpitest.h"
 
 #define BUFSIZE 512
 
@@ -38,13 +38,13 @@ int main(int argc, char **argv)
     MPI_Offset off = 0;
     MPI_Status status;
     int errcode;
-    int i, rank, errs = 0, toterrs, buffer[BUFSIZE], buf2[BUFSIZE];
+    int i, rank, errs = 0, buffer[BUFSIZE], buf2[BUFSIZE];
     MPI_Request request;
-    char *filename = NULL;
+    const char *filename = NULL;
 
     filename = (argc > 1) ? argv[1] : "testfile";
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
 
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -83,17 +83,8 @@ int main(int argc, char **argv)
         if (buf2[i] != 10000 + rank)
             errs++;
     }
-    MPI_Allreduce(&errs, &toterrs, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-    if (rank == 0) {
-        if (toterrs > 0) {
-            fprintf(stderr, "Found %d errors\n", toterrs);
-        }
-        else {
-            fprintf(stdout, " No Errors\n");
-        }
-    }
     MPI_Info_free(&info);
-    MPI_Finalize();
+    MTest_Finalize(errs);
 
-    return 0;
+    return MTestReturnValue(errs);
 }

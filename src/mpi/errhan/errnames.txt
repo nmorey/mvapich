@@ -15,6 +15,14 @@
 **nomem %d:Out of memory (unable to allocate %d bytes)
 **nomem2:Unable to allocate memory (probably out of memory)
 **nomem2 %d %s:Unable to allocate %d bytes of memory for %s (probably out of memory)
+**alloc_shar_mem:unable to allocate shared memory
+**alloc_shar_mem %s %s:unable to allocate shared memory - %s %s
+**attach_shar_mem:unable to attach to shared memory
+**attach_shar_mem %s %s:unable to attach to shared memory - %s %s
+**remove_shar_mem:unable to remove shared memory
+**remove_shar_mem %s %s:unable to remove shared memory - %s %s
+**detach_shar_mem:unable to detach shared memory
+**detach_shar_mem %s %s:unable to detach shared memory - %s %s
 **notimpl:Function not implemented
 **notimpl %s:Function %s not implemented
 **nullptr:Null pointer
@@ -35,6 +43,9 @@
 **rankdup:Duplicate ranks in rank array 
 **rankdup %d %d %d:Duplicate ranks in rank array at index %d, has value %d which is \
 also the value at index %d
+**netloc_topo_load:Error loading netloc topology
+**netloc_topo_identification:Unsupported netloc topology type
+**netloc_endpoint_mismatch:Netloc topology does not contain the node
 **topotoolarge:Topology size is greater than communicator size
 **topotoolarge %d %d:Topology size %d is larger than communicator size (%d)
 **notcarttopo:No Cartesian topology associated with this communicator
@@ -206,6 +217,17 @@ MPI_TYPECLASS_INTEGER, or MPI_TYPECLASS_COMPLEX
 
 **typenotpredefined: Datatype must be predefined
 
+**treetype: Invalid tree type used for initializing Tree algorithms
+**treetype %d: Invalid tree type (%d) used for initializing Tree algorithms
+
+**invalidcollid: Invalid collective ID used.
+**sockaddrfailed: MPL_get_sockaddr failed
+
+**nomembind: hwloc_set_area_membind() is not available
+**invalidmembind: Invalid bind object identifier.
+**invalidmembind %d: cannot bind memory to object (%d). \
+A memory object id was expected but a non-memory object id was passed instead
+
 # -- FIXME: Some (but not all) of the messages below this line have been used
 #---- The messages below this line haven't been used yet.
 #
@@ -360,6 +382,8 @@ be in the range 0 to %d
 **infonkey %d %d:Requested key %d but this MPI_Info only has %d keys
 **io:Other I/O error 
 **io %s:Other I/O error %s
+**iobadoverlap: write voilates monotonically non-decreasing
+**iobadoverlap %s: write voilates monotonically non-decreasing %s
 **ioetype:Only an integral number of etypes can be accessed
 **iofstypeunsupported:Specified filesystem is not available
 **iosplitcoll:Only one active split collective I/O operation is allowed per file handle
@@ -389,6 +413,7 @@ be in the range 0 to %d
 **ioRMWrdwr:Must open file with MPI_MODE_RDWR for read-modify-write
 **iowsrc:Unable to read from the file as part of a strided write operation
 **iowswc:Unable to write to the file as part of a strided write operation
+**iorsrc:Unable to read from the file as part of a strided read operation
 **ioagnomatch:No aggregators match
 **iobadsize:Invalid size argument
 **unsupporteddatarep:Only native data representation currently supported
@@ -465,6 +490,7 @@ unexpected messages queued.
 **proc_failed:Process failed
 **failure_pending:Request pending due to failure
 **revoked:Communication object revoked
+**eagain:Operation could not be issued (EAGAIN)
 # Duplicates?
 #**argnull:Invalid null parameter
 #**argnull %s:Invalid null parameter %s
@@ -596,7 +622,7 @@ is too big (> MPIU_SHMW_GHND_SZ)
 #
 **MPIDI_CH3I_SHM_Attach_to_mem:MPIDI_CH3I_SHM_Attach_to_mem failed
 **MPIDI_CH3I_SHM_Attach_to_mem %d:MPIDI_CH3I_SHM_Attach_to_mem failed, error %d
-**MPIU_Strdup:MPIU_Strdup failed
+**MPL_strdup:MPL_strdup failed
 **business_card:Invalid business card
 **business_card %s:Invalid business card (%s)
 # <_OSU_MVAPICH_>
@@ -774,14 +800,6 @@ is too big (> MPIU_SHMW_GHND_SZ)
 #
 **ioctl:ioctl failed
 **ioctl %d %s:ioctl failed errno=%d - %s
-**alloc_shar_mem:unable to allocate shared memory
-**alloc_shar_mem %s %s:unable to allocate shared memory - %s %s
-**attach_shar_mem:unable to attach to shared memory
-**attach_shar_mem %s %s:unable to attach to shared memory - %s %s
-**remove_shar_mem:unable to remove shared memory
-**remove_shar_mem %s %s:unable to remove shared memory - %s %s
-**detach_shar_mem:unable to detach shared memory
-**detach_shar_mem %s %s:unable to detach shared memory - %s %s
 **read %d %s:read from socket failed - nread=%d %s
 **winput_oob:target pointer for win_put is out of bounds
 **winget_oob:source pointer for win_get is out of bounds
@@ -909,8 +927,6 @@ is too big (> MPIU_SHMW_GHND_SZ)
 **mktemp_s %s:mktemp_s failed, %s
 **lseek:lseek failed
 **lseek %s:lseek failed - %s
-**fdopen:fdopen failed
-**fdopen %s:fdopen failed %s
 **tmpnam:tmpnam failed
 **tmpnam %s:tmpnam failed %s
 **fopen:fopen failed
@@ -921,11 +937,7 @@ is too big (> MPIU_SHMW_GHND_SZ)
 **abi_version_mismatch %D %D:ABI version mismatch, expected %D - got %D
 **recv_status:receive status failed
 **recv_status %d:receive status failed %d
-**invalid_knem_status:Invalid knem status value
-**invalid_knem_status %d:Invalid knem status value - %d
 
-**vmsplice:vmsplice failed
-**vmsplice %d %s:vmsplice failed - errno %d (%s)
 **mkfifo:mkfifo failed
 **mkfifo %d %s:mkfifo failed - errno %d (%s)
 **tempnam:tempnam failed
@@ -956,11 +968,14 @@ is too big (> MPIU_SHMW_GHND_SZ)
 **tmpvc_connect_fail:Failure during connection protocol
 
 **coll_fail:Failure during collective
+**collalgo:User set collective algorithm is not usable for the provided arguments
 
 **blcr_mod:BLCR kernel module not present
 
 **envvarparse:Unable to parse environment variable
 **envvarparse %s:Unable to parse environment variable (%s)
+**cvar_val:Invalid CVAR value
+**cvar_val %s %s:Invalid %s value (%s)
 
 **infohintparse:Unable to parse info hint
 **infohintparse %s:Unable to parse info hint (%s)
@@ -1087,27 +1102,27 @@ is too big (> MPIU_SHMW_GHND_SZ)
 **mpi_pack_size:MPI_Pack_size failed
 **mpi_pack_size %d %D %C %p:MPI_Pack_size(count=%d, %D, %C, size=%p) failed
 **mpi_barrier:MPI_Barrier failed
-**mpi_barrier %C:MPI_Barrier(%C) failed
+**mpi_barrier %C:MPI_Barrier(comm=%C) failed
 **mpi_bcast:MPI_Bcast failed
-**mpi_bcast %p %d %D %d %C:MPI_Bcast(buf=%p, count=%d, %D, root=%d, %C) failed
+**mpi_bcast %p %d %D %d %C:MPI_Bcast(buf=%p, count=%d, %D, root=%d, comm=%C) failed
 **mpi_gather:MPI_Gather failed
-**mpi_gather %p %d %D %p %d %D %d %C:MPI_Gather(sbuf=%p, scount=%d, %D, rbuf=%p, rcount=%d, %D, root=%d, %C) failed
+**mpi_gather %p %d %D %p %d %D %d %C:MPI_Gather(sbuf=%p, scount=%d, %D, rbuf=%p, rcount=%d, %D, root=%d, comm=%C) failed
 **mpi_gatherv:MPI_Gatherv failed
-**mpi_gatherv %p %d %D %p %p %p %D %d %C:MPI_Gatherv failed(sbuf=%p, scount=%d, %D, rbuf=%p, rcnts=%p, displs=%p, %D, root=%d, %C) failed
+**mpi_gatherv %p %d %D %p %p %p %D %d %C:MPI_Gatherv failed(sbuf=%p, scount=%d, %D, rbuf=%p, rcnts=%p, displs=%p, datatype=%D, root=%d, comm=%C) failed
 **mpi_scatter:MPI_Scatter failed
-**mpi_scatter %p %d %D %p %d %D %d %C:MPI_Scatter(sbuf=%p, scount=%d, %D, rbuf=%p, rcount=%d, %D, root=%d, %C) failed
+**mpi_scatter %p %d %D %p %d %D %d %C:MPI_Scatter(sbuf=%p, scount=%d, %D, rbuf=%p, rcount=%d, %D, root=%d, comm=%C) failed
 **mpi_scatterv:MPI_Scatterv failed
-**mpi_scatterv %p %p %p %D %p %d %D %d %C:MPI_Scatterv(sbuf=%p, scnts=%p, displs=%p, %D, rbuf=%p, rcount=%d, %D, root=%d, %C) failed
+**mpi_scatterv %p %p %p %D %p %d %D %d %C:MPI_Scatterv(sbuf=%p, scnts=%p, displs=%p, %D, rbuf=%p, rcount=%d, %D, root=%d, comm=%C) failed
 **mpi_allgather:MPI_Allgather failed
-**mpi_allgather %p %d %D %p %d %D %C:MPI_Allgather(sbuf=%p, scount=%d, %D, rbuf=%p, rcount=%d, %D, %C) failed
+**mpi_allgather %p %d %D %p %d %D %C:MPI_Allgather(sbuf=%p, scount=%d, %D, rbuf=%p, rcount=%d, datatype=%D, comm=%C) failed
 **mpi_allgatherv:MPI_Allgatherv failed
-**mpi_allgatherv %p %d %D %p %p %p %D %C:MPI_Allgatherv(sbuf=%p, scount=%d, %D, rbuf=%p, rcounts=%p, displs=%p, %D, %C) failed
+**mpi_allgatherv %p %d %D %p %p %p %D %C:MPI_Allgatherv(sbuf=%p, scount=%d, %D, rbuf=%p, rcounts=%p, displs=%p, datatype=%D, comm=%C) failed
 **mpi_alltoall:MPI_Alltoall failed
-**mpi_alltoall %p %d %D %p %d %D %C:MPI_Alltoall(sbuf=%p, scount=%d, %D, rbuf=%p, rcount=%d, %D, %C) failed
+**mpi_alltoall %p %d %D %p %d %D %C:MPI_Alltoall(sbuf=%p, scount=%d, %D, rbuf=%p, rcount=%d, datatype=%D, comm=%C) failed
 **mpi_alltoallv:MPI_Alltoallv failed
-**mpi_alltoallv %p %p %p %D %p %p %p %D %C:MPI_Alltoallv(sbuf=%p, scnts=%p, sdispls=%p, %D, rbuf=%p, rcnts=%p, rdispls=%p, %D, %C) failed
+**mpi_alltoallv %p %p %p %D %p %p %p %D %C:MPI_Alltoallv(sbuf=%p, scnts=%p, sdispls=%p, %D, rbuf=%p, rcnts=%p, rdispls=%p, datatype=%D, comm=%C) failed
 **mpi_reduce:MPI_Reduce failed
-**mpi_reduce %p %p %d %D %O %d %C:MPI_Reduce(sbuf=%p, rbuf=%p, count=%d, %D, %O, root=%d, %C) failed
+**mpi_reduce %p %p %d %D %O %d %C:MPI_Reduce(sbuf=%p, rbuf=%p, count=%d, datatype=%D, op=%O, root=%d, comm=%C) failed
 **mpi_op_create:MPI_Op_create failed
 **mpi_op_create %p %d %p:MPI_Op_create(fn=%p, commute=%d, op=%p) failed
 **mpi_op_free:MPI_Op_free failed
@@ -1115,15 +1130,15 @@ is too big (> MPIU_SHMW_GHND_SZ)
 **mpi_op_commutative:MPI_Op_commutative failed
 **mpi_op_commutative %O %p:MPI_Op_commutative(op=%O, commute=%p) failed
 **mpi_allreduce:MPI_Allreduce failed
-**mpi_allreduce %p %p %d %D %O %C:MPI_Allreduce(sbuf=%p, rbuf=%p, count=%d, %D, %O, %C) failed
+**mpi_allreduce %p %p %d %D %O %C:MPI_Allreduce(sbuf=%p, rbuf=%p, count=%d, datatype=%D, op=%O, comm=%C) failed
 **mpi_reduce_scatter:MPI_Reduce_scatter failed
-**mpi_reduce_scatter %p %p %p %D %O %C:MPI_Reduce_scatter(sbuf=%p, rbuf=%p, rcnts=%p, %D, %O, %C) failed
+**mpi_reduce_scatter %p %p %p %D %O %C:MPI_Reduce_scatter(sbuf=%p, rbuf=%p, rcnts=%p, datatype=%D, op=%O, comm=%C) failed
 **mpi_reduce_scatter_block:MPI_Reduce_scatter_block failed
-**mpi_reduce_scatter_block %p %p %d %D %O %C:MPI_Reduce_scatter_block(sbuf=%p, rbuf=%p, recvcount=%d, %D, %O, %C) failed
+**mpi_reduce_scatter_block %p %p %d %D %O %C:MPI_Reduce_scatter_block(sbuf=%p, rbuf=%p, recvcount=%d, datatype=%D, op=%O, comm=%C) failed
 **mpi_reduce_local:MPI_Reduce_local failed
-**mpi_reduce_local %p %p %d %D %O:MPI_Reduce_local(inbuf=%p, inoutbuf=%p, count=%d, %D, %O) failed
+**mpi_reduce_local %p %p %d %D %O:MPI_Reduce_local(inbuf=%p, inoutbuf=%p, count=%d, datatype=%D, op=%O) failed
 **mpi_scan:MPI_Scan failed
-**mpi_scan %p %p %d %D %O %C:MPI_Scan(sbuf=%p, rbuf=%p, count=%d, %D, %O, %C) failed
+**mpi_scan %p %p %d %D %O %C:MPI_Scan(sbuf=%p, rbuf=%p, count=%d, datatype=%D, op=%O, comm=%C) failed
 **mpi_group_size:MPI_Group_size failed
 **mpi_group_size %G %p:MPI_Group_size(%G, size=%p) failed
 **mpi_group_rank:MPI_Group_rank failed
@@ -1184,6 +1199,8 @@ is too big (> MPIU_SHMW_GHND_SZ)
 **mpix_comm_shrink %C %p:MPIX_Comm_shrink(%C, new_comm=%p) failed
 **mpix_comm_agree:MPIX_Comm_agree failed
 **mpix_comm_agree %C:MPIX_Comm_agree(%C) failed
+**badgputype:Bad GPU type specified
+**badgputype %d:Bad GPU type (%d) specified
 **mpi_intercomm_create:MPI_Intercomm_create failed
 **mpi_intercomm_create %C %d %C %d %d %p:MPI_Intercomm_create(%C, local_leader=%d, %C, remote_leader=%d, tag=%d, newintercomm=%p) failed
 **mpi_intercomm_merge:MPI_Intercomm_merge failed
@@ -1526,49 +1543,8 @@ is too big (> MPIU_SHMW_GHND_SZ)
 **mpi_win_set_info:MPI_Win_set_info failed
 **mpi_win_set_info %W %I:MPI_Win_set_info(win=%W, info=%I) failed
 
-# pmi2 errors
-**bad_keyval:PMI2 received malformed key-value pair
-**bad_cmd:PMI2 received malformed command
-**cmd_too_long: PMI2 command is too long
-**key_too_long: PMI2 key is too long
-**val_too_long: PMI2 value is too long
-**pmi_init_send: PMI2 failed to send init command
-**pmi_initack: PMI2 failed to receive init ack
-**pmi_initack %s: PMI2 failed to receive init ack: %s
-**pmi_fullinit: PMI2 init with process manager failed
-**pmi_fullinit %s: PMI2 init with process manager failed: %s
-**pmi_version: PMI2 version mismatch
-**pmi_version %s %s %s %s: PMI2 version mismatch (server version %s.%s, client verison %s.%s)
-**pmi_finalize: PMI2 Finalize failed
-**pmi_finalize %s: PMI2 Finalize failed: %s
-**pmi_jobgetid: PMI2 Job_GetID failed
-**pmi_jobgetid %s: PMI2 Job_GetID failed: %s
-**pmi_jobconnect: PMI2 Job_Connect failed
-**pmi_jobconnect %s: PMI2 Job_Connect failed: %s
-**pmi_jobdisconnect: PMI2 Job_Disconnect failed
-**pmi_jobdisconnect %s: PMI2 Job_Disconnect failed: %s
-**pmi_kvsput: PMI2 KVS_Put failed
-**pmi_kvsput %s: PMI2 KVS_Put failed: %s
-**pmi_kvsfence: PMI2 KVS_Fence failed
-**pmi_kvsfence %s: PMI2 KVS_Fence failed: %s
-**pmi_kvsget: PMI2 KVS_Get failed
-**pmi_kvsget %s: PMI2 KVS_Get failed: %s
-**pmi_kvsget %d: PMI2 KVS_Get failed: %d
-**pmi_kvsget_notfound: PMI2 Key not found in KVS_Get
-**pmi_kvsget_notfound %s: PMI2 Key not found in KVS_Get: %s
-**pmi_getnodeattr: PMI2 GetNodeAttr failed
-**pmi_getnodeattr %s: PMI2 GetNodeAttr failed: %s
-**pmi_putnodeattr: PMI2 PutNodeAttr failed
-**pmi_putnodeattr %s: PMI2 PutNodeAttr failed: %s
-**pmi_getjobattr: PMI2 GetJobAttr failed
-**pmi_getjobattr %s: PMI2 GetJobAttr failed: %s
-**pmi_nameservpublish: PMI2 Nameserv_publish failed
-**pmi_nameservpublish %s: PMI2 Nameserv_publish failed: %s
-**connect_to_pm: Unable to connect process manager
-**connect_to_pm %s %d: Unable to connect process manager at host %s port %d
-**pmi_port: Unable to decide hostport from PMI_PORT
-**pmi_port %s: Unable to decide hostport from \"%s\"
 **ch3|contigsend: Unable to create eager contig send request
+
 # <_OSU_MVAPICH_>
 **cudamemcpy:failure occured while cudaMemcpy
 **cudaEventRecord:failure occured while cudaEventRecord
@@ -1580,8 +1556,8 @@ is too big (> MPIU_SHMW_GHND_SZ)
 **mpir_comm_get_attr %C %d %p %p:MPIR_Comm_get_attr(%C, comm_keyval=%d, attribute_val=%p, flag=%p) failed
 **mpir_type_get_attr:MPIR_Type_get_attr failed
 **mpir_type_get_attr %D %d %p %p:MPIR_Type_get_attr(%D, type_keyval=%d, attribute_val=%p, flag=%p) failed
-**mpir_wingetattr:MPIR_WinGetAttr failed
-**mpir_wingetattr %W %d %p %p:MPIR_WinGetAttr(%W, win_keyval=%d, attribute_val=%p, flag=%p) failed
+**mpir_wingetattr:MPII_Win_get_attr failed
+**mpir_wingetattr %W %d %p %p:MPII_Win_get_attr(%W, win_keyval=%d, attribute_val=%p, flag=%p) failed
 
 ## MPI-3 Mprobe routines
 **mpi_improbe: MPI_Improbe failed
@@ -1670,6 +1646,36 @@ is too big (> MPIU_SHMW_GHND_SZ)
 # Datarep conversion function not supported by ROMIO (Temproary until implemented)
 **drconvnotsupported:Read and Write datarep conversions are currently not supported by MPI-IO
 
+# Argobots related error messages
+**argobots_uninitialized:Argobots is not initialized
+
+## XPMEM related error messages
+**xpmem_make: xpmem_make failed
+**xpmem_segid: xpmem remote segid is unset
+**xpmem_get: xpmem_get failed
+**xpmem_attach: xpmem_attach failed
+**xpmem_detach: xpmem_detach failed
+**xpmem_release: xpmem_release failed
+**xpmem_remove: xpmem_remove failed
+**xpmem_segtree_init: xpmem_segtree_init failed
+
+## GPU related error messages
+**gpu_query_ptr: gpu_query_pointer_attr failed
+**gpu_ipc_handle_map: gpu_ipc_handle_map failed
+**gpu_ipc_handle_create: gpu_ipc_handle_create failed
+**gpu_ipc_handle_unmap: gpu_ipc_handle_unmap failed
+**gpu_init: gpu_init failed
+**gpu_finalize: gpu_finalize failed
+**gpu_get_global_dev_ids: gpu_get_global_dev_ids failed
+**gpu_get_buffer_info: gpu_get_buffer_info failed
+**gpu_get_dev_count: gpu_get_dev_count failed
+
+## GAVL tree related error messages
+**mpl_gavl_search: mpl_gavl_search failed
+**mpl_gavl_insert: mpl_gavl_insert failed
+**mpl_gavl_create: mpl_gavl_create failed
+**mpl_gavl_delete_range: mpl_gavl_delete_range failed
+**mpl_gavl_delete_start_addr: mpl_gavl_delete_start_addr failed
 # -----------------------------------------------------------------------------
 # The following names are defined but not used (see the -careful option 
 # for extracterrmsgs) (still to do: move the undefined names here)

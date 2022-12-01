@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include "mpitest.h"
@@ -75,7 +74,7 @@ int main(int argc, char *argv[])
                         if (errs < 10) {
                             fprintf(stderr, "Error with communicator %s and size=%d count=%d\n",
                                     MTestGetIntracommName(), size, count);
-                            fprintf(stderr, "recvbuf[%d,%d] = %d, should %d\n",
+                            fprintf(stderr, "recvbuf[%d,%d] = %d, should be %d\n",
                                     j, i, *p, rank * size + j + i);
                         }
                     }
@@ -118,6 +117,5 @@ int main(int argc, char *argv[])
     }
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

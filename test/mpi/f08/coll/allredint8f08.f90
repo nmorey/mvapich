@@ -1,8 +1,8 @@
-! -*- Mode: Fortran; -*-
 !
-!  (C) 2006 by Argonne National Laboratory.
-!      See COPYRIGHT in top-level directory.
+! Copyright (C) by Argonne National Laboratory
+!     See COPYRIGHT in top-level directory
 !
+
       program main
       use mpi_f08
       integer*8 inbuf, outbuf
@@ -18,5 +18,4 @@
       &                   MPI_COMM_WORLD, ierr)
 
       call mtest_finalize( errs )
-      call mpi_finalize( ierr )
       end

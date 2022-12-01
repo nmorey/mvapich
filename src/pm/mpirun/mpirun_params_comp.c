@@ -44,7 +44,7 @@
 #include "src/db/text.h"
 #include "src/slurm/slurm_startup.h"
 #include "src/pbs/pbs_startup.h"
-#include <debug_utils.h>
+#include <mv2_debug_utils.h>
 
 #if defined(_NSIG)
 #define NSIG _NSIG

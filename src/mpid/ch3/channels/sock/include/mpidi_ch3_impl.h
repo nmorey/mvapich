@@ -1,11 +1,10 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
-#if !defined(MPICH_MPIDI_CH3_IMPL_H_INCLUDED)
-#define MPICH_MPIDI_CH3_IMPL_H_INCLUDED
+#ifndef MPIDI_CH3_IMPL_H_INCLUDED
+#define MPIDI_CH3_IMPL_H_INCLUDED
 
 #include "mpidimpl.h"
 #include "ch3usock.h"
@@ -20,7 +19,7 @@
 
 #define MPIDI_CH3I_SendQ_enqueue(vcch, req)				\
 {									\
-    MPIU_DBG_MSG(CH3_MSG,TYPICAL,"Enqueuing this request");\
+    MPL_DBG_MSG(MPIDI_CH3_DBG_MSG,TYPICAL,"Enqueuing this request");\
     MPIR_Request_add_ref(req);                                          \
     req->dev.next = NULL;						\
     if (vcch->sendq_tail != NULL)					\
@@ -37,7 +36,7 @@
     /* MT - not thread safe! */
 #define MPIDI_CH3I_SendQ_enqueue_head(vcch, req)			\
 {									\
-    MPIU_DBG_MSG(CH3_MSG,TYPICAL,"Enqueuing this request at head");\
+    MPL_DBG_MSG(MPIDI_CH3_DBG_MSG,TYPICAL,"Enqueuing this request at head");\
     MPIR_Request_add_ref(req);                                          \
     req->dev.next = vcch->sendq_head;					\
     if (vcch->sendq_tail == NULL)					\
@@ -50,14 +49,14 @@
     /* MT - not thread safe! */
 #define MPIDI_CH3I_SendQ_dequeue(vcch)					\
 {									\
-    MPID_Request *req_ = vcch->sendq_head;                              \
-    MPIU_DBG_MSG(CH3_MSG,TYPICAL,"Dequeuing this request");\
+    MPIR_Request *req_ = vcch->sendq_head;                              \
+    MPL_DBG_MSG(MPIDI_CH3_DBG_MSG,TYPICAL,"Dequeuing this request");\
     vcch->sendq_head = vcch->sendq_head->dev.next;			\
     if (vcch->sendq_head == NULL)					\
     {									\
 	vcch->sendq_tail = NULL;					\
     }									\
-    MPID_Request_release(req_);                                         \
+    MPIR_Request_free(req_);                                         \
 }
 
 
@@ -68,14 +67,10 @@
 /* End of connection-related macros */
 
 /* FIXME: Any of these used in the ch3->channel interface should be
-   defined in a header file in ch3/include that defines the 
+   defined in a header file in ch3/include that defines the
    channel interface */
 int MPIDI_CH3I_Progress_init(void);
 int MPIDI_CH3I_Progress_finalize(void);
-int MPIDI_CH3I_Progress_register_hook(int (*progress_fn)(int*), int *id);
-int MPIDI_CH3I_Progress_deregister_hook(int id);
-int MPIDI_CH3I_Progress_activate_hook(int id);
-int MPIDI_CH3I_Progress_deactivate_hook(int id);
 int MPIDI_CH3I_VC_post_connect(MPIDI_VC_t *);
 
 /* Shared memory window atomic/accumulate mutex implementation */
@@ -85,4 +80,4 @@ int MPIDI_CH3I_VC_post_connect(MPIDI_VC_t *);
 #define MPIDI_CH3I_SHM_MUTEX_INIT(win_ptr)
 #define MPIDI_CH3I_SHM_MUTEX_DESTROY(win_ptr)
 
-#endif /* !defined(MPICH_MPIDI_CH3_IMPL_H_INCLUDED) */
+#endif /* MPIDI_CH3_IMPL_H_INCLUDED */

@@ -1,8 +1,6 @@
-## -*- Mode: Makefile; -*-
-## vim: set ft=automake :
 ##
-## (C) 2011 by Argonne National Laboratory.
-##     See COPYRIGHT in top-level directory.
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
 ##
 
 mpi_sources +=                                            \
@@ -66,5 +64,3 @@ $(top_srcdir)/src/mpi/errhan/defmsg.h: $(top_srcdir)/maint/errmsgdirs $(errnames
 	( cd $(top_srcdir) && test -s .tmp && mv .tmp src/mpi/errhan/defmsg.h )
 
 endif MAINTAINER_MODE
-
-

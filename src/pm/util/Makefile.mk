@@ -1,8 +1,6 @@
-## -*- Mode: Makefile; -*-
-## vim: set ft=automake :
 ##
-## (C) 2011 by Argonne National Laboratory.
-##     See COPYRIGHT in top-level directory.
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
 ##
 
 # common include paths that are used by gforker, remshell, and any other process
@@ -28,14 +26,14 @@ src_pm_util_libmpiexec_la_CFLAGS = -g $(AM_CFLAGS)
 src_pm_util_libmpiexec_la_CPPFLAGS = $(common_pm_includes) $(AM_CPPFLAGS)
 
 # MPL
-src_pm_util_libmpiexec_la_LIBADD = -l$(MPLLIBNAME)
+src_pm_util_libmpiexec_la_LIBADD = $(mpllib)
 src_pm_util_libmpiexec_la_LDFLAGS = $(mpllibdir)
 EXTRA_src_pm_util_libmpiexec_la_DEPENDENCIES = $(mpllib)
 
 # We use the msg print routines (for now) - include these in the mpiexec
 # library so that we don't need to copy the source files
-# safestr2 and simple_pmiutil2 are subsets of safestr and simple_pmiutil
-# respectively, since these may no longer be used by other applications
+# simple_pmiutil2 is a subset of simple_pmiutil,
+# since it may no longer be used by other applications
 # (they make use of routines like the trmem routines that may no longer
 # be used by other applications).
 #
@@ -51,8 +49,6 @@ src_pm_util_libmpiexec_la_SOURCES = \
     src/pm/util/rm.c               \
     src/pm/util/pmiport.c          \
     src/pm/util/dbgiface.c         \
-    src/pm/util/safestr2.c         \
     src/pm/util/simple_pmiutil2.c
 
 endif BUILD_PM_UTIL
-

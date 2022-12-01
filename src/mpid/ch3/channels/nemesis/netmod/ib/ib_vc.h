@@ -44,20 +44,20 @@ typedef struct
 
     struct
     {
-        struct MPID_Request *head;
-        struct MPID_Request *tail;
+        struct MPIR_Request *head;
+        struct MPIR_Request *tail;
     } send_queue;
 
 #ifdef ENABLE_CHECKPOINTING
     struct
     {
-        struct MPID_Request *head;
-        struct MPID_Request *tail;
+        struct MPIR_Request *head;
+        struct MPIR_Request *tail;
     } paused_send_queue;
 #endif
 
-    struct MPID_Request * send_active;
-    struct MPID_Request * recv_active;
+    struct MPIR_Request * send_active;
+    struct MPIR_Request * recv_active;
     /** Address handler */
     struct ibv_ah *ud_ah;
 
@@ -115,7 +115,7 @@ int MPID_nem_ib_vc_terminate (MPIDI_VC_t *vc);
 int MPID_nem_ib_ckpt_pause_send_vc(MPIDI_VC_t *vc);
 int MPID_nem_ib_ckpt_continue_vc(MPIDI_VC_t *vc);
 int MPID_nem_ib_ckpt_restart_vc(MPIDI_VC_t *vc);
-int MPID_nem_ib_pkt_unpause_handler(MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, MPIDI_msg_sz_t *buflen, MPID_Request **rreqp);
+int MPID_nem_ib_pkt_unpause_handler(MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, intptr_t *buflen, MPIR_Request **rreqp);
 
 #define MPID_nem_ib_vc_send_paused(vc_ib) (vc_ib->send_paused)
 //int MPID_nem_ib_ckpt_shutdown(void);

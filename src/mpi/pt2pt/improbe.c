@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2011 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpiimpl.h"
@@ -14,8 +13,8 @@
 #elif defined(HAVE_PRAGMA_CRI_DUP)
 #pragma _CRI duplicate MPI_Improbe as PMPI_Improbe
 #elif defined(HAVE_WEAK_ATTRIBUTE)
-int MPI_Improbe(int source, int tag, MPI_Comm comm, int *flag, MPI_Message *message,
-                MPI_Status *status) __attribute__((weak,alias("PMPI_Improbe")));
+int MPI_Improbe(int source, int tag, MPI_Comm comm, int *flag, MPI_Message * message,
+                MPI_Status * status) __attribute__ ((weak, alias("PMPI_Improbe")));
 #endif
 /* -- End Profiling Symbol Block */
 
@@ -29,10 +28,6 @@ int MPI_Improbe(int source, int tag, MPI_Comm comm, int *flag, MPI_Message *mess
 
 #endif /* MPICH_MPI_FROM_PMPI */
 
-#undef FUNCNAME
-#define FUNCNAME MPI_Improbe
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 /*@
 MPI_Improbe - Nonblocking matched probe.
 
@@ -52,80 +47,86 @@ Output Parameters:
 
 .N Errors
 @*/
-int MPI_Improbe(int source, int tag, MPI_Comm comm, int *flag, MPI_Message *message, MPI_Status *status)
+int MPI_Improbe(int source, int tag, MPI_Comm comm, int *flag, MPI_Message * message,
+                MPI_Status * status)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPID_Request *msgp = NULL;
-    MPID_Comm *comm_ptr = NULL;
-    MPID_MPI_STATE_DECL(MPID_STATE_MPI_IMPROBE);
+    MPIR_Request *msgp = NULL;
+    MPIR_Comm *comm_ptr = NULL;
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_IMPROBE);
 
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_MPI_FUNC_ENTER(MPID_STATE_MPI_IMPROBE);
+    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_IMPROBE);
 
     /* Validate parameters, especially handles needing to be converted */
-#   ifdef HAVE_ERROR_CHECKING
+#ifdef HAVE_ERROR_CHECKING
     {
-        MPID_BEGIN_ERROR_CHECKS
+        MPID_BEGIN_ERROR_CHECKS;
         {
             MPIR_ERRTEST_COMM(comm, mpi_errno);
 
             /* TODO more checks may be appropriate */
         }
-        MPID_END_ERROR_CHECKS
+        MPID_END_ERROR_CHECKS;
     }
-#   endif /* HAVE_ERROR_CHECKING */
+#endif /* HAVE_ERROR_CHECKING */
 
     /* Convert MPI object handles to object pointers */
-    MPID_Comm_get_ptr(comm, comm_ptr);
+    MPIR_Comm_get_ptr(comm, comm_ptr);
 
     /* Validate parameters and objects (post conversion) */
-#   ifdef HAVE_ERROR_CHECKING
+#ifdef HAVE_ERROR_CHECKING
     {
-        MPID_BEGIN_ERROR_CHECKS
+        MPID_BEGIN_ERROR_CHECKS;
         {
-            MPID_Comm_valid_ptr( comm_ptr, mpi_errno, FALSE );
-            if (mpi_errno != MPI_SUCCESS) goto fn_fail;
+            MPIR_Comm_valid_ptr(comm_ptr, mpi_errno, FALSE);
+            if (mpi_errno != MPI_SUCCESS)
+                goto fn_fail;
 
             MPIR_ERRTEST_ARGNULL(flag, "flag", mpi_errno);
             /* TODO more checks may be appropriate (counts, in_place, buffer aliasing, etc) */
         }
-        MPID_END_ERROR_CHECKS
+        MPID_END_ERROR_CHECKS;
     }
-#   endif /* HAVE_ERROR_CHECKING */
+#endif /* HAVE_ERROR_CHECKING */
+
+    /* Return immediately for dummy process */
+    if (source == MPI_PROC_NULL) {
+        MPIR_Status_set_procnull(status);
+        *flag = TRUE;
+        *message = MPI_MESSAGE_NO_PROC;
+        goto fn_exit;
+    }
 
     /* ... body of routine ...  */
 
     *message = MPI_MESSAGE_NULL;
-    mpi_errno = MPID_Improbe(source, tag, comm_ptr, MPID_CONTEXT_INTRA_PT2PT, flag, &msgp, status);
-    if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+    mpi_errno = MPID_Improbe(source, tag, comm_ptr, MPIR_CONTEXT_INTRA_PT2PT, flag, &msgp, status);
+    MPIR_ERR_CHECK(mpi_errno);
 
     if (*flag) {
-	if (msgp == NULL) {
-	    MPIU_Assert(source == MPI_PROC_NULL);
-	    *message = MPI_MESSAGE_NO_PROC;
-	}
-	else {
-	    *message = msgp->handle;
-	}
+        MPIR_Assert(msgp != NULL);
+        *message = msgp->handle;
     }
 
     /* ... end of body of routine ... */
 
-fn_exit:
-    MPID_MPI_FUNC_EXIT(MPID_STATE_MPI_IMPROBE);
+  fn_exit:
+    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_IMPROBE);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 
-fn_fail:
+  fn_fail:
     /* --BEGIN ERROR HANDLING-- */
-#   ifdef HAVE_ERROR_CHECKING
+#ifdef HAVE_ERROR_CHECKING
     {
-        mpi_errno = MPIR_Err_create_code(
-            mpi_errno, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPI_ERR_OTHER,
-            "**mpi_improbe", "**mpi_improbe %d %d %C %p %p %p", source, tag, comm, flag, message, status);
+        mpi_errno =
+            MPIR_Err_create_code(mpi_errno, MPIR_ERR_RECOVERABLE, __func__, __LINE__, MPI_ERR_OTHER,
+                                 "**mpi_improbe", "**mpi_improbe %d %d %C %p %p %p", source, tag,
+                                 comm, flag, message, status);
     }
-#   endif
-    mpi_errno = MPIR_Err_return_comm(NULL, FCNAME, mpi_errno);
+#endif
+    mpi_errno = MPIR_Err_return_comm(NULL, __func__, mpi_errno);
     goto fn_exit;
     /* --END ERROR HANDLING-- */
 }

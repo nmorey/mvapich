@@ -1,13 +1,13 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2006 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include "mpi.h"
 #include "mpithreadtest.h"
+#include "mpitest.h"
 
 int rank;
 
@@ -24,8 +24,7 @@ MTEST_THREAD_RETURN_TYPE run_test(void *arg)
                 MPI_Send(NULL, 0, MPI_CHAR, peer, j, MPI_COMM_WORLD);
             for (i = 0; i < 16; i++)
                 MPI_Recv(NULL, 0, MPI_CHAR, peer, j, MPI_COMM_WORLD, &reqstat);
-        }
-        else {
+        } else {
             for (i = 0; i < 16; i++)
                 MPI_Recv(NULL, 0, MPI_CHAR, peer, j, MPI_COMM_WORLD, &reqstat);
             for (i = 0; i < 16; i++)
@@ -39,7 +38,7 @@ int main(int argc, char **argv)
 {
     int zero = 0, pmode, nprocs;
 
-    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &pmode);
+    MTest_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &pmode);
     if (pmode != MPI_THREAD_MULTIPLE) {
         fprintf(stderr, "Thread Multiple not supported by the MPI implementation\n");
         MPI_Abort(MPI_COMM_WORLD, -1);
@@ -57,12 +56,7 @@ int main(int argc, char **argv)
     run_test(&zero);
     MTest_Join_threads();
 
-    MPI_Finalize();
-
-    /* This program works if it gets here */
-    if (rank == 0) {
-        printf(" No Errors\n");
-    }
+    MTest_Finalize(0);
 
     return 0;
 }

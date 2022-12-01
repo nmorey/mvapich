@@ -11,20 +11,19 @@
  */
 
 #include "mpichconf.h"
-#include <mpimem.h>
+#include <mpir_mem.h>
 #include "rdma_impl.h"
 #include "ibv_impl.h"
 #include "vbuf.h"
 #include "mv2_ud.h"
 #include "dreg.h"
-#include "mpiutil.h"
 
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_vbuf_allocated);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_vbuf_freed);
-MPIR_T_PVAR_ULONG_LEVEL_DECL_EXTERN(MV2, mv2_vbuf_available);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_ud_vbuf_allocated);
-MPIR_T_PVAR_ULONG_COUNTER_DECL_EXTERN(MV2, mv2_ud_vbuf_freed);
-MPIR_T_PVAR_ULONG_LEVEL_DECL_EXTERN(MV2, mv2_ud_vbuf_available);
+extern unsigned long PVAR_COUNTER_mv2_vbuf_allocated;
+extern unsigned long PVAR_COUNTER_mv2_vbuf_freed;
+extern unsigned long PVAR_LEVEL_mv2_vbuf_available;
+extern unsigned long PVAR_COUNTER_mv2_ud_vbuf_allocated;
+extern unsigned long PVAR_COUNTER_mv2_ud_vbuf_freed;
+extern unsigned long PVAR_LEVEL_mv2_ud_vbuf_available;
 
 #ifdef _ENABLE_UD_
 #define MV2_GET_RNDV_QP(_rqp, _proc)                            \
@@ -45,18 +44,14 @@ do {                                                            \
     (_proc)->zcopy_info.rndv_qp_pool_free_head = _rqp;          \
 } while(0)
 
-#undef FUNCNAME 
-#define FUNCNAME MPIDI_CH3_Rendezvous_zcopy_resend_cts
-#undef FCNAME       
-#define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int MPIDI_CH3_Rendezvous_zcopy_resend_cts(MPIDI_VC_t * vc, 
-                            MPID_Request *rreq)
+                            MPIR_Request *rreq)
 {
     int hca_index = 0;
     int mpi_errno = MPI_SUCCESS;
     MPIDI_CH3_Pkt_t upkt;
     MPIDI_CH3_Pkt_rndv_clr_to_send_t *cts_pkt = &upkt.rndv_clr_to_send;
-    MPID_Request *cts_req;
+    MPIR_Request *cts_req;
 
 
     MPIDI_Pkt_init(cts_pkt, MPIDI_CH3_PKT_RNDV_CLR_TO_SEND);
@@ -65,27 +60,27 @@ static inline int MPIDI_CH3_Rendezvous_zcopy_resend_cts(MPIDI_VC_t * vc,
 
     if (rreq->dev.OnDataAvail == NULL)
     {
-        cts_pkt->recv_sz = rreq->dev.iov[0].MPL_IOV_LEN;
+        cts_pkt->recv_sz = rreq->dev.iov[0].iov_len;
         if (rreq->dev.iov_count > 1)
         {
             int k = 1;
             for (; k < rreq->dev.iov_count; ++k)
             {
-                cts_pkt->recv_sz += rreq->dev.iov[k].MPL_IOV_LEN;
+                cts_pkt->recv_sz += rreq->dev.iov[k].iov_len;
             }
         }
     }
     else
     {
-        if (rreq->dev.segment_size > 0) {
-            cts_pkt->recv_sz = rreq->dev.segment_size;
+        if (rreq->dev.msgsize > 0) {
+            cts_pkt->recv_sz = rreq->dev.msgsize;
         } else {
             cts_pkt->recv_sz = rreq->mrail.rndv_buf_sz;
         }
     }
 
     MPIDI_CH3I_MRAIL_SET_PKT_RNDV(cts_pkt, rreq);
-    MPIU_Assert(cts_pkt->rndv.protocol == MV2_RNDV_PROTOCOL_UD_ZCOPY);
+    MPIR_Assert(cts_pkt->rndv.protocol == MV2_RNDV_PROTOCOL_UD_ZCOPY);
 
     for (hca_index = 0; hca_index < rreq->mrail.num_hcas; ++hca_index) {
         cts_pkt->rndv.rndv_qpn[hca_index] = rreq->mrail.rndv_qp_entry->ud_qp[hca_index]->qp_num;
@@ -100,14 +95,14 @@ static inline int MPIDI_CH3_Rendezvous_zcopy_resend_cts(MPIDI_VC_t * vc,
                 "**ch3|ctspkt");
     }
     if (cts_req != NULL) {
-        MPID_Request_release(cts_req);
+        MPIR_Request_free(cts_req);
     }
 fn_fail:
     return mpi_errno;
 }
 
 static inline void MRAILI_Rndv_send_zcopy_finish(MPIDI_VC_t * vc,  
-                    MPID_Request * sreq, mv2_ud_zcopy_info_t *zcopy_info)
+                    MPIR_Request * sreq, mv2_ud_zcopy_info_t *zcopy_info)
 {
     vbuf *v = NULL;
     int hca_index = 0;
@@ -138,7 +133,7 @@ static inline void MRAILI_Rndv_send_zcopy_finish(MPIDI_VC_t * vc,
     }
 }
 
-static inline void MRAILI_Rndv_send_zcopy_ack(MPIDI_VC_t * vc,  MPID_Request * rreq)
+static inline void MRAILI_Rndv_send_zcopy_ack(MPIDI_VC_t * vc,  MPIR_Request * rreq)
 {
     int hca_index;
     vbuf *v;
@@ -196,7 +191,7 @@ static inline void mv2_flush_zcopy_rndv_qp(mv2_rndv_qp_t *rqp, int hca_index, in
     }
 }
 
-static inline void mv2_ud_post_zcopy_recv(MPID_Request *req, mv2_ud_zcopy_info_t *zcopy_info)
+static inline void mv2_ud_post_zcopy_recv(MPIR_Request *req, mv2_ud_zcopy_info_t *zcopy_info)
 {
     int i = 0, hca_num = 0;
     int bytes_to_post = 0, curr_len = 0;
@@ -273,11 +268,11 @@ static inline void mv2_ud_post_zcopy_recv(MPID_Request *req, mv2_ud_zcopy_info_t
    
     PRINT_DEBUG(DEBUG_ZCY_verbose>0 ,"Posted zcopy recv buffers:%d\n", posted_buffers);
 
-    MPIU_Assert(curr_len == req->mrail.rndv_buf_sz);
+    MPIR_Assert(curr_len == req->mrail.rndv_buf_sz);
 
 }
 
-void MPIDI_CH3I_MRAIL_Prepare_rndv_zcopy(MPIDI_VC_t * vc, MPID_Request * req)
+void MPIDI_CH3I_MRAIL_Prepare_rndv_zcopy(MPIDI_VC_t * vc, MPIR_Request * req)
 {
     mv2_rndv_qp_t *rqp = NULL;
     mv2_MPIDI_CH3I_RDMA_Process_t *proc = &mv2_MPIDI_CH3I_RDMA_Process;
@@ -300,7 +295,7 @@ void MPIDI_CH3I_MRAIL_Prepare_rndv_zcopy(MPIDI_VC_t * vc, MPID_Request * req)
     
     PRINT_DEBUG(DEBUG_ZCY_verbose>1, "Received RTS. Preparing zcopy rndv remote:%d\n", vc->pg_rank);
 
-    MPIU_Assert(req->mrail.protocol == MV2_RNDV_PROTOCOL_UD_ZCOPY);
+    MPIR_Assert(req->mrail.protocol == MV2_RNDV_PROTOCOL_UD_ZCOPY);
 
     req->mrail.num_hcas = rdma_num_hcas;
     MV2_GET_RNDV_QP(rqp, proc);
@@ -350,7 +345,7 @@ void mv2_ud_zcopy_poll_cq(mv2_ud_zcopy_info_t *zcopy_info, mv2_ud_ctx_t *ud_ctx,
 }
 
 void MPIDI_CH3I_MRAILI_Rendezvous_zcopy_push(MPIDI_VC_t * vc, 
-                    MPID_Request * sreq, mv2_ud_zcopy_info_t *zcopy_info)
+                    MPIR_Request * sreq, mv2_ud_zcopy_info_t *zcopy_info)
 {
     int seqnum[MAX_NUM_HCAS] = {0};
     int i = 0, hca_num = 0, found = 0;
@@ -445,7 +440,7 @@ void MPIDI_CH3I_MRAILI_Rendezvous_zcopy_push(MPIDI_VC_t * vc,
                     seqnum[hca_num], hca_num, vc->pg_rank);
     }
     
-    MPIU_Assert(sreq->mrail.rndv_buf_off == sreq->mrail.rndv_buf_sz);
+    MPIR_Assert(sreq->mrail.rndv_buf_off == sreq->mrail.rndv_buf_sz);
     /* send finish msg*/
     MRAILI_Rndv_send_zcopy_finish(vc, sreq, zcopy_info);
     sreq->mrail.nearly_complete = 1;
@@ -461,10 +456,10 @@ void MPIDI_CH3_Rendezvous_zcopy_finish(MPIDI_VC_t * vc,
     static int num_retry_print = 0;
 
     struct ibv_wc *wc; 
-    MPID_Request *rreq;
+    MPIR_Request *rreq;
     mv2_rndv_qp_t *rqp;
 
-    MPID_Request_get_ptr(zcopy_finish->receiver_req_id, rreq);
+    MPIR_Request_get_ptr(zcopy_finish->receiver_req_id, rreq);
     
     rreq->mrail.remote_complete++;
 
@@ -483,7 +478,8 @@ void MPIDI_CH3_Rendezvous_zcopy_finish(MPIDI_VC_t * vc,
     posted_buffers_per_hca[0] += posted_buffers - (posted_buffers_per_hca[0]*rreq->mrail.num_hcas);
     PRINT_DEBUG(DEBUG_ZCY_verbose>0 ,"Expected recvs for HCA 0 = %d\n", posted_buffers_per_hca[0]);
 
-    wc = (struct ibv_wc *) MPIU_Malloc (sizeof(struct ibv_wc) * posted_buffers_per_hca[0]);
+    wc = (struct ibv_wc *) MPL_malloc (sizeof(struct ibv_wc) * posted_buffers_per_hca[0],
+                                        MPL_MEM_BUFFER);
     
     int need_resend = 0;
 zcopy_recv_polling:
@@ -551,7 +547,7 @@ zcopy_recv_polling:
             }
         }
         if (posted_buffers_per_hca[hca_num] != count_per_hca[hca_num]) {
-            MPIU_Assert(posted_buffers_per_hca[hca_num] > count_per_hca[hca_num]);
+            MPIR_Assert(posted_buffers_per_hca[hca_num] > count_per_hca[hca_num]);
             need_resend = 1;
             break;
         }
@@ -586,16 +582,16 @@ zcopy_recv_polling:
         }
     }
 
-    MPIU_Free(wc);
+    MPL_free(wc);
 }
 
 void MPIDI_CH3_Rendezvous_zcopy_ack(MPIDI_VC_t * vc,
                              MPIDI_CH3_Pkt_zcopy_ack_t * zcopy_ack)
 {
     int complete;
-    MPID_Request *sreq;
+    MPIR_Request *sreq;
 
-    MPID_Request_get_ptr(zcopy_ack->sender_req_id, sreq);
+    MPIR_Request_get_ptr(zcopy_ack->sender_req_id, sreq);
 
     sreq->mrail.remote_complete++;
 
@@ -608,7 +604,7 @@ void MPIDI_CH3_Rendezvous_zcopy_ack(MPIDI_VC_t * vc,
     PRINT_DEBUG(DEBUG_ZCY_verbose>1, "Zcopy ack received from:%d. Finishing req\n", vc->pg_rank);
     MPIDI_CH3I_MRAILI_RREQ_RNDV_FINISH(sreq);
     MPIDI_CH3U_Handle_send_req(vc, sreq, &complete);
-    MPIU_Assert(complete == TRUE);
+    MPIR_Assert(complete == TRUE);
 }
 
 #endif /* _ENABLE_UD_ */

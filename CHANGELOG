@@ -3,6 +3,23 @@ MVAPICH2 Changelog
 This file briefly describes the changes to the MVAPICH2 software
 package.  The logs are arranged in the "most recent first" order.
 
+MVAPICH2 3.0a (08/15/2022)
+
+* Features and Enhancements (since 2.3.7):
+    - Based on MPICH 3.4.3
+    - Added support for the ch4:ucx and ch4:ofi devices
+        - Support for MVAPICH2 enhanced collectives over ofi and ucx
+    - Added support for the Cray Slingshot 11 interconnect over OFI
+        - Supports Cray Slingshot 11 network adapters
+    - Added support for the Cornelis OPX library over OFI
+        - Supports Intel Omni-Path adapters
+    - Added support for the Intel PSM3 library over OFI
+        - Supports Intel Columbiaville network adapters
+    - Added support for IB verbs over UCX
+        - Supports IB and RoCE network adapters
+    - Disabled ch3:mrail device
+    - Removed ch3:psm device
+
 MVAPICH2 2.3.7 (03/02/2022)
 
 * Features and Enhancements (since 2.3.6):
@@ -39,8 +56,6 @@ MVAPICH2 2.3.7 (03/02/2022)
           the patch
     - Fixed a potential integer overflow when transfering large arrays
         - Thanks to Alexander Melnikov for the report and patch
-    - Fixed a compilation error when building with PVAR support on gcc 11
-        - Thanks to Jorge D'Elia @Cimec for the report
 
 MVAPICH2 2.3.6 (05/11/2021)
 

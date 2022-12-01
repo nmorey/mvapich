@@ -34,7 +34,6 @@
 #if defined(_ENABLE_CUDA_)
 #include "ibv_cuda_util.h"
 #endif
-#include <mpiutil.h>
 
 #define CREDIT_VBUF_FLAG (111)
 #define NORMAL_VBUF_FLAG (222)
@@ -369,7 +368,7 @@ do {                                                    \
 do {                                                        \
     vbuf_pool_t *__pool = (_v)->pool_index;                 \
                                                             \
-    MPIU_Assert((_v)->padding == NORMAL_VBUF_FLAG ||        \
+    MPIR_Assert((_v)->padding == NORMAL_VBUF_FLAG ||        \
                 (_v)->padding == RPUT_VBUF_FLAG ||          \
                 (_v)->padding == RGET_VBUF_FLAG ||          \
                 (_v)->padding == RDMA_ONE_SIDED ||          \
@@ -392,7 +391,7 @@ do {                                                        \
 do {                                                                        \
     int _hca_num = (_rail) / (rdma_num_rails / rdma_num_hcas);              \
                                                                             \
-    MPIU_Assert((_v) != NULL);                                              \
+    MPIR_Assert((_v) != NULL);                                              \
                                                                             \
     (_v)->desc.u.rr.next = NULL;                                            \
     (_v)->desc.u.rr.wr_id = (uintptr_t) (_v);                               \
@@ -413,7 +412,7 @@ do {                                                                            
                                                                                     \
     MV2_GET_AND_INIT_RC_VBUF((_v), (_pool));                                        \
                                                                                     \
-    MPIU_Assert(((vbuf_pool_t*)(_v)->pool_index)->index ==                          \
+    MPIR_Assert(((vbuf_pool_t*)(_v)->pool_index)->index ==                          \
                                 MV2_RECV_VBUF_POOL_OFFSET);                         \
                                                                                     \
     _hca_num = (_v)->rail / (rdma_num_rails / rdma_num_hcas);                       \
@@ -431,7 +430,7 @@ do {                                                                            
     int _hca_num = -1;                                                              \
     struct ibv_recv_wr* _bad_wr = NULL;                                             \
                                                                                     \
-    MPIU_Assert(((vbuf_pool_t*)(_v)->pool_index)->index ==                          \
+    MPIR_Assert(((vbuf_pool_t*)(_v)->pool_index)->index ==                          \
                                 MV2_RECV_VBUF_POOL_OFFSET);                         \
                                                                                     \
     _hca_num = (_v)->rail / (rdma_num_rails / rdma_num_hcas);                       \
@@ -448,7 +447,7 @@ int allocate_vbuf_pool(vbuf_pool_t *rdma_vbuf_pool, int nvbufs);
 
 #define GET_VBUF_BY_OFFSET_WITHOUT_LOCK(_v, _offset)                                \
 do {                                                                                \
-    MPIU_Assert((_offset) != MV2_RECV_VBUF_POOL_OFFSET);                            \
+    MPIR_Assert((_offset) != MV2_RECV_VBUF_POOL_OFFSET);                            \
                                                                                     \
     vbuf_pool_t *__pool = &rdma_vbuf_pools[(_offset)];                              \
                                                                                     \
@@ -464,10 +463,10 @@ do {                                                                            
         }                                                                           \
         MV2_GET_AND_INIT_RC_VBUF((_v), __pool);                                     \
     } else {                                                                        \
-        MPIU_Assert(mv2_waiting_for_vbuf == 0);                                     \
+        MPIR_Assert(mv2_waiting_for_vbuf == 0);                                     \
         mv2_waiting_for_vbuf = 1;                                                   \
         while (!(__pool->free_head)) {                                              \
-            MPID_Progress_test();                                                   \
+            MPID_Progress_test(NULL);                                               \
         }                                                                           \
         mv2_waiting_for_vbuf = 0;                                                   \
         MV2_GET_AND_INIT_RC_VBUF((_v), __pool);                                     \
@@ -536,7 +535,7 @@ do {                                                                            
     pthread_spin_lock(&mv2_MPIDI_CH3I_RDMA_Process.srq_post_spin_lock);                 \
     while ((_pool)->free_head) {                                                        \
         MV2_GET_AND_INIT_UD_VBUF((_v), (_pool));                                        \
-        MPIU_Assert(MV2_VBUF_POOL(_v)->index == MV2_RECV_UD_VBUF_POOL_OFFSET);          \
+        MPIR_Assert(MV2_VBUF_POOL(_v)->index == MV2_RECV_UD_VBUF_POOL_OFFSET);          \
                                                                                         \
         _hca_num = (_v)->rail / (rdma_num_rails / rdma_num_hcas);                       \
                                                                                         \
@@ -563,7 +562,7 @@ do {                                                                            
     int _hca_num = -1;                                                              \
     struct ibv_recv_wr* _bad_wr = NULL;                                             \
                                                                                     \
-    MPIU_Assert(MV2_VBUF_POOL(_v)->index == MV2_RECV_UD_VBUF_POOL_OFFSET);          \
+    MPIR_Assert(MV2_VBUF_POOL(_v)->index == MV2_RECV_UD_VBUF_POOL_OFFSET);          \
                                                                                     \
     _hca_num = (_v)->rail / (rdma_num_rails / rdma_num_hcas);                       \
                                                                                     \
@@ -616,7 +615,7 @@ do {                                                    \
 
 #define GET_UD_VBUF_BY_OFFSET_WITHOUT_LOCK(_v, _offset)                             \
 do {                                                                                \
-    MPIU_Assert((_offset) != MV2_RECV_UD_VBUF_POOL_OFFSET);                         \
+    MPIR_Assert((_offset) != MV2_RECV_UD_VBUF_POOL_OFFSET);                         \
                                                                                     \
     vbuf_pool_t *__pool = &rdma_ud_vbuf_pools[(_offset)];                           \
                                                                                     \
@@ -632,10 +631,10 @@ do {                                                                            
         }                                                                           \
         MV2_GET_AND_INIT_UD_VBUF((_v), __pool);                                     \
     } else {                                                                        \
-        MPIU_Assert(mv2_waiting_for_vbuf == 0);                                     \
+        MPIR_Assert(mv2_waiting_for_vbuf == 0);                                     \
         mv2_waiting_for_vbuf = 1;                                                   \
         while (!(__pool->free_head)) {                                              \
-            MPID_Progress_test();                                                   \
+            MPID_Progress_test(NULL);                                               \
         }                                                                           \
         mv2_waiting_for_vbuf = 0;                                                   \
         MV2_GET_AND_INIT_UD_VBUF((_v), __pool);                                     \

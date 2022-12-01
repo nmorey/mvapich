@@ -1,8 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 /*
  * Test of reduce scatter.
  *
@@ -123,7 +123,6 @@ int main(int argc, char **argv)
     MPI_Op_free(&nc_sum_op);
 
     MTest_Finalize(err);
-    MPI_Finalize();
 
     return err;
 }

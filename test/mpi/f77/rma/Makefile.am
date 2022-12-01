@@ -1,9 +1,7 @@
-# -*- Mode: Makefile; -*-
-# vim: set ft=automake :
-#
-# (C) 2011 by Argonne National Laboratory.
-#     See COPYRIGHT in top-level directory.
-#
+##
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
+##
 
 include $(top_srcdir)/Makefile_f77.mtest
 
@@ -57,4 +55,3 @@ winscale2f.$(OBJEXT): addsize.h
 ## not sure how accurate it is.
 # bindir may be used in MPIEXEC, so make sure it is defined
 BINDIR=${bindir}
-

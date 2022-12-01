@@ -1,8 +1,8 @@
-C -*- Mode: Fortran; -*- 
 C
-C  (C) 2003 by Argonne National Laboratory.
-C      See COPYRIGHT in top-level directory.
+C Copyright (C) by Argonne National Laboratory
+C     See COPYRIGHT in top-level directory
 C
+
 C Simple info test 
        program main
        implicit none
@@ -53,5 +53,4 @@ C     check for trailing blanks
        call mpi_info_free( i2, ierr )
 
        call MTest_Finalize( errs )
-       call MPI_Finalize( ierr )
        end

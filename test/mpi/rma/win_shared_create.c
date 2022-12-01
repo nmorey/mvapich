@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2014 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include <stdio.h>
@@ -21,7 +19,7 @@ int main(int argc, char **argv)
     int i, rank, nproc;
     int shm_rank, shm_nproc;
     MPI_Aint size;
-    int errors = 0, all_errors = 0;
+    int errors = 0;
     int **bases = NULL, *my_base = NULL;
     int disp_unit;
     MPI_Win shm_win = MPI_WIN_NULL, win = MPI_WIN_NULL;
@@ -30,7 +28,7 @@ int main(int argc, char **argv)
     int dst_shm_rank, dst_world_rank;
     MPI_Info create_info = MPI_INFO_NULL;
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
 
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &nproc);
@@ -113,14 +111,10 @@ int main(int argc, char **argv)
     MPI_Win_unlock_all(shm_win);
     MPI_Win_unlock_all(win);
 
-    MPI_Reduce(&errors, &all_errors, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-
     MPI_Win_free(&win);
     MPI_Win_free(&shm_win);
 
   exit:
-    if (rank == 0 && all_errors == 0)
-        printf(" No Errors\n");
 
     if (create_info != MPI_INFO_NULL)
         MPI_Info_free(&create_info);
@@ -131,10 +125,10 @@ int main(int argc, char **argv)
     if (world_group != MPI_GROUP_NULL)
         MPI_Group_free(&world_group);
 
-    MPI_Finalize();
+    MTest_Finalize(errors);
 
     if (bases)
         free(bases);
 
-    return 0;
+    return MTestReturnValue(errors);
 }

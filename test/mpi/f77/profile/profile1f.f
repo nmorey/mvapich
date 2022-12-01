@@ -1,8 +1,8 @@
-C -*- Mode: Fortran; -*-
 C
-C  (C) 2013 by Argonne National Laboratory.
-C      See COPYRIGHT in top-level directory.
+C Copyright (C) by Argonne National Laboratory
+C     See COPYRIGHT in top-level directory
 C
+
        program main
        include "mpif.h"
        integer ierr
@@ -50,17 +50,8 @@ C     check that we used the profiling versions of the routines
           endif
        endif
 
-       call mpi_allreduce( MPI_IN_PLACE, toterrs, 1, MPI_INT, MPI_SUM,
-     $      MPI_COMM_WORLD, ierr )
-       if (wrank .eq. 0) then
-          if (toterrs .eq. 0) then
-             print *, " No Errors"
-          else
-             print *, " Found ", toterrs, " errors"
-          endif
-       endif
+       call mtest_finalize( toterrs )
 C
-       call mpi_finalize( ierr )
        end
 C
        subroutine mpi_send( smsg, count, dtype, dest, tag, comm, ierr )
@@ -69,7 +60,7 @@ C
        integer smsg(count)
        common /myinfo/ calls, amount, rcalls, ramount
        integer calls, amount, rcalls, ramount
-c
+C
        calls = calls + 1
        amount = amount + count
        call pmpi_send( smsg, count, dtype, dest, tag, comm, ierr )

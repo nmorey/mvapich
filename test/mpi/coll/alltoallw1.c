@@ -1,12 +1,10 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  Changes to this example
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /*
- * This example is taken from MPI-The complete reference, Vol 1,
+ * Adapted from the example taken from MPI-The complete reference, Vol 1,
  * pages 222-224.
  *
  * Lines after the "--CUT HERE--" were added to make this into a complete
@@ -210,8 +208,7 @@ int main(int argc, char *argv[])
             }
         }
 
-    }
-    else {
+    } else {
         localA = (float *) malloc(gN * lm * sizeof(float));
         localB = (float *) malloc(gM * ln * sizeof(float));
         for (i = 0; i < lm; i++) {
@@ -241,8 +238,7 @@ int main(int argc, char *argv[])
             }
         }
 
-    }
-    else {
+    } else {
         for (i = 0; i < ln; i++) {
             for (j = 0; j < gM; j++) {
                 int expected = i + gN * j + rank * ln;
@@ -261,7 +257,6 @@ int main(int argc, char *argv[])
 
     MTest_Finalize(errs);
 
-    MPI_Finalize();
 
-    return 0;
+    return MTestReturnValue(errs);
 }

@@ -1,9 +1,7 @@
-# -*- Mode: Makefile; -*-
-# vim: set ft=automake :
-#
-# (C) 2011 by Argonne National Laboratory.
-#     See COPYRIGHT in top-level directory.
-#
+##
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
+##
 
 include $(top_srcdir)/Makefile_f77.mtest
 
@@ -22,4 +20,3 @@ spawnmult2f.$(OBJEXT): type1aint.h
 # add "-lU77" (or equivalent) to the link line for these tests that use getarg
 spawnargvf_LDADD = $(LDADD) $(F77_GETARG_LIBS)
 spawnmultf_LDADD = $(LDADD) $(F77_GETARG_LIBS)
-

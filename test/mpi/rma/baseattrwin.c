@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include <stdio.h>
 #include "mpi.h"
 #include "mpitest.h"
@@ -32,8 +31,7 @@ int main(int argc, char **argv)
     if (!flag) {
         errs++;
         fprintf(stderr, "Could not get WIN_BASE\n");
-    }
-    else {
+    } else {
         /* MPI 2.1, section 11.2.2.  v must be a pointer to the start of the
          * window.  It is not a pointer to a pointer to the start of the window.
          */
@@ -47,8 +45,7 @@ int main(int argc, char **argv)
     if (!flag) {
         errs++;
         fprintf(stderr, "Could not get WIN_SIZE\n");
-    }
-    else {
+    } else {
         MPI_Aint vval = *(MPI_Aint *) v;
         if (vval != n) {
             errs++;
@@ -61,8 +58,7 @@ int main(int argc, char **argv)
     if (!flag) {
         errs++;
         fprintf(stderr, "Could not get WIN_DISP_UNIT\n");
-    }
-    else {
+    } else {
         int vval = *(int *) v;
         if (vval != disp) {
             errs++;
@@ -72,7 +68,6 @@ int main(int argc, char **argv)
 
     MPI_Win_free(&win);
     MTest_Finalize(errs);
-    MPI_Finalize();
 
-    return 0;
+    return MTestReturnValue(errs);
 }

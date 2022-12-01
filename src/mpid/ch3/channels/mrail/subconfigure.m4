@@ -20,6 +20,18 @@ dnl
 dnl _BODY handles the former role of configure in the subsystem
 AC_DEFUN([PAC_SUBCFG_BODY_]PAC_SUBCFG_AUTO_SUFFIX,[
 AM_COND_IF([BUILD_MRAIL], [
+
+dnl Disable building ch3:mrail for the Alpha release
+AC_MSG_ERROR([The ch3:mrail device is not available in MVAPICH2 v4.0a.
+            This is an alpha version of MVAPICH2 v4.0 which has been
+            released for testing of the latest ch4 designs only.
+            ch3:mrail has been temporarily disabled for the alpha release
+            as we work to develop support for ch4. Please use
+            --with-device=ch4:ofi or --with-device=ch4:ucx for the alpha
+            release. If you are on an InfiniBand system and require the
+            best performance, please use MVAPICH2 v2.3.7 with the
+            ch3:mrail device.])
+
 dnl
 dnl user options
 dnl
@@ -234,11 +246,6 @@ fi
 AC_CHECK_DECLS([IBV_WC_DRIVER2],[wc_drv2_found=yes],[wc_drv2_found=no],[[#include <infiniband/verbs.h>]])
 if test "x$wc_drv2_found" = "xyes"; then
     AC_DEFINE([_ENABLE_WC_DRV2_], [1], [Define to enable support for IBV_WC_DRIVER2])
-fi
-
-AC_CHECK_DECLS([IBV_WC_DRIVER3],[wc_drv3_found=yes],[wc_drv3_found=no],[[#include <infiniband/verbs.h>]])
-if test "x$wc_drv3_found" = "xyes"; then
-    AC_DEFINE([_ENABLE_WC_DRV3_], [1], [Define to enable support for IBV_WC_DRIVER3])
 fi
 
 if test "x$enable_ibv_dlopen" = "xyes"; then

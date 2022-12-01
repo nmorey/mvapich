@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2015 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /* This test is going to test the atomicity for "read-modify-write" in FOP
@@ -15,6 +13,7 @@
 
 #include "mpi.h"
 #include <stdio.h>
+#include "mpitest.h"
 
 #define AM_BUF_SIZE  10
 #define SHM_BUF_SIZE 1000
@@ -26,14 +25,14 @@
 int main(int argc, char *argv[])
 {
     int rank, size, i, j, k;
-    int errors = 0, all_errors = 0;
+    int errors = 0;
     int origin_shm, origin_am, dest;
     int my_buf_size;
     int *orig_buf = NULL, *result_buf = NULL, *target_buf = NULL, *check_buf = NULL;
     MPI_Win win;
     MPI_Status status;
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
 
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -68,8 +67,7 @@ int main(int argc, char *argv[])
                 orig_buf[i] = 1;
                 result_buf[i] = 0;
             }
-        }
-        else {
+        } else {
             MPI_Win_lock(MPI_LOCK_SHARED, rank, 0, win);
             for (i = 0; i < WIN_BUF_SIZE; i++) {
                 target_buf[i] = 0;
@@ -95,8 +93,7 @@ int main(int argc, char *argv[])
             /* check results on P0 and P2 (origin) */
             if (rank == origin_am) {
                 MPI_Send(result_buf, AM_BUF_SIZE, MPI_INT, origin_shm, CHECK_TAG, MPI_COMM_WORLD);
-            }
-            else if (rank == origin_shm) {
+            } else if (rank == origin_shm) {
                 MPI_Alloc_mem(sizeof(int) * AM_BUF_SIZE, MPI_INFO_NULL, &check_buf);
                 MPI_Recv(check_buf, AM_BUF_SIZE, MPI_INT, origin_am, CHECK_TAG, MPI_COMM_WORLD,
                          &status);
@@ -112,8 +109,7 @@ int main(int argc, char *argv[])
                 }
                 MPI_Free_mem(check_buf);
             }
-        }
-        else {
+        } else {
             MPI_Win_lock(MPI_LOCK_SHARED, rank, 0, win);
             /* check results on P1 */
             if (target_buf[0] != AM_BUF_SIZE + SHM_BUF_SIZE) {
@@ -133,11 +129,7 @@ int main(int argc, char *argv[])
     }
 
   exit_test:
-    MPI_Reduce(&errors, &all_errors, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
-    if (rank == 0 && all_errors == 0)
-        printf(" No Errors\n");
-
-    MPI_Finalize();
-    return 0;
+    MTest_Finalize(errors);
+    return MTestReturnValue(errors);
 }

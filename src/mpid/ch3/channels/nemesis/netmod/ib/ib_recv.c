@@ -163,9 +163,9 @@ int MPIDI_nem_ib_parse_header(MPIDI_VC_t * vc,
                 /* Only cache header if the packet is from RdMA path
                  * XXXX: what is R3_FLAG?
                  */
-                MPIU_Memcpy((VC_FIELD(vc, connection)->rfp.cached_incoming), vstart,
+                MPIR_Memcpy((VC_FIELD(vc, connection)->rfp.cached_incoming), vstart,
                        sizeof(MPIDI_CH3_Pkt_eager_send_t));
-                MPIU_Memcpy((VC_FIELD(vc, connection)->rfp.cached_incoming_iheader), header,
+                MPIR_Memcpy((VC_FIELD(vc, connection)->rfp.cached_incoming_iheader), header,
                     sizeof(MPIDI_nem_ib_pkt_comm_header));
             }
 #endif
@@ -205,9 +205,9 @@ int MPIDI_nem_ib_parse_header(MPIDI_VC_t * vc,
         break;
     case MPIDI_CH3_PKT_CANCEL_SEND_RESP:
         {
-            MPID_Request *req;
+            MPIR_Request *req;
             *pkt = vstart;
-            MPID_Request_get_ptr(((MPIDI_CH3_Pkt_cancel_send_resp_t *)(*pkt))->sender_req_id, req);
+            MPIR_Request_get_ptr(((MPIDI_CH3_Pkt_cancel_send_resp_t *)(*pkt))->sender_req_id, req);
             if (req != NULL) {
               /* unregister and free the rndv buffer */
               MPIDI_NEM_IB_RREQ_RNDV_FINISH(req);
@@ -397,11 +397,11 @@ fn_fail:
 #define FUNCNAME MPIDI_nem_ib_fill_request
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDI_nem_ib_fill_request(MPID_Request * req, vbuf * v,
+int MPIDI_nem_ib_fill_request(MPIR_Request * req, vbuf * v,
                                   int header_size, int *nb)
 {
 
-    MPL_IOV    *iov;
+    struct iovec    *iov;
     int         n_iov;
     int         len_avail;
     void        *data_buf;
@@ -419,14 +419,14 @@ int MPIDI_nem_ib_fill_request(MPID_Request * req, vbuf * v,
 
     *nb = 0;
     for (i = req->dev.iov_offset; i < n_iov; i++) {
-        if (len_avail >= (int) iov[i].MPL_IOV_LEN
-            && iov[i].MPL_IOV_LEN != 0) {
-            MPIU_Memcpy(iov[i].MPL_IOV_BUF, data_buf, iov[i].MPL_IOV_LEN);
-            data_buf = (void *) ((uintptr_t) data_buf + iov[i].MPL_IOV_LEN);
-            len_avail -= iov[i].MPL_IOV_LEN;
-            *nb += iov[i].MPL_IOV_LEN;
+        if (len_avail >= (int) iov[i].iov_len
+            && iov[i].iov_len != 0) {
+            MPIR_Memcpy(iov[i].iov_base, data_buf, iov[i].iov_len);
+            data_buf = (void *) ((uintptr_t) data_buf + iov[i].iov_len);
+            len_avail -= iov[i].iov_len;
+            *nb += iov[i].iov_len;
         } else if (len_avail > 0) {
-          MPIU_Memcpy(iov[i].MPL_IOV_BUF, data_buf, len_avail);
+          MPIR_Memcpy(iov[i].iov_base, data_buf, len_avail);
             *nb += len_avail;
             break;
         }
@@ -512,13 +512,13 @@ int MPIDI_nem_ib_recv_addr_reply(MPIDI_VC_t * vc, void *vstart)
         }
         /* deallocate recv RDMA buffers */
         if (VC_FIELD(vc, connection)->rfp.RDMA_recv_buf_DMA) {
-            MPIU_Free(VC_FIELD(vc, connection)->rfp.RDMA_recv_buf_DMA);
+            MPL_free(VC_FIELD(vc, connection)->rfp.RDMA_recv_buf_DMA);
             VC_FIELD(vc, connection)->rfp.RDMA_recv_buf_DMA = NULL;
         }
 
         /* deallocate vbuf struct buffers */
         if (VC_FIELD(vc, connection)->rfp.RDMA_recv_buf) {
-            MPIU_Free(VC_FIELD(vc, connection)->rfp.RDMA_recv_buf);
+            MPL_free(VC_FIELD(vc, connection)->rfp.RDMA_recv_buf);
             VC_FIELD(vc, connection)->rfp.RDMA_recv_buf = NULL;
         }
 
@@ -533,7 +533,7 @@ int MPIDI_nem_ib_recv_addr_reply(MPIDI_VC_t * vc, void *vstart)
         VC_FIELD(vc, connection)->rfp.p_RDMA_recv_tail = num_rdma_buffer - 1;
 
         /* Add the connection to the RDMA polling list */
-        MPIU_Assert(process_info.polling_group_size < rdma_polling_set_limit);
+        MPIR_Assert(process_info.polling_group_size < rdma_polling_set_limit);
 
         process_info.polling_set
             [process_info.polling_group_size] = vc;
@@ -559,7 +559,7 @@ int MPIDI_nem_ib_recv_addr_reply(MPIDI_VC_t * vc, void *vstart)
 #define FUNCNAME MPIDI_NEM_IB_PACKETIZED_RECV_REQ
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDI_nem_ib_packetized_recv_req(MPIDI_VC_t * vc, MPID_Request * rreq)
+int MPIDI_nem_ib_packetized_recv_req(MPIDI_VC_t * vc, MPIR_Request * rreq)
 {
     int mpi_errno = MPI_SUCCESS;
     if (NULL == VC_FIELD(vc, connection)->packetized_recv) {
@@ -584,7 +584,7 @@ int MPIDI_nem_ib_packetized_recv_data(MPIDI_VC_t * vc, vbuf *v)
     int mpi_errno = MPI_SUCCESS;
     int skipsize = sizeof(MPIDI_CH3_Pkt_packetized_send_data_t);
     int nb, complete;
-    MPID_Request *rreq = VC_FIELD(vc, connection)->packetized_recv;
+    MPIR_Request *rreq = VC_FIELD(vc, connection)->packetized_recv;
 
     if (NULL == VC_FIELD(vc, connection)->packetized_recv) {
         mpi_errno =

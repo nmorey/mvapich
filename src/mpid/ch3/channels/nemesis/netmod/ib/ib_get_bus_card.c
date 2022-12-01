@@ -32,13 +32,13 @@ int MPID_nem_ib_get_business_card (int my_rank, char **bc_val_p,
 {
     int mpi_errno = MPI_SUCCESS;
 
-    mpi_errno = MPIU_Str_add_int_arg(bc_val_p, val_max_sz_p,
+    mpi_errno = MPL_str_add_int_arg(bc_val_p, val_max_sz_p,
             MPID_NEM_IB_UD_QPN_KEY, 
             MPID_nem_ib_cm_ctxt_ptr->ud_qp->qp_num);
 
-    if(mpi_errno != MPIU_STR_SUCCESS) {
+    if(mpi_errno != MPI_SUCCESS) {
 
-        if(mpi_errno == MPIU_STR_NOMEM) {
+        if(mpi_errno == MPI_NOMEM) {
             MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**buscard_len");
         } else {  
             MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**buscard");
@@ -46,13 +46,13 @@ int MPID_nem_ib_get_business_card (int my_rank, char **bc_val_p,
         return mpi_errno;
     }
 
-    mpi_errno = MPIU_Str_add_int_arg(bc_val_p, val_max_sz_p,
+    mpi_errno = MPL_str_add_int_arg(bc_val_p, val_max_sz_p,
             MPID_NEM_IB_LID_KEY, 
             MPID_nem_ib_cm_ctxt_ptr->port_attr.lid);
 
-    if(mpi_errno != MPIU_STR_SUCCESS) {
+    if(mpi_errno != MPI_SUCCESS) {
 
-        if(mpi_errno == MPIU_STR_NOMEM) {
+        if(mpi_errno == MPI_NOMEM) {
             MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**buscard_len");
         } else {  
             MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**buscard");
@@ -60,14 +60,14 @@ int MPID_nem_ib_get_business_card (int my_rank, char **bc_val_p,
         return mpi_errno;
     }
 
-    mpi_errno = MPIU_Str_add_binary_arg(bc_val_p, val_max_sz_p,
+    mpi_errno = MPL_str_add_binary_arg(bc_val_p, val_max_sz_p,
             MPID_NEM_IB_GUID_KEY, 
             (char *) &MPID_nem_ib_cm_ctxt_ptr->guid, 
             sizeof(uint64_t));
 
-    if(mpi_errno != MPIU_STR_SUCCESS) {
+    if(mpi_errno != MPI_SUCCESS) {
 
-        if(mpi_errno == MPIU_STR_NOMEM) {
+        if(mpi_errno == MPI_NOMEM) {
             MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**buscard_len");
         } else {  
             MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**buscard");

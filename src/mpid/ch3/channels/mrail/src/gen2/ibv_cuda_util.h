@@ -1,4 +1,3 @@
-
 /* Copyright (c) 2001-2022, The Ohio State University. All rights
  * reserved.
  *
@@ -11,6 +10,10 @@
  *
  */
 
+/* TODO: move this into ch3/channels/mrail/include/mv2_mpidi_ibv_cuda_util.h
+ * since it has channel specific implementations of various functions. 
+ * The generic device interfaces are added in ch3/include/mv2_mpid_cuda_util.h
+ */ 
 #ifndef _IBV_CUDA_UTIL_H_
 #define _IBV_CUDA_UTIL_H_
 
@@ -113,7 +116,7 @@ do {                                            \
     }                                           \
 } while(0)
 
-#define MPIU_Malloc_Device(_buf, _size)           \
+#define MV2_MPIDI_Malloc_Device(_buf, _size)           \
 do {                                            \
     cudaError_t cuerr = cudaSuccess;            \
     cuerr = cudaMalloc((void **) &_buf,_size);  \
@@ -124,7 +127,7 @@ do {                                            \
     }                                           \
 }while(0)
 
-#define MPIU_Free_Device(_buf)                    \
+#define MV2_MPIDI_Free_Device(_buf)                    \
 do {                                            \
     cudaError_t cuerr = cudaSuccess;            \
     cuerr = cudaFree(_buf);                     \
@@ -135,7 +138,7 @@ do {                                            \
     }                                           \
 }while(0)
 
-#define MPIU_Malloc_Device_Pinned_Host(_buf, _size)      \
+#define MV2_MPIDI_Malloc_Device_Pinned_Host(_buf, _size)      \
 do {                                            \
     cudaError_t cuerr = cudaSuccess;            \
     cuerr = cudaMallocHost((void **)&_buf,_size);\
@@ -146,7 +149,7 @@ do {                                            \
     }                                           \
 }while(0)
 
-#define MPIU_Free_Device_Pinned_Host(_buf)               \
+#define MV2_MPIDI_Free_Device_Pinned_Host(_buf)               \
 do {                                            \
     cudaError_t cuerr = cudaSuccess;            \
     cuerr = cudaFreeHost(_buf);                 \
@@ -157,7 +160,7 @@ do {                                            \
     }                                           \
 }while(0)
 
-#define MPIU_Memcpy_Device_Async(_dst, _src, _size, _type, _stream)  \
+#define MV2_MPIDI_Memcpy_Device_Async(_dst, _src, _size, _type, _stream)  \
 do {                                                               \
     cudaError_t cuerr = cudaSuccess;                               \
     cuerr = cudaMemcpyAsync(_dst, _src, _size, _type, _stream);    \
@@ -168,7 +171,7 @@ do {                                                               \
     }                                                              \
 }while(0)
 
-#define MPIU_Memcpy_Device(_dst, _src, _size, _type)      \
+#define MV2_MPIDI_Memcpy_Device(_dst, _src, _size, _type)      \
 do {                                                    \
     cudaError_t cuerr = cudaSuccess;                    \
     cuerr = cudaMemcpy(_dst, _src, _size, _type);       \
@@ -186,7 +189,7 @@ do {                                                    \
          __FILE__, __LINE__,result);                    \
         exit(EXIT_FAILURE);                             \
     }                                                   \
-    MPIU_Assert(cudaSuccess == result);                 \
+    MPIR_Assert(cudaSuccess == result);                 \
 } while (0)
 
 #define CU_CHECK(stmt)                                  \
@@ -197,40 +200,40 @@ do {                                                    \
          __FILE__, __LINE__,result);                    \
         exit(EXIT_FAILURE);                             \
     }                                                   \
-    MPIU_Assert(CUDA_SUCCESS == result);                \
+    MPIR_Assert(CUDA_SUCCESS == result);                \
 } while (0)
 
-#define MPIU_Device_CtxGetCurrent(_ctx)     \
+#define MV2_MPIDI_Device_CtxGetCurrent(_ctx)     \
 do {                                        \
     CU_CHECK(cuCtxGetCurrent(_ctx));        \
 } while (0)
 
-#define MPIU_Device_EventCreate(_event)     \
+#define MV2_MPIDI_DeviceEventCreate(_event)     \
 do {                                        \
     CUDA_CHECK(cudaEventCreate(_event));    \
 } while (0)
 
-#define MPIU_Device_EventCreateWithFlags(_event, _flags)    \
+#define MV2_MPIDI_DeviceEventCreateWithFlags(_event, _flags)    \
 do {                                                        \
     CUDA_CHECK(cudaEventCreateWithFlags(_event, _flags));  \
 } while (0)
 
-#define MPIU_Device_EventRecord(_event, _stream)    \
+#define MV2_MPIDI_Device_EventRecord(_event, _stream)    \
 do {                                                \
     CUDA_CHECK(cudaEventRecord(_event, _stream));   \
 } while (0)
 
-#define MPIU_Device_EventSynchronize(_event)    \
+#define MV2_MPIDI_Device_EventSynchronize(_event)    \
 do {                                            \
     CUDA_CHECK(cudaEventSynchronize(_event));   \
 } while (0)
 
-#define MPIU_Device_StreamWaitEvent(_stream, _event, _flag)     \
+#define MV2_MPIDI_Device_StreamWaitEvent(_stream, _event, _flag)     \
 do {                                                            \
     CUDA_CHECK(cudaStreamWaitEvent(_stream, _event, _flag));    \
 } while (0)
 
-#define MPIU_Device_EventDestroy(_event)    \
+#define MV2_MPIDI_Device_EventDestroy(_event)    \
 do {                                        \
     CUDA_CHECK(cudaEventDestroy(_event));   \
 } while (0)
@@ -241,28 +244,28 @@ void DEVICE_COLL_Finalize ();
 #if defined(HAVE_CUDA_IPC)
 #define CUDAIPC_DEBUG 0
 
-#define MPIU_Device_IpcGetMemHandle(_memhandle_out, _base)      \
+#define MV2_MPIDI_Device_IpcGetMemHandle(_memhandle_out, _base)      \
 do {                                                            \
     CUDA_CHECK(cudaIpcGetMemHandle(_memhandle_out, _base));     \
 } while (0)
 
-#define MPIU_Device_IpcOpenMemHandle(_base_out, _memhandle)             \
+#define MV2_MPIDI_Device_IpcOpenMemHandle(_base_out, _memhandle)             \
 do {                                                                    \
     CUDA_CHECK(cudaIpcOpenMemHandle(_base_out, _memhandle,              \
                                     cudaIpcMemLazyEnablePeerAccess));   \
 } while (0)
 
-#define MPIU_Device_IpcOpenEventHandle(_event, _handle)     \
+#define MV2_MPIDI_Device_IpcOpenEventHandle(_event, _handle)     \
 do {                                                        \
     CUDA_CHECK(cudaIpcOpenEventHandle(_event, _handle));    \
 } while (0)
 
-#define MPIU_Device_IpcGetEventHandle(_handle, _event)  \
+#define MV2_MPIDI_Device_IpcGetEventHandle(_handle, _event)  \
 do {                                                    \
     CUDA_CHECK(cudaIpcGetEventHandle(_handle, _event)); \
 } while (0)
 
-#define MPIU_Device_IpcCloseMemHandle(_base)    \
+#define MV2_MPIDI_Device_IpcCloseMemHandle(_base)    \
 do {                                            \
     CUDA_CHECK(cudaIpcCloseMemHandle(_base));   \
 } while (0)
@@ -272,23 +275,23 @@ do {                                            \
     if (NULL == (c)->mrail.device_ipc_sreq_tail) {              \
         (c)->mrail.device_ipc_sreq_head = (void *)(s);          \
     } else {                                                    \
-        ((MPID_Request *)                                       \
+        ((MPIR_Request *)                                       \
          (c)->mrail.device_ipc_sreq_tail)->mrail.next_inflow =  \
             (void *)(s);                                        \
     }                                                           \
     (c)->mrail.device_ipc_sreq_tail = (void *)(s);              \
-    ((MPID_Request *)(s))->mrail.next_inflow = NULL;            \
+    ((MPIR_Request *)(s))->mrail.next_inflow = NULL;            \
 }
 
 #define DEVICE_IPC_RECV_DONE(c) {                               \
-    MPID_Request *req = (c)->mrail.device_ipc_sreq_head;        \
+    MPIR_Request *req = (c)->mrail.device_ipc_sreq_head;        \
     (c)->mrail.device_ipc_sreq_head =                           \
-    ((MPID_Request *)                                           \
+    ((MPIR_Request *)                                           \
      (c)->mrail.device_ipc_sreq_head)->mrail.next_inflow;       \
         if (NULL == (c)->mrail.device_ipc_sreq_head) {          \
             (c)->mrail.device_ipc_sreq_tail = NULL;             \
         }                                                       \
-    MPID_Request_release(req);                                  \
+    MPIR_Request_free(req);                                  \
 }
 
 #define CUDAIPC_BUF_LOCAL_IDX(rank)  (cudaipc_num_stage_buffers * rank)

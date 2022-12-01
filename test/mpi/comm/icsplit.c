@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2007 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -88,8 +87,7 @@ int main(int argc, char *argv[])
             if (commok) {
                 errs += MTestTestComm(newcomm);
             }
-        }
-        else {
+        } else {
             int orig_rsize;
             /* If the newcomm is null, then this means that remote group
              * for this color is of size zero (since all processes in this
@@ -110,7 +108,6 @@ int main(int argc, char *argv[])
     }
     MTest_Finalize(errs);
 
-    MPI_Finalize();
 
-    return 0;
+    return MTestReturnValue(errs);
 }

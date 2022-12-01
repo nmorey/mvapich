@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2011 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /* A simple test of the proposed MPI_T_ interface that queries all of
@@ -74,8 +72,7 @@ int main(int argc, char **argv)
             val = 0xdeadbeef;
             MPI_T_cvar_read(handle, &val);
             printf("--> incremented val=%d\n", val);
-        }
-        else if (dtype == MPI_DOUBLE) {
+        } else if (dtype == MPI_DOUBLE) {
             double val = NAN;
             MPI_T_cvar_read(handle, &val);
             printf("--> val=%f\n", val);
@@ -84,8 +81,7 @@ int main(int argc, char **argv)
             val = NAN;
             MPI_T_cvar_read(handle, &val);
             printf("--> doubled val=%f\n", val);
-        }
-        else if (dtype == MPI_CHAR) {
+        } else if (dtype == MPI_CHAR) {
             char *str = malloc(count + 1);
             MPI_T_cvar_read(handle, str);
             printf("--> str='%s'\n", str);

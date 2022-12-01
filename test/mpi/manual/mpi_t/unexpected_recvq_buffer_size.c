@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2012 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /* This test checks that the nemesis code correctly exposes statistics related
@@ -14,6 +12,7 @@
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
+#include "mpitest.h"
 
 #define TRY(func)                           \
     do {                                    \
@@ -43,8 +42,7 @@ void reversed_tags_test()
         MPI_Send(send_buf, EAGER_SIZE, MPI_INT, 1, 0xB, MPI_COMM_WORLD);
         MPI_Send(send_buf, EAGER_SIZE, MPI_INT, 1, 0xC, MPI_COMM_WORLD);
         MPI_Send(send_buf, EAGER_SIZE, MPI_INT, 1, 0xD, MPI_COMM_WORLD);
-    }
-    else if (rank == 1) {
+    } else if (rank == 1) {
         int recv_buf[EAGER_SIZE];
         MPI_Status status;
 
@@ -80,8 +78,7 @@ void rndv_test()
 
         MPI_Send(send_buf, RNDV_SIZE, MPI_INT, 1, 0, MPI_COMM_WORLD);
         MPI_Send(send_buf, RNDV_SIZE, MPI_INT, 1, 0, MPI_COMM_WORLD);
-    }
-    else if (rank == 1) {
+    } else if (rank == 1) {
         int recv_buf[RNDV_SIZE];
         MPI_Status status;
 
@@ -162,5 +159,5 @@ int main(int argc, char *argv[])
     TRY(MPI_T_finalize());
     MPI_Finalize();
 
-    return 0;
+    return MTestReturnValue(found);
 }

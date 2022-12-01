@@ -1,9 +1,8 @@
-/* -*- Mode: C++; c-basic-offset:4 ; -*- */
 /*
- *
- *  (C) 2003 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include "mpitestconf.h"
 #ifdef HAVE_IOSTREAM
@@ -22,7 +21,7 @@ using namespace std;
 #endif
 #include "mpitestcxx.h"
 
-int main( int argc, char **argv )
+int main(int argc, char **argv)
 {
     int errs = 0;
     MPI::File fh;
@@ -32,47 +31,45 @@ int main( int argc, char **argv )
     char *mykey;
     char *myvalue;
 
-    MTest_Init( );
+    MTest_Init();
 
-    mykey = new char [MPI::MAX_INFO_KEY];
-    myvalue = new char [MPI::MAX_INFO_VAL];
+    mykey = new char[MPI::MAX_INFO_KEY];
+    myvalue = new char[MPI::MAX_INFO_VAL];
 
     // Open a simple file
-    strcpy( filename, "iotest.txt" );
-    fh = MPI::File::Open( MPI::COMM_WORLD, filename, MPI::MODE_RDWR |
-			  MPI::MODE_CREATE, MPI::INFO_NULL );
+    strcpy(filename, "iotest.txt");
+    fh = MPI::File::Open(MPI::COMM_WORLD, filename, MPI::MODE_RDWR |
+                         MPI::MODE_CREATE, MPI::INFO_NULL);
 
-    // Try to set one of the available info hints  
+    // Try to set one of the available info hints
     info1 = MPI::Info::Create();
-    info1.Set( "access_style", "read_once,write_once" );
-    fh.Set_info( info1 );
+    info1.Set("access_style", "read_once,write_once");
+    fh.Set_info(info1);
     info1.Free();
-      
+
     info2 = fh.Get_info();
-    flag = info2.Get( "filename", MPI::MAX_INFO_VAL, myvalue );
+    flag = info2.Get("filename", MPI::MAX_INFO_VAL, myvalue);
 
     // An implementation isn't required to provide the filename (though
     // a high-quality implementation should)
     if (flag) {
-	// If we find it, we must have the correct name
-	if (strcmp( myvalue, filename ) != 0 ||
-	    strlen(myvalue) != 10) {
+        // If we find it, we must have the correct name
+        if (strcmp(myvalue, filename) != 0 || strlen(myvalue) != 10) {
             errs++;
             cout << " Returned wrong value for the filename\n";
-	}
+        }
     }
     info2.Free();
 
     fh.Close();
-    
-    MPI::COMM_WORLD.Barrier();
-    if (MPI::COMM_WORLD.Get_rank() == 0) 
-	MPI::File::Delete( filename, MPI::INFO_NULL );
-    
-    delete [] mykey;
-    delete [] myvalue;
 
-    MTest_Finalize( errs );
-    MPI::Finalize();
+    MPI::COMM_WORLD.Barrier();
+    if (MPI::COMM_WORLD.Get_rank() == 0)
+        MPI::File::Delete(filename, MPI::INFO_NULL);
+
+    delete[]mykey;
+    delete[]myvalue;
+
+    MTest_Finalize(errs);
     return 0;
 }

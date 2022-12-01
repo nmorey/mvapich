@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2005 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include "mpitest.h"
@@ -47,8 +46,7 @@ int main(int argc, char *argv[])
         if (parentcomm == MPI_COMM_NULL) {
             MPI_Comm_spawn((char *) "./spaiccreate2", MPI_ARGV_NULL, np,
                            MPI_INFO_NULL, 0, MPI_COMM_WORLD, &intercomm, errcodes);
-        }
-        else {
+        } else {
             intercomm = parentcomm;
         }
 
@@ -81,12 +79,12 @@ int main(int argc, char *argv[])
          * if both call MTest_Finalize */
         if (parentcomm == MPI_COMM_NULL) {
             MTest_Finalize(errs);
+        } else {
+            MPI_Finalize();
         }
-    }
-    else {
+    } else {
         MTest_Finalize(errs);
     }
 
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

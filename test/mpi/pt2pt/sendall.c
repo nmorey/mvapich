@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2007 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include <stdio.h>
@@ -61,7 +59,6 @@ int main(int argc, char *argv[])
                 if (i != self)
                     MPI_Wait(&request[i], &status);
             }
-
         }
         MPI_Barrier(MPI_COMM_WORLD);
         secs += MPI_Wtime();
@@ -76,6 +73,5 @@ int main(int argc, char *argv[])
 
     MTest_Finalize(0);
 
-    MPI_Finalize();
     return 0;
 }

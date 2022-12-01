@@ -23,7 +23,7 @@
 #include "mpispawn_ckpt.h"
 #include "mpispawn_tree.h"
 #include "mpirun_util.h"
-#include "debug_utils.h"
+#include "mv2_debug_utils.h"
 #include "crfs.h"
 // TODO: remove debug.h
 #include "debug.h"

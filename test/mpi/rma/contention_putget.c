@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /** Contended RMA put/get test -- James Dinan <dinan@mcs.anl.gov>
@@ -14,6 +13,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "mpi.h"
+#include "mpitest.h"
 
 #define MAXELEMS      6400
 #define COUNT         1000
@@ -76,7 +76,7 @@ void test_put(void)
 
 int main(int argc, char *argv[])
 {
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &nproc);
     MPI_Comm_rank(MPI_COMM_WORLD, &me);
 
@@ -91,15 +91,12 @@ int main(int argc, char *argv[])
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    MPI_Finalize();
+    MTest_Finalize(0);
 
     if (me == 0 && verbose) {
         printf("Test completed.\n");
         fflush(stdout);
     }
-
-    if (me == 0)
-        printf(" No Errors\n");
 
     return 0;
 }

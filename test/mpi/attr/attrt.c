@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 /*
 
   Exercise communicator routines.
@@ -32,8 +31,7 @@ int main(int argc, char **argv)
 
     errs = test_communicators();
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }
 
 int copy_fn(MPI_Comm oldcomm, int keyval, void *extra_state,
@@ -135,14 +133,12 @@ int test_communicators(void)
             printf("incorrect lo group rank: %d\n", rank);
             fflush(stdout);
             MPI_Abort(MPI_COMM_WORLD, 3002);
-        }
-        else {
+        } else {
             /* printf("lo in\n");FFLUSH; */
             MPI_Barrier(lo_comm);
             /* printf("lo out\n");FFLUSH; */
         }
-    }
-    else {
+    } else {
         if (lo_comm != MPI_COMM_NULL) {
             errs++;
             printf("incorrect lo comm:\n");

@@ -43,15 +43,15 @@ extern int g_smp_eagersize;
  */
 #define MPIDI_CH3_Request_add_ref(req)				\
 {								\
-    MPIU_Assert(HANDLE_GET_MPI_KIND(req->handle) == MPID_REQUEST);	\
-    MPIU_Object_add_ref(req);					\
+    MPIR_Assert(HANDLE_GET_MPI_KIND(req->handle) == MPID_REQUEST);	\
+    MPIR_Object_add_ref(req);					\
 }
 
 #define MPIDI_CH3_Request_release_ref(req, req_ref_count)	\
 {								\
-    MPIU_Assert(HANDLE_GET_MPI_KIND(req->handle) == MPID_REQUEST);	\
-    MPIU_Object_release_ref(req, req_ref_count);		\
-    MPIU_Assert(req->ref_count >= 0);				\
+    MPIR_Assert(HANDLE_GET_MPI_KIND(req->handle) == MPID_REQUEST);	\
+    MPIR_Object_release_ref(req, req_ref_count);		\
+    MPIR_Assert(req->ref_count >= 0);				\
 }
 
 /*

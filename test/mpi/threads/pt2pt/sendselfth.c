@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2006 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,7 +32,7 @@ int main(int argc, char *argv[])
     char buffer[100];
     MPI_Status status;
 
-    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+    MTest_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -44,7 +43,6 @@ int main(int argc, char *argv[])
                 ("MPI_Init_thread must return MPI_THREAD_MULTIPLE in order for this test to run.\n");
             fflush(stdout);
         }
-        MPI_Finalize();
         return -1;
     }
 
@@ -57,6 +55,5 @@ int main(int argc, char *argv[])
     MTest_Join_threads();
 
     MTest_Finalize(0);
-    MPI_Finalize();
     return 0;
 }

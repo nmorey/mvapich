@@ -15,7 +15,7 @@
 #include <string.h>
 #include <mv2_ud.h>
 #include "vbuf.h"
-#include <debug_utils.h>
+#include "mv2_debug_utils.h"
 
 enum {
     MSG_QUEUED_RECVWIN,
@@ -61,7 +61,7 @@ enum {
 
 static inline void mv2_ud_ext_sendq_queue(message_queue_t *q, vbuf *v)
 {
-    MPIU_Assert(!(v->in_ud_ext_sendq));
+    MPIR_Assert(!(v->in_ud_ext_sendq));
     v->in_ud_ext_sendq = 1;
     v->desc.next = NULL;
     if (q->head == NULL) {
@@ -106,13 +106,13 @@ static inline void mv2_ud_send_window_add(message_queue_t *q, vbuf *v)
 
 static inline void mv2_ud_send_window_remove(message_queue_t *q, vbuf *v)
 {
-    MPIU_Assert (q->head == v);
+    MPIR_Assert (q->head == v);
     v->in_sendwin = 0;
     q->head = v->sendwin_msg.next;
     q->count--;
     if (q->head == NULL ) {
         q->tail = NULL;
-        MPIU_Assert(q->count == 0);
+        MPIR_Assert(q->count == 0);
     }
 
     v->sendwin_msg.next = NULL;

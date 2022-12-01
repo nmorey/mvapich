@@ -20,45 +20,41 @@
 #include "rdma_impl.h"
 #include "ibv_send_inline.h"
 
-#undef FUNCNAME
-#define FUNCNAME update_request
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-static inline int update_request(MPID_Request* sreq, MPL_IOV* iov, int count, int offset, int nb)
+static inline int update_request(MPIR_Request* sreq, struct iovec* iov, int count, int offset, int nb)
 {
-    MPIDI_STATE_DECL(MPID_STATE_UPDATE_REQUEST);
-    MPIDI_FUNC_ENTER(MPID_STATE_UPDATE_REQUEST);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_UPDATE_REQUEST);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_UPDATE_REQUEST);
     int mpi_errno = MPI_SUCCESS;
 
-    MPIU_Memcpy(sreq->dev.iov, iov, count * sizeof(MPL_IOV));
+    MPIR_Memcpy(sreq->dev.iov, iov, count * sizeof(struct iovec));
 
     if (offset == 0)
     {
 #if defined(MPICH_DBG_OUTPUT)
-        if (iov[0].MPL_IOV_LEN != sizeof(MPIDI_CH3_Pkt_t))
+        if (iov[0].iov_len != sizeof(MPIDI_CH3_Pkt_t))
         {
             MPIR_ERR_SETANDJUMP(mpi_errno, MPI_ERR_OTHER, "**arg");
         }
 #endif /* defined(MPICH_DBG_OUTPUT) */
 #ifdef _ENABLE_CUDA_
-        sreq->dev.pending_pkt = MPIU_Malloc(iov[0].MPL_IOV_LEN);
-        MPIU_Memcpy(sreq->dev.pending_pkt, iov[0].MPL_IOV_BUF, iov[0].MPL_IOV_LEN);
-        sreq->dev.iov[0].MPL_IOV_BUF = (void*)sreq->dev.pending_pkt;
+        sreq->dev.pending_pkt = MPL_malloc(iov[0].iov_len, MPL_MEM_OTHER);
+        MPIR_Memcpy(sreq->dev.pending_pkt, iov[0].iov_base, iov[0].iov_len);
+        sreq->dev.iov[0].iov_base = (void*)sreq->dev.pending_pkt;
 #else
-        MPIU_Memcpy(&sreq->dev.pending_pkt, iov[0].MPL_IOV_BUF, sizeof(MPIDI_CH3_Pkt_t));
-        sreq->dev.iov[0].MPL_IOV_BUF = (void*)&sreq->dev.pending_pkt;
+        MPIR_Memcpy(&sreq->dev.pending_pkt, iov[0].iov_base, sizeof(MPIDI_CH3_Pkt_t));
+        sreq->dev.iov[0].iov_base = (void*)&sreq->dev.pending_pkt;
 #endif
     }
 
-    sreq->dev.iov[offset].MPL_IOV_BUF = (char *) sreq->dev.iov[offset].MPL_IOV_BUF + nb;
-    sreq->dev.iov[offset].MPL_IOV_LEN -= nb;
+    sreq->dev.iov[offset].iov_base = (char *) sreq->dev.iov[offset].iov_base + nb;
+    sreq->dev.iov[offset].iov_len -= nb;
     sreq->dev.iov_count = count;
     sreq->dev.iov_offset = offset;
 
     MV2_INC_NUM_POSTED_SEND();
 
 fn_exit:
-    MPIDI_FUNC_EXIT(MPID_STATE_UPDATE_REQUEST);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_UPDATE_REQUEST);
     return mpi_errno;
 
 #ifndef CHANNEL_MRAIL
@@ -80,21 +76,17 @@ do {                                                          \
 #define DEBUG_PRINT(args...)
 #endif /* defined(DEBUG) */
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_SMP_iSendv
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int MPIDI_CH3_SMP_iSendv(MPIDI_VC_t * vc,
-                                       MPID_Request * sreq, MPL_IOV * iov,
+                                       MPIR_Request * sreq, struct iovec * iov,
                                        int n_iov)
 {
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3_SMP_ISENDV);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_SMP_ISENDV);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3_SMP_ISENDV);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3_SMP_ISENDV);
     int mpi_errno = MPI_SUCCESS;
 
     PRINT_DEBUG(DEBUG_SHM_verbose>1,
             "dst: %d, sreq: %p, niov: %d, iov[0].buf: %p, iov[0].len: %lu\n",
-            vc->pg_rank, sreq, n_iov, iov[0].MPL_IOV_BUF, iov[0].MPL_IOV_LEN);
+            vc->pg_rank, sreq, n_iov, iov[0].iov_base, iov[0].iov_len);
 
     /* Connection already formed.  If send queue is empty attempt to send data,
      * queuing any unsent data. */
@@ -112,8 +104,8 @@ static inline int MPIDI_CH3_SMP_iSendv(MPIDI_VC_t * vc,
         DEBUG_PRINT("wrote %d bytes\n", nb);
 
         while (offset < n_iov) {
-            if ((int) iov[offset].MPL_IOV_LEN <= nb) {
-                nb -= iov[offset].MPL_IOV_LEN;
+            if ((int) iov[offset].iov_len <= nb) {
+                nb -= iov[offset].iov_len;
                 ++offset;
             } else {
                 DEBUG_PRINT("partial write, enqueuing at head\n");
@@ -124,7 +116,7 @@ static inline int MPIDI_CH3_SMP_iSendv(MPIDI_VC_t * vc,
                 }
 
                 MV2_INC_NUM_POSTED_SEND();
-                MPIU_Assert(vc->smp.send_active == NULL);
+                MPIR_Assert(vc->smp.send_active == NULL);
                 MPIDI_CH3I_SMP_SendQ_enqueue_head(vc, sreq);
                 vc->smp.send_active = sreq;
                 break;
@@ -142,7 +134,7 @@ static inline int MPIDI_CH3_SMP_iSendv(MPIDI_VC_t * vc,
                  * request may still be active (see MPI_Ssend())
                  */
                 MV2_INC_NUM_POSTED_SEND();
-                MPIU_Assert(vc->smp.send_active == NULL);
+                MPIR_Assert(vc->smp.send_active == NULL);
                 MPIDI_CH3I_SMP_SendQ_enqueue_head(vc, sreq);
                 vc->smp.send_active = sreq;
             } else {
@@ -150,7 +142,7 @@ static inline int MPIDI_CH3_SMP_iSendv(MPIDI_VC_t * vc,
             }
         }
     } else {
-        MPIDI_DBG_PRINTF((55, FCNAME, "send queue not empty, enqueuing"));
+        MPL_DBG_MSG(MPIDI_CH3_DBG_CHANNEL,VERBOSE,"send queue not empty, enqueuing");
 
         if ((mpi_errno = update_request(sreq, iov, n_iov, 0, 0)) != MPI_SUCCESS)
         {
@@ -161,26 +153,22 @@ static inline int MPIDI_CH3_SMP_iSendv(MPIDI_VC_t * vc,
     }
 
 fn_exit:
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_SMP_ISENDV);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3_SMP_ISENDV);
     return mpi_errno;
 
 fn_fail:
     goto fn_exit;
 }
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_iSendv
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDI_CH3_iSendv(MPIDI_VC_t * vc, MPID_Request * sreq, MPL_IOV * iov,
+int MPIDI_CH3_iSendv(MPIDI_VC_t * vc, MPIR_Request * sreq, struct iovec * iov,
                      int n_iov)
 {
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3_ISENDV);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_ISENDV);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3_ISENDV);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3_ISENDV);
     int mpi_errno = MPI_SUCCESS;
     void *databuf = NULL;
-    MPIU_DBG_PRINTF(("ch3_isendv\n"));
-    MPIDI_DBG_PRINTF((50, FCNAME, "entering"));
+    
+    MPL_DBG_MSG_S(MPIDI_CH3_DBG_CHANNEL,VERBOSE,"entering %s", __func__);
 
 #if defined(CKPT)
     MPIDI_CH3I_CR_lock();
@@ -189,11 +177,11 @@ int MPIDI_CH3_iSendv(MPIDI_VC_t * vc, MPID_Request * sreq, MPL_IOV * iov,
     if (sreq->dev.ext_hdr_sz > 0) {
         int i;
         for (i = n_iov-1; i >= 1; i--) {
-            iov[i+1].MPL_IOV_BUF = iov[i].MPL_IOV_BUF;
-            iov[i+1].MPL_IOV_LEN = iov[i].MPL_IOV_LEN;
+            iov[i+1].iov_base = iov[i].iov_base;
+            iov[i+1].iov_len = iov[i].iov_len;
         }
-        iov[1].MPL_IOV_BUF = (MPL_IOV_BUF_CAST) sreq->dev.ext_hdr_ptr;
-        iov[1].MPL_IOV_LEN = sreq->dev.ext_hdr_sz;
+        iov[1].iov_base = (void *) sreq->dev.ext_hdr_ptr;
+        iov[1].iov_len = sreq->dev.ext_hdr_sz;
         n_iov++;
     }
 
@@ -205,7 +193,7 @@ int MPIDI_CH3_iSendv(MPIDI_VC_t * vc, MPID_Request * sreq, MPL_IOV * iov,
             MPIR_ERR_POP(mpi_errno);
         }
 
-        MPIDI_DBG_PRINTF((50, FCNAME, "exiting"));
+        MPL_DBG_MSG_S(MPIDI_CH3_DBG_CHANNEL,VERBOSE,"exiting %s", __func__);
         goto fn_exit;
     }
 
@@ -225,7 +213,7 @@ if(rdma_enable_hybrid)
             ) || !MPIDI_CH3I_CM_SendQ_empty(vc))
     {
         /*Request need to be queued*/
-        MPIDI_DBG_PRINTF((55, FCNAME, "not connected, enqueuing"));
+        MPL_DBG_MSG(MPIDI_CH3_DBG_CHANNEL,VERBOSE,"not connected, enqueuing");
 
         if ((mpi_errno = update_request(sreq, iov, n_iov, 0, 0)) != MPI_SUCCESS)
         {
@@ -258,7 +246,7 @@ if(rdma_enable_hybrid)
          || (rdma_enable_hybrid && (!(vc->mrail.state & MRAILI_RC_CONNECTED) && pkt_len > MRAIL_MAX_UD_SIZE))
 #endif
         ) {
-            MPIU_Memcpy(sreq->dev.iov, iov, n_iov * sizeof(MPL_IOV));
+            MPIR_Memcpy(sreq->dev.iov, iov, n_iov * sizeof(struct iovec));
             sreq->dev.iov_count = n_iov;
             mpi_errno = MPIDI_CH3_Packetized_send(vc, sreq);
             if (MPI_MRAIL_MSG_QUEUED == mpi_errno) {
@@ -272,16 +260,16 @@ if(rdma_enable_hybrid)
             void *tmpbuf;
             int iter_iov;
 
-            tmpbuf = MPIU_Malloc(sreq->dev.segment_size + pkt_len);
+            tmpbuf = MPL_malloc(sreq->dev.msgsize + pkt_len, MPL_MEM_OTHER);
             databuf = tmpbuf;
             pkt_len = 0;
             /* First copy whatever has already been in iov set */
             for (iter_iov = 0; iter_iov < n_iov; iter_iov++) {
-              MPIU_Memcpy(tmpbuf, iov[iter_iov].MPL_IOV_BUF,
-                       iov[iter_iov].MPL_IOV_LEN);
+              MPIR_Memcpy(tmpbuf, iov[iter_iov].iov_base,
+                       iov[iter_iov].iov_len);
                 tmpbuf = (void *) ((unsigned long) tmpbuf +
-                                   iov[iter_iov].MPL_IOV_LEN);
-                pkt_len += iov[iter_iov].MPL_IOV_LEN;
+                                   iov[iter_iov].iov_len);
+                pkt_len += iov[iter_iov].iov_len;
             }
             DEBUG_PRINT("Pkt len after first stage %d\n", pkt_len);
             /* Second reload iov and copy */
@@ -297,16 +285,16 @@ if(rdma_enable_hybrid)
                 }
                 for (iter_iov = 0; iter_iov < sreq->dev.iov_count;
                      iter_iov++) {
-                  MPIU_Memcpy(tmpbuf, sreq->dev.iov[iter_iov].MPL_IOV_BUF,
-                           sreq->dev.iov[iter_iov].MPL_IOV_LEN);
+                  MPIR_Memcpy(tmpbuf, sreq->dev.iov[iter_iov].iov_base,
+                           sreq->dev.iov[iter_iov].iov_len);
                     tmpbuf =
                         (void *) ((unsigned long) tmpbuf +
-                                  sreq->dev.iov[iter_iov].MPL_IOV_LEN);
-                    pkt_len += sreq->dev.iov[iter_iov].MPL_IOV_LEN;
+                                  sreq->dev.iov[iter_iov].iov_len);
+                    pkt_len += sreq->dev.iov[iter_iov].iov_len;
                 }
             } while (sreq->dev.OnDataAvail == MPIDI_CH3_ReqHandler_SendReloadIOV);
-            iov[0].MPL_IOV_BUF = databuf;
-            iov[0].MPL_IOV_LEN = pkt_len;
+            iov[0].iov_base = databuf;
+            iov[0].iov_len = pkt_len;
             n_iov = 1;
         }
 
@@ -315,7 +303,7 @@ if(rdma_enable_hybrid)
          || (rdma_enable_hybrid && (!(vc->mrail.state & MRAILI_RC_CONNECTED) && pkt_len > MRAIL_MAX_UD_SIZE))
 #endif
         ) {
-            MPIU_Memcpy(sreq->dev.iov, iov, n_iov * sizeof(MPL_IOV));
+            MPIR_Memcpy(sreq->dev.iov, iov, n_iov * sizeof(struct iovec));
             sreq->dev.iov_count = n_iov;
             mpi_errno = MPIDI_CH3_Packetized_send(vc, sreq);
             if (MPI_MRAIL_MSG_QUEUED == mpi_errno) {
@@ -373,7 +361,7 @@ if(rdma_enable_hybrid)
             goto fn_exit;
         }
     } else {
-        MPIDI_DBG_PRINTF((55, FCNAME, "send queue not empty, enqueuing"));
+        MPL_DBG_MSG(MPIDI_CH3_DBG_CHANNEL,VERBOSE,"send queue not empty, enqueuing");
 
         if ((mpi_errno = update_request(sreq, iov, n_iov, 0, 0)) != MPI_SUCCESS)
         {
@@ -385,12 +373,12 @@ if(rdma_enable_hybrid)
 
 fn_exit:
     if (databuf)
-        MPIU_Free(databuf);
+        MPL_free(databuf);
 #ifdef CKPT
     MPIDI_CH3I_CR_unlock();
 #endif
-    MPIDI_DBG_PRINTF((50, FCNAME, "exiting"));
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3_ISENDV);
+    MPL_DBG_MSG_S(MPIDI_CH3_DBG_CHANNEL,VERBOSE,"exiting %s", __func__);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3_ISENDV);
     return mpi_errno;
 
 fn_fail:

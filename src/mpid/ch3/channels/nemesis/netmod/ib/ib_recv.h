@@ -18,13 +18,13 @@
 #include "ib_errors.h"
 int MPIDI_nem_ib_parse_header(MPIDI_VC_t * vc,
                                   vbuf * v, void **pkt, int *header_size);
-int MPIDI_nem_ib_fill_request(MPID_Request * req, vbuf * v,
+int MPIDI_nem_ib_fill_request(MPIR_Request * req, vbuf * v,
                                   int header_size, int *nb);
 void MPIDI_nem_ib_release_vbuf(vbuf * v);
 int MPIDI_nem_ib_recv_addr(MPIDI_VC_t * vc, void *vstart);
 int MPIDI_nem_ib_recv_addr_reply(MPIDI_VC_t * vc, void *vstart);
 int MPIDI_nem_ib_packetized_recv_data(MPIDI_VC_t * vc, vbuf *v);
-int MPIDI_nem_ib_packetized_recv_req(MPIDI_VC_t * vc, MPID_Request * rreq);
+int MPIDI_nem_ib_packetized_recv_req(MPIDI_VC_t * vc, MPIR_Request * rreq);
 
 #define IBV_POST_RR(_c,_vbuf,_rail) {                           \
     int __ret;                                                  \

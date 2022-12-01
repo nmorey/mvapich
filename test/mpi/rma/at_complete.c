@@ -1,11 +1,11 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2014 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include <stdio.h>
 #include <mpi.h>
+#include "mpitest.h"
 
 #define PUT_SIZE 1
 #define GET_SIZE 100000
@@ -18,10 +18,10 @@ int main(int argc, char **argv)
     int i, k, rank, nproc;
     int win_buf[WIN_SIZE], orig_get_buf[GET_SIZE], orig_put_buf[PUT_SIZE];
     int orig_rank = 0, dest_rank = 1;
-    int errors = 0;
+    int errs = 0;
     MPI_Group comm_group, orig_group, dest_group;
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
 
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &nproc);
@@ -57,11 +57,10 @@ int main(int argc, char **argv)
                 if (orig_get_buf[i] != 1) {
                     printf("LOOP=%d, FENCE, orig_get_buf[%d] = %d, expected 1.\n",
                            k, i, orig_get_buf[i]);
-                    errors++;
+                    errs++;
                 }
             }
-        }
-        else if (rank == dest_rank) {
+        } else if (rank == dest_rank) {
             MPI_Win_fence(MPI_MODE_NOPRECEDE, win);
             MPI_Win_fence(MPI_MODE_NOSUCCEED, win);
 
@@ -98,11 +97,10 @@ int main(int argc, char **argv)
                 if (orig_get_buf[i] != 1) {
                     printf("LOOP=%d, PSCW, orig_get_buf[%d] = %d, expected 1.\n",
                            k, i, orig_get_buf[i]);
-                    errors++;
+                    errs++;
                 }
             }
-        }
-        else if (rank == dest_rank) {
+        } else if (rank == dest_rank) {
             MPI_Win_post(orig_group, 0, win);
             MPI_Win_wait(win);
 
@@ -131,10 +129,6 @@ int main(int argc, char **argv)
     MPI_Group_free(&dest_group);
     MPI_Group_free(&comm_group);
 
-    if (rank == orig_rank && errors == 0) {
-        printf(" No Errors\n");
-    }
-
-    MPI_Finalize();
-    return 0;
+    MTest_Finalize(errs);
+    return MTestReturnValue(errs);
 }

@@ -23,8 +23,6 @@
 #define _COLL_SHMEM_INTERNAL
 #include <pthread.h>
 
-#include "coll_shmem.h"
-
 extern int mv2_shmem_coll_num_procs;
 extern int mv2_gather_status_alignment;
 extern int mv2_bcast_status_alignment;
@@ -53,11 +51,11 @@ extern volatile int *limic_progress;
 
 #define SHMEM_BCAST_SYNC_SET(p, r, c) (*(p + (mv2_bcast_status_alignment * ((mv2_shmem_coll_num_procs * r) + (c)))) = 1)
 #define SHMEM_BCAST_SYNC_SET_ONE_SHOT(p, r) \
-    MPIUI_Memset((p + ((mv2_shmem_coll_num_procs * r))), 1, sizeof(int) * mv2_shmem_coll_num_procs);         
+    MPIR_Memset((p + ((mv2_shmem_coll_num_procs * r))), 1, sizeof(int) * mv2_shmem_coll_num_procs);         
             
 #define SHMEM_BCAST_SYNC_CLR(p, r, c) (*(p + (mv2_bcast_status_alignment * ((mv2_shmem_coll_num_procs * r) + (c)))) = 0)
 #define SHMEM_BCAST_SYNC_CLR_ONE_SHOT(p, r) \
-    MPIUI_Memset((p + ((mv2_shmem_coll_num_procs * r))), 0, sizeof(int) * mv2_shmem_coll_num_procs);         
+    MPIR_Memset((p + ((mv2_shmem_coll_num_procs * r))), 0, sizeof(int) * mv2_shmem_coll_num_procs);         
 #define SHMEM_COLL_SYNC_SET(p, r, c) (*(p + (mv2_gather_status_alignment * ((mv2_shmem_coll_num_procs * r) + (c)))) = 1)
 #define SHMEM_COLL_SYNC_CLR(p, r, c) (*(p + (mv2_gather_status_alignment * ((mv2_shmem_coll_num_procs * r) + (c)))) = 0)
 

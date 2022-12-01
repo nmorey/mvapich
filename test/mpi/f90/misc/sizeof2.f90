@@ -1,7 +1,8 @@
-!  
-!  (C) 2004 by Argonne National Laboratory.
-!      See COPYRIGHT in top-level directory.
 !
+! Copyright (C) by Argonne National Laboratory
+!     See COPYRIGHT in top-level directory
+!
+
         program main
           use mpi
           integer ierr, errs
@@ -52,11 +53,6 @@
              print *, "real array size is ", size2, " sizeof claims ", size1
           endif
 
-          if (errs .gt. 0) then
-             print *, ' Found ', errs, ' errors'
-          else
-             print *, ' No Errors'
-          endif
-          call mpi_finalize(ierr)
+          call mtest_finalize( errs )
           
         end program main

@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2015 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include <stdio.h>
@@ -80,8 +79,7 @@ int main(int argc, char **argv)
         MPI_Iallreduce(&in, &out, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD, &sreq[0]);
         MPI_Comm_idup(dup_comm, &newcomm, &sreq[1]);
         MPI_Waitall(2, sreq, MPI_STATUS_IGNORE);
-    }
-    else {
+    } else {
         MPI_Comm_idup(dup_comm, &newcomm, &sreq[1]);
         MPI_Iallreduce(&in, &out, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD, &sreq[0]);
         MPI_Waitall(2, sreq, MPI_STATUS_IGNORE);
@@ -105,8 +103,7 @@ int main(int argc, char **argv)
         MPI_Iallreduce(&in, &out, 1, MPI_INT, MPI_SUM, split, &sreq[0]);
         MPI_Comm_idup(MPI_COMM_WORLD, &newcomm, &sreq[1]);
         MPI_Waitall(2, sreq, MPI_STATUS_IGNORE);
-    }
-    else {
+    } else {
         MPI_Comm_idup(MPI_COMM_WORLD, &newcomm, &sreq[1]);
         MPI_Iallreduce(&in, &out, 1, MPI_INT, MPI_SUM, split, &sreq[0]);
         MPI_Waitall(2, sreq, MPI_STATUS_IGNORE);
@@ -124,8 +121,7 @@ int main(int argc, char **argv)
         MPI_Iallreduce(&in, &out, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD, &sreq[0]);
         MPI_Comm_idup(split, &newcomm, &sreq[1]);
         MPI_Waitall(2, sreq, MPI_STATUS_IGNORE);
-    }
-    else {
+    } else {
         MPI_Comm_idup(split, &newcomm, &sreq[1]);
         MPI_Iallreduce(&in, &out, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD, &sreq[0]);
         MPI_Waitall(2, sreq, MPI_STATUS_IGNORE);
@@ -159,8 +155,7 @@ int main(int argc, char **argv)
         MPI_Iallreduce(&in, &out, 1, MPI_INT, MPI_SUM, split, &sreq[0]);
         MPI_Comm_idup(ic, &newcomm, &sreq[1]);
         MPI_Waitall(2, sreq, MPI_STATUS_IGNORE);
-    }
-    else {
+    } else {
         MPI_Comm_idup(ic, &newcomm, &sreq[1]);
         MPI_Iallreduce(&in, &out, 1, MPI_INT, MPI_SUM, split, &sreq[0]);
         MPI_Waitall(2, sreq, MPI_STATUS_IGNORE);
@@ -181,8 +176,7 @@ int main(int argc, char **argv)
         MPI_Iallreduce(&in, &out, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD, &sreq[0]);
         MPI_Comm_idup(merge, &newcomm, &sreq[1]);
         MPI_Waitall(2, sreq, MPI_STATUS_IGNORE);
-    }
-    else {
+    } else {
         MPI_Comm_idup(merge, &newcomm, &sreq[1]);
         MPI_Iallreduce(&in, &out, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD, &sreq[0]);
         MPI_Waitall(2, sreq, MPI_STATUS_IGNORE);
@@ -200,8 +194,7 @@ int main(int argc, char **argv)
         MPI_Iallreduce(&in, &out, 1, MPI_INT, MPI_SUM, merge, &sreq[0]);
         MPI_Comm_idup(MPI_COMM_WORLD, &newcomm, &sreq[1]);
         MPI_Waitall(2, sreq, MPI_STATUS_IGNORE);
-    }
-    else {
+    } else {
         MPI_Comm_idup(MPI_COMM_WORLD, &newcomm, &sreq[1]);
         MPI_Iallreduce(&in, &out, 1, MPI_INT, MPI_SUM, merge, &sreq[0]);
         MPI_Waitall(2, sreq, MPI_STATUS_IGNORE);
@@ -213,6 +206,5 @@ int main(int argc, char **argv)
     MPI_Comm_free(&ic);
 
     MTest_Finalize(errs);
-    MPI_Finalize();
-    return 0;
+    return MTestReturnValue(errs);
 }

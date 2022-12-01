@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2008 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #ifndef HYDRA_SERVER_H_INCLUDED
@@ -13,7 +12,6 @@
 struct HYD_cmd {
     enum {
         HYD_CLEANUP,
-        HYD_CKPOINT,
         HYD_SIGNAL
     } type;
 
@@ -37,6 +35,9 @@ struct HYD_server_info_s {
 
     /* Process groups */
     struct HYD_pg pg_list;
+
+    /* Hash for fast proxy lookup */
+    struct HYD_proxy *proxy_hash;
 
     /* Cleanup */
     int cmd_pipe[2];

@@ -40,8 +40,8 @@
 #ifdef USE_MEMORY_TRACING
     #undef calloc
     #undef free
-    #define calloc(a,b)       'Error use MPIU_Calloc' :::
-    #define free(a)           'Error use MPIU_Free'   :::
+    #define calloc(a,b)       'Error use MPL_calloc' :::
+    #define free(a)           'Error use MPL_free'   :::
 #endif
 
 #endif /*defined(HAVE_LIBIBUMAD)*/
@@ -59,7 +59,68 @@
 #ifdef _ENABLE_IBV_DLOPEN_
 #include <dlfcn.h>
 #endif /*_ENABLE_IBV_DLOPEN_*/
+/*
+=== BEGIN_MPI_T_MV2_CVAR_INFO_BLOCK ===
 
+cvars:
+    - name        : MV2_LIBIBVERBS_PATH
+      category    : CH3
+      type        : string
+      default     : NULL
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : TODO-DESC
+
+    - name        : MV2_LIBIBMAD_PATH
+      category    : CH3
+      type        : string
+      default     : NULL
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : TODO-DESC
+
+    - name        : MV2_LIBIBUMAD_PATH
+      category    : CH3
+      type        : string
+      default     : NULL
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : TODO-DESC
+
+    - name        : MV2_LIBRDMACM_PATH
+      category    : CH3
+      type        : string
+      default     : NULL
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : TODO-DESC
+
+    - name        : MV2_LIBSHARP_PATH
+      category    : CH3
+      type        : string
+      default     : NULL
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : TODO-DESC
+
+    - name        : MV2_ENABLE_SHARP
+      category    : CH3
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Set this to 1, to enable hardware SHArP support in collective
+        communication.
+
+=== END_MPI_T_MV2_CVAR_INFO_BLOCK ===
+*/
 /* Structure to abstract calls to verbs library */
 typedef struct _ibv_ops_t {
     /* Functions to manipulate list of devices */
@@ -126,7 +187,7 @@ typedef struct _ibv_ops_t {
     /* Functions related to async events */
     int (*get_async_event)(struct ibv_context *context,
                             struct ibv_async_event *event);
-    
+
     void (*ack_async_event)(struct ibv_async_event *event);
     /* Functions related to debugging events */
     const char* (*event_type_str)(enum ibv_event_type event_type);
@@ -326,9 +387,8 @@ static inline int mv2_ibv_dlopen_init()
 #ifdef _ENABLE_IBV_DLOPEN_
     ibv_dl_handle = dlopen("libibverbs.so", RTLD_NOW);
     if (!ibv_dl_handle) {
-        path = getenv("MV2_LIBIBVERBS_PATH");
-        if (path) {
-            ibv_dl_handle = dlopen(path, RTLD_NOW);
+        if (MV2_LIBIBVERBS_PATH) {
+            ibv_dl_handle = dlopen(MV2_LIBIBVERBS_PATH, RTLD_NOW);
         }
     }
     if (!ibv_dl_handle) {
@@ -401,9 +461,8 @@ static inline int mv2_mad_dlopen_init()
 #ifdef _ENABLE_IBV_DLOPEN_
     mad_dl_handle = dlopen("libibmad.so", RTLD_NOW);
     if (!mad_dl_handle) {
-        path = getenv("MV2_LIBIBMAD_PATH");
-        if (path) {
-            mad_dl_handle = dlopen(path, RTLD_NOW);
+        if (MV2_LIBIBMAD_PATH) {
+            mad_dl_handle = dlopen(MV2_LIBIBMAD_PATH, RTLD_NOW);
         }
     }
     if (!mad_dl_handle) {
@@ -435,9 +494,8 @@ static inline int mv2_umad_dlopen_init()
 #ifdef _ENABLE_IBV_DLOPEN_
     umad_dl_handle = dlopen("libibumad.so", RTLD_NOW);
     if (!umad_dl_handle) {
-        path = getenv("MV2_LIBIBUMAD_PATH");
-        if (path) {
-            umad_dl_handle = dlopen(path, RTLD_NOW);
+        if (MV2_LIBIBUMAD_PATH) {
+            umad_dl_handle = dlopen(MV2_LIBIBUMAD_PATH, RTLD_NOW);
         }
     }
     if (!umad_dl_handle) {
@@ -485,9 +543,8 @@ static inline int mv2_rdma_dlopen_init()
 #ifdef _ENABLE_IBV_DLOPEN_
     rdma_dl_handle = dlopen("librdmacm.so", RTLD_NOW);
     if (!rdma_dl_handle) {
-        path = getenv("MV2_LIBRDMACM_PATH");
-        if (path) {
-            rdma_dl_handle = dlopen(path, RTLD_NOW);
+        if (MV2_LIBRDMACM_PATH) {
+            rdma_dl_handle = dlopen(MV2_LIBRDMACM_PATH, RTLD_NOW);
         }
     }
     if (!rdma_dl_handle) {
@@ -532,16 +589,15 @@ static inline int mv2_rdma_dlopen_init()
 }
 #endif /*defined(RDMA_CM)*/
 
-#if defined(_SHARP_SUPPORT_) 
-static inline int mv2_sharp_dlopen_init() 
+#if defined(_SHARP_SUPPORT_)
+static inline int mv2_sharp_dlopen_init()
 {
     char *path;
 #ifdef _ENABLE_IBV_DLOPEN_
     sharp_dl_handle = dlopen("libsharp_coll.so", RTLD_NOW);
     if (!sharp_dl_handle) {
-        path = getenv("MV2_LIBSHARP_PATH");
-        if (path) {
-            sharp_dl_handle = dlopen(path, RTLD_NOW);
+        if (MV2_LIBSHARP_PATH) {
+            sharp_dl_handle = dlopen(MV2_LIBSHARP_PATH, RTLD_NOW);
         }
     }
     if (!sharp_dl_handle) {
@@ -586,8 +642,8 @@ static inline int mv2_sharp_dlopen_init()
 #endif /* defined(_SHARP_SUPPORT_) */
 
 static inline int mv2_dlopen_init()
-{ 
-    int err = SUCCESS_DLOPEN; 
+{
+    int err = SUCCESS_DLOPEN;
 
     err = mv2_ibv_dlopen_init();
     if (err != SUCCESS_DLOPEN) {
@@ -614,7 +670,7 @@ static inline int mv2_dlopen_init()
 
 #if defined(_SHARP_SUPPORT_)
     char *value;
-    if ((value = getenv("MV2_ENABLE_SHARP")) != NULL && atoi(value)) {
+    if (MV2_ENABLE_SHARP) {
         err = mv2_sharp_dlopen_init();
         if (err != SUCCESS_DLOPEN) {
             fprintf(stderr, "mv2_sharp_dlopen_init returned %d\n", err);

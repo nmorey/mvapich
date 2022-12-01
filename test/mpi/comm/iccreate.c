@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2007 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -89,23 +88,22 @@ int main(int argc, char *argv[])
             const char *rname = 0;
             errs++;
             switch (result) {
-            case MPI_IDENT:
-                rname = "IDENT";
-                break;
-            case MPI_CONGRUENT:
-                rname = "CONGRUENT";
-                break;
-            case MPI_SIMILAR:
-                rname = "SIMILAR";
-                break;
-            case MPI_UNEQUAL:
-                rname = "UNEQUAL";
-                break;
-                printf("[%d] Expected MPI_CONGRUENT but saw %d (%s)", wrank, result, rname);
-                fflush(stdout);
+                case MPI_IDENT:
+                    rname = "IDENT";
+                    break;
+                case MPI_CONGRUENT:
+                    rname = "CONGRUENT";
+                    break;
+                case MPI_SIMILAR:
+                    rname = "SIMILAR";
+                    break;
+                case MPI_UNEQUAL:
+                    rname = "UNEQUAL";
+                    break;
+                    printf("[%d] Expected MPI_CONGRUENT but saw %d (%s)", wrank, result, rname);
+                    fflush(stdout);
             }
-        }
-        else {
+        } else {
             /* Try to communication between each member of intercomm */
             errs += MTestTestComm(newcomm);
         }
@@ -118,8 +116,7 @@ int main(int argc, char *argv[])
         if (isLeft) {
             /* left side reuses oldgroup, our local group in intercomm */
             MPI_Comm_create(intercomm, oldgroup, &newcomm);
-        }
-        else {
+        } else {
             /* right side passes MPI_GROUP_EMPTY */
             MPI_Comm_create(intercomm, MPI_GROUP_EMPTY, &newcomm);
         }
@@ -138,7 +135,6 @@ int main(int argc, char *argv[])
 
     MTest_Finalize(errs);
 
-    MPI_Finalize();
 
-    return 0;
+    return MTestReturnValue(errs);
 }

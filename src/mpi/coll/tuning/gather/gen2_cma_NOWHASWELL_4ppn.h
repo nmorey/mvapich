@@ -19,9 +19,9 @@
 	{8192, &MPIR_Gather_MV2_Direct},		\
 	{16384, &MPIR_Gather_MV2_Direct},		\
 	{32768, &MPIR_Gather_MV2_Direct},		\
-	{65536, &MPIR_Gather_intra},		\
+	{65536, &MPIR_Gather_intra_binomial},		\
 	{131072, &MPIR_Gather_MV2_Direct},		\
-	{262144, &MPIR_Gather_intra},		\
+	{262144, &MPIR_Gather_intra_binomial},		\
 	{524288, &MPIR_Gather_MV2_Direct},		\
 	{1048576, &MPIR_Gather_MV2_Direct}		\
 	},		\
@@ -144,10 +144,10 @@
 	{4096, &MPIR_Gather_MV2_Direct},		\
 	{8192, &MPIR_Gather_MV2_Direct},		\
 	{16384, &MPIR_Gather_MV2_Direct},		\
-	{32768, &MPIR_Gather_intra},		\
-	{65536, &MPIR_Gather_intra},		\
-	{131072, &MPIR_Gather_intra},		\
-	{262144, &MPIR_Gather_intra},		\
+	{32768, &MPIR_Gather_intra_binomial},		\
+	{65536, &MPIR_Gather_intra_binomial},		\
+	{131072, &MPIR_Gather_intra_binomial},		\
+	{262144, &MPIR_Gather_intra_binomial},		\
 	{524288, &MPIR_Gather_MV2_Direct},		\
 	{1048576, &MPIR_Gather_MV2_Direct}		\
 	}		\

@@ -1,8 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 #include <stdio.h>
 #include "mpitest.h"
@@ -52,8 +52,7 @@ int main(int argc, char *argv[])
                 printf("[%d] Rank %d is %d but should be 0\n", rank, i, ranksout[i]);
                 errs++;
             }
-        }
-        else {
+        } else {
             if (ranksout[i] != MPI_UNDEFINED) {
                 printf("[%d] Rank %d is %d but should be undefined\n", rank, i, ranksout[i]);
                 errs++;
@@ -119,8 +118,7 @@ int main(int argc, char *argv[])
                 fprintf(stderr, "Input rank for proc_null but output was %d\n", ranksout[i]);
                 errs++;
             }
-        }
-        else if (ranksout[i] != ranks[ranksin[i]]) {
+        } else if (ranksout[i] != ranks[ranksin[i]]) {
             fprintf(stderr, "Expected ranksout[%d] = %d but found %d\n",
                     i, ranks[ranksin[i]], ranksout[i]);
             errs++;
@@ -140,8 +138,7 @@ int main(int argc, char *argv[])
                 fprintf(stderr, "Input rank for proc_null but output was %d\n", ranksout[i]);
                 errs++;
             }
-        }
-        else if (ranksout[i] != (size - 1) - ranks[ranksin[i]]) {
+        } else if (ranksout[i] != (size - 1) - ranks[ranksin[i]]) {
             fprintf(stderr, "Expected ranksout[%d] = %d but found %d\n",
                     i, (size - 1) - ranks[ranksin[i]], ranksout[i]);
             errs++;
@@ -154,7 +151,6 @@ int main(int argc, char *argv[])
     MPI_Group_free(&ngroup);
 
     MTest_Finalize(errs);
-    MPI_Finalize();
 
-    return 0;
+    return MTestReturnValue(errs);
 }

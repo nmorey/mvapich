@@ -10,6 +10,7 @@ What does this feature do? Does it address a known problem? Describe the reason 
 - [ ] Regressions linked
     * Latest master compared to new feature performance
 - [ ] CHANGELOG Updated
+- [ ] User Guide/README Updated
 
 #### Reviewer
 - [ ] Builds and runs with default build options for ch3:mrail (Frontera, RI2, Lassen)

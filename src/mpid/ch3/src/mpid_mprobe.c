@@ -1,17 +1,12 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2012 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpidimpl.h"
 
-#undef FUNCNAME
-#define FUNCNAME MPID_Mprobe
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-int MPID_Mprobe(int source, int tag, MPID_Comm *comm, int context_offset,
-                MPID_Request **message, MPI_Status *status)
+int MPID_Mprobe(int source, int tag, MPIR_Comm *comm, int context_offset,
+                MPIR_Request **message, MPI_Status *status)
 {
     int mpi_errno = MPI_SUCCESS;
     MPID_Progress_state progress_state;
@@ -21,42 +16,11 @@ int MPID_Mprobe(int source, int tag, MPID_Comm *comm, int context_offset,
     *message = NULL;
 
     MV2_INC_NUM_UNEXP_RECV();
-    if (source == MPI_PROC_NULL)
-    {
-        MPIR_Status_set_procnull(status);
-        found = TRUE;
-        *message = NULL; /* should be interpreted as MPI_MESSAGE_NO_PROC */
-        goto fn_exit;
-    }
 
     /* Check to make sure the communicator hasn't already been revoked */
     if (comm->revoked) {
         MPIR_ERR_SETANDJUMP(mpi_errno,MPIX_ERR_REVOKED,"**revoked");
     }
-
-#if defined (CHANNEL_PSM)
-    #if PSM_VERNO < PSM_2_1_VERSION
-    MPIR_ERR_SETANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**fail", "**fail %s",
-            "Operation not supported for QLogic PSM (CH3:PSM) channel\n");
-    #endif
-
-	int complete = FALSE;
-    MPID_Request *rreq = MPID_Request_create();
-    MPIU_Object_set_ref(rreq, 2);
-    rreq->kind = MPID_REQUEST_MPROBE;
-    MPIR_Comm_add_ref(comm);
-    rreq->comm = comm;
-
-    MPID_Progress_poke();
-    mpi_errno = MPIDI_CH3_Mprobe(source, tag, context_id,
-                                rreq, status, &complete,
-                                PSM_BLOCKING);
-    if(mpi_errno) MPIR_ERR_POP(mpi_errno);
-    MPIU_Assert(complete == TRUE);
-
-    *message = rreq;
-    goto fn_exit;
-#endif
 
 #ifdef ENABLE_COMM_OVERRIDES
     if (MPIDI_Anysource_improbe_fn) {
@@ -71,14 +35,14 @@ int MPID_Mprobe(int source, int tag, MPID_Comm *comm, int context_offset,
                 if (found) goto fn_exit;
 
                 mpi_errno = MPIDI_Anysource_improbe_fn(tag, comm, context_offset, &found, message, status);
-                if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+                MPIR_ERR_CHECK(mpi_errno);
                 if (found) goto fn_exit;
 
                 MPID_THREAD_CS_YIELD(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
 
                 /* FIXME could this be replaced with a progress_wait? */
                 mpi_errno = MPIDI_CH3_Progress_test();
-                if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+                MPIR_ERR_CHECK(mpi_errno);
             } while (1);
         }
         else {
@@ -91,14 +55,14 @@ int MPID_Mprobe(int source, int tag, MPID_Comm *comm, int context_offset,
                 do {
                     mpi_errno = vc->comm_ops->improbe(vc, source, tag, comm, context_offset, &found,
                                                       message, status);
-                    if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+                    MPIR_ERR_CHECK(mpi_errno);
                     if (found) goto fn_exit;
 
                     MPID_THREAD_CS_YIELD(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
 
                     /* FIXME could this be replaced with a progress_wait? */
                     mpi_errno = MPIDI_CH3_Progress_test();
-                    if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+                    MPIR_ERR_CHECK(mpi_errno);
                 } while (1);
             }
             /* fall-through to shm case */
@@ -128,10 +92,10 @@ int MPID_Mprobe(int source, int tag, MPID_Comm *comm, int context_offset,
     }
     while(mpi_errno == MPI_SUCCESS);
     MPIDI_CH3_Progress_end(&progress_state);
-    if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+    MPIR_ERR_CHECK(mpi_errno);
 
     if (*message) {
-        (*message)->kind = MPID_REQUEST_MPROBE;
+        (*message)->kind = MPIR_REQUEST_KIND__MPROBE;
         MPIR_Request_extract_status((*message), status);
     }
 

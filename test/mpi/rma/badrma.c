@@ -1,11 +1,11 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpi.h"
 #include "stdio.h"
+#include "mpitest.h"
 
 #define SIZE 100
 
@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
     int errs = 0;
     MPI_Datatype types[4];
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -144,10 +144,7 @@ int main(int argc, char *argv[])
     MPI_Type_free(&types[0]);
     MPI_Type_free(&types[1]);
 
-    if (!errs && !rank)
-        printf(" No Errors\n");
+    MTest_Finalize(errs);
 
-    MPI_Finalize();
-
-    return 0;
+    return MTestReturnValue(errs);
 }

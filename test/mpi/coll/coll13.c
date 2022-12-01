@@ -1,13 +1,12 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  Changes to the original code
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mpi.h"
 
 /*
-From: hook@nas.nasa.gov (Edward C. Hook)
+ * Adapted from the code provided by hook@nas.nasa.gov (Edward C. Hook)
  */
 
 #include <stdlib.h>
@@ -38,12 +37,12 @@ int main(int argc, char *argv[])
         if (argv[i][0] != '-')
             continue;
         switch (argv[i][1]) {
-        case 'm':
-            chunk = atoi(argv[++i]);
-            break;
-        default:
-            fprintf(stderr, "Unrecognized argument %s\n", argv[i]);
-            MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
+            case 'm':
+                chunk = atoi(argv[++i]);
+                break;
+            default:
+                fprintf(stderr, "Unrecognized argument %s\n", argv[i]);
+                MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
         }
     }
 
@@ -76,7 +75,6 @@ int main(int argc, char *argv[])
     free(sb);
     free(rb);
 
-    MPI_Finalize();
 
     return MTestReturnValue(status);
 }

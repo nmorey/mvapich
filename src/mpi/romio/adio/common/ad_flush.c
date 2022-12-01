@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
-/* 
- *
- *   Copyright (C) 1997 University of Chicago. 
- *   See COPYRIGHT notice in top-level directory.
+/*
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "adio.h"
@@ -19,16 +17,15 @@ void ADIOI_GEN_Flush(ADIO_File fd, int *error_code)
     /* the deferred-open optimization may mean that a file has not been opened
      * on this processor */
     if (fd->is_open > 0) {
-	err = fsync(fd->fd_sys);
-	/* --BEGIN ERROR HANDLING-- */
-	if (err == -1) {
-	    *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
-		    myname, __LINE__, MPI_ERR_IO,
-		    "**io",
-		    "**io %s", strerror(errno));
-	    return;
-	}
-	/* --END ERROR HANDLING-- */
+        err = fsync(fd->fd_sys);
+        /* --BEGIN ERROR HANDLING-- */
+        if (err == -1) {
+            *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
+                                               myname, __LINE__, MPI_ERR_IO,
+                                               "**io", "**io %s", strerror(errno));
+            return;
+        }
+        /* --END ERROR HANDLING-- */
     }
 
     *error_code = MPI_SUCCESS;

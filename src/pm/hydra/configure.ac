@@ -1,8 +1,9 @@
+##
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
+##
+
 AC_PREREQ(2.62)
-#
-# (C) 2008 by Argonne National Laboratory.
-#     See COPYRIGHT in top-level directory.
-#
 
 m4_include([version.m4])
 AC_INIT([Hydra], MPICH_VERSION_m4)
@@ -17,7 +18,8 @@ AC_ARG_PROGRAM
 
 dnl must come before LT_INIT, which AC_REQUIREs AC_PROG_CC
 dnl must also come before AC_USE_SYSTEM_EXTENSIONS
-PAC_PROG_CC
+AC_PROG_CC
+AC_PROG_CC_C99
 AM_PROG_CC_C_O
 
 # also needed by hwloc in embedded mode, must also come early for expansion
@@ -47,6 +49,9 @@ PAC_RESET_LINK_FLAGS()
 WRAPPER_LIBS=""
 export WRAPPER_LIBS
 AC_SUBST(WRAPPER_LIBS)
+
+# let confdb macro know that we are using WRAPPER FLAGS
+m4_define([use_wrapper_flags], [1])
 
 PAC_ARG_STRICT
 
@@ -113,21 +118,6 @@ if test "$CC" != "" ; then
 else
    AC_DEFINE_UNQUOTED(HYDRA_CC,"",[C compiler])
 fi
-if test "$CXX" != "" ; then
-   AC_DEFINE_UNQUOTED(HYDRA_CXX,"$CXX $CPPFLAGS $CXXFLAGS $LDFLAGS $LIBS",[C++ compiler])
-else
-   AC_DEFINE_UNQUOTED(HYDRA_CXX,"",[C++ compiler])
-fi
-if test "$F77" != "" ; then
-   AC_DEFINE_UNQUOTED(HYDRA_F77,"$F77 $FFLAGS $LDFLAGS $LIBS",[Fortran 77 compiler])
-else
-   AC_DEFINE_UNQUOTED(HYDRA_F77,"",[Fortran 77 compiler])
-fi
-if test "$FC" != "" ; then
-   AC_DEFINE_UNQUOTED(HYDRA_F90,"$FC $FCFLAGS $LDFLAGS $LIBS",[Fortran 90 compiler])
-else
-   AC_DEFINE_UNQUOTED(HYDRA_F90,"",[Fortran 90 compiler])
-fi
 PAC_POP_ALL_FLAGS
 
 AC_DEFINE_UNQUOTED(HYDRA_CONFIGURE_ARGS_CLEAN,"`echo $ac_configure_args`",[Configure arguments])
@@ -160,7 +150,7 @@ if test "$with_mpl_prefix" = "embedded" ; then
     mpl_srcdir="mpl"
     mpl_dist_srcdir="mpl"
     mpl_lib="mpl/lib${MPLLIBNAME}.la"
-    mpl_subdir_args="--disable-versioning"
+    mpl_subdir_args="--disable-versioning --enable-embedded"
     PAC_CONFIG_SUBDIR_ARGS([mpl],[$mpl_subdir_args],[],[AC_MSG_ERROR(MPL configure failed)])
     mpl_includedir='-I$(top_builddir)/mpl/include -I$(top_srcdir)/mpl/include'
 else
@@ -194,8 +184,8 @@ AC_SEARCH_LIBS(getaddrinfo,nsl,)
 AC_SEARCH_LIBS(hstrerror, resolv,)
 
 # Check for necessary functions
-AC_CHECK_FUNCS(gettimeofday time strdup sigaction signal usleep alloca unsetenv \
-	       strerror strsignal stat fcntl alarm isatty inet_ntop getpgid \
+AC_CHECK_FUNCS(gettimeofday time sigaction signal usleep alloca unsetenv \
+	       strsignal stat fcntl alarm isatty inet_ntop getpgid \
 	       setsid killpg hstrerror)
 
 if test "$ac_cv_func_hstrerror" = "yes" ; then
@@ -443,16 +433,6 @@ hydra_topolibs="`echo $hydra_topolib_list | sed -e 's/:/ /g' -e 's/,/ /g'`"
 
 enable_cuda=no
 
-# Unconditionally include the hwloc macros, even if we are using an
-# external hwloc (or hwloc is disabled). This is needed for the
-# AM_CONDITIONALS that we will set later.
-m4_include([tools/topo/hwloc/hwloc/config/hwloc.m4])
-m4_include([tools/topo/hwloc/hwloc/config/hwloc_check_attributes.m4])
-m4_include([tools/topo/hwloc/hwloc/config/hwloc_check_visibility.m4])
-m4_include([tools/topo/hwloc/hwloc/config/hwloc_check_vendor.m4])
-m4_include([tools/topo/hwloc/hwloc/config/hwloc_components.m4])
-m4_include([tools/topo/hwloc/hwloc/config/hwloc_pkg.m4])
-
 have_hwloc=no
 for hydra_topolib in ${hydra_topolibs}; do
     case "$hydra_topolib" in
@@ -462,9 +442,6 @@ for hydra_topolib in ${hydra_topolibs}; do
 		   # Only build hwloc in embedded mode
 		   if test "$have_hwloc" = "yes" ; then
 		      hydra_use_embedded_hwloc=yes
-		      CFLAGS="$HWLOC_EMBEDDED_CFLAGS $CFLAGS"
-		      CPPFLAGS="$HWLOC_EMBEDDED_CPPFLAGS $CPPFLAGS"
-		      LIBS="$HWLOC_EMBEDDED_LIBS $LIBS"
 		   fi
                 else
                     AC_CHECK_HEADERS([hwloc.h])
@@ -513,77 +490,26 @@ else
 fi
 
 HWLOC_DO_AM_CONDITIONALS
-AM_CONDITIONAL([hydra_have_hwloc], [test "${have_hwloc}" = "yes"])
-AM_CONDITIONAL([hydra_use_embedded_hwloc], [test "${hydra_use_embedded_hwloc}" = "yes"])
+AM_CONDITIONAL([HYDRA_HAVE_HWLOC], [test "${have_hwloc}" = "yes"])
+AM_CONDITIONAL([HYDRA_USE_EMBEDDED_HWLOC], [test "${hydra_use_embedded_hwloc}" = "yes"])
 
 AC_MSG_CHECKING([available processor topology libraries])
 AC_MSG_RESULT([$available_topolibs])
 
+#########################################################################
+# Slurm hostlist parsing
+#########################################################################
+AC_CHECK_HEADERS(slurm/slurm.h)
+AC_CHECK_LIB([slurm],[slurm_hostlist_create],have_libslurm=yes)
+if test "$have_libslurm" = "yes" -a "$ac_cv_header_slurm_slurm_h" = "yes" ; then
+    PAC_PREPEND_FLAG([-lslurm],[LIBS])
+    AC_DEFINE(HAVE_LIBSLURM,1,[Define if libslurm is available])
+fi
 
 #########################################################################
-# Checkpoint/Restart
+# POSIX Regcomp
 #########################################################################
-
-# checkpoint requires pthreads
-AC_CHECK_HEADERS(pthread.h)
-AC_CHECK_LIB([pthread],[pthread_key_create],have_pthreads=yes)
-if test "$have_pthreads" = "yes" ; then
-    PAC_PREPEND_FLAG([-lpthread],[LIBS])
-    AC_DEFINE(HAVE_PTHREADS,1,[Define if pthreads is available])
-fi
-
-AC_ARG_WITH(hydra-ckpointlib, [  --with-hydra-ckpointlib=name - Checkpointing Library (blcr)],
-			   [ hydra_ckpointlib_list=$withval ],
-			   [ hydra_ckpointlib_list=none ])
-AC_MSG_CHECKING(checkpointing library)
-
-if test "$have_pthreads" != "yes" -a "$hydra_ckpointlib_list" != "none" ; then
-    AC_MSG_ERROR([pthreads is required for checkpointing, but was not found])
-else
-    AC_MSG_RESULT($hydra_ckpointlib_list)
-fi
-
-hydra_ckpointlibs="`echo $hydra_ckpointlib_list | sed -e 's/:/ /g' -e 's/,/ /g'`"
-
-have_blcr=no
-for hydra_ckpointlib in ${hydra_ckpointlibs}; do
-    case "$hydra_ckpointlib" in
-    	blcr)
-	    PAC_SET_HEADER_LIB_PATH(blcr)
-	    PAC_PUSH_FLAG(LIBS)
-	    PAC_CHECK_HEADER_LIB(libcr.h, cr, cr_init, have_blcr=yes, have_blcr=no)
-	    PAC_POP_FLAG(LIBS)
-	    # BLCR works
-	    if test "$have_blcr" = "yes" ; then
-	       AC_DEFINE(HAVE_BLCR,1,[Define if blcr is available])
-	       available_ckpointlibs="$available_ckpointlibs blcr"
-	       PAC_APPEND_FLAG([-lcr],[WRAPPER_LIBS])
-	    fi
-	    ;;		
-	*)
-	    ;;
-    esac
-done
-
-tmp_list=
-for hydra_ckpointlib in ${available_ckpointlibs}; do
-    if test -z "$hydra_default_ckpointlib" ; then
-       hydra_default_ckpointlib=${hydra_ckpointlib}
-       tmp_list="${hydra_ckpointlib}"
-    else
-       tmp_list="$tmp_list ${hydra_ckpointlib}"
-    fi
-done
-available_ckpointlibs=$tmp_list
-
-AC_DEFINE_UNQUOTED(HYDRA_AVAILABLE_CKPOINTLIBS,"$available_ckpointlibs",
-		[Definition of enabled checkpointing libraries])
-if test "$hydra_default_ckpointlib" != "" ; then
-   AC_DEFINE_UNQUOTED(HYDRA_DEFAULT_CKPOINTLIB,"$hydra_default_ckpointlib",
-		[Default checkpointing library])
-fi
-AM_CONDITIONAL([hydra_have_blcr], [test "${have_blcr}" = "yes"])
-
+AX_CHECK_POSIX_REGCOMP
 
 #########################################################################
 # Demux engine
@@ -670,6 +596,7 @@ for option in $enable_g ; do
         all)
 		PAC_APPEND_FLAG(-g, CFLAGS)
 		AC_DEFINE(USE_MEMORY_TRACING,1,[Define if memory tracing is enabled])
+		AC_DEFINE(PMI_KEY_CHECK,1,[Define if we should check for PMI key collisions])
 		;;
         *)
 		;;
@@ -714,28 +641,6 @@ AC_MSG_RESULT($enable_profiling)
 if test "$enable_profiling" = "yes"; then
    AC_DEFINE(ENABLE_PROFILING,1,[Define if profiling enabled])
 fi
-
-
-#########################################################################
-# FTB integration
-#########################################################################
-# FTB requires pthreads support; add pthreads to LIBS before trying to
-# find FTB
-dnl <_OSU_MVAPICH_>
-dnl Disable ftb support in hydra for now.
-dnl PAC_PUSH_FLAG([LIBS])
-dnl PAC_PREPEND_FLAG([-lpthread],[LIBS])
-dnl PAC_SET_HEADER_LIB_PATH(ftb)
-dnl PAC_CHECK_HEADER_LIB(libftb.h, ftb, FTB_Connect, have_ftb=yes, have_ftb=no)
-dnl PAC_POP_FLAG([LIBS])
-dnl </_OSU_MVAPICH_>
-if test "$have_ftb" = "yes" ; then
-   # FIXME: We need to test to make sure FTB works correctly
-   PAC_APPEND_FLAG([-lpthread],[LIBS])
-   AC_DEFINE(ENABLE_FTB,1,[Define if FTB is enabled])
-   PAC_APPEND_FLAG([-lftb],[WRAPPER_LIBS])
-fi
-AM_CONDITIONAL([hydra_have_ftb], [test "${have_ftb}" = "yes"])
 
 
 #########################################################################

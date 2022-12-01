@@ -13,7 +13,7 @@
 #include <src/pm/mpirun/mpirun_rsh.h>
 #include <mpirun_ckpt.h>
 #include <wfe_mpirun.h>
-#include <debug_utils.h>
+#include <mv2_debug_utils.h>
 #include <mpispawn_error_codes.h>
 #include <m_state.h>
 #include <process.h>

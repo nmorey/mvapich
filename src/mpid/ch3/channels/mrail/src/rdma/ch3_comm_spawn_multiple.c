@@ -13,18 +13,14 @@
 #include "mpidi_ch3_impl.h"
 #include "upmi.h"
 
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3_Comm_spawn_multiple
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_Comm_spawn_multiple(int count, char **commands,
                                   char ***argvs, int *maxprocs,
-                                  MPID_Info ** info_ptrs, int root,
-                                  MPID_Comm * comm_ptr, MPID_Comm
+                                  MPIR_Info ** info_ptrs, int root,
+                                  MPIR_Comm * comm_ptr, MPIR_Comm
                                   ** intercomm, int *errcodes)
 {
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3_COMM_SPAWN_MULTIPLE);
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3_COMM_SPAWN_MULTIPLE);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3_COMM_SPAWN_MULTIPLE);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3_COMM_SPAWN_MULTIPLE);
     int mpi_errno = MPI_SUCCESS;
     char port_name[MPI_MAX_PORT_NAME];
     int *info_keyval_sizes, i;
@@ -32,9 +28,9 @@ int MPIDI_CH3_Comm_spawn_multiple(int count, char **commands,
 
     if (comm_ptr->rank == root)
     {
-        if ((info_keyval_sizes = (int *) MPIU_Malloc(count * sizeof(int))) == NULL)
+        if ((info_keyval_sizes = (int *) MPL_malloc(count * sizeof(int), MPL_MEM_OTHER)) == NULL)
         {
-            MPIU_CHKMEM_SETERR(mpi_errno, count * sizeof(int), "key value sizes array");
+            MPIR_CHKMEM_SETERR(mpi_errno, count * sizeof(int), "key value sizes array");
         }
 
         /* TEMPORARILY set all user-provided info to NULL. PMI is not
@@ -72,7 +68,7 @@ int MPIDI_CH3_Comm_spawn_multiple(int count, char **commands,
             mpi_errno = MPIR_Err_create_code(
                 MPI_SUCCESS,
                 MPIR_ERR_FATAL,
-                FCNAME,
+                __func__,
                 __LINE__,
                 MPI_ERR_OTHER,
                 "**pmi_spawn_multiple",
@@ -81,7 +77,7 @@ int MPIDI_CH3_Comm_spawn_multiple(int count, char **commands,
 #endif /* HAVE_ERROR_CHECKING */
         }
 
-        MPIU_Free(info_keyval_sizes);
+        MPL_free(info_keyval_sizes);
     }
 
     if ((mpi_errno = MPIDI_CH3_Comm_accept(
@@ -94,7 +90,7 @@ int MPIDI_CH3_Comm_spawn_multiple(int count, char **commands,
     }
 
 fn_exit:
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3_COMM_SPAWN_MULTIPLE);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3_COMM_SPAWN_MULTIPLE);
     return mpi_errno;
 
 fn_fail:

@@ -1,13 +1,12 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include "mpi.h"
+#include "mpitest.h"
 
 /* Make sure datatype creation is independent of data size
    Note, however, that there is no guarantee or expectation
@@ -36,7 +35,7 @@ int main(int argc, char *argv[])
     int size;
     int i, j, errs = 0, nrows, ncols;
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
 
     tmean = 0;
     size = 1;
@@ -47,7 +46,7 @@ int main(int argc, char *argv[])
 
         for (j = 0; j < LOOPS; j++) {
             MPI_Type_vector(nrows, 1, ncols, MPI_INT, &column[j]);
-            MPI_Type_hvector(ncols, 1, sizeof(int), column[j], &xpose[j]);
+            MPI_Type_create_hvector(ncols, 1, sizeof(int), column[j], &xpose[j]);
             MPI_Type_commit(&xpose[j]);
         }
 
@@ -106,9 +105,7 @@ int main(int argc, char *argv[])
             fprintf(stderr, "%.3f ", t[i] * 1e6);
         fprintf(stderr, "\n");
     }
-    else
-        printf(" No Errors\n");
 
-    MPI_Finalize();
-    return 0;
+    MTest_Finalize(errs);
+    return MTestReturnValue(errs);
 }

@@ -1,8 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2009 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 /*
  * Test of reduce scatter block.
  *
@@ -20,12 +20,12 @@
 int main(int argc, char **argv)
 {
     int err = 0;
-    int toterr, size, rank, i, sumval;
+    int size, rank, i, sumval;
     int *sendbuf;
     int *recvbuf;
     MPI_Comm comm;
 
-    MPI_Init(&argc, &argv);
+    MTest_Init(&argc, &argv);
     comm = MPI_COMM_WORLD;
 
     MPI_Comm_size(comm, &size);
@@ -68,12 +68,7 @@ int main(int argc, char **argv)
     }
     free(recvbuf);
 #endif
+    MTest_Finalize(err);
 
-    MPI_Allreduce(&err, &toterr, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-    if (rank == 0 && toterr == 0) {
-        printf(" No Errors\n");
-    }
-    MPI_Finalize();
-
-    return toterr;
+    return MTestReturnValue(err);
 }

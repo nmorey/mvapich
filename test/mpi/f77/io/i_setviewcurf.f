@@ -1,8 +1,8 @@
-C -*- Mode: Fortran; -*-
 C
-C  (C) 2003 by Argonne National Laboratory.
-C      See COPYRIGHT in top-level directory.
+C Copyright (C) by Argonne National Laboratory
+C     See COPYRIGHT in top-level directory
 C
+
       program main
       implicit none
       include 'mpif.h'
@@ -116,7 +116,4 @@ C   All processes must provide the same file view for MODE_SEQUENTIAL
       endif
 
       call MTest_Finalize( errs )
-
-      call MPI_Finalize( ierr )
       end
-

@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2009 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #ifndef DEBUGGER_H_INCLUDED
@@ -9,8 +8,8 @@
 
 /* This structure is defined by the debugger interface */
 typedef struct MPIR_PROCDESC {
-    const char *host_name;
-    const char *executable_name;
+    char *host_name;
+    char *executable_name;
     int pid;
 } MPIR_PROCDESC;
 
