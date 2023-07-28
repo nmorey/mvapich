@@ -25,9 +25,7 @@ noinst_HEADERS += \
     src/mpi/coll/ibcast/ibcast.h
 
 if BUILD_OSU_MVAPICH
-if BUILD_MRAIL
 mpi_core_sources += \
 	src/mpi/coll/ibcast/ibcast_osu.c 	\
 	src/mpi/coll/ibcast/ibcast_tuning.c
-endif
 endif

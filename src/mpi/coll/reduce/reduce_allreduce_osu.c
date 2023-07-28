@@ -1,8 +1,8 @@
 #include "reduce_tuning.h"
 
-int MPIR_Reduce_allreduce_MV2(const void *sendbuf, void *recvbuf, int count,
+int MPIR_Reduce_allreduce_MVP(const void *sendbuf, void *recvbuf, int count,
                               MPI_Datatype datatype, MPI_Op op, int root,
-                              MPIR_Comm * comm_ptr, MPIR_Errflag_t *errflag)
+                              MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag)
 {
     MPIR_TIMER_START(coll, reduce, allreduce);
     int mpi_errno = MPI_SUCCESS;
@@ -18,7 +18,7 @@ int MPIR_Reduce_allreduce_MV2(const void *sendbuf, void *recvbuf, int count,
         return MPI_SUCCESS;
     }
 
-    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_reduce_allreduce, 1);
+    MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_reduce_allreduce, 1);
 
     rank = comm_ptr->rank;
 
@@ -28,27 +28,27 @@ int MPIR_Reduce_allreduce_MV2(const void *sendbuf, void *recvbuf, int count,
     recvbuf_size = count * MPL_MAX(extent, true_extent);
 
     /* Call allreduce and discard the result on all non-root processes */
-    if(comm_ptr->dev.ch.shmem_coll_ok == 1 
-            && recvbuf_size <= mv2_coll_tmp_buf_size) {
+    if (comm_ptr->dev.ch.shmem_coll_ok == 1 &&
+        recvbuf_size <= MVP_COLL_TMP_BUF_SIZE) {
         tmp_buf = comm_ptr->dev.ch.coll_tmp_buf;
         using_comm_buf = 1;
     } else {
-        if(rank != root) {
+        if (rank != root) {
             tmp_buf = MPL_malloc(recvbuf_size, MPL_MEM_BUFFER);
         }
     }
 
-    if(rank != root) {
-        mpi_errno = MPIR_Allreduce_MV2(sendbuf, tmp_buf, count, datatype,
-                                       op, comm_ptr, errflag);
+    if (rank != root) {
+        mpi_errno = MPIR_Allreduce_MVP(sendbuf, tmp_buf, count, datatype, op,
+                                       comm_ptr, errflag);
     } else {
-        mpi_errno = MPIR_Allreduce_MV2(sendbuf, recvbuf, count, datatype,
-                                       op, comm_ptr, errflag);
+        mpi_errno = MPIR_Allreduce_MVP(sendbuf, recvbuf, count, datatype, op,
+                                       comm_ptr, errflag);
     }
 
     MPIR_ERR_CHECK(mpi_errno);
 
-    if(!using_comm_buf && rank != root) {
+    if (!using_comm_buf && rank != root) {
         MPL_free(tmp_buf);
     }
 

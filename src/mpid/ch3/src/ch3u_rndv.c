@@ -2,15 +2,15 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -28,7 +28,7 @@ extern unsigned long long PVAR_COUNTER_expected_recvs_rendezvous;
  * for MPI point-to-point messaging.
  */
 
-static inline int mv2_is_dt_contig(MPIR_Request *req) {
+static inline int mvp_is_dt_contig(MPIR_Request *req) {
     int dt_contig = 1;
     if (req->dev.datatype &&
             HANDLE_GET_KIND(req->dev.datatype) != HANDLE_KIND_BUILTIN) {
@@ -183,22 +183,23 @@ int MPIDI_CH3_RndvSend( MPIR_Request **sreq_p, const void * buf, MPI_Aint count,
 }
 
 #if defined(CHANNEL_MRAIL)
-void mv2_select_rndv_protocol(
+void mvp_select_rndv_protocol(
         MPIDI_VC_t *vc,
         MPIR_Request *rreq,
         MPIDI_CH3_Pkt_rndv_req_to_send_t * rts_pkt)
 {
     int protocol = rts_pkt->rndv.protocol;
-    int dt_contig = mv2_is_dt_contig(rreq);
+    int dt_contig = mvp_is_dt_contig(rreq);
 
-    if (protocol == MV2_RNDV_PROTOCOL_R3 || rreq->dev.iov_count > 1 || !dt_contig) {
+    if (protocol == MRAILI_PROTOCOL_R3 || rreq->dev.iov_count > 1 ||
+        !dt_contig) {
         /* Fallback to R3 for non-contiguous transfers */
-        protocol = MV2_RNDV_PROTOCOL_R3;
+        protocol = MRAILI_PROTOCOL_R3;
     }
     rreq->mrail.protocol = rts_pkt->rndv.protocol = protocol;
 }
 
-/* MV2 optimized SMP RGET design */
+/* MVP optimized SMP RGET design */
 int MPIDI_CH3_PktHandler_SMP_RTS( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt,
                     intptr_t *buflen, MPIR_Request **rreqp )
 {
@@ -227,13 +228,13 @@ int MPIDI_CH3_PktHandler_SMP_RTS( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt,
         MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_POBJ_MSGQ_MUTEX);
 
         *buflen = sizeof(MPIDI_CH3_Pkt_t);
-        mv2_select_rndv_protocol(vc, rreq, rts_pkt);
+        mvp_select_rndv_protocol(vc, rreq, rts_pkt);
     } else {
         found = 1;
         rreq = *rreqp;
         *buflen = sizeof(MPIDI_CH3_Pkt_t);
         set_request_info(rreq, rts_pkt, MPIDI_REQUEST_RNDV_MSG);
-        mv2_select_rndv_protocol(vc, rreq, rts_pkt);
+        mvp_select_rndv_protocol(vc, rreq, rts_pkt);
         PRINT_DEBUG(DEBUG_RNDV_verbose>1,
                 "Saved RTS, sreq: %08x, rank: %d, tag: %d, context: %d, protocol: %d, data_sz: %ld\n",
                 rts_pkt->sender_req_id, rts_pkt->match.parts.rank, rts_pkt->match.parts.tag, 
@@ -244,26 +245,25 @@ int MPIDI_CH3_PktHandler_SMP_RTS( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt,
 #if defined (_ENABLE_CUDA_)
         /* Fallback to R3 for heterogeneous transfer, i.e., H-D and D-H
          * TODO: may consider support RGET/RPUT for such case */
-        if (mv2_enable_device && (rts_pkt->rndv.device_transfer_mode != rreq->mrail.device_transfer_mode)) {
-            rreq->mrail.protocol = rts_pkt->rndv.protocol = MV2_RNDV_PROTOCOL_R3;
+        if (mvp_enable_device && (rts_pkt->rndv.device_transfer_mode != rreq->mrail.device_transfer_mode)) {
+            rreq->mrail.protocol = rts_pkt->rndv.protocol = MRAILI_PROTOCOL_R3;
         }
 #if defined (HAVE_CUDA_IPC)
         /*initialize IPC buffers if not initialized*/
-        if (mv2_enable_device &&
-            mv2_device_use_ipc &&
-            mv2_device_dynamic_init &&
+        if (mvp_enable_device &&
+            mvp_device_use_ipc &&
+            mvp_device_dynamic_init &&
             (rreq->mrail.device_transfer_mode != NONE ||
              rts_pkt->rndv.device_transfer_mode != NONE) &&
-             vc->smp.can_access_peer == MV2_DEVICE_IPC_UNINITIALIZED) {
-                if (mv2_device_initialized) {
+             vc->smp.can_access_peer == MVP_DEVICE_IPC_UNINITIALIZED) {
+                if (mvp_device_initialized) {
                     device_ipc_init_dynamic (vc);
                 }
         }
 #endif /* defined (HAVE_CUDA_IPC) */
 #endif /* defined (_ENABLE_CUDA_) */
 
-        if(MV2_RNDV_PROTOCOL_RGET == rts_pkt->rndv.protocol) {
-
+        if (MRAILI_PROTOCOL_RGET == rts_pkt->rndv.protocol) {
             MPIDI_CH3I_MRAIL_SET_REQ_REMOTE_RNDV(rreq, rts_pkt);
 
             mpi_errno = MPIDI_CH3U_Post_data_receive_found(rreq);
@@ -277,13 +277,13 @@ int MPIDI_CH3_PktHandler_SMP_RTS( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt,
             }
 
 #if defined(_ENABLE_CUDA_) && defined(HAVE_CUDA_IPC)
-            if  (mv2_enable_device && mv2_device_use_ipc
+            if  (mvp_enable_device && mvp_device_use_ipc
                     && rts_pkt->rndv.device_transfer_mode != NONE) {
                 /*revert to RGET if using IPC and rdma is possible*/
-                if (MV2_RNDV_PROTOCOL_RPUT == rreq->mrail.protocol) {
-                    rreq->mrail.protocol = MV2_RNDV_PROTOCOL_RGET;
+                if (MRAILI_PROTOCOL_RPUT == rreq->mrail.protocol) {
+                    rreq->mrail.protocol = MRAILI_PROTOCOL_RGET;
                 }
-                if (MV2_RNDV_PROTOCOL_RGET == rreq->mrail.protocol) {
+                if (MRAILI_PROTOCOL_RGET == rreq->mrail.protocol) {
                     if (MPIDI_CH3I_MRAIL_Rndv_transfer_device_ipc (vc, rreq, rts_pkt)) {
                         *rreqp = NULL;
                         goto fn_exit;
@@ -303,13 +303,13 @@ int MPIDI_CH3_PktHandler_SMP_RTS( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt,
                             MPI_ERR_OTHER,"**ch3|senddata");
                 }
             }
-        } 
-        
-        if (MV2_RNDV_PROTOCOL_RPUT == rts_pkt->rndv.protocol ||
+        }
+
+        if (MRAILI_PROTOCOL_RPUT == rts_pkt->rndv.protocol ||
 #if defined(_ENABLE_CUDA_) && defined(HAVE_CUDA_IPC)
-            MV2_RNDV_PROTOCOL_CUDAIPC == rts_pkt->rndv.protocol ||
+            MRAILI_PROTOCOL_CUDAIPC == rts_pkt->rndv.protocol ||
 #endif
-            MV2_RNDV_PROTOCOL_R3   == rts_pkt->rndv.protocol) {
+            MRAILI_PROTOCOL_R3 == rts_pkt->rndv.protocol) {
 
             MPIR_Request * cts_req;
             MPIDI_CH3_Pkt_t upkt;
@@ -336,11 +336,11 @@ int MPIDI_CH3_PktHandler_SMP_RTS( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt,
                 cts_pkt->recv_sz = rreq->dev.msgsize;
             }
 #if defined(_ENABLE_CUDA_) && defined(HAVE_CUDA_IPC)
-            if (mv2_enable_device && (mv2_device_use_ipc && mv2_device_use_ipc_stage_buffer &&
-                    rreq->mrail.device_transfer_mode != NONE &&
-                    vc->smp.can_access_peer == MV2_DEVICE_IPC_ENABLED) ||
-                    (rreq->mrail.protocol == MV2_RNDV_PROTOCOL_CUDAIPC)
-               ) {
+            if (mvp_enable_device &&
+                    (mvp_device_use_ipc && mvp_device_use_ipc_stage_buffer &&
+                     rreq->mrail.device_transfer_mode != NONE &&
+                     vc->smp.can_access_peer == MVP_DEVICE_IPC_ENABLED) ||
+                (rreq->mrail.protocol == MRAILI_PROTOCOL_CUDAIPC)) {
                 mpi_errno = MPIDI_CH3_Prepare_rndv_cts_device(vc, cts_pkt, rreq);
             } else
 #endif
@@ -365,7 +365,7 @@ int MPIDI_CH3_PktHandler_SMP_RTS( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt,
             }
         }
     } else {
-        MV2_INC_NUM_POSTED_RECV();
+        MVP_INC_NUM_POSTED_RECV();
         PRINT_DEBUG(DEBUG_RNDV_verbose>1,
                 "unexpected request allocated, rreq: %p, sreq: %08x\n",
                 rreq, rts_pkt->sender_req_id);
@@ -418,7 +418,7 @@ int MPIDI_CH3_PktHandler_RndvReqToSend( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, vo
     rreq = MPIDI_CH3U_Recvq_FDP_or_AEU(&rts_pkt->match, &found);
 #if defined(CHANNEL_MRAIL)
     if (!found && SMP_INIT && vc->smp.local_nodes >= 0) {
-        MV2_INC_NUM_POSTED_RECV();
+        MVP_INC_NUM_POSTED_RECV();
     }
 #endif
     MPIR_ERR_CHKANDJUMP1(!rreq, mpi_errno,MPI_ERR_OTHER, "**nomemreq", "**nomemuereq %d", MPIDI_CH3U_Recvq_count_unexp());
@@ -451,7 +451,7 @@ int MPIDI_CH3_PktHandler_RndvReqToSend( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, vo
 #endif /* defined(CHANNEL_MRAIL) && defined(MPID_USE_SEQUENCE_NUMBERS) */
     
         MPL_DBG_MSG(MPIDI_CH3_DBG_OTHER,VERBOSE,"posted request found");
-        MPIR_T_PVAR_COUNTER_INC(MV2, expected_recvs_rendezvous, 1); 
+        MPIR_T_PVAR_COUNTER_INC(MVP, expected_recvs_rendezvous, 1); 
 #if defined(CHANNEL_MRAIL)
         if(MPIDI_CH3_RNDV_PROTOCOL_IS_READ(rts_pkt)) {
 
@@ -467,7 +467,7 @@ int MPIDI_CH3_PktHandler_RndvReqToSend( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, vo
                 MPIR_ERR_SETANDJUMP(mpi_errno,MPI_ERR_OTHER,"**ch3|rndv");
             }
 
-            if (MV2_RNDV_PROTOCOL_RGET == rreq->mrail.protocol) {
+            if (MRAILI_PROTOCOL_RGET == rreq->mrail.protocol) {
                 mpi_errno = MPIDI_CH3_Rndv_transfer(vc,
                         NULL, rreq, NULL, rts_pkt);
                 if (mpi_errno != MPI_SUCCESS && rreq != NULL) {
@@ -517,7 +517,7 @@ int MPIDI_CH3_PktHandler_RndvReqToSend( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, vo
         }
 
 #if defined(_ENABLE_CUDA_)
-        if (mv2_enable_device  &&
+        if (mvp_enable_device  &&
             (rreq->mrail.device_transfer_mode != NONE &&
                 (vc->smp.local_nodes == -1)) 
            )
@@ -585,7 +585,7 @@ int MPIDI_CH3_PktHandler_RndvReqToSend( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, vo
     return mpi_errno;
 }
 
-/* MV2 optimized SMP RGET design */
+/* MVP optimized SMP RGET design */
 #if defined(CHANNEL_MRAIL)
 int MPIDI_CH3_PktHandler_SMP_CTS( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt,
                     intptr_t *buflen, MPIR_Request **rreqp )
@@ -600,10 +600,10 @@ int MPIDI_CH3_PktHandler_SMP_CTS( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt,
     MPIR_Assert(sreq != NULL);
 
 #if defined(_ENABLE_CUDA_) && defined(HAVE_CUDA_IPC)
-    /* if receiver has set protocol to MV2_RNDV_PROTOCOL_CUDAIPC
-     * revert protocol to MV2_RNDV_PROTOCOL_CUDAIPC */
-    if (cts_pkt->rndv.protocol == MV2_RNDV_PROTOCOL_CUDAIPC &&
-        sreq->mrail.protocol != MV2_RNDV_PROTOCOL_CUDAIPC) {
+    /* if receiver has set protocol to MRAILI_PROTOCOL_CUDAIPC
+     * revert protocol to MRAILI_PROTOCOL_CUDAIPC */
+    if (cts_pkt->rndv.protocol == MRAILI_PROTOCOL_CUDAIPC &&
+        sreq->mrail.protocol != MRAILI_PROTOCOL_CUDAIPC) {
         MPIDI_CH3I_MRAIL_Revert_rndv_device_ipc_buffered (vc, sreq);
     }
 #endif
@@ -671,16 +671,16 @@ int MPIDI_CH3_PktHandler_RndvClrToSend( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, vo
     
 #if defined(CHANNEL_MRAIL)
 #if defined(_ENABLE_CUDA_) && defined(HAVE_CUDA_IPC)
-    /* if receiver has set protocol to MV2_RNDV_PROTOCOL_CUDAIPC 
-     * revert protocol to MV2_RNDV_PROTOCOL_CUDAIPC */
-    if (cts_pkt->rndv.protocol == MV2_RNDV_PROTOCOL_CUDAIPC && 
-        sreq->mrail.protocol != MV2_RNDV_PROTOCOL_CUDAIPC) {
+    /* if receiver has set protocol to MRAILI_PROTOCOL_CUDAIPC
+     * revert protocol to MRAILI_PROTOCOL_CUDAIPC */
+    if (cts_pkt->rndv.protocol == MRAILI_PROTOCOL_CUDAIPC &&
+        sreq->mrail.protocol != MRAILI_PROTOCOL_CUDAIPC) {
         MPIDI_CH3I_MRAIL_Revert_rndv_device_ipc_buffered (vc, sreq);
-    } 
+    }
 #endif
 
-    if (sreq->mrail.rndv_buf_off != 0 && 
-            sreq->mrail.protocol == MV2_RNDV_PROTOCOL_RPUT) {
+    if (sreq->mrail.rndv_buf_off != 0 &&
+        sreq->mrail.protocol == MRAILI_PROTOCOL_RPUT) {
         MPIR_Assert(sreq->mrail.rndv_buf_off == 0);
     }
 
@@ -700,8 +700,8 @@ int MPIDI_CH3_PktHandler_RndvClrToSend( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, vo
         sreq->mrail.rndv_buf_sz = cts_pkt->recv_sz;
     } else if (IS_VC_SMP(vc)) {
         /* Used for one-sided communications */
-        sreq->mrail.protocol   = MV2_RNDV_PROTOCOL_R3;
-        cts_pkt->rndv.protocol = MV2_RNDV_PROTOCOL_R3;
+        sreq->mrail.protocol = MRAILI_PROTOCOL_R3;
+        cts_pkt->rndv.protocol = MRAILI_PROTOCOL_R3;
         MPIDI_CH3I_MRAIL_FREE_RNDV_BUFFER(sreq);
     }
 
@@ -882,9 +882,8 @@ int MPIDI_CH3_RecvRndv( MPIDI_VC_t * vc, MPIR_Request *rreq )
             MPIR_ERR_SETANDJUMP(mpi_errno,MPI_ERR_OTHER,"**ch3|rndv");
         }
 
-        if (MV2_RNDV_PROTOCOL_RGET == rreq->mrail.protocol) {
-           mpi_errno = MPIDI_CH3_Rndv_transfer(vc,
-                    NULL, rreq, NULL, rts_pkt);
+        if (MRAILI_PROTOCOL_RGET == rreq->mrail.protocol) {
+            mpi_errno = MPIDI_CH3_Rndv_transfer(vc, NULL, rreq, NULL, rts_pkt);
             if (mpi_errno != MPI_SUCCESS && rreq != NULL) {
                 MPIR_ERR_SETANDJUMP(mpi_errno,
                      MPI_ERR_OTHER,"**ch3|senddata");

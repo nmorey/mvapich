@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -18,7 +18,7 @@
 #define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_CH3_Comm_spawn(const char *command, const char *argv[],
                          const int maxprocs, MPI_Info info, const int root,
-                         MPIR_Comm * comm, MPIR_Comm * intercomm,
+                         MPIR_Comm *comm, MPIR_Comm *intercomm,
                          int array_of_errcodes[])
 {
     MPIDI_STATE_DECL(MPID_STATE_MPIDI_COMM_SPAWN);

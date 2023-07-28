@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -32,7 +32,8 @@
 
 struct work_queue *create_queue(char *name)
 {
-    struct work_queue *wq = (struct work_queue *) malloc(sizeof(struct work_queue));
+    struct work_queue *wq =
+        (struct work_queue *)malloc(sizeof(struct work_queue));
 
     if (!wq) {
         error("fail to alloc queue...\n");
@@ -61,7 +62,7 @@ struct work_queue *create_queue(char *name)
 
     return wq;
 
-  err_out_1:
+err_out_1:
     sem_destroy(&wq->sem);
     free(wq);
     return NULL;
@@ -81,21 +82,23 @@ void dump_queue(struct work_queue *wq)
     printf("\n========= work-queue %s: \n", wq->name);
 
     pthread_mutex_lock(&wq->lock);
-    printf(" qlength = %d, head=%lu, tail=%lu\n", wq->qlength, wq->head, wq->tail);
+    printf(" qlength = %d, head=%lu, tail=%lu\n", wq->qlength, wq->head,
+           wq->tail);
     pthread_mutex_unlock(&wq->lock);
-
 }
 
 /*
 enqueue an elem to "tail" of the wq, giving 3 args
 */
-int workqueue_enqueue3(struct work_queue *wq, void *elem, int elem_size, unsigned long arg1, unsigned long arg2, unsigned long arg3)
+int workqueue_enqueue3(struct work_queue *wq, void *elem, int elem_size,
+                       unsigned long arg1, unsigned long arg2,
+                       unsigned long arg3)
 {
     struct work_elem *ep;
 
     pthread_mutex_lock(&wq->lock);
 
-    /// should check if queue full? 
+    /// should check if queue full?
     /// if (wq->tail - wq->head >= MAX_QUEUE_LENGTH)
     ep = wq->queue + (wq->tail % MAX_QUEUE_LENGTH);
     wq->tail++;
@@ -121,28 +124,29 @@ int workqueue_enqueue3(struct work_queue *wq, void *elem, int elem_size, unsigne
 /*
 enqueue an elem to "tail" of the wq
 */
-int workqueue_enqueue(struct work_queue *wq, void *elem, int elem_size, unsigned long arg1, unsigned long arg2)
+int workqueue_enqueue(struct work_queue *wq, void *elem, int elem_size,
+                      unsigned long arg1, unsigned long arg2)
 {
     return workqueue_enqueue3(wq, elem, elem_size, arg1, arg2, 0);
 
-/*    
-    struct work_elem* ep;
-    
-    pthread_mutex_lock( &wq->lock );
-    
-    ep = wq->queue + (wq->tail%MAX_QUEUE_LENGTH);
-    wq->tail++;
-    
-    if( elem ) memcpy( ep->data, elem, elem_size );
-    ep->arg1 = arg1;
-    ep->arg2 = arg2;    
-        
-    pthread_mutex_unlock( &wq->lock );
-    /// one more valid elem in the queue
-    sem_post( &wq->sem );
-    
-    return 0;
-*/
+    /*
+        struct work_elem* ep;
+
+        pthread_mutex_lock( &wq->lock );
+
+        ep = wq->queue + (wq->tail%MAX_QUEUE_LENGTH);
+        wq->tail++;
+
+        if( elem ) memcpy( ep->data, elem, elem_size );
+        ep->arg1 = arg1;
+        ep->arg2 = arg2;
+
+        pthread_mutex_unlock( &wq->lock );
+        /// one more valid elem in the queue
+        sem_post( &wq->sem );
+
+        return 0;
+    */
 }
 
 /*
@@ -186,11 +190,13 @@ int workqueue_full(struct work_queue *wq)
 
 void dump_work_elem(struct work_elem *we)
 {
-    struct ib_packet *pkt = (struct ib_packet *) we->data;
+    struct ib_packet *pkt = (struct ib_packet *)we->data;
 
-    printf("elem: rbuf_id=%d, rprocid=%d, rckptid=%d, size=%lu, off=%lu, lbuf_id=%d\n", pkt->RR.rbuf_id, pkt->RR.rprocid, pkt->RR.rckptid, pkt->RR.size, pkt->RR.offset, pkt->RR.lbuf_id);
+    printf("elem: rbuf_id=%d, rprocid=%d, rckptid=%d, size=%lu, off=%lu, "
+           "lbuf_id=%d\n",
+           pkt->RR.rbuf_id, pkt->RR.rprocid, pkt->RR.rckptid, pkt->RR.size,
+           pkt->RR.offset, pkt->RR.lbuf_id);
     printf("    arg1= %lu, arg2= %lu\n", we->arg1, we->arg2);
-
 }
 
 #endif

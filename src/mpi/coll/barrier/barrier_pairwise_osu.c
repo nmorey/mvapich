@@ -1,13 +1,13 @@
 #include "barrier_tuning.h"
 
-int MPIR_Pairwise_Barrier_MV2(MPIR_Comm * comm_ptr, MPIR_Errflag_t *errflag)
+int MPIR_Pairwise_Barrier_MVP(MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag)
 {
     MPIR_TIMER_START(coll, barrier, pairwise);
     int size, rank;
     int d, dst, src;
     int mpi_errno = MPI_SUCCESS;
 
-    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_barrier_pairwise, 1);
+    MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_barrier_pairwise, 1);
 
     size = comm_ptr->local_size;
     /* Trivial barriers return immediately */
@@ -27,7 +27,7 @@ int MPIR_Pairwise_Barrier_MV2(MPIR_Comm * comm_ptr, MPIR_Errflag_t *errflag)
             dst = N2_prev + rank;
             MPIR_PVAR_INC(barrier, pairwise, recv, 0, MPI_BYTE);
             mpi_errno = MPIC_Recv(NULL, 0, MPI_BYTE, dst, MPIR_BARRIER_TAG,
-                                     comm_ptr, MPI_STATUS_IGNORE, errflag);
+                                  comm_ptr, MPI_STATUS_IGNORE, errflag);
         }
 
         /* combine on embedded N2_prev power-of-two processes */
@@ -35,10 +35,9 @@ int MPIR_Pairwise_Barrier_MV2(MPIR_Comm * comm_ptr, MPIR_Errflag_t *errflag)
             dst = (rank ^ d);
             MPIR_PVAR_INC(barrier, pairwise, send, 0, MPI_BYTE);
             MPIR_PVAR_INC(barrier, pairwise, recv, 0, MPI_BYTE);
-            mpi_errno =
-                MPIC_Sendrecv(NULL, 0, MPI_BYTE, dst, MPIR_BARRIER_TAG, NULL,
-                                 0, MPI_BYTE, dst, MPIR_BARRIER_TAG, comm_ptr,
-                                 MPI_STATUS_IGNORE, errflag);
+            mpi_errno = MPIC_Sendrecv(NULL, 0, MPI_BYTE, dst, MPIR_BARRIER_TAG,
+                                      NULL, 0, MPI_BYTE, dst, MPIR_BARRIER_TAG,
+                                      comm_ptr, MPI_STATUS_IGNORE, errflag);
         }
 
         /* fanout data to nodes above N2_prev... */
@@ -46,7 +45,7 @@ int MPIR_Pairwise_Barrier_MV2(MPIR_Comm * comm_ptr, MPIR_Errflag_t *errflag)
             dst = N2_prev + rank;
             MPIR_PVAR_INC(barrier, pairwise, send, 0, MPI_BYTE);
             mpi_errno = MPIC_Send(NULL, 0, MPI_BYTE, dst, MPIR_BARRIER_TAG,
-                                     comm_ptr, errflag);
+                                  comm_ptr, errflag);
         }
     } else {
         /* fanin data to power of 2 subset */
@@ -54,12 +53,10 @@ int MPIR_Pairwise_Barrier_MV2(MPIR_Comm * comm_ptr, MPIR_Errflag_t *errflag)
         MPIR_PVAR_INC(barrier, pairwise, send, 0, MPI_BYTE);
         MPIR_PVAR_INC(barrier, pairwise, recv, 0, MPI_BYTE);
         mpi_errno = MPIC_Sendrecv(NULL, 0, MPI_BYTE, src, MPIR_BARRIER_TAG,
-                                     NULL, 0, MPI_BYTE, src, MPIR_BARRIER_TAG,
-                                     comm_ptr, MPI_STATUS_IGNORE, errflag);
+                                  NULL, 0, MPI_BYTE, src, MPIR_BARRIER_TAG,
+                                  comm_ptr, MPI_STATUS_IGNORE, errflag);
     }
 
     MPIR_TIMER_END(coll, barrier, pairwise);
     return mpi_errno;
-
 }
-

@@ -2,15 +2,15 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -68,12 +68,13 @@ int MPIDI_CH3_ReqHandler_GetSendComplete(MPIDI_VC_t * vc ATTRIBUTE((unused)),
 
     MPIR_Win_get_ptr(sreq->dev.target_win_handle, win_ptr);
 
-    /* MV2 designs for get rndv with R3 protocol. 
+    /* MVP designs for get rndv with R3 protocol. 
      * Should this come after the check for double completions? 
      */
 #if defined(CHANNEL_MRAIL)
-    if (MV2_RNDV_PROTOCOL_R3 == sreq->mrail.protocol && 
-        (sreq->dev.recv_data_sz + sizeof(MPIDI_CH3_Pkt_get_resp_t))> vc->eager_max_msg_sz) {
+    if (MRAILI_PROTOCOL_R3 == sreq->mrail.protocol &&
+        (sreq->dev.recv_data_sz + sizeof(MPIDI_CH3_Pkt_get_resp_t)) >
+            vc->eager_max_msg_sz) {
         struct iovec iov[1] = {0};
         int iovcnt;
         MPIDI_CH3_Pkt_t upkt;
@@ -86,7 +87,7 @@ int MPIDI_CH3_ReqHandler_GetSendComplete(MPIDI_VC_t * vc ATTRIBUTE((unused)),
         MPIDI_Pkt_init(get_resp_pkt, MPIDI_CH3_PKT_GET_RESP);
         resp_req->dev.OnFinal = NULL;
         resp_req->dev.OnDataAvail = NULL;
-        MV2_INC_NUM_POSTED_SEND();
+        MVP_INC_NUM_POSTED_SEND();
 
 
         get_resp_pkt->request_handle = sreq->dev.resp_request_handle;
@@ -99,7 +100,7 @@ int MPIDI_CH3_ReqHandler_GetSendComplete(MPIDI_VC_t * vc ATTRIBUTE((unused)),
             get_resp_pkt->pkt_flags |= MPIDI_CH3_PKT_FLAG_RMA_ACK;
         get_resp_pkt->target_rank = win_ptr->comm_ptr->rank;
 
-        get_resp_pkt->protocol = MV2_RNDV_PROTOCOL_EAGER;
+        get_resp_pkt->protocol = MRAILI_PROTOCOL_EAGER;
 
         iov[0].iov_base = (void *) get_resp_pkt;
         iov[0].iov_len = sizeof(*get_resp_pkt);
@@ -189,7 +190,7 @@ int MPIDI_CH3_ReqHandler_GaccumSendComplete(MPIDI_VC_t * vc, MPIR_Request * rreq
 #if defined(CHANNEL_MRAIL)
     /* If R3 is used, we need to send MPIDI_CH3_PKT_GET_ACCUM_RESP pkt acting like FIN,
      * so the origin process can handle it properly */
-    if (MV2_RNDV_PROTOCOL_R3 == rreq->mrail.protocol) {
+    if (MRAILI_PROTOCOL_R3 == rreq->mrail.protocol) {
         struct iovec iov[1] = {0};
         int iovcnt;
         MPIDI_CH3_Pkt_t upkt;
@@ -202,7 +203,7 @@ int MPIDI_CH3_ReqHandler_GaccumSendComplete(MPIDI_VC_t * vc, MPIR_Request * rreq
         MPIDI_Pkt_init(get_accum_resp_pkt, MPIDI_CH3_PKT_GET_ACCUM_RESP);
         resp_req->dev.OnFinal = NULL;
         resp_req->dev.OnDataAvail = NULL;
-        MV2_INC_NUM_POSTED_SEND();
+        MVP_INC_NUM_POSTED_SEND();
 
 
         get_accum_resp_pkt->request_handle = rreq->dev.resp_request_handle;
@@ -215,7 +216,7 @@ int MPIDI_CH3_ReqHandler_GaccumSendComplete(MPIDI_VC_t * vc, MPIR_Request * rreq
             get_accum_resp_pkt->pkt_flags |= MPIDI_CH3_PKT_FLAG_RMA_ACK;
         get_accum_resp_pkt->target_rank = win_ptr->comm_ptr->rank;
 
-        get_accum_resp_pkt->protocol = MV2_RNDV_PROTOCOL_EAGER;
+        get_accum_resp_pkt->protocol = MRAILI_PROTOCOL_EAGER;
 
         iov[0].iov_base = (void *) get_accum_resp_pkt;
         iov[0].iov_len = sizeof(*get_accum_resp_pkt);

@@ -1,36 +1,32 @@
 #include "allreduce_tuning.h"
 #include "bcast_tuning.h"
 
-extern MPIR_T_pvar_timer_t PVAR_TIMER_mv2_coll_timer_allreduce_mcast;
+extern MPIR_T_pvar_timer_t PVAR_TIMER_mvp_coll_timer_allreduce_mcast;
 
-extern unsigned long long PVAR_COUNTER_mv2_coll_allreduce_mcast;
+extern unsigned long long PVAR_COUNTER_mvp_coll_allreduce_mcast;
 
 #if defined(_MCST_SUPPORT_)
-int MPIR_Allreduce_mcst_MV2(const void *sendbuf,
-                             void *recvbuf,
-                             int count,
-                             MPI_Datatype datatype,
-                             MPI_Op op, MPIR_Comm * comm_ptr, 
-                             MPIR_Errflag_t *errflag)
+int MPIR_Allreduce_mcst_MVP(const void *sendbuf, void *recvbuf, int count,
+                            MPI_Datatype datatype, MPI_Op op,
+                            MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag)
 {
-    MPIR_TIMER_START(coll,allreduce,mcast);
-    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_allreduce_mcast, 1);
+    MPIR_TIMER_START(coll, allreduce, mcast);
+    MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_allreduce_mcast, 1);
     MPI_Aint true_lb, true_extent;
-   /*We use reduce (at rank =0) followed by mcst-bcast to implement the
-    * allreduce operation */
-    int root=0;
-    MPI_Aint nbytes=0;
-    MPI_Aint type_size=0, position=0;
-    int mpi_errno=MPI_SUCCESS;
-    int mpi_errno_ret=MPI_SUCCESS;
-    int rank = comm_ptr->rank, is_contig=0, is_commutative=0;
+    /*We use reduce (at rank =0) followed by mcst-bcast to implement the
+     * allreduce operation */
+    int root = 0;
+    MPI_Aint nbytes = 0;
+    MPI_Aint type_size = 0, position = 0;
+    int mpi_errno = MPI_SUCCESS;
+    int mpi_errno_ret = MPI_SUCCESS;
+    int rank = comm_ptr->rank, is_contig = 0, is_commutative = 0;
     MPIR_CHKLMEM_DECL(1);
-    MPIR_Datatype *dtp=NULL;
-    void *tmp_buf=NULL;
-    MPIR_Op *op_ptr=NULL;
+    MPIR_Datatype *dtp = NULL;
+    void *tmp_buf = NULL;
+    MPIR_Op *op_ptr = NULL;
     MPIR_Datatype_get_size_macro(datatype, type_size);
     nbytes = type_size * count;
-
 
     if (HANDLE_GET_KIND(datatype) == HANDLE_KIND_BUILTIN) {
         is_contig = 1;
@@ -52,28 +48,28 @@ int MPIR_Allreduce_mcst_MV2(const void *sendbuf,
 
     MPIR_Type_get_true_extent_impl(datatype, &true_lb, &true_extent);
 
-   if(is_commutative == 0) {
-       reduce_fn = &MPIR_Reduce_binomial_MV2;
-   } else {
-       if(MV2_Allreduce_function 
-                == &MPIR_Allreduce_mcst_reduce_two_level_helper_MV2) {
-            reduce_fn = &MPIR_Reduce_MV2;
-       } else {
-            reduce_fn = &MPIR_Reduce_redscat_gather_MV2;
-       }
-   }
+    if (is_commutative == 0) {
+        reduce_fn = &MPIR_Reduce_binomial_MVP;
+    } else {
+        if (MVP_Allreduce_function ==
+            &MPIR_Allreduce_mcst_reduce_two_level_helper_MVP) {
+            reduce_fn = &MPIR_Reduce_MVP;
+        } else {
+            reduce_fn = &MPIR_Reduce_redscat_gather_MVP;
+        }
+    }
 
     /* First do a reduction at rank = 0 */
-    if(rank == root) {
-        mpi_errno = reduce_fn(sendbuf, recvbuf, count, datatype,
-                                op, root, comm_ptr, errflag);
+    if (rank == root) {
+        mpi_errno = reduce_fn(sendbuf, recvbuf, count, datatype, op, root,
+                              comm_ptr, errflag);
     } else {
-        if(sendbuf != MPI_IN_PLACE) {
-            mpi_errno = reduce_fn(sendbuf, recvbuf, count, datatype,
-                                op, root, comm_ptr, errflag);
+        if (sendbuf != MPI_IN_PLACE) {
+            mpi_errno = reduce_fn(sendbuf, recvbuf, count, datatype, op, root,
+                                  comm_ptr, errflag);
         } else {
-            mpi_errno = reduce_fn(recvbuf, NULL, count, datatype,
-                                op, root, comm_ptr, errflag);
+            mpi_errno = reduce_fn(recvbuf, NULL, count, datatype, op, root,
+                                  comm_ptr, errflag);
         }
     }
     if (mpi_errno) {
@@ -84,7 +80,7 @@ int MPIR_Allreduce_mcst_MV2(const void *sendbuf,
     }
 
     /* Now do a mcst-bcast operation with rank0 as the root */
-    if(!is_contig) {
+    if (!is_contig) {
         /* Mcast cannot handle non-regular datatypes. We need to pack
          * as bytes before sending it*/
         MPIR_CHKLMEM_MALLOC(tmp_buf, void *, nbytes, mpi_errno, "tmp_buf",
@@ -93,14 +89,14 @@ int MPIR_Allreduce_mcst_MV2(const void *sendbuf,
         position = 0;
         if (rank == root) {
             mpi_errno = MPIR_Typerep_pack(recvbuf, count, datatype, position,
-                                        tmp_buf, nbytes, &position);
+                                          tmp_buf, nbytes, &position);
             MPIR_ERR_CHECK(mpi_errno);
         }
-        mpi_errno = MPIR_Mcast_inter_node_MV2(tmp_buf, nbytes, MPI_BYTE,
-                                     root, comm_ptr, errflag);
+        mpi_errno = MPIR_Mcast_inter_node_MVP(tmp_buf, nbytes, MPI_BYTE, root,
+                                              comm_ptr, errflag);
     } else {
-        mpi_errno = MPIR_Mcast_inter_node_MV2(recvbuf, count, datatype,
-                                     root, comm_ptr, errflag);
+        mpi_errno = MPIR_Mcast_inter_node_MVP(recvbuf, count, datatype, root,
+                                              comm_ptr, errflag);
     }
 
     if (mpi_errno) {
@@ -116,21 +112,21 @@ int MPIR_Allreduce_mcst_MV2(const void *sendbuf,
         if (rank != root) {
             position = 0;
             mpi_errno = MPIR_Typerep_unpack(tmp_buf, nbytes, recvbuf, count,
-                                                datatype, position, &position);
+                                            datatype, position, &position);
             MPIR_ERR_CHECK(mpi_errno);
         }
     }
 
     /* check to see if the intra-node mcast is not done.
      * if this is the case, do it either through shmem or knomial */
-    if(comm_ptr->dev.ch.intra_node_done == 0) {
-        MPIR_Comm *shmem_commptr=NULL;
+    if (comm_ptr->dev.ch.intra_node_done == 0) {
+        MPIR_Comm *shmem_commptr = NULL;
         MPIR_Comm_get_ptr(comm_ptr->dev.ch.shmem_comm, shmem_commptr);
         int local_size = shmem_commptr->local_size;
         if (local_size > 1) {
-            MPIR_Bcast_MV2(recvbuf, count, datatype, 0, shmem_commptr, errflag);
+            MPIR_Bcast_MVP(recvbuf, count, datatype, 0, shmem_commptr, errflag);
             if (mpi_errno) {
-                /* for communication errors, 
+                /* for communication errors,
                  * just record the error but continue */
                 *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
                 MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
@@ -139,13 +135,12 @@ int MPIR_Allreduce_mcst_MV2(const void *sendbuf,
         }
     }
 
-
-  fn_exit:
+fn_exit:
     MPIR_CHKLMEM_FREEALL();
-    MPIR_TIMER_END(coll,allreduce,mcast);
+    MPIR_TIMER_END(coll, allreduce, mcast);
     return (mpi_errno);
 
-  fn_fail:
+fn_fail:
     goto fn_exit;
 }
 #endif /*  #if defined(_MCST_SUPPORT_) */

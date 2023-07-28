@@ -36,10 +36,10 @@
    private implementation details that can be changed or removed.  */
 
 #ifndef YY_TASKLIST_YY_SRC_PM_MPIRUN_SRC_SLURM_LIBTASKLIST_A_TASKLIST_PARSER_H_INCLUDED
-# define YY_TASKLIST_YY_SRC_PM_MPIRUN_SRC_SLURM_LIBTASKLIST_A_TASKLIST_PARSER_H_INCLUDED
+#define YY_TASKLIST_YY_SRC_PM_MPIRUN_SRC_SLURM_LIBTASKLIST_A_TASKLIST_PARSER_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
-# define YYDEBUG 0
+#define YYDEBUG 0
 #endif
 #if YYDEBUG
 extern int tasklist_yydebug;
@@ -47,34 +47,33 @@ extern int tasklist_yydebug;
 
 /* Token kinds.  */
 #ifndef YYTOKENTYPE
-# define YYTOKENTYPE
-  enum yytokentype
-  {
+#define YYTOKENTYPE
+enum yytokentype {
     YYEMPTY = -2,
-    YYEOF = 0,                     /* "end of file"  */
-    YYerror = 256,                 /* error  */
-    YYUNDEF = 257,                 /* "invalid token"  */
-    DECIMAL = 258                  /* DECIMAL  */
-  };
-  typedef enum yytokentype yytoken_kind_t;
+    YYEOF = 0,     /* "end of file"  */
+    YYerror = 256, /* error  */
+    YYUNDEF = 257, /* "invalid token"  */
+    DECIMAL = 258  /* DECIMAL  */
+};
+typedef enum yytokentype yytoken_kind_t;
 #endif
 /* Token kinds.  */
 #define YYEMPTY -2
-#define YYEOF 0
+#define YYEOF   0
 #define YYerror 256
 #define YYUNDEF 257
 #define DECIMAL 258
 
 /* Value type.  */
-#if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
+#if !defined YYSTYPE && !defined YYSTYPE_IS_DECLARED
 typedef int YYSTYPE;
-# define YYSTYPE_IS_TRIVIAL 1
-# define YYSTYPE_IS_DECLARED 1
+#define YYSTYPE_IS_TRIVIAL  1
+#define YYSTYPE_IS_DECLARED 1
 #endif
-
 
 extern YYSTYPE tasklist_yylval;
 
-int tasklist_yyparse (void);
+int tasklist_yyparse(void);
 
-#endif /* !YY_TASKLIST_YY_SRC_PM_MPIRUN_SRC_SLURM_LIBTASKLIST_A_TASKLIST_PARSER_H_INCLUDED  */
+#endif /* !YY_TASKLIST_YY_SRC_PM_MPIRUN_SRC_SLURM_LIBTASKLIST_A_TASKLIST_PARSER_H_INCLUDED \
+        */

@@ -3,15 +3,15 @@
  *     See COPYRIGHT in top-level directory
  */
 
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -24,13 +24,8 @@
 
 #include "mpid_nem_impl.h"
 #ifdef _OSU_MVAPICH_
-#include "mv2_ch3_shmem.h"
+#include "mvp_ch3_shmem.h"
 #endif /* _OSU_MVAPICH_ */
-
-#ifndef _OSU_MVAPICH_
-/* Use a runtime modifiable parameter to determine the minimum IOV density */
-int mv2_iov_density_min = MPIDI_IOV_DENSITY_MIN;
-#endif
 
 void *MPIDI_CH3_packet_buffer = NULL;
 int MPIDI_CH3I_my_rank = -1;
@@ -132,11 +127,11 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t *pg_p, int pg_rank)
     }
 
 #ifdef _OSU_MVAPICH_
-    MV2_collectives_arch_init(mv2_get_heterogeneity());
+    MVP_collectives_arch_init(mvp_get_heterogeneity());
 
-    if (mv2_enable_shmem_collectives) {
+    if (mvp_enable_shmem_collectives) {
         /* Shared memory for collectives */
-        mpi_errno = MPIR_MV2_SHMEM_COLL_init(MPID_nem_mem_region.local_rank);
+        mpi_errno = MPIR_MVP_SHMEM_COLL_init(MPID_nem_mem_region.local_rank);
         if (mpi_errno) {
             MPIR_ERR_POP(mpi_errno);
         }
@@ -148,7 +143,7 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t *pg_p, int pg_rank)
         }
 
         /* Memory Mapping shared files for collectives*/
-        mpi_errno = MPIR_MV2_SHMEM_COLL_Mmap(MPID_nem_mem_region.local_rank);
+        mpi_errno = MPIR_MVP_SHMEM_COLL_Mmap(MPID_nem_mem_region.local_rank);
         if (mpi_errno) {
             MPIR_ERR_POP(mpi_errno);
         }
@@ -161,7 +156,7 @@ int MPIDI_CH3_Init(int has_parent, MPIDI_PG_t *pg_p, int pg_rank)
 
         /* Unlink mapped files so that they get cleaned up when
          * process exits */
-        MPIR_MV2_SHMEM_COLL_Unlink();
+        MPIR_MVP_SHMEM_COLL_Unlink();
     }
 #endif /* _OSU_MVAPICH_ */
 

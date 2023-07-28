@@ -3,15 +3,15 @@
  *     See COPYRIGHT in top-level directory
  */
 
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -26,9 +26,9 @@
 #include <unistd.h>
 #endif
 
-#if defined(CHANNEL_MRAIL) || defined(_MV2_CH4_OVERRIDE_)
-#include "mv2_coll_shmem.h"
-#endif /* defined(CHANNEL_MRAIL) || defined(_MV2_CH4_OVERRIDE_) */
+#if defined(CHANNEL_MRAIL) || defined(_MVP_CH4_OVERRIDE_)
+#include "mvp_coll_shmem.h"
+#endif /* defined(CHANNEL_MRAIL) || defined(_MVP_CH4_OVERRIDE_) */
 
 /*
 === BEGIN_MPI_T_CVAR_INFO_BLOCK ===
@@ -200,7 +200,7 @@ int MPIR_Init_thread(int *argc, char ***argv, int user_required, int *provided)
     MPII_init_dbg_logging();
     MPII_Wait_for_debugger();
     
-    /* MV2 memory size check */
+    /* MVP memory size check */
 #if CH3_RANK_BITS == 16
     if (MPIR_Process.comm_world->local_size > INT16_MAX &&
         !MPIR_Process.comm_world->rank) {
@@ -292,9 +292,9 @@ int MPI_Init_thread(int *argc, char ***argv, int required, int *provided)
     MPIR_FUNC_TERSE_INIT_STATE_DECL(MPID_STATE_MPI_INIT_THREAD);
     MPIR_FUNC_TERSE_INIT_ENTER(MPID_STATE_MPI_INIT_THREAD);
 
-#if defined(_MV2_CH4_OVERRIDE_)
-    MV2_Read_env_vars();
-#endif /* defined(_MV2_CH4_OVERRIDE_) */
+#if defined(_MVP_CH4_OVERRIDE_)
+    MVP_Read_env_vars();
+#endif /* defined(_MVP_CH4_OVERRIDE_) */
 
 #ifdef HAVE_ERROR_CHECKING
     {

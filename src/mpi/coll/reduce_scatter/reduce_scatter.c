@@ -4,7 +4,7 @@
  */
 
 #include "mpiimpl.h"
-#include "mv2_coll_shmem.h"
+#include "mvp_coll_shmem.h"
 
 /*
 === BEGIN_MPI_T_CVAR_INFO_BLOCK ===
@@ -403,9 +403,9 @@ int MPI_Reduce_scatter(const void *sendbuf, void *recvbuf, const int recvcounts[
         goto fn_fail;
 
 #ifdef _OSU_MVAPICH_
-    if (mv2_use_osu_collectives) {
+    if (MVP_USE_OSU_COLLECTIVES) {
         if(comm_ptr->dev.ch.allgather_comm_ok == 0) {
-            mpi_errno = mv2_increment_allgather_coll_counter(comm_ptr);
+            mpi_errno = mvp_increment_allgather_coll_counter(comm_ptr);
             MPIR_ERR_CHECK(mpi_errno);
         }
     }

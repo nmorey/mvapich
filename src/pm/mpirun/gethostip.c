@@ -1,4 +1,4 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH software package developed by the
@@ -6,7 +6,7 @@
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  */
 
 #include <stdlib.h>
@@ -20,8 +20,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-int
-gethostip(char * ipstr, size_t ipstr_len)
+int gethostip(char *ipstr, size_t ipstr_len)
 {
     struct addrinfo hints;
     struct addrinfo *result;
@@ -46,8 +45,8 @@ gethostip(char * ipstr, size_t ipstr_len)
         return -1;
     }
 
-    s = getnameinfo(result->ai_addr, result->ai_addrlen, ipstr, ipstr_len,
-            NULL, 0, NI_NUMERICHOST | NI_NUMERICSERV);
+    s = getnameinfo(result->ai_addr, result->ai_addrlen, ipstr, ipstr_len, NULL,
+                    0, NI_NUMERICHOST | NI_NUMERICSERV);
 
     freeaddrinfo(result);
 

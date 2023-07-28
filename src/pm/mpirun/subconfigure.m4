@@ -75,8 +75,8 @@ AC_DEFINE(HAVE_PMI2_SHMEM_IALLGATHER_WAIT, 1, [Define if pmi client supports PMI
 AC_DEFINE(HAVE_PMI2_SHMEM_IALLGATHER, 1, [Define if pmi client supports PMI2_SHMEM_Iallgather])
 AC_DEFINE(HAVE_PMI2_SHMEM_IALLGATHER_WAIT, 1, [Define if pmi client supports PMI2_SHMEM_Iallgather_wait])
 
-# MVAPICH2_VERSION is exported from the top level configure
-AC_DEFINE_UNQUOTED([MVAPICH2_VERSION], ["$MVAPICH2_VERSION"], [Set to current version of mvapich2 package])
+# MVAPICH_VERSION is exported from the top level configure
+AC_DEFINE_UNQUOTED([MVAPICH_VERSION], ["$MVAPICH_VERSION"], [Set to current version of mvapich package])
 
 AC_SEARCH_LIBS([pthread_create], [pthread],,
                [AC_MSG_ERROR([libpthread not found])],)

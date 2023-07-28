@@ -19,8 +19,8 @@
 #define MPIDI_NM_ADDR_DECL    @ch4_netmod_addr_decl@
 #define MPIDI_NM_OP_DECL         @ch4_netmod_op_decl@
 
-/* MVAPICH2 Communicator overrides - TODO: make this ch independent ASAP */
-/* #include "../netmod/mv2/mv2_comm_override.h" */
-@ch4_mv2_pre_include@
+/* MVAPICH Communicator overrides - TODO: make this ch independent ASAP */
+/* #include "../netmod/mvp/mvp_comm_override.h" */
+@ch4_mvp_pre_include@
 
 #endif /* NETMODPRE_H_INCLUDED */

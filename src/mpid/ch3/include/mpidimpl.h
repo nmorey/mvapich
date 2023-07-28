@@ -3,15 +3,15 @@
  *     See COPYRIGHT in top-level directory
  */
 
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -68,23 +68,23 @@ extern MPL_dbg_class MPIDI_CH3_DBG_REFCOUNT;
 #endif /* MPL_USE_DBG_LOGGING */
 
 #if defined(CHANNEL_MRAIL)
-extern long int mv2_posted_recvq_length;
-extern long int mv2_num_posted_send;
-extern long int mv2_unexp_msg_recv;
+extern long int mvp_posted_recvq_length;
+extern long int mvp_num_posted_send;
+extern long int mvp_unexp_msg_recv;
 
-#define MV2_INC_NUM_POSTED_SEND()  mv2_num_posted_send++;
-#define MV2_DEC_NUM_POSTED_SEND()  mv2_num_posted_send--;
-#define MV2_INC_NUM_POSTED_RECV()  mv2_posted_recvq_length++;
-#define MV2_DEC_NUM_POSTED_RECV()  mv2_posted_recvq_length--;
-#define MV2_INC_NUM_UNEXP_RECV()  mv2_unexp_msg_recv++;
-#define MV2_DEC_NUM_UNEXP_RECV()  mv2_unexp_msg_recv--;
+#define MVP_INC_NUM_POSTED_SEND()  mvp_num_posted_send++;
+#define MVP_DEC_NUM_POSTED_SEND()  mvp_num_posted_send--;
+#define MVP_INC_NUM_POSTED_RECV()  mvp_posted_recvq_length++;
+#define MVP_DEC_NUM_POSTED_RECV()  mvp_posted_recvq_length--;
+#define MVP_INC_NUM_UNEXP_RECV()  mvp_unexp_msg_recv++;
+#define MVP_DEC_NUM_UNEXP_RECV()  mvp_unexp_msg_recv--;
 #else
-#define MV2_INC_NUM_POSTED_SEND()
-#define MV2_DEC_NUM_POSTED_SEND()
-#define MV2_INC_NUM_POSTED_RECV()
-#define MV2_DEC_NUM_POSTED_RECV()
-#define MV2_INC_NUM_UNEXP_RECV()
-#define MV2_DEC_NUM_UNEXP_RECV()
+#define MVP_INC_NUM_POSTED_SEND()
+#define MVP_DEC_NUM_POSTED_SEND()
+#define MVP_INC_NUM_POSTED_RECV()
+#define MVP_DEC_NUM_POSTED_RECV()
+#define MVP_INC_NUM_UNEXP_RECV()
+#define MVP_DEC_NUM_UNEXP_RECV()
 #endif
 
 #define MPIDI_CHANGE_VC_STATE(vc, new_state) do {               \
@@ -184,7 +184,7 @@ typedef struct MPIDI_Process
     MPIDI_PG_t * my_pg;
     int my_pg_rank;
     /* <CHANNEL_MRAIL> */
-    unsigned long mv2_config_crc;
+    unsigned long mvp_config_crc;
     /* </CHANNEL_MRAIL> */
 #if defined(CHANNEL_MRAIL) && defined(CKPT)
     int use_sync_ckpt;
@@ -193,8 +193,8 @@ typedef struct MPIDI_Process
 MPIDI_Process_t;
 
 #if defined(CHANNEL_MRAIL) && defined(CKPT)
-extern pthread_mutex_t MVAPICH2_sync_ckpt_lock;
-extern pthread_cond_t  MVAPICH2_sync_ckpt_cond;
+extern pthread_mutex_t MVAPICH_sync_ckpt_lock;
+extern pthread_cond_t  MVAPICH_sync_ckpt_cond;
 void MPIDI_CH3I_CR_Sync_ckpt_request();
 #endif /* defined(CHANNEL_MRAIL) && defined(CKPT) */
 
@@ -328,7 +328,7 @@ extern MPIDI_Process_t MPIDI_Process;
     /* FIXME-merge: does this still need to be here?        \
     MPIDI_CH3_REQUEST_INIT(sreq_);                              \
     */                                                          \
-    MV2_INC_NUM_POSTED_SEND();                      \
+    MVP_INC_NUM_POSTED_SEND();                      \
 }
 
 /* This is the receive request version of MPIDI_Request_create_sreq */
@@ -777,7 +777,7 @@ typedef struct MPIDI_VC
                          struct MPIR_Comm * comm, int context_offset );
     int (* rndvRecv_fn)( struct MPIDI_VC * vc, struct MPIR_Request *rreq );
 
-    /* MV2 use static inline eager fast send functions */
+    /* MVP use static inline eager fast send functions */
     int use_eager_fast_fn;
     int use_eager_fast_rfp_fn;
     int use_smp_eager_fast_fn;
@@ -898,8 +898,8 @@ extern MPIDI_CH3U_COLL_SRBuf_element_t * MPIDI_CH3U_COLL_SRBuf_pool;
         if (!MPIDI_CH3U_COLL_SRBuf_pool) {                                  \
             MPIDI_CH3U_COLL_SRBuf_pool = (MPIDI_CH3U_COLL_SRBuf_element_t *)\
                    MPL_malloc(sizeof(MPIDI_CH3U_COLL_SRBuf_element_t));    \
-            MV2_MPIDI_Malloc_Device_Pinned_Host(MPIDI_CH3U_COLL_SRBuf_pool->buf, \
-                            mv2_device_stage_block_size);                   \
+            MVP_MPIDI_Malloc_Device_Pinned_Host(MPIDI_CH3U_COLL_SRBuf_pool->buf, \
+                            mvp_device_stage_block_size);                   \
             MPIDI_CH3U_COLL_SRBuf_pool->next = NULL;                        \
         }                                                                   \
         srbuf = MPIDI_CH3U_COLL_SRBuf_pool;                                 \
@@ -994,7 +994,7 @@ extern MPIDI_CH3U_CUDA_SRBuf_element_t * MPIDI_CH3U_CUDA_SRBuf_pool;
         MPIDI_CH3U_CUDA_SRBuf_pool =                                    \
         MPL_malloc(sizeof(MPIDI_CH3U_CUDA_SRBuf_element_t));           \
         MPIDI_CH3U_CUDA_SRBuf_pool->next = NULL;                        \
-        MV2_MPIDI_Malloc_Device(MPIDI_CH3U_CUDA_SRBuf_pool->buf,               \
+        MVP_MPIDI_Malloc_Device(MPIDI_CH3U_CUDA_SRBuf_pool->buf,               \
                 MPIDI_CH3U_CUDA_SRBuf_size);                            \
     }                                                                   \
     tmp = MPIDI_CH3U_CUDA_SRBuf_pool;                                   \
@@ -2111,15 +2111,15 @@ int MPIDI_CH3_Get_rndv_recv(MPIDI_VC_t * vc, MPIR_Request * req);
     (MPIDI_CH3_Pkt_size_index[((MPIDI_CH3_Pkt_t *)(_pkt))->type])
 #endif /* if defined(CHANNEL_MRAIL) */
 
-/* MV2 show affinity designs */
+/* MVP show affinity designs */
 #if defined(CHANNEL_MRAIL) || defined(CHANNEL_PSM)
-int MPIDI_MV2_Num_local_processes(MPIDI_PG_t *pg);
-int MPIDI_MV2_Get_local_process_id(MPIDI_PG_t *pg);
-int mv2_show_cpu_affinity(int verbosity);
+int MPIDI_MVP_Num_local_processes(MPIDI_PG_t *pg);
+int MPIDI_MVP_Get_local_process_id(MPIDI_PG_t *pg);
+int mvp_show_cpu_affinity(int verbosity);
 #endif
 
 #if defined(CHANNEL_MRAIL)
-int mv2_show_hca_affinity(int verbosity);
+int mvp_show_hca_affinity(int verbosity);
 #endif
 
 #if defined (CHANNEL_PSM)
@@ -2132,7 +2132,7 @@ int mv2_show_hca_affinity(int verbosity);
     #endif
 #endif
 
-/* MV2 handle resizing of pkt */
+/* MVP handle resizing of pkt */
 #if defined(CHANNEL_MRAIL) || defined(CHANNEL_PSM)
 #define MPIDI_CH3U_Append_pkt_size() \
     *buflen += sizeof(MPIDI_CH3_Pkt_t);
@@ -2140,7 +2140,7 @@ int mv2_show_hca_affinity(int verbosity);
 #define MPIDI_CH3U_Append_pkt_size()
 #endif
 
-/* MV2 support for SMP RGET */
+/* MVP support for SMP RGET */
 #if defined(CHANNEL_MRAIL)
 #define IS_VC_SMP(_vc) \
     (SMP_INIT && (_vc)->smp.local_nodes >= 0)

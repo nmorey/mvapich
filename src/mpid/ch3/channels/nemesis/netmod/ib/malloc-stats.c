@@ -20,19 +20,19 @@
 
 /* $Id: $ */
 
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
-#include <stdio.h>    /* needed for malloc_stats */
+#include <stdio.h> /* needed for malloc_stats */
 
 #include <malloc-machine.h>
 
@@ -56,16 +56,16 @@
 
 #ifdef USE_DL_PREFIX
 
-#define public_mSTATs    dlmalloc_stats
+#define public_mSTATs dlmalloc_stats
 
 #else /* USE_DL_PREFIX */
 #ifdef _LIBC
 
-#define public_mSTATs    __malloc_stats
+#define public_mSTATs __malloc_stats
 
 #else /* !_LIBC */
 
-#define public_mSTATs    malloc_stats
+#define public_mSTATs malloc_stats
 
 #endif /* _LIBC */
 #endif /* USE_DL_PREFIX */
@@ -90,7 +90,7 @@
   More information can be obtained by calling mallinfo.
 
 */
-void     public_mSTATs __MALLOC_P((void));
+void public_mSTATs __MALLOC_P((void));
 
 /*
   ------------------------------ malloc_stats ------------------------------
@@ -98,76 +98,76 @@ void     public_mSTATs __MALLOC_P((void));
 
 void public_mSTATs()
 {
-  int i;
-  mstate ar_ptr;
-  struct malloc_global_info mgi;
-  struct malloc_arena_info mai;
-  unsigned long in_use_b, system_b, avail_b;
+    int i;
+    mstate ar_ptr;
+    struct malloc_global_info mgi;
+    struct malloc_arena_info mai;
+    unsigned long in_use_b, system_b, avail_b;
 #if THREAD_STATS
-  long stat_lock_direct = 0, stat_lock_loop = 0, stat_lock_wait = 0;
+    long stat_lock_direct = 0, stat_lock_loop = 0, stat_lock_wait = 0;
 #endif
 
 #if 0
   if(__malloc_initialized < 0)
     ptmalloc_init ();
 #endif
-  _int_get_global_info(&mgi);
-  system_b = in_use_b = mgi.mmapped_mem;
+    _int_get_global_info(&mgi);
+    system_b = in_use_b = mgi.mmapped_mem;
 #ifdef _LIBC
-  _IO_flockfile (stderr);
-  int old_flags2 = ((_IO_FILE *) stderr)->_flags2;
-  ((_IO_FILE *) stderr)->_flags2 |= _IO_FLAGS2_NOTCANCEL;
+    _IO_flockfile(stderr);
+    int old_flags2 = ((_IO_FILE *)stderr)->_flags2;
+    ((_IO_FILE *)stderr)->_flags2 |= _IO_FLAGS2_NOTCANCEL;
 #endif
-  for (i=0; (ar_ptr = _int_get_arena(i)); i++) {
-    _int_get_arena_info(ar_ptr, &mai);
-    avail_b = mai.fastavail + mai.binavail + mai.top_size;
-    fprintf(stderr, "Arena %d:\n", i);
-    fprintf(stderr, "system bytes     = %10lu\n",
-	    (unsigned long)mai.system_mem);
-    fprintf(stderr, "in use bytes     = %10lu\n",
-	    (unsigned long)(mai.system_mem - avail_b));
+    for (i = 0; (ar_ptr = _int_get_arena(i)); i++) {
+        _int_get_arena_info(ar_ptr, &mai);
+        avail_b = mai.fastavail + mai.binavail + mai.top_size;
+        fprintf(stderr, "Arena %d:\n", i);
+        fprintf(stderr, "system bytes     = %10lu\n",
+                (unsigned long)mai.system_mem);
+        fprintf(stderr, "in use bytes     = %10lu\n",
+                (unsigned long)(mai.system_mem - avail_b));
 #if MALLOC_DEBUG > 1
-    if (i > 0)
-      dump_heap(heap_for_ptr(top(ar_ptr)));
+        if (i > 0)
+            dump_heap(heap_for_ptr(top(ar_ptr)));
 #endif
-    system_b += mai.system_mem;
-    in_use_b += mai.system_mem - avail_b;
+        system_b += mai.system_mem;
+        in_use_b += mai.system_mem - avail_b;
 #if THREAD_STATS
-    stat_lock_direct += mai.stat_lock_direct;
-    stat_lock_loop += mai.stat_lock_loop;
-    stat_lock_wait += mai.stat_lock_wait;
+        stat_lock_direct += mai.stat_lock_direct;
+        stat_lock_loop += mai.stat_lock_loop;
+        stat_lock_wait += mai.stat_lock_wait;
 #endif
-  }
+    }
 #if HAVE_MMAP
-  fprintf(stderr, "Total (incl. mmap):\n");
+    fprintf(stderr, "Total (incl. mmap):\n");
 #else
-  fprintf(stderr, "Total:\n");
+    fprintf(stderr, "Total:\n");
 #endif
-  fprintf(stderr, "system bytes     = %10lu\n", system_b);
-  fprintf(stderr, "in use bytes     = %10lu\n", in_use_b);
+    fprintf(stderr, "system bytes     = %10lu\n", system_b);
+    fprintf(stderr, "in use bytes     = %10lu\n", in_use_b);
 #ifdef NO_THREADS
-  fprintf(stderr, "max system bytes = %10lu\n",
-	  (unsigned long)mgi.max_total_mem);
+    fprintf(stderr, "max system bytes = %10lu\n",
+            (unsigned long)mgi.max_total_mem);
 #endif
 #if HAVE_MMAP
-  fprintf(stderr, "max mmap regions = %10u\n", (unsigned int)mgi.max_n_mmaps);
-  fprintf(stderr, "max mmap bytes   = %10lu\n",
-	  (unsigned long)mgi.max_mmapped_mem);
+    fprintf(stderr, "max mmap regions = %10u\n", (unsigned int)mgi.max_n_mmaps);
+    fprintf(stderr, "max mmap bytes   = %10lu\n",
+            (unsigned long)mgi.max_mmapped_mem);
 #endif
 #if THREAD_STATS
-  fprintf(stderr, "heaps created    = %10d\n",  mgi.stat_n_heaps);
-  fprintf(stderr, "locked directly  = %10ld\n", stat_lock_direct);
-  fprintf(stderr, "locked in loop   = %10ld\n", stat_lock_loop);
-  fprintf(stderr, "locked waiting   = %10ld\n", stat_lock_wait);
-  fprintf(stderr, "locked total     = %10ld\n",
-          stat_lock_direct + stat_lock_loop + stat_lock_wait);
+    fprintf(stderr, "heaps created    = %10d\n", mgi.stat_n_heaps);
+    fprintf(stderr, "locked directly  = %10ld\n", stat_lock_direct);
+    fprintf(stderr, "locked in loop   = %10ld\n", stat_lock_loop);
+    fprintf(stderr, "locked waiting   = %10ld\n", stat_lock_wait);
+    fprintf(stderr, "locked total     = %10ld\n",
+            stat_lock_direct + stat_lock_loop + stat_lock_wait);
 #endif
 #ifdef _LIBC
-  ((_IO_FILE *) stderr)->_flags2 |= old_flags2;
-  _IO_funlockfile (stderr);
+    ((_IO_FILE *)stderr)->_flags2 |= old_flags2;
+    _IO_funlockfile(stderr);
 #endif
 }
 
 #ifdef _LIBC
-weak_alias (__malloc_stats, malloc_stats)
+weak_alias(__malloc_stats, malloc_stats)
 #endif

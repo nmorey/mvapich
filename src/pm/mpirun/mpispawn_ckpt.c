@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -23,7 +23,7 @@
 #include "mpispawn_ckpt.h"
 #include "mpispawn_tree.h"
 #include "mpirun_util.h"
-#include "mv2_debug_utils.h"
+#include "mvp_debug_utils.h"
 #include "crfs.h"
 // TODO: remove debug.h
 #include "debug.h"
@@ -70,7 +70,7 @@ pthread_t CR_wfe_tid;
 
 FTB_client_handle_t ftb_handle;
 
-#else                           /* !CR_FTB */
+#else /* !CR_FTB */
 
 static volatile int cr_cond = 0;
 static pthread_t worker_tid;
@@ -94,12 +94,13 @@ char *sessionid;
 static char session_file[CR_MAX_FILENAME];
 
 #ifdef CR_AGGRE
-int use_aggre_mig = 0;          // whether we enable migration func in CRFS
+int use_aggre_mig = 0; // whether we enable migration func in CRFS
 int use_aggre = 0;
 #endif
 
 // Dependencies from mpispawn.c TODO: remove this
-extern void wait_for_errors(int s, struct sockaddr *sockaddr, unsigned int sockaddr_len);
+extern void wait_for_errors(int s, struct sockaddr *sockaddr,
+                            unsigned int sockaddr_len);
 extern int c_socket;
 extern struct sockaddr_in c_sockaddr;
 extern unsigned int sockaddr_len;
@@ -130,7 +131,7 @@ void *CR_wait_for_errors(void *arg)
 {
     dbg("CR_wait_for_errors\n");
 
-    wait_for_errors(c_socket, (struct sockaddr *) &c_sockaddr, sockaddr_len);
+    wait_for_errors(c_socket, (struct sockaddr *)&c_sockaddr, sockaddr_len);
 
     dbg("CR_wait_for_errors done\n");
     return NULL;
@@ -190,7 +191,8 @@ int CR_Init(int nProcs)
     /* Create the session file with PMI Port information */
     fp = fopen(session_file, "w+");
     if (!fp) {
-        PRINT_ERROR_ERRNO("fopen() failed to create session file '%s'\n", errno, session_file);
+        PRINT_ERROR_ERRNO("fopen() failed to create session file '%s'\n", errno,
+                          session_file);
         exit(EXIT_FAILURE);
     } else {
         PRINT_DEBUG(DEBUG_FT_verbose, "Session file = %s\n", session_file);
@@ -215,19 +217,18 @@ int CR_Init(int nProcs)
     }
 
     /* getaddrinfo hints struct */
-    struct addrinfo addr_hint = {
-        .ai_flags = AI_CANONNAME,
-        .ai_family = AF_INET,
-        .ai_socktype = 0,
-        .ai_protocol = 0,
-        .ai_addrlen = 0,
-        .ai_addr = NULL,
-        .ai_canonname = NULL,
-        .ai_next = NULL
-    };
+    struct addrinfo addr_hint = {.ai_flags = AI_CANONNAME,
+                                 .ai_family = AF_INET,
+                                 .ai_socktype = 0,
+                                 .ai_protocol = 0,
+                                 .ai_addrlen = 0,
+                                 .ai_addr = NULL,
+                                 .ai_canonname = NULL,
+                                 .ai_next = NULL};
 
     struct addrinfo *res;
-    int err = getaddrinfo(getenv("MPISPAWN_MPIRUN_HOST"), mpirun_port, &addr_hint, &res);
+    int err = getaddrinfo(getenv("MPISPAWN_MPIRUN_HOST"), mpirun_port,
+                          &addr_hint, &res);
     if (err || !res) {
         perror("[CR_Init] getaddrinfo()");
         exit(EXIT_FAILURE);
@@ -248,15 +249,17 @@ int CR_Init(int nProcs)
 
     /* Spawn CR Worker Thread */
     cr_worker_can_exit = 0;
-    if (pthread_create(&worker_tid, NULL, CR_Worker, (void *) (uintptr_t) nProcs)) {
+    if (pthread_create(&worker_tid, NULL, CR_Worker,
+                       (void *)(uintptr_t)nProcs)) {
         perror("[CR_Init] pthread_create()");
         exit(EXIT_FAILURE);
     }
 
     /* Wait for Connect_MPI_Procs() to start listening */
-    while (!cr_cond) ;
+    while (!cr_cond)
+        ;
 
-#endif                          /* CR_FTB */
+#endif /* CR_FTB */
 
     return (0);
 }
@@ -275,8 +278,8 @@ static int cr_ftb_init(char *sessionid)
 
     memset(&ftb_cinfo, 0, sizeof(ftb_cinfo));
     strcpy(ftb_cinfo.client_schema_ver, "0.5");
-    strcpy(ftb_cinfo.event_space, "FTB.STARTUP.MV2_MPISPAWN");
-    strcpy(ftb_cinfo.client_name, "MV2_MPISPAWN");
+    strcpy(ftb_cinfo.event_space, "FTB.STARTUP.MVP_MPISPAWN");
+    strcpy(ftb_cinfo.client_name, "MVP_MPISPAWN");
 
     gethostname(my_hostname, MAX_HOST_LEN);
 
@@ -289,7 +292,8 @@ static int cr_ftb_init(char *sessionid)
     if (ret != FTB_SUCCESS)
         goto err_connect;
 
-    ret = FTB_Declare_publishable_events(ftb_handle, NULL, cr_ftb_events, CR_FTB_EVENTS_MAX);
+    ret = FTB_Declare_publishable_events(ftb_handle, NULL, cr_ftb_events,
+                                         CR_FTB_EVENTS_MAX);
     if (ret != FTB_SUCCESS)
         goto err_declare_events;
 
@@ -297,9 +301,11 @@ static int cr_ftb_init(char *sessionid)
     if (!subscription_str)
         goto err_malloc;
 
-    snprintf(subscription_str, FTB_MAX_SUBSCRIPTION_STR, "event_space=FTB.STARTUP.MV2_MPIRUN , jobid=%s", sessionid);
+    snprintf(subscription_str, FTB_MAX_SUBSCRIPTION_STR,
+             "event_space=FTB.STARTUP.MVP_MPIRUN , jobid=%s", sessionid);
 
-    ret = FTB_Subscribe(&shandle, ftb_handle, subscription_str, cr_ftb_callback, NULL);
+    ret = FTB_Subscribe(&shandle, ftb_handle, subscription_str, cr_ftb_callback,
+                        NULL);
     free(subscription_str);
     if (ret != FTB_SUCCESS)
         goto err_subscribe;
@@ -307,32 +313,32 @@ static int cr_ftb_init(char *sessionid)
     ftb_init_done = 1;
     return (0);
 
-  err_connect:
+err_connect:
     fprintf(stderr, "FTB_Connect() failed with %d\n", ret);
     ret = -1;
     goto exit_connect;
 
-  err_declare_events:
+err_declare_events:
     fprintf(stderr, "FTB_Declare_publishable_events() failed with %d\n", ret);
     ret = -2;
     goto exit_declare_events;
 
-  err_malloc:
+err_malloc:
     fprintf(stderr, "Failed to malloc() subscription_str\n");
     ret = -3;
     goto exit_malloc;
 
-  err_subscribe:
+err_subscribe:
     fprintf(stderr, "FTB_Subscribe() failed with %d\n", ret);
     ret = -4;
     goto exit_subscribe;
 
-  exit_subscribe:
-  exit_malloc:
-  exit_declare_events:
+exit_subscribe:
+exit_malloc:
+exit_declare_events:
     FTB_Disconnect(ftb_handle);
 
-  exit_connect:
+exit_connect:
     return (ret);
 }
 
@@ -366,34 +372,39 @@ int cr_ftb_aggre_based_mig(char *msg)
 
     tok = strtok(buf, " \n\t"); // src
     strcpy(cr_mig_src_host, tok);
-    tok = strtok(NULL, " \n\t");    // tgt
+    tok = strtok(NULL, " \n\t"); // tgt
     strcpy(cr_mig_tgt_host, tok);
-    tok = strtok(NULL, " \n\t");    // proc-count
+    tok = strtok(NULL, " \n\t"); // proc-count
     num_mig_procs = atoi(tok);
 
     if (strstr(my_hostname, cr_mig_src_host) == my_hostname)
         cr_mig_src = 1;
     if (strstr(my_hostname, cr_mig_tgt_host) == my_hostname)
         cr_mig_tgt = 1;
-    dbg(" src=%s, tgt=%s, mig-src=%d, mig-tgt=%d, num_procs = %d\n", cr_mig_src_host, cr_mig_tgt_host, cr_mig_src, cr_mig_tgt, num_mig_procs);
+    dbg(" src=%s, tgt=%s, mig-src=%d, mig-tgt=%d, num_procs = %d\n",
+        cr_mig_src_host, cr_mig_tgt_host, cr_mig_src, cr_mig_tgt,
+        num_mig_procs);
 
     if (num_mig_procs <= 0) {
-        fprintf(stderr, "[mpispanw_%d]: %s: procs to be migrated wrong:: %s\n", mt_id, __func__, tok);
+        fprintf(stderr, "[mpispanw_%d]: %s: procs to be migrated wrong:: %s\n",
+                mt_id, __func__, tok);
         return -1;
     }
 
     if (cr_mig_tgt) {
-        migrank = (int *) malloc(num_mig_procs * sizeof(int));
+        migrank = (int *)malloc(num_mig_procs * sizeof(int));
         if (!migrank) {
-            fprintf(stderr, "[mpispawn_%d]: %s: malloc migrank failed\n", mt_id, __func__);
+            fprintf(stderr, "[mpispawn_%d]: %s: malloc migrank failed\n", mt_id,
+                    __func__);
             return -1;
         }
 
-        tok = strtok(NULL, " \n\t");    // proc-count
+        tok = strtok(NULL, " \n\t"); // proc-count
         i = 0;
         while (tok) {
             if (i >= num_mig_procs) {
-                fprintf(stderr, "[mpispawn_%d]: %s: too many proc-ranks: %d\n", mt_id, __func__, i);
+                fprintf(stderr, "[mpispawn_%d]: %s: too many proc-ranks: %d\n",
+                        mt_id, __func__, i);
                 free(migrank);
                 migrank = NULL;
                 return -1;
@@ -406,39 +417,44 @@ int cr_ftb_aggre_based_mig(char *msg)
     // adjust MPISPAWN_Tree's topology: num of MPISPAWN-child nodes not to
     // participate in a barrier
     for (i = 0; i < MPISPAWN_NCHILD; i++) {
-        PRINT_DEBUG(DEBUG_FT_verbose, "spawninfo[i=%d].spawnhost = %s\n", i, spawninfo[i].spawnhost);
+        PRINT_DEBUG(DEBUG_FT_verbose, "spawninfo[i=%d].spawnhost = %s\n", i,
+                    spawninfo[i].spawnhost);
         j = mt_id * cr_spawn_degree + i + 1;
-        PRINT_DEBUG(DEBUG_FT_verbose, "spawninfo[j=%d].spawnhost = %s\n", j, spawninfo[j].spawnhost);
+        PRINT_DEBUG(DEBUG_FT_verbose, "spawninfo[j=%d].spawnhost = %s\n", j,
+                    spawninfo[j].spawnhost);
         if (!strcmp(spawninfo[j].spawnhost, cr_mig_src_host)) {
             --exclude_spare;
-            PRINT_DEBUG(DEBUG_FT_verbose, "--exclude_spare = %d\n", exclude_spare);
+            PRINT_DEBUG(DEBUG_FT_verbose, "--exclude_spare = %d\n",
+                        exclude_spare);
         }
         if (!strcmp(spawninfo[j].spawnhost, cr_mig_tgt_host)) {
             ++exclude_spare;
-            PRINT_DEBUG(DEBUG_FT_verbose, "++exclude_spare = %d\n", exclude_spare);
+            PRINT_DEBUG(DEBUG_FT_verbose, "++exclude_spare = %d\n",
+                        exclude_spare);
         }
     }
 
     if (!cr_mig_tgt)
         return (0);
 
-    //// if I'm target node, start new process now... 
+    //// if I'm target node, start new process now...
     eNCHILD = num_mig_procs;
-    children = (child_t *) malloc(eNCHILD * sizeof(child_t));
+    children = (child_t *)malloc(eNCHILD * sizeof(child_t));
     cr_mig_spare_cond = 1;
 
     return (0);
 }
-#endif                          /* CR_AGGRE */
+#endif /* CR_AGGRE */
 
-static int cr_ftb_callback(FTB_receive_event_t * revent, void *arg)
+static int cr_ftb_callback(FTB_receive_event_t *revent, void *arg)
 {
     int i, j;
-// char my_hostname[256];
-// gethostname(my_hostname, 255);
+    // char my_hostname[256];
+    // gethostname(my_hostname, 255);
 
-    dbg("  at %s: Got event %s from %s:payload=\"%s\"\n", my_hostname, revent->event_name, revent->client_name, revent->event_payload);
-    //fflush(stdout);
+    dbg("  at %s: Got event %s from %s:payload=\"%s\"\n", my_hostname,
+        revent->event_name, revent->client_name, revent->event_payload);
+    // fflush(stdout);
 
     /* TODO: Do some sanity checking to see if this is the intended target */
 
@@ -457,41 +473,45 @@ static int cr_ftb_callback(FTB_receive_event_t * revent, void *arg)
             cr_mig_src = 1;
         if (strstr(my_hostname, cr_mig_tgt_host) == my_hostname)
             cr_mig_tgt = 1;
-        dbg(" src=%s, tgt=%s, mig-src=%d, mig-tgt=%d\n", cr_mig_src_host, cr_mig_tgt_host, cr_mig_src, cr_mig_tgt);
+        dbg(" src=%s, tgt=%s, mig-src=%d, mig-tgt=%d\n", cr_mig_src_host,
+            cr_mig_tgt_host, cr_mig_src, cr_mig_tgt);
         return (0);
     }
 
     if (!strcmp(revent->event_name, EVENT(CR_FTB_MIGRATE_PIIC))) {
         char my_hostname[256];
         gethostname(my_hostname, 255);
-        //int has_src = 0;
-        //int has_tgt = 0;
+        // int has_src = 0;
+        // int has_tgt = 0;
         /* Adjust exclude_spares based on new process distribution */
         for (i = 0; i < MPISPAWN_NCHILD; i++) {
-            PRINT_DEBUG(DEBUG_FT_verbose, "spawninfo[i=%d].spawnhost = %s\n", i, spawninfo[i].spawnhost);
+            PRINT_DEBUG(DEBUG_FT_verbose, "spawninfo[i=%d].spawnhost = %s\n", i,
+                        spawninfo[i].spawnhost);
             j = mt_id * cr_spawn_degree + i + 1;
-            PRINT_DEBUG(DEBUG_FT_verbose, "spawninfo[j=%d].spawnhost = %s\n", j, spawninfo[j].spawnhost);
+            PRINT_DEBUG(DEBUG_FT_verbose, "spawninfo[j=%d].spawnhost = %s\n", j,
+                        spawninfo[j].spawnhost);
             if (!strcmp(spawninfo[j].spawnhost, cr_mig_src_host)) {
-                //has_src = 1;
+                // has_src = 1;
                 --exclude_spare;
-                PRINT_DEBUG(DEBUG_FT_verbose, "--exclude_spare = %d\n", exclude_spare);
+                PRINT_DEBUG(DEBUG_FT_verbose, "--exclude_spare = %d\n",
+                            exclude_spare);
             }
             if (!strcmp(spawninfo[j].spawnhost, cr_mig_tgt_host)) {
                 ++exclude_spare;
-                PRINT_DEBUG(DEBUG_FT_verbose, "++exclude_spare = %d\n", exclude_spare);
-                //has_tgt =1;
+                PRINT_DEBUG(DEBUG_FT_verbose, "++exclude_spare = %d\n",
+                            exclude_spare);
+                // has_tgt =1;
             }
-
         }
 
         dbg(" [mpispawn:%s] cr_mig_tgt=%d\n", my_hostname, cr_mig_tgt);
-        //fflush(stdout);
+        // fflush(stdout);
         if (!cr_mig_tgt)
             return (0);
 
         /* Setup environment for process launch if target */
         get_tgt_rank_list(revent->event_payload, &eNCHILD, &migrank);
-        children = (child_t *) malloc(eNCHILD * child_s);
+        children = (child_t *)malloc(eNCHILD * child_s);
         cr_mig_spare_cond = 1;
         return (0);
     }
@@ -509,7 +529,6 @@ static int get_src_tgt(char *str, char *src, char *tgt)
     i = j = tgt_start = 0;
 
     while (str[i]) {
-
         if (str[i] == ' ') {
             tgt_start = 1;
             src[j] = '\0';
@@ -547,7 +566,7 @@ static int get_tgt_rank_list(char *str, int *n, int **lst)
     ++ci;
     *n = ci;
 
-    list = (int *) malloc((*n) * sizeof(int));
+    list = (int *)malloc((*n) * sizeof(int));
     if (!list) {
         fprintf(stderr, "[get_tgt_rank_list] malloc failed\n");
         return (-1);
@@ -555,7 +574,6 @@ static int get_tgt_rank_list(char *str, int *n, int **lst)
 
     i = j = ci = 0;
     while (str[i]) {
-
         if (str[i] == ' ') {
             cnum[ci] = '\0';
             ci = 0;
@@ -574,7 +592,7 @@ static int get_tgt_rank_list(char *str, int *n, int **lst)
     return (0);
 }
 
-#else                           /* !CR_FTB */
+#else /* !CR_FTB */
 
 static int Connect_MPI_Procs(int nProcs)
 {
@@ -594,13 +612,14 @@ static int Connect_MPI_Procs(int nProcs)
     sa.sin_addr.s_addr = INADDR_ANY;
     sa.sin_port = 0;
 
-    if (bind(mpispawn_listen_fd, (struct sockaddr *) &sa, sizeof(sa)) < 0) {
+    if (bind(mpispawn_listen_fd, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
         perror("[Connect_MPI_Procs] bind()");
         exit(EXIT_FAILURE);
     }
 
     i = sizeof(sa);
-    if (getsockname(mpispawn_listen_fd, (struct sockaddr *) &sa, (socklen_t *) & i) < 0) {
+    if (getsockname(mpispawn_listen_fd, (struct sockaddr *)&sa,
+                    (socklen_t *)&i) < 0) {
         perror("[Connect_MPI_Procs] getsockname()");
         close(mpispawn_listen_fd);
         exit(EXIT_FAILURE);
@@ -635,7 +654,8 @@ static int Connect_MPI_Procs(int nProcs)
         if ((mpispawn_fd[i] = accept(mpispawn_listen_fd, 0, 0)) < 0) {
             if (errno == EINTR || errno == EAGAIN) {
                 i--;
-//                 debug("%s: error::  errno=%d\n", __func__, errno);
+                //                 debug("%s: error::  errno=%d\n", __func__,
+                //                 errno);
                 continue;
             }
             perror("[Connect_MPI_Procs] accept()");
@@ -655,7 +675,7 @@ static void *CR_Worker(void *arg)
     fd_set set;
     int max_fd;
 
-    nProcs = (int) (uintptr_t) arg;
+    nProcs = (int)(uintptr_t)arg;
 
     Connect_MPI_Procs(nProcs);
     struct timeval tv;
@@ -663,7 +683,6 @@ static void *CR_Worker(void *arg)
     dbg("after connect-MPI-procs: \n");
 
     while (1) {
-
         FD_ZERO(&set);
         FD_SET(mpirun_fd, &set);
         max_fd = mpirun_fd;
@@ -692,7 +711,6 @@ static void *CR_Worker(void *arg)
         }
 
         if (FD_ISSET(mpirun_fd, &set)) {
-
             /* We need to send a message from mpirun_rsh -> MPI Processes */
 
             ret = CR_MPDU_readline(mpirun_fd, cr_msg_buf, MAX_CR_MSG_LEN);
@@ -702,7 +720,6 @@ static void *CR_Worker(void *arg)
                 CR_MPDU_writeline(mpispawn_fd[i], cr_msg_buf);
 
         } else {
-
             /* We need to send a message from MPI Processes -> mpirun_rsh */
 
             for (i = 0; i < nProcs; i++) {
@@ -716,7 +733,8 @@ static void *CR_Worker(void *arg)
 
             /* Received a PMI Port Query */
             if (strstr(cr_msg_buf, "query_pmi_port")) {
-                snprintf(cr_msg_buf, MAX_CR_MSG_LEN, "cmd=reply_pmi_port val=%s\n", getenv("PMI_PORT"));
+                snprintf(cr_msg_buf, MAX_CR_MSG_LEN,
+                         "cmd=reply_pmi_port val=%s\n", getenv("PMI_PORT"));
                 CR_MPDU_writeline(mpispawn_fd[i], cr_msg_buf);
                 continue;
             }
@@ -727,14 +745,13 @@ static void *CR_Worker(void *arg)
             if (strstr(cr_msg_buf, "finalize_ckpt")) {
                 return (0);
             }
-
         }
 
-    }                           /* while(1) */
+    } /* while(1) */
     return NULL;
 }
 
-#endif                          /* CR_FTB */
+#endif /* CR_FTB */
 
 int restart_mpi_process(int cached_cr_mig_tgt, int i)
 {
@@ -742,10 +759,10 @@ int restart_mpi_process(int cached_cr_mig_tgt, int i)
     char str[32];
     int rank;
     if (restart_context) {
-
-        PRINT_DEBUG(DEBUG_FT_verbose, "i = %d, cached_cr_mig_tgt = %d\n", i, cached_cr_mig_tgt);
+        PRINT_DEBUG(DEBUG_FT_verbose, "i = %d, cached_cr_mig_tgt = %d\n", i,
+                    cached_cr_mig_tgt);
         restart_context = 0;
-        cr_argv = (char **) malloc(sizeof(char *) * 4);
+        cr_argv = (char **)malloc(sizeof(char *) * 4);
         if (!cr_argv) {
             perror("malloc(cr_argv)");
             exit(EXIT_FAILURE);
@@ -757,7 +774,7 @@ int restart_mpi_process(int cached_cr_mig_tgt, int i)
             exit(EXIT_FAILURE);
         }
         strcpy(cr_argv[0], CR_RESTART_CMD);
-        cr_argv[1] = "--restore-pid";   // restore same pid on restart?
+        cr_argv[1] = "--restore-pid"; // restore same pid on restart?
 
         cr_argv[2] = malloc(sizeof(char) * CR_MAX_FILENAME);
         if (!cr_argv[2]) {
@@ -768,24 +785,30 @@ int restart_mpi_process(int cached_cr_mig_tgt, int i)
 #ifdef CR_FTB
         if (cached_cr_mig_tgt) {
 #ifdef CR_AGGRE
-            if (use_aggre && use_aggre_mig) {   //use Fuse-mig-fs mnt point as ckpt_filename
-                snprintf(cr_argv[2], CR_MAX_FILENAME, "%s.0.%d", crfs_mig_filename, migrank[i]);
+            if (use_aggre &&
+                use_aggre_mig) { // use Fuse-mig-fs mnt point as ckpt_filename
+                snprintf(cr_argv[2], CR_MAX_FILENAME, "%s.0.%d",
+                         crfs_mig_filename, migrank[i]);
                 int tmpfd = open(cr_argv[2], O_RDWR | O_CREAT, 0644);
                 close(tmpfd);
-            } else              //simple strategy for migration
+            } else // simple strategy for migration
 #endif
-                snprintf(cr_argv[2], CR_MAX_FILENAME, "%s.0.%d", ckpt_filename, migrank[i]);
+                snprintf(cr_argv[2], CR_MAX_FILENAME, "%s.0.%d", ckpt_filename,
+                         migrank[i]);
 
             rank = migrank[i];
         } else
-#endif 
+#endif
         {
             snprintf(str, 32, "MPISPAWN_MPIRUN_RANK_%d", i);
             rank = atoi(getenv(str));
-            snprintf(cr_argv[2], CR_MAX_FILENAME, "%s.%d.%d", ckpt_filename, checkpoint_count, rank);
+            snprintf(cr_argv[2], CR_MAX_FILENAME, "%s.%d.%d", ckpt_filename,
+                     checkpoint_count, rank);
         }
         cr_argv[3] = NULL;
-        PRINT_DEBUG(DEBUG_Fork_verbose > 1, "EXEC restart MPI proc command line: %s %s %s\n", cr_argv[0], cr_argv[1], cr_argv[2]);
+        PRINT_DEBUG(DEBUG_Fork_verbose > 1,
+                    "EXEC restart MPI proc command line: %s %s %s\n",
+                    cr_argv[0], cr_argv[1], cr_argv[2]);
 
         execvp(CR_RESTART_CMD, cr_argv);
 
@@ -796,23 +819,24 @@ int restart_mpi_process(int cached_cr_mig_tgt, int i)
     return 0;
 }
 
-
 #ifdef CR_AGGRE
 int init_ckpt_aggregation()
 {
-    char *str = getenv("MV2_CKPT_USE_AGGREGATION");
+    char *str = getenv("MVP_CKPT_USE_AGGREGATION");
     if (str == NULL) {
-        // Use default value, ie 1 since aggregation has been enabled at configure time
+        // Use default value, ie 1 since aggregation has been enabled at
+        // configure time
         use_aggre = 1;
     } else {
-        // Use the value forwarded by mpirun_rsh in MV2_CKPT_USE_AGGREGATION
+        // Use the value forwarded by mpirun_rsh in MVP_CKPT_USE_AGGREGATION
         use_aggre = atoi(str);
     }
-    use_aggre_mig = env2int("MV2_CKPT_AGGRE_MIG_ROLE");
-    PRINT_DEBUG(DEBUG_FT_verbose, "use-aggre=%d, use-aggre-mig=%d\n", use_aggre, use_aggre_mig);
+    use_aggre_mig = env2int("MVP_CKPT_AGGRE_MIG_ROLE");
+    PRINT_DEBUG(DEBUG_FT_verbose, "use-aggre=%d, use-aggre-mig=%d\n", use_aggre,
+                use_aggre_mig);
 
-    if (getenv("MV2_CKPT_FILE")) {
-        strncpy(ckpt_filename, getenv("MV2_CKPT_FILE"), CR_MAX_FILENAME);
+    if (getenv("MVP_CKPT_FILE")) {
+        strncpy(ckpt_filename, getenv("MVP_CKPT_FILE"), CR_MAX_FILENAME);
     } else {
         strncpy(ckpt_filename, DEFAULT_CHECKPOINT_FILENAME, CR_MAX_FILENAME);
     }
@@ -823,12 +847,13 @@ int init_ckpt_aggregation()
         if (status == -1) {
             if (errno == ECHILD) {
                 // It looks like it means that:
-                // The new process finished before system() could call waitpid() to wait for the child  process to end. 
-                // This error can be ignored because the child process has already completed successfully and returned.
-                // Nothing to do.
+                // The new process finished before system() could call waitpid()
+                // to wait for the child  process to end. This error can be
+                // ignored because the child process has already completed
+                // successfully and returned. Nothing to do.
             } else {
-                // The 'system' call failed (because of failed fork, missing sh, ...)
-                // This is a serious error, aborting
+                // The 'system' call failed (because of failed fork, missing sh,
+                // ...) This is a serious error, aborting
                 PRINT_ERROR_ERRNO("system() failed", errno);
                 return -3;
             }
@@ -836,14 +861,22 @@ int init_ckpt_aggregation()
             if (!(WIFEXITED(status) && WEXITSTATUS(status) == 0)) {
                 // Debug information
                 if (WIFEXITED(status)) {
-                    PRINT_DEBUG(DEBUG_FT_verbose, "'sh -c fusermount -V' exited with status %d\n", WEXITSTATUS(status));
+                    PRINT_DEBUG(DEBUG_FT_verbose,
+                                "'sh -c fusermount -V' exited with status %d\n",
+                                WEXITSTATUS(status));
                 } else if (WIFSIGNALED(status)) {
-                    PRINT_DEBUG(DEBUG_FT_verbose, "'sh -c fusermount -V' terminated with signal %d\n", WTERMSIG(status));
+                    PRINT_DEBUG(
+                        DEBUG_FT_verbose,
+                        "'sh -c fusermount -V' terminated with signal %d\n",
+                        WTERMSIG(status));
                 } else {
-                    PRINT_DEBUG(DEBUG_FT_verbose, "fail to execute 'sh -c fusermount -V' process for an unknown reason\n");
+                    PRINT_DEBUG(DEBUG_FT_verbose,
+                                "fail to execute 'sh -c fusermount -V' process "
+                                "for an unknown reason\n");
                 }
 
-                // Failed to run 'fusermount -V', disabling aggregation and RDMA migration
+                // Failed to run 'fusermount -V', disabling aggregation and RDMA
+                // migration
                 PRINT_ERROR("Error: 'fusermount' not found.\n");
                 return -1;
             }
@@ -851,13 +884,15 @@ int init_ckpt_aggregation()
     }
 
     if (!use_aggre) {
-        //strncpy(ckpt_filename, DEFAULT_CHECKPOINT_FILENAME, CR_MAX_FILENAME ); 
+        // strncpy(ckpt_filename, DEFAULT_CHECKPOINT_FILENAME, CR_MAX_FILENAME
+        // );
         return 0;
     }
 
     char *sessionid = getenv("MPISPAWN_CR_SESSIONID");
     if (start_crfs(sessionid, ckpt_filename, use_aggre_mig) != 0) {
-        PRINT_ERROR("Error: start_crfs() failed. Please check that the fuse module is loaded on this node.\n");
+        PRINT_ERROR("Error: start_crfs() failed. Please check that the fuse "
+                    "module is loaded on this node.\n");
         return -2;
     }
     PRINT_DEBUG(DEBUG_FT_verbose, "Now, ckptname is: %s\n", ckpt_filename);
@@ -865,4 +900,4 @@ int init_ckpt_aggregation()
 }
 #endif
 
-#endif                          /* CKPT */
+#endif /* CKPT */

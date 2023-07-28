@@ -3,15 +3,15 @@
  *  (C) 2006 by Argonne National Laboratory.
  *      See COPYRIGHT in top-level directory.
  */
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -21,44 +21,43 @@
 #include <infiniband/verbs.h>
 #include <rdma_3dtorus.h>
 
-typedef enum  {
+typedef enum {
     IB_PROGRESS_POLL,
     IB_PROGRESS_BLOCK
 } MPID_nem_ib_progress_type_t;
 
 typedef struct {
-    int                         path_mtu;
-    unsigned long               max_rdma_size;
-    uint8_t                     max_qp_ous_rd_atom;
-    uint32_t                    max_hcas;
-    uint32_t                    psn;
-    uint16_t                    pkey_ix;
-    uint32_t                    max_num_cqe;
+    int path_mtu;
+    unsigned long max_rdma_size;
+    uint8_t max_qp_ous_rd_atom;
+    uint32_t max_hcas;
+    uint32_t psn;
+    uint16_t pkey_ix;
+    uint32_t max_num_cqe;
     MPID_nem_ib_progress_type_t progress_type;
-    uint32_t                    max_srq_wr;
-    uint32_t                    max_send_sge;
-    uint32_t                    max_srq_recv_sge;
-    uint32_t                    max_send_wr;
-    uint32_t                    srq_limit;
-    uint32_t                    srq_n_preserve;
-    uint32_t                    max_inline_size;
-    uint8_t                     max_dst_rd_atomic;
-    uint8_t                     min_rnr_timer;
-    uint8_t                     sl;
-    uint8_t                     src_path_bits;
-    uint8_t                     static_rate;
-    uint8_t                     timeout;
-    uint8_t                     retry_cnt;
-    uint8_t                     rnr_retry;
-    uint8_t                     sq_psn;
-    uint8_t                     max_rd_atomic;
-    uint32_t                    max_cell_elem;
-    uint32_t                    sec_pool_size;
-    uint32_t                    max_vc_queue;
+    uint32_t max_srq_wr;
+    uint32_t max_send_sge;
+    uint32_t max_srq_recv_sge;
+    uint32_t max_send_wr;
+    uint32_t srq_limit;
+    uint32_t srq_n_preserve;
+    uint32_t max_inline_size;
+    uint8_t max_dst_rd_atomic;
+    uint8_t min_rnr_timer;
+    uint8_t sl;
+    uint8_t src_path_bits;
+    uint8_t static_rate;
+    uint8_t timeout;
+    uint8_t retry_cnt;
+    uint8_t rnr_retry;
+    uint8_t sq_psn;
+    uint8_t max_rd_atomic;
+    uint32_t max_cell_elem;
+    uint32_t sec_pool_size;
+    uint32_t max_vc_queue;
 } MPID_nem_ib_dev_param_t, *MPID_nem_ib_dev_param_ptr_t;
 
 extern MPID_nem_ib_dev_param_t *MPID_nem_ib_dev_param_ptr;
-
 
 /**
  * MPID_nem_ib_port_t
@@ -69,8 +68,8 @@ extern MPID_nem_ib_dev_param_t *MPID_nem_ib_dev_param_ptr;
  */
 
 typedef struct {
-    uint8_t                             port_num;
-    struct ibv_port_attr                port_attr;
+    uint8_t port_num;
+    struct ibv_port_attr port_attr;
 } MPID_nem_ib_port_t, *MPID_nem_ib_port_ptr_t;
 
 /**
@@ -79,18 +78,18 @@ typedef struct {
  * Defines an InfiniBand device.
  */
 typedef struct {
-    struct ibv_device                   *nic;
-    struct ibv_context                  *context;
-    struct ibv_device_attr              dev_attr;
-    uint8_t                             n_active_ports;
-    MPID_nem_ib_port_ptr_t              ib_port;
-    struct ibv_comp_channel             *comp_channel;
-    struct ibv_pd                       *prot_domain;
-    struct ibv_cq                       *cq;
-    struct ibv_srq                      *srq;
-    uint32_t                            srq_n_posted;
-    pthread_t                           async_thread;
-    pthread_spinlock_t                  srq_post_lock;
+    struct ibv_device *nic;
+    struct ibv_context *context;
+    struct ibv_device_attr dev_attr;
+    uint8_t n_active_ports;
+    MPID_nem_ib_port_ptr_t ib_port;
+    struct ibv_comp_channel *comp_channel;
+    struct ibv_pd *prot_domain;
+    struct ibv_cq *cq;
+    struct ibv_srq *srq;
+    uint32_t srq_n_posted;
+    pthread_t async_thread;
+    pthread_spinlock_t srq_post_lock;
 } MPID_nem_ib_device_t, *MPID_nem_ib_device_ptr_t;
 
 /**
@@ -101,12 +100,11 @@ typedef struct {
  */
 
 typedef struct {
-    uint16_t                            n_ib_dev;
-    MPID_nem_ib_device_ptr_t            ib_dev;
+    uint16_t n_ib_dev;
+    MPID_nem_ib_device_ptr_t ib_dev;
 } MPID_nem_ib_ctxt_t, *MPID_nem_ib_ctxt_ptr_t;
 
-extern MPID_nem_ib_ctxt_ptr_t  MPID_nem_ib_ctxt_ptr;
-
+extern MPID_nem_ib_ctxt_ptr_t MPID_nem_ib_ctxt_ptr;
 
 /* TODO: For multi-rail implementation,
  * we need to fill in policies in the

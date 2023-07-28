@@ -1,13 +1,13 @@
 /*
- * Copyright (c) 2001-2022, The Ohio State University. All rights
+ * Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  */
 
 #ifndef SIGNAL_PROCESSOR_H
@@ -15,7 +15,7 @@
 
 #include <pthread.h>
 #include <signal.h>
-#include "mv2_debug_utils.h"
+#include "mvp_debug_utils.h"
 
 /*
  * This function creates a new thread which calls sigwait on the given
@@ -30,8 +30,8 @@
  * Error messages are made using the PRINT_ERROR & PRINT_ERROR_ERRNO macros so
  * `set_output_prefix' should be called before calling this function.
  */
-extern void start_sp_thread (sigset_t, void (*)(int), int);
-extern void stop_sp_thread (void);
-extern void clear_sigmask (void);
+extern void start_sp_thread(sigset_t, void (*)(int), int);
+extern void stop_sp_thread(void);
+extern void clear_sigmask(void);
 
 #endif

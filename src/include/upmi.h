@@ -1,13 +1,13 @@
 /*
- * Copyright (c) 2001-2022, The Ohio State University. All rights
+ * Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  */
 
 #ifndef UPMI_H_INCLUDED
@@ -16,12 +16,12 @@
 #include "mpichconf.h"
 
 #ifdef USE_PMIX_API
-    #include <pmix.h>
-    #include <pmi.h>
+#include <pmix.h>
+#include <pmi.h>
 #elif USE_PMI2_API
-    #include <pmi2.h>
+#include <pmi2.h>
 #else
-    #include <pmi.h>
+#include <pmi.h>
 #endif
 
 #if defined(__cplusplus)
@@ -47,79 +47,81 @@ extern "C" {
 
 struct MPID_Info;
 
-int UPMI_INIT( int *spawned );
+int UPMI_INIT(int *spawned);
 
-int UPMI_INITIALIZED( int *initialized );
+int UPMI_INITIALIZED(int *initialized);
 
-int UPMI_FINALIZE( void );
+int UPMI_FINALIZE(void);
 
-int UPMI_GET_SIZE( int *size );
+int UPMI_GET_SIZE(int *size);
 
-int UPMI_GET_RANK( int *rank );
+int UPMI_GET_RANK(int *rank);
 
-int UPMI_GET_APPNUM( int *appnum );
+int UPMI_GET_APPNUM(int *appnum);
 
-int UPMI_GET_UNIVERSE_SIZE( int *size );
+int UPMI_GET_UNIVERSE_SIZE(int *size);
 
-int UPMI_BARRIER( void );
+int UPMI_BARRIER(void);
 
-int UPMI_IBARRIER( void );
+int UPMI_IBARRIER(void);
 
-int UPMI_WAIT( void );
+int UPMI_WAIT(void);
 
-int UPMI_IALLGATHER( const char value[] );
+int UPMI_IALLGATHER(const char value[]);
 
-int UPMI_IALLGATHER_WAIT( void **buf );
+int UPMI_IALLGATHER_WAIT(void **buf);
 
-int UPMI_IALLGATHER_FREE( void );
+int UPMI_IALLGATHER_FREE(void);
 
-int UPMI_ABORT( int exit_code, const char error_msg[] );
+int UPMI_ABORT(int exit_code, const char error_msg[]);
 
-int UPMI_KVS_GET_KEY_LENGTH_MAX( int *length );
+int UPMI_KVS_GET_KEY_LENGTH_MAX(int *length);
 
-int UPMI_KVS_GET_NAME_LENGTH_MAX( int *length );
+int UPMI_KVS_GET_NAME_LENGTH_MAX(int *length);
 
-int UPMI_KVS_GET_VALUE_LENGTH_MAX( int *length );
+int UPMI_KVS_GET_VALUE_LENGTH_MAX(int *length);
 
-int UPMI_KVS_GET_MY_NAME( char kvsname[], int length );
+int UPMI_KVS_GET_MY_NAME(char kvsname[], int length);
 
-int UPMI_KVS_PUT( const char kvsname[], const char key[], const char value[] );
+int UPMI_KVS_PUT(const char kvsname[], const char key[], const char value[]);
 
-int UPMI_KVS_GET( const char kvsname[], const char key[], char value[], int length );
+int UPMI_KVS_GET(const char kvsname[], const char key[], char value[],
+                 int length);
 
-int UPMI_KVS_COMMIT( const char kvsname[] );
+int UPMI_KVS_COMMIT(const char kvsname[]);
 
-int UPMI_PUBLISH_NAME( const char service_name[], const char port[], const struct MPID_Info *info_ptr );
+int UPMI_PUBLISH_NAME(const char service_name[], const char port[],
+                      const struct MPID_Info *info_ptr);
 
-int UPMI_UNPUBLISH_NAME( const char service_name[], const struct MPID_Info *info_ptr );
+int UPMI_UNPUBLISH_NAME(const char service_name[],
+                        const struct MPID_Info *info_ptr);
 
-int UPMI_LOOKUP_NAME( const char service_name[], char port[], const struct MPID_Info *info_ptr );
+int UPMI_LOOKUP_NAME(const char service_name[], char port[],
+                     const struct MPID_Info *info_ptr);
 
-int UPMI_GET_NODE_ATTR( const char name[], char value[], int valuelen, int *found, int waitfor );
+int UPMI_GET_NODE_ATTR(const char name[], char value[], int valuelen,
+                       int *found, int waitfor);
 
-int UPMI_GET_NODE_ATTR_INT_ARRAY( const char name[], int array[], int arraylen, int *outlen, int *found );
+int UPMI_GET_NODE_ATTR_INT_ARRAY(const char name[], int array[], int arraylen,
+                                 int *outlen, int *found);
 
-int UPMI_PUT_NODE_ATTR( const char name[], const char value[] );
+int UPMI_PUT_NODE_ATTR(const char name[], const char value[]);
 
-int UPMI_GET_JOB_ATTR( const char name[], char value[], int valuelen, int *found );
+int UPMI_GET_JOB_ATTR(const char name[], char value[], int valuelen,
+                      int *found);
 
-int UPMI_GET_JOB_ATTR_INT_ARRAY( const char name[], int array[], int arraylen, int *outlen, int *found );
+int UPMI_GET_JOB_ATTR_INT_ARRAY(const char name[], int array[], int arraylen,
+                                int *outlen, int *found);
 
-int UPMI_JOB_SPAWN(int count,
-                   const char * cmds[],
-                   int argcs[],
-                   const char ** argvs[],
-                   const int maxprocs[],
+int UPMI_JOB_SPAWN(int count, const char *cmds[], int argcs[],
+                   const char **argvs[], const int maxprocs[],
                    const int info_keyval_sizes[],
-                   const void *info_keyval_vectors[],
-                   int preput_keyval_size,
-                   const void *preput_keyval_vector,
-                   char jobId[],
-                   int jobIdSize,
-                   int errors[]);
+                   const void *info_keyval_vectors[], int preput_keyval_size,
+                   const void *preput_keyval_vector, char jobId[],
+                   int jobIdSize, int errors[]);
 
 #if defined(__cplusplus)
 }
 #endif
 
-#endif //UPMI_H_INCLUDED
+#endif // UPMI_H_INCLUDED

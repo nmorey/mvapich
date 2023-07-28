@@ -1,142 +1,115 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  ** reserved.
  **
- ** This file is part of the MVAPICH2 software package developed by the
+ ** This file is part of the MVAPICH software package developed by the
  ** team members of The Ohio State University's Network-Based Computing
  ** Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  **
  ** For detailed copyright and licensing information, please refer to the
- ** copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ ** copyright file COPYRIGHT in the top level MVAPICH directory.
  **
  **/
 
 #ifndef _ALLTOALLV_TUNING_
 #define _ALLTOALLV_TUNING_
 
-#include "mv2_coll_shmem.h"
+#include "mvp_coll_shmem.h"
 
-#define NMATCH (3+1)
+#define NMATCH (3 + 1)
 
 /* Alltoallv tuning flags
-  0: Alltoallv_intra_MV2
-  1: Alltoallv_MV2 
+  0: Alltoallv_intra_MVP
+  1: Alltoallv_MVP
 */
 
 /* Indicates number of processes per node */
-extern int *mv2_alltoallv_table_ppn_conf;
+extern int *mvp_alltoallv_table_ppn_conf;
 /* Indicates total number of configurations */
-extern int mv2_alltoallv_num_ppn_conf;
+extern int mvp_alltoallv_num_ppn_conf;
 
-extern MPIR_T_pvar_timer_t PVAR_TIMER_mv2_coll_timer_alltoallv_intra;
-extern MPIR_T_pvar_timer_t PVAR_TIMER_mv2_coll_timer_alltoallv_intra_scatter;
+extern MPIR_T_pvar_timer_t PVAR_TIMER_mvp_coll_timer_alltoallv_intra;
+extern MPIR_T_pvar_timer_t PVAR_TIMER_mvp_coll_timer_alltoallv_intra_scatter;
 
-extern unsigned long long PVAR_COUNTER_mv2_coll_alltoallv_intra;
-extern unsigned long long PVAR_COUNTER_mv2_coll_alltoallv_intra_scatter;
+extern unsigned long long PVAR_COUNTER_mvp_coll_alltoallv_intra;
+extern unsigned long long PVAR_COUNTER_mvp_coll_alltoallv_intra_scatter;
 
-extern unsigned long long PVAR_COUNTER_mv2_coll_alltoallv_pw;
-extern unsigned long long PVAR_COUNTER_mv2_coll_alltoallv_intra_bytes_send;
-extern unsigned long long PVAR_COUNTER_mv2_coll_alltoallv_intra_bytes_recv;
-extern unsigned long long PVAR_COUNTER_mv2_coll_alltoallv_intra_count_send;
-extern unsigned long long PVAR_COUNTER_mv2_coll_alltoallv_intra_count_recv;
-extern unsigned long long PVAR_COUNTER_mv2_coll_alltoallv_bytes_send;
-extern unsigned long long PVAR_COUNTER_mv2_coll_alltoallv_bytes_recv;
-extern unsigned long long PVAR_COUNTER_mv2_coll_alltoallv_count_send;
-extern unsigned long long PVAR_COUNTER_mv2_coll_alltoallv_count_recv;
+extern unsigned long long PVAR_COUNTER_mvp_coll_alltoallv_pw;
+extern unsigned long long PVAR_COUNTER_mvp_coll_alltoallv_intra_bytes_send;
+extern unsigned long long PVAR_COUNTER_mvp_coll_alltoallv_intra_bytes_recv;
+extern unsigned long long PVAR_COUNTER_mvp_coll_alltoallv_intra_count_send;
+extern unsigned long long PVAR_COUNTER_mvp_coll_alltoallv_intra_count_recv;
+extern unsigned long long PVAR_COUNTER_mvp_coll_alltoallv_bytes_send;
+extern unsigned long long PVAR_COUNTER_mvp_coll_alltoallv_bytes_recv;
+extern unsigned long long PVAR_COUNTER_mvp_coll_alltoallv_count_send;
+extern unsigned long long PVAR_COUNTER_mvp_coll_alltoallv_count_recv;
+
+typedef int (*MVP_Alltoallv_fn_t)(const void *sendbuf, const int *sendcnts,
+                                  const int *sdispls, MPI_Datatype sendtype,
+                                  void *recvbuf, const int *recvcnts,
+                                  const int *rdispls, MPI_Datatype recvtype,
+                                  MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag);
 
 typedef struct {
     int min;
     int max;
-    int (*MV2_pt_Alltoallv_function) (const void *sendbuf,
-                             const int *sendcnts,
-                             const int *sdispls,
-                             MPI_Datatype sendtype,
-                             void *recvbuf,
-                             const int *recvcnts,
-                             const int *rdispls,
-                             MPI_Datatype recvtype,
-                             MPIR_Comm * comm_ptr, MPIR_Errflag_t *errflag);
-} mv2_alltoallv_tuning_element;
+    MVP_Alltoallv_fn_t alltoallv_fn;
+} mvp_alltoallv_tuning_element;
 
 typedef struct {
     int numproc;
     int size_table;
-    mv2_alltoallv_tuning_element algo_table[MV2_MAX_NB_THRESHOLDS];
-    mv2_alltoallv_tuning_element in_place_algo_table[MV2_MAX_NB_THRESHOLDS];
-} mv2_alltoallv_tuning_table;
+    mvp_alltoallv_tuning_element algo_table[MVP_MAX_NB_THRESHOLDS];
+    mvp_alltoallv_tuning_element in_place_algo_table[MVP_MAX_NB_THRESHOLDS];
+} mvp_alltoallv_tuning_table;
 
-extern int *mv2_size_alltoallv_tuning_table;
-extern mv2_alltoallv_tuning_table **mv2_alltoallv_thresholds_table;
-extern int mv2_use_old_alltoallv;
+extern int *mvp_size_alltoallv_tuning_table;
+extern mvp_alltoallv_tuning_table **mvp_alltoallv_thresholds_table;
+extern int mvp_use_old_alltoallv;
 
 typedef struct {
     int msg_sz;
-    int (*MV2_pt_Alltoallv_function) (const void *sendbuf,
-                             const int *sendcnts,
-                             const int *sdispls,
-                             MPI_Datatype sendtype,
-                             void *recvbuf,
-                             const int *recvcnts,
-                             const int *rdispls,
-                             MPI_Datatype recvtype,
-                             MPIR_Comm * comm_ptr, MPIR_Errflag_t *errflag);
-} mv2_alltoallv_indexed_tuning_element;
+    MVP_Alltoallv_fn_t alltoallv_fn;
+} mvp_alltoallv_indexed_tuning_element;
 
 typedef struct {
     int numproc;
-    int in_place_algo_table[MV2_MAX_NB_THRESHOLDS];
+    int in_place_algo_table[MVP_MAX_NB_THRESHOLDS];
     int size_table;
-    mv2_alltoallv_indexed_tuning_element algo_table[MV2_MAX_NB_THRESHOLDS];
-} mv2_alltoallv_indexed_tuning_table;
+    mvp_alltoallv_indexed_tuning_element algo_table[MVP_MAX_NB_THRESHOLDS];
+} mvp_alltoallv_indexed_tuning_table;
 
 /* Indicates number of processes per node */
-extern int *mv2_alltoallv_indexed_table_ppn_conf;
+extern int *mvp_alltoallv_indexed_table_ppn_conf;
 /* Indicates total number of configurations */
-extern int mv2_alltoallv_indexed_num_ppn_conf;
-extern int *mv2_size_alltoallv_indexed_tuning_table;
-extern mv2_alltoallv_indexed_tuning_table 
-    **mv2_alltoallv_indexed_thresholds_table;
+extern int mvp_alltoallv_indexed_num_ppn_conf;
+extern int *mvp_size_alltoallv_indexed_tuning_table;
+extern mvp_alltoallv_indexed_tuning_table *
+    *mvp_alltoallv_indexed_thresholds_table;
 
-extern int MPIR_Alltoallv_index_tuned_intra_MV2(const void *sendbuf,
-                             const int *sendcnts,
-                             const int *sdispls,
-                             MPI_Datatype sendtype,
-                             void *recvbuf,
-                             const int *recvcnts,
-                             const int *rdispls,
-                             MPI_Datatype recvtype,
-                             MPIR_Comm * comm_ptr, MPIR_Errflag_t *errflag);
+extern int MPIR_Alltoallv_index_tuned_intra_MVP(
+    const void *sendbuf, const int *sendcnts, const int *sdispls,
+    MPI_Datatype sendtype, void *recvbuf, const int *recvcnts,
+    const int *rdispls, MPI_Datatype recvtype, MPIR_Comm *comm_ptr,
+    MPIR_Errflag_t *errflag);
 
-extern int MPIR_Alltoallv_intra_MV2(const void *sendbuf,
-                             const int *sendcnts,
-                             const int *sdispls,
-                             MPI_Datatype sendtype,
-                             void *recvbuf,
-                             const int *recvcnts,
-                             const int *rdispls,
-                             MPI_Datatype recvtype,
-                             MPIR_Comm * comm_ptr, MPIR_Errflag_t *errflag);
+extern int MPIR_Alltoallv_intra_MVP(const void *sendbuf, const int *sendcnts,
+                                    const int *sdispls, MPI_Datatype sendtype,
+                                    void *recvbuf, const int *recvcnts,
+                                    const int *rdispls, MPI_Datatype recvtype,
+                                    MPIR_Comm *comm_ptr,
+                                    MPIR_Errflag_t *errflag);
 
-extern int MPIR_Alltoallv_intra_scatter_MV2(const void *sendbuf,
-                             const int *sendcnts,
-                             const int *sdispls,
-                             MPI_Datatype sendtype,
-                             void *recvbuf,
-                             const int *recvcnts,
-                             const int *rdispls,
-                             MPI_Datatype recvtype,
-                             MPIR_Comm * comm_ptr, MPIR_Errflag_t *errflag);
-
+extern int MPIR_Alltoallv_intra_scatter_MVP(
+    const void *sendbuf, const int *sendcnts, const int *sdispls,
+    MPI_Datatype sendtype, void *recvbuf, const int *recvcnts,
+    const int *rdispls, MPI_Datatype recvtype, MPIR_Comm *comm_ptr,
+    MPIR_Errflag_t *errflag);
 
 /* Architecture detection tuning */
-int MV2_set_alltoallv_tuning_table(int heterogeneity, 
-                                    struct coll_info *colls_arch_hca);
+int MVP_set_alltoallv_tuning_table(int heterogeneity,
+                                   struct coll_info *colls_arch_hca);
 
 /* Function to clean free memory allocated by bcast tuning table*/
-void MV2_cleanup_alltoallv_tuning_table();
-
-/* Function used inside ch3_shmem_coll.c to tune bcast thresholds */
-int MV2_Alltoallv_is_define(char *mv2_user_alltoallv);
-
+void MVP_cleanup_alltoallv_tuning_table();
 
 #endif
-

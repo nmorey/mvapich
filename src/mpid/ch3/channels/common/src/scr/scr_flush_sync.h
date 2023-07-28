@@ -7,7 +7,7 @@
  * This file is part of The Scalable Checkpoint / Restart (SCR) library.
  * For details, see https://sourceforge.net/projects/scalablecr/
  * Please also read this file: LICENSE.TXT.
-*/
+ */
 
 #ifndef SCR_FLUSH_SYNC_H
 #define SCR_FLUSH_SYNC_H
@@ -15,6 +15,6 @@
 #include "scr_filemap.h"
 
 /* flush files from cache to parallel file system under SCR_PREFIX */
-int scr_flush_sync(scr_filemap* map, int id);
+int scr_flush_sync(scr_filemap *map, int id);
 
 #endif

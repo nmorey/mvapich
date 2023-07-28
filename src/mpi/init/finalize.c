@@ -3,15 +3,15 @@
  *     See COPYRIGHT in top-level directory
  */
 
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -20,8 +20,8 @@
 #include "mpiimpl.h"
 #include "mpi_init.h"
 
-#if (defined(CHANNEL_MRAIL)||defined(_MV2_CH4_OVERRIDE_))
-#include "mv2_coll_shmem.h"
+#if (defined(CHANNEL_MRAIL)||defined(_MVP_CH4_OVERRIDE_))
+#include "mvp_coll_shmem.h"
 #endif
 
 #ifdef PROFILE_STARTUP
@@ -192,29 +192,25 @@ int MPI_Finalize(void)
              MPIR_ERR_POP(mpi_errno); 
     }
 #if defined(CHANNEL_MRAIL_GEN2)
-    char *value = NULL;
-    if ((value = getenv("MV2_SHOW_RUNLOG_INFO")) != NULL) {
-        mv2_show_runlog_level = atoi(value);
-        if (mv2_show_runlog_level) {
-            mv2_show_runlog_info(mv2_show_runlog_level);
-        }
+    if (MVP_SHOW_RUNLOG_INFO) {
+        mvp_show_runlog_info(MVP_SHOW_RUNLOG_INFO);
     }
 #endif /* defined(CHANNEL_MRAIL_GEN2) */
-#ifndef _MV2_CH4_OVERRIDE_
+#ifndef _MVP_CH4_OVERRIDE_
     if( MPIR_Process.comm_world->dev.ch.shmem_coll_ok == 1) {
         mpi_errno = free_2level_comm(MPIR_Process.comm_world);
         if (mpi_errno) { 
              MPIR_ERR_POP(mpi_errno); 
         }
     }
-#endif /* !_MV2_CH4_OVERRIDE_ */
+#endif /* !_MVP_CH4_OVERRIDE_ */
 #endif /* CHANNEL_MRAIL */
 
     mpi_errno = MPID_Finalize();
     MPIR_ERR_CHECK(mpi_errno);
 
 #ifdef CHANNEL_MRAIL
-    mv2_free_dummy_request();
+    mvp_free_dummy_request();
 #endif
 
     mpi_errno = MPII_Coll_finalize();

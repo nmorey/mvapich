@@ -2,22 +2,22 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
 #include "mpidimpl.h"
 
 /* TODO: Replace or reimplement these bucket macros */
-/* MPIR_T_PVAR_ULONG2_COUNTER_BUCKET_DECL_EXTERN(MV2,mv2_pt2pt_mpid_send); */
+/* MPIR_T_PVAR_ULONG2_COUNTER_BUCKET_DECL_EXTERN(MVP,mvp_pt2pt_mpid_send); */
 
 /*
  * MPID_Send()
@@ -27,7 +27,7 @@ int MPID_Send(const void * buf, MPI_Aint count, MPI_Datatype datatype, int rank,
           MPIR_Request ** request)
 {
     /* TODO: Replace or reimplement these bucket macros */
-    /* MPIR_T_PVAR_COUNTER_BUCKET_INC(MV2,mv2_pt2pt_mpid_send,count,datatype); */
+    /* MPIR_T_PVAR_COUNTER_BUCKET_INC(MVP,mvp_pt2pt_mpid_send,count,datatype); */
 
     intptr_t data_sz;
     int dt_contig;
@@ -95,7 +95,7 @@ int MPID_Send(const void * buf, MPI_Aint count, MPI_Datatype datatype, int rank,
                 dt_true_lb);
 
 #ifdef _ENABLE_CUDA_
-    if (mv2_enable_device) {
+    if (mvp_enable_device) {
         if (is_device_buffer((void *)buf)) {
             /* buf is in the GPU device memory */
             device_transfer_mode = DEVICE_TO_DEVICE;
@@ -166,27 +166,27 @@ int MPID_Send(const void * buf, MPI_Aint count, MPI_Datatype datatype, int rank,
     }
 
 #ifdef _ENABLE_CUDA_
-    if (mv2_enable_device) {
+    if (mvp_enable_device) {
         /*forces rndv for some IPC based CUDA transfers*/
 #ifdef HAVE_CUDA_IPC
-        if (mv2_device_use_ipc &&
+        if (mvp_device_use_ipc &&
             vc->smp.local_rank != -1 &&
             device_transfer_mode != NONE) {
 
             /*initialize IPC buffered channel if not initialized*/
-            if (mv2_device_dynamic_init &&
-                mv2_device_initialized &&
-                vc->smp.can_access_peer == MV2_DEVICE_IPC_UNINITIALIZED) {
+            if (mvp_device_dynamic_init &&
+                mvp_device_initialized &&
+                vc->smp.can_access_peer == MVP_DEVICE_IPC_UNINITIALIZED) {
                 device_ipc_init_dynamic (vc);
             }
 
-            if (vc->smp.can_access_peer == MV2_DEVICE_IPC_ENABLED &&
-                mv2_device_use_ipc_stage_buffer &&
+            if (vc->smp.can_access_peer == MVP_DEVICE_IPC_ENABLED &&
+                mvp_device_use_ipc_stage_buffer &&
                 dt_contig &&
-                data_sz >= mv2_device_ipc_threshold)  {
+                data_sz >= mvp_device_ipc_threshold)  {
                 /*force RNDV for CUDA transfers when buffered CUDA IPC is enabled or 
-                 ** if mv2_device_use_smp_eager_ipc is set off */
-                if (!mv2_device_use_smp_eager_ipc) {
+                 ** if mvp_device_use_smp_eager_ipc is set off */
+                if (!mvp_device_use_smp_eager_ipc) {
                     goto rndv_send;
                 }
             }
@@ -198,8 +198,8 @@ int MPID_Send(const void * buf, MPI_Aint count, MPI_Datatype datatype, int rank,
             vc->smp.local_rank != -1 &&
             device_transfer_mode != NONE) {
 #ifdef HAVE_CUDA_IPC
-            if (mv2_device_use_ipc == 0 ||
-                vc->smp.can_access_peer != MV2_DEVICE_IPC_ENABLED)
+            if (mvp_device_use_ipc == 0 ||
+                vc->smp.can_access_peer != MVP_DEVICE_IPC_ENABLED)
 #endif
             {
                 goto rndv_send;
@@ -237,7 +237,7 @@ int MPID_Send(const void * buf, MPI_Aint count, MPI_Datatype datatype, int rank,
                 sreq->dev.datatype_ptr = dt_ptr;
                 MPIR_Datatype_ptr_add_ref(dt_ptr);
             }
-            if (mv2_enable_device) {
+            if (mvp_enable_device) {
                 /* buf is in the GPU device memory */
                 sreq->mrail.device_transfer_mode = device_transfer_mode;
             }
@@ -264,7 +264,7 @@ rndv_send:
         sreq->dev.datatype_ptr = dt_ptr;
         MPIR_Datatype_ptr_add_ref(dt_ptr);
     }
-    if (mv2_enable_device) {
+    if (mvp_enable_device) {
         sreq->mrail.device_transfer_mode = device_transfer_mode;
     }
 #endif

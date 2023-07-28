@@ -2,15 +2,15 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -57,7 +57,7 @@ int MPIDI_CH3I_RDMA_finish_rma(MPIR_Win * win_ptr);
 int MPIDI_CH3I_RDMA_finish_rma_target(MPIR_Win *win_ptr, int target_rank);
 int MPIDI_CH3I_RDMA_set_CC(MPIR_Win *, int target_rank);
 int MPIDI_CH3I_barrier_in_rma(MPIR_Win **win_ptr, int rank, int node_size, int comm_size);
-void mv2_init_rank_for_barrier (MPIR_Win ** win_ptr);
+void mvp_init_rank_for_barrier (MPIR_Win ** win_ptr);
 #endif /* defined(CHANNEL_MRAIL) */
 
 static inline int send_lock_msg(int dest, int lock_type, MPIR_Win * win_ptr)

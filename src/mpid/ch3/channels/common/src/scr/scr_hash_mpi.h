@@ -7,7 +7,7 @@
  * This file is part of The Scalable Checkpoint / Restart (SCR) library.
  * For details, see https://sourceforge.net/projects/scalablecr/
  * Please also read this file: LICENSE.TXT.
-*/
+ */
 
 #ifndef SCR_HASH_MPI_H
 #define SCR_HASH_MPI_H
@@ -22,23 +22,21 @@ Hash MPI transfer functions
 */
 
 /* packs and send the given hash to the specified rank */
-int scr_hash_send(const scr_hash* hash, int rank, MPI_Comm comm);
+int scr_hash_send(const scr_hash *hash, int rank, MPI_Comm comm);
 
 /* receives a hash from the specified rank and unpacks it into specified hash */
-int scr_hash_recv(scr_hash* hash, int rank, MPI_Comm comm);
+int scr_hash_recv(scr_hash *hash, int rank, MPI_Comm comm);
 
 /* send and receive a hash in the same step */
-int scr_hash_sendrecv(
-    const scr_hash* hash_send, int rank_send,
-          scr_hash* hash_recv, int rank_recv,
-    MPI_Comm comm
-);
+int scr_hash_sendrecv(const scr_hash *hash_send, int rank_send,
+                      scr_hash *hash_recv, int rank_recv, MPI_Comm comm);
 
-/* broadcasts a hash from a root and unpacks it into specified hash on all other tasks */
-int scr_hash_bcast(scr_hash* hash, int root, MPI_Comm comm);
+/* broadcasts a hash from a root and unpacks it into specified hash on all other
+ * tasks */
+int scr_hash_bcast(scr_hash *hash, int root, MPI_Comm comm);
 
 /* execute a (sparse) global exchange, similar to an alltoallv operation
- * 
+ *
  * hash_send specifies destinations as:
  * <rank_X>
  *   <hash_to_send_to_rank_X>
@@ -50,20 +48,18 @@ int scr_hash_bcast(scr_hash* hash, int root, MPI_Comm comm);
  *   <hash_received_from_rank_A>
  * <rank_B>
  *   <hash_received_from_rank_B> */
-int scr_hash_exchange(const scr_hash* hash_send, scr_hash* hash_recv, MPI_Comm comm);
+int scr_hash_exchange(const scr_hash *hash_send, scr_hash *hash_recv,
+                      MPI_Comm comm);
 
 typedef enum {
-  SCR_HASH_EXCHANGE_RIGHT = 0,
-  SCR_HASH_EXCHANGE_LEFT,
+    SCR_HASH_EXCHANGE_RIGHT = 0,
+    SCR_HASH_EXCHANGE_LEFT,
 } scr_hash_exchange_enum;
 
 /* like scr_hash_exchange, but with a direction specified for Bruck's
  * algorithm */
-int scr_hash_exchange_direction(
-  const scr_hash* hash_send,
-        scr_hash* hash_recv,
-  MPI_Comm comm,
-  scr_hash_exchange_enum direction
-);
+int scr_hash_exchange_direction(const scr_hash *hash_send, scr_hash *hash_recv,
+                                MPI_Comm comm,
+                                scr_hash_exchange_enum direction);
 
 #endif

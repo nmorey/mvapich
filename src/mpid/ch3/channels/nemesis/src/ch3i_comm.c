@@ -3,15 +3,15 @@
  *     See COPYRIGHT in top-level directory
  */
 
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -19,8 +19,8 @@
 #undef utarray_oom
 #define utarray_oom() do { goto fn_oom; } while (0)
 #include "utarray.h"
-/* MV2 nemesis collective unification */
-#include "mv2_ch3_shmem.h"
+/* MVP nemesis collective unification */
+#include "mvp_ch3_shmem.h"
 
 #define NULL_CONTEXT_ID -1
 
@@ -30,25 +30,23 @@ int MPIDI_CH3I_comm_create(MPIR_Comm *comm, void *param)
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3I_COMM_CREATE);
 
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_COMM_CREATE);
-<<<<<<< HEAD
 
 #ifdef _OSU_MVAPICH_
-    if(mv2_use_osu_collectives == 1 &&
-        comm->comm_kind == MPID_INTRACOMM)  {
-        comm->coll_fns->Barrier = MPIR_Barrier_MV2;
-        comm->coll_fns->Bcast = MPIR_Bcast_MV2;
-        comm->coll_fns->Gather = MPIR_Gather_MV2;
-        comm->coll_fns->Gatherv = MPIR_Gatherv_MV2;
-        comm->coll_fns->Scatter = MPIR_Scatter_MV2;
+    if (MVP_USE_OSU_COLLECTIVES && comm->comm_kind == MPID_INTRACOMM) {
+        comm->coll_fns->Barrier = MPIR_Barrier_MVP;
+        comm->coll_fns->Bcast = MPIR_Bcast_MVP;
+        comm->coll_fns->Gather = MPIR_Gather_MVP;
+        comm->coll_fns->Gatherv = MPIR_Gatherv_MVP;
+        comm->coll_fns->Scatter = MPIR_Scatter_MVP;
         comm->coll_fns->Scatterv = MPIR_Scatterv;
-        comm->coll_fns->Allgather = MPIR_Allgather_MV2;
-        comm->coll_fns->Allgatherv = MPIR_Allgatherv_MV2;
-        comm->coll_fns->Alltoall = MPIR_Alltoall_MV2;
-        comm->coll_fns->Alltoallv = MPIR_Alltoallv_MV2;
+        comm->coll_fns->Allgather = MPIR_Allgather_MVP;
+        comm->coll_fns->Allgatherv = MPIR_Allgatherv_MVP;
+        comm->coll_fns->Alltoall = MPIR_Alltoall_MVP;
+        comm->coll_fns->Alltoallv = MPIR_Alltoallv_MVP;
         comm->coll_fns->Alltoallw = MPIR_Alltoallw;
-        comm->coll_fns->Reduce = MPIR_Reduce_MV2;
-        comm->coll_fns->Allreduce = MPIR_Allreduce_MV2;
-        comm->coll_fns->Reduce_scatter = MPIR_Reduce_scatter_MV2;
+        comm->coll_fns->Reduce = MPIR_Reduce_MVP;
+        comm->coll_fns->Allreduce = MPIR_Allreduce_MVP;
+        comm->coll_fns->Reduce_scatter = MPIR_Reduce_scatter_MVP;
         comm->coll_fns->Scan = MPIR_Scan;
     }
     MPIR_pof2_comm(comm, comm->local_size, comm->rank);

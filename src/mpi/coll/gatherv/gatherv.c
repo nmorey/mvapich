@@ -4,17 +4,17 @@
  */
 
 #include "mpiimpl.h"
-#include "mv2_coll_shmem.h"
+#include "mvp_coll_shmem.h"
 
 /* Copyright (c) 2001-2021, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -139,7 +139,7 @@ int MPIR_Gatherv_impl(const void *sendbuf, int sendcount,
 {
     int mpi_errno = MPI_SUCCESS;
 
-    /* TODO-merge: can this be moved somewhere MV2 specific? */
+    /* TODO-merge: can this be moved somewhere MVP specific? */
 #if defined(_ENABLE_CUDA_)
     int i, rank, comm_size;
     int sendbuf_on_device = 0, recvbuf_on_device = 0;
@@ -147,7 +147,7 @@ int MPIR_Gatherv_impl(const void *sendbuf, int sendcount,
     MPI_Aint total_size = 0, total_msgs = 0, avg_size = 0;
     int *send_displs;
 
-    if (mv2_enable_device) {
+    if (mvp_enable_device) {
         rank = comm_ptr->rank;
         if (comm_ptr->comm_kind == MPIR_COMM_KIND__INTRACOMM) {
             comm_size = comm_ptr->local_size;
@@ -176,8 +176,8 @@ int MPIR_Gatherv_impl(const void *sendbuf, int sendcount,
         avg_size = total_size / total_msgs;
 
         if ((sendbuf_on_device || recvbuf_on_device) &&
-             mv2_device_coll_use_stage &&
-             avg_size <= mv2_device_gatherv_stage_limit) {
+             mvp_device_coll_use_stage &&
+             avg_size <= mvp_device_gatherv_stage_limit) {
 
             send_displs = (int *) MPL_malloc(sizeof(int));
             if (send_displs == NULL) {
@@ -253,10 +253,10 @@ int MPIR_Gatherv_impl(const void *sendbuf, int sendcount,
     MPIR_ERR_CHECK(mpi_errno);
 
 #if defined(_ENABLE_CUDA_)
-    if (mv2_enable_device) {
+    if (mvp_enable_device) {
         if ((sendbuf_on_device || recvbuf_on_device) &&
-             mv2_device_coll_use_stage &&
-             avg_size <= mv2_device_gatherv_stage_limit) {
+             mvp_device_coll_use_stage &&
+             avg_size <= mvp_device_gatherv_stage_limit) {
 
             if (((comm_ptr->comm_kind == MPIR_COMM_KIND__INTRACOMM) && (root == rank)) ||
                 ((comm_ptr->comm_kind == MPIR_COMM_KIND__INTERCOMM) && (root == MPI_ROOT))) {

@@ -7,7 +7,7 @@
  * This file is part of The Scalable Checkpoint / Restart (SCR) library.
  * For details, see https://sourceforge.net/projects/scalablecr/
  * Please also read this file: LICENSE.TXT.
-*/
+ */
 
 #ifndef SCR_PATH_MPI_H
 #define SCR_PATH_MPI_H
@@ -28,6 +28,6 @@ int scr_path_sendrecv(
 #endif
 
 /* broadcast path, path should be from scr_path_new() on non-roots */
-int scr_path_bcast(scr_path* path, int root, MPI_Comm comm);
+int scr_path_bcast(scr_path *path, int root, MPI_Comm comm);
 
 #endif /* SCR_PATH_MPI_H */

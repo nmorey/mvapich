@@ -5,12 +5,12 @@
 /* Copyright (c) 2001-2021, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  */
 
 #ifndef MPIIMPL_H_INCLUDED
@@ -175,7 +175,7 @@ extern int MPIR_get_op_ptr(MPI_User_function **uop,
 #endif
                            MPI_Op op);
 
-extern int MPIR_MV2_Reduce_local(void *inbuf, void *inoutbuf,
+extern int MPIR_MVP_Reduce_local(void *inbuf, void *inoutbuf,
                                  MPI_Aint count, MPI_Datatype datatype,
                                  MPI_User_function *uop
 #ifdef HAVE_CXX_BINDING
@@ -275,7 +275,7 @@ typedef struct MPIR_Topology MPIR_Topology;
 #include "mpir_typerep.h"
 #include "mpir_datatype.h"
 #include "mpir_cvars.h"
-#include "mv2_cvars.h"
+#include "mvp_cvars.h"
 #include "mpir_misc_post.h"
 #include "mpit.h"
 #include "mpir_handlemem.h"
@@ -291,10 +291,10 @@ typedef struct MPIR_Topology MPIR_Topology;
 /* avoid conflicts in source files with old-style "char __func__[]" vars */
 
 /*****************************************************************************/
-/****************** PART 7: MVAPICH2 Extended FUNCTIONALITY ******************/
+/****************** PART 7: MVAPICH Extended FUNCTIONALITY ******************/
 /*****************************************************************************/
 #ifdef _OSU_MVAPICH_
-#include "mv2_mpir.h"
+#include "mvp_mpir.h"
 #endif
 
 #endif /* MPIIMPL_H_INCLUDED */

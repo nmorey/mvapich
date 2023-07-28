@@ -1,14 +1,14 @@
 /*
  *
- * Copyright (c) 2001-2022, The Ohio State University. All rights
+ * Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
@@ -22,15 +22,15 @@
 static int MPIDI_CH3I_UPMI_ABORT(int exit_code, const char *error_msg);
 #endif
 
-/* MV2 enhancement - sleep before aborting */
+/* MVP enhancement - sleep before aborting */
 #include <time.h>
 #include <unistd.h>
 #include <sys/select.h>
 /*
-=== BEGIN_MPI_T_MV2_CVAR_INFO_BLOCK ===
+=== BEGIN_MPI_T_MVP_CVAR_INFO_BLOCK ===
 
 cvars:
-    - name        : MV2_ABORT_SLEEP_SECONDS
+    - name        : MVP_ABORT_SLEEP_SECONDS
       category    : CH3
       type        : int
       default     : 0
@@ -40,7 +40,7 @@ cvars:
       description : >-
         TODO-DESC
 
-=== END_MPI_T_MV2_CVAR_INFO_BLOCK ===
+=== END_MPI_T_MVP_CVAR_INFO_BLOCK ===
 */
 /* FIXME: This routine *or* MPI_Abort should provide abort callbacks,
    similar to the support in MPI_Finalize */
@@ -52,7 +52,7 @@ int MPID_Abort(MPIR_Comm * comm, int mpi_errno, int exit_code,
     char msg[MPI_MAX_ERROR_STRING] = "";
     char error_str[MPI_MAX_ERROR_STRING + 100];
 
-    /* MV2 enhancement - sleep before aborting */
+    /* MVP enhancement - sleep before aborting */
     char *value = NULL;
     char hostname[HOST_NAME_MAX] = "";
     int mypid = -1;
@@ -103,7 +103,7 @@ int MPID_Abort(MPIR_Comm * comm, int mpi_errno, int exit_code,
 #endif
 
     mypid = getpid();
-    sleep_seconds = MV2_ABORT_SLEEP_SECONDS;
+    sleep_seconds = MVP_ABORT_SLEEP_SECONDS;
 
     if (sleep_seconds > 0) {
         fprintf(stderr, "[MPI_Abort] Rank=%d, PID=%d, Hostname=%s. Sleep for %d second(s) before aborting ...\n",

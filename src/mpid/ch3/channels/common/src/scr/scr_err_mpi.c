@@ -7,7 +7,7 @@
  * This file is part of The Scalable Checkpoint / Restart (SCR) library.
  * For details, see https://sourceforge.net/projects/scalablecr/
  * Please also read this file: LICENSE.TXT.
-*/
+ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -30,47 +30,51 @@ Error and Debug Messages
 /* print error message to stdout */
 void scr_err(const char *fmt, ...)
 {
-  va_list argp;
-  fprintf(stdout, "SCR %s ERROR: rank %d on %s: ", SCR_ERR_VERSION, scr_my_rank_world, scr_my_hostname);
-  va_start(argp, fmt);
-  vfprintf(stdout, fmt, argp);
-  va_end(argp);
-  fprintf(stdout, "\n");
+    va_list argp;
+    fprintf(stdout, "SCR %s ERROR: rank %d on %s: ", SCR_ERR_VERSION,
+            scr_my_rank_world, scr_my_hostname);
+    va_start(argp, fmt);
+    vfprintf(stdout, fmt, argp);
+    va_end(argp);
+    fprintf(stdout, "\n");
 }
 
 /* print warning message to stdout */
 void scr_warn(const char *fmt, ...)
 {
-  va_list argp;
-  fprintf(stdout, "SCR %s WARNING: rank %d on %s: ", SCR_ERR_VERSION, scr_my_rank_world, scr_my_hostname);
-  va_start(argp, fmt);
-  vfprintf(stdout, fmt, argp);
-  va_end(argp);
-  fprintf(stdout, "\n");
+    va_list argp;
+    fprintf(stdout, "SCR %s WARNING: rank %d on %s: ", SCR_ERR_VERSION,
+            scr_my_rank_world, scr_my_hostname);
+    va_start(argp, fmt);
+    vfprintf(stdout, fmt, argp);
+    va_end(argp);
+    fprintf(stdout, "\n");
 }
 
 /* print message to stdout if scr_debug is set and it is >= level */
 void scr_dbg(int level, const char *fmt, ...)
 {
-  va_list argp;
-  if (level == 0 || (scr_debug > 0 && scr_debug >= level)) {
-    fprintf(stdout, "SCR %s: rank %d on %s: ", SCR_ERR_VERSION, scr_my_rank_world, scr_my_hostname);
-    va_start(argp, fmt);
-    vfprintf(stdout, fmt, argp);
-    va_end(argp);
-    fprintf(stdout, "\n");
-  }
+    va_list argp;
+    if (level == 0 || (scr_debug > 0 && scr_debug >= level)) {
+        fprintf(stdout, "SCR %s: rank %d on %s: ", SCR_ERR_VERSION,
+                scr_my_rank_world, scr_my_hostname);
+        va_start(argp, fmt);
+        vfprintf(stdout, fmt, argp);
+        va_end(argp);
+        fprintf(stdout, "\n");
+    }
 }
 
 /* print abort message and call MPI_Abort to kill run */
 void scr_abort(int rc, const char *fmt, ...)
 {
-  va_list argp;
-  fprintf(stderr, "SCR %s ABORT: rank %d on %s: ", SCR_ERR_VERSION, scr_my_rank_world, scr_my_hostname);
-  va_start(argp, fmt);
-  vfprintf(stderr, fmt, argp);
-  va_end(argp);
-  fprintf(stderr, "\n");
+    va_list argp;
+    fprintf(stderr, "SCR %s ABORT: rank %d on %s: ", SCR_ERR_VERSION,
+            scr_my_rank_world, scr_my_hostname);
+    va_start(argp, fmt);
+    vfprintf(stderr, fmt, argp);
+    va_end(argp);
+    fprintf(stderr, "\n");
 
-  MPI_Abort(MPI_COMM_WORLD, 0);
+    MPI_Abort(MPI_COMM_WORLD, 0);
 }

@@ -36,10 +36,10 @@
    private implementation details that can be changed or removed.  */
 
 #ifndef YY_NODELIST_YY_SRC_PM_MPIRUN_SRC_SLURM_LIBNODELIST_A_NODELIST_PARSER_H_INCLUDED
-# define YY_NODELIST_YY_SRC_PM_MPIRUN_SRC_SLURM_LIBNODELIST_A_NODELIST_PARSER_H_INCLUDED
+#define YY_NODELIST_YY_SRC_PM_MPIRUN_SRC_SLURM_LIBNODELIST_A_NODELIST_PARSER_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
-# define YYDEBUG 0
+#define YYDEBUG 0
 #endif
 #if YYDEBUG
 extern int nodelist_yydebug;
@@ -47,45 +47,42 @@ extern int nodelist_yydebug;
 
 /* Token kinds.  */
 #ifndef YYTOKENTYPE
-# define YYTOKENTYPE
-  enum yytokentype
-  {
+#define YYTOKENTYPE
+enum yytokentype {
     YYEMPTY = -2,
-    YYEOF = 0,                     /* "end of file"  */
-    YYerror = 256,                 /* error  */
-    YYUNDEF = 257,                 /* "invalid token"  */
-    TEXT = 258                     /* TEXT  */
-  };
-  typedef enum yytokentype yytoken_kind_t;
+    YYEOF = 0,     /* "end of file"  */
+    YYerror = 256, /* error  */
+    YYUNDEF = 257, /* "invalid token"  */
+    TEXT = 258     /* TEXT  */
+};
+typedef enum yytokentype yytoken_kind_t;
 #endif
 /* Token kinds.  */
 #define YYEMPTY -2
-#define YYEOF 0
+#define YYEOF   0
 #define YYerror 256
 #define YYUNDEF 257
-#define TEXT 258
+#define TEXT    258
 
 /* Value type.  */
-#if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-union YYSTYPE
-{
+#if !defined YYSTYPE && !defined YYSTYPE_IS_DECLARED
+union YYSTYPE {
 #line 31 "src/pm/mpirun/src/slurm/nodelist_parser.y"
 
-    char * text;
+    char *text;
     sl_handle sl;
     sr_handle sr;
 
 #line 79 "src/pm/mpirun/src/slurm/libnodelist_a-nodelist_parser.h"
-
 };
 typedef union YYSTYPE YYSTYPE;
-# define YYSTYPE_IS_TRIVIAL 1
-# define YYSTYPE_IS_DECLARED 1
+#define YYSTYPE_IS_TRIVIAL  1
+#define YYSTYPE_IS_DECLARED 1
 #endif
-
 
 extern YYSTYPE nodelist_yylval;
 
-int nodelist_yyparse (void);
+int nodelist_yyparse(void);
 
-#endif /* !YY_NODELIST_YY_SRC_PM_MPIRUN_SRC_SLURM_LIBNODELIST_A_NODELIST_PARSER_H_INCLUDED  */
+#endif /* !YY_NODELIST_YY_SRC_PM_MPIRUN_SRC_SLURM_LIBNODELIST_A_NODELIST_PARSER_H_INCLUDED \
+        */

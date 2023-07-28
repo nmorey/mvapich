@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -17,11 +17,11 @@
 
 struct wfe_params {
     int s;
-    struct sockaddr_in * sockaddr;
+    struct sockaddr_in *sockaddr;
     unsigned sockaddr_len;
 };
 
-extern void start_wfe_thread (struct wfe_params *);
-extern void stop_wfe_thread (void);
+extern void start_wfe_thread(struct wfe_params *);
+extern void stop_wfe_thread(void);
 
 #endif

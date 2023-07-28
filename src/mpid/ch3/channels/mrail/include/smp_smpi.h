@@ -6,15 +6,15 @@
  * All rights reserved.
  */
 
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -22,26 +22,10 @@
 #define _SMPI_SMP_
 
 #ifdef _SMP_LIMIC_
-#   include <limic.h>
+#include <limic.h>
 #endif
 
-#include <shmem_bar.h>
-
-/* SMP user parameters*/
-
-extern int                  g_smp_eagersize;
-extern size_t               s_smp_queue_length;
-extern int                  s_smp_num_send_buffer;
-extern int                  s_smp_batch_size;
-extern int                  s_smp_block_size;
-extern int                  s_smp_cma_max_size;
-extern int                  s_smp_limic2_max_size;
-
-#if defined _ENABLE_CUDA_
-extern int                  mv2_device_smp_pipeline;
-extern int                  s_smp_h2h_block_size;
-#endif
-
+#include <mvp_shmem_bar.h>
 
 #if defined(_ENABLE_CUDA_) && defined(HAVE_CUDA_IPC)
 extern void **smp_device_region_send;
@@ -52,22 +36,17 @@ extern deviceEvent_t *sr_event;
 extern deviceEvent_t *sr_event_local;
 extern deviceEvent_t *loop_event;
 extern deviceEvent_t *loop_event_local;
-#endif 
+#endif
 
-extern int                  g_smp_delay_shmem_pool_init;
-
-extern int                  g_smp_priority_polling;
-extern int                  g_smp_priority_factor;
-extern int                  g_smp_polling_th;
 typedef struct polling_set_element {
-    int rank; 
+    int rank;
     int prev;
     int next;
 } POLLING_ELEMENT_T;
 
 /*********** Macro defines of local variables ************/
-#define MV2_SHMEM_PRIORTY_THRESHOLD     (24)
-#define MV2_SHMEM_PRIORTY_FACTOR        (64)
+#define MVP_SHMEM_PRIORTY_THRESHOLD (24)
+#define MVP_SHMEM_PRIORTY_FACTOR    (64)
 
 #define PID_CHAR_LEN 22
 
@@ -78,59 +57,48 @@ typedef struct polling_set_element {
 #if defined(_IA32_)
 
 #define SMPI_CACHE_LINE_SIZE 64
-#define SMPI_ALIGN(a)                                               \
-((a + SMPI_CACHE_LINE_SIZE + 7) & 0xFFFFFFF8)
-#define SMPI_AVAIL(a)	\
- ((a & 0xFFFFFFF8) - SMPI_CACHE_LINE_SIZE)
+#define SMPI_ALIGN(a)        ((a + SMPI_CACHE_LINE_SIZE + 7) & 0xFFFFFFF8)
+#define SMPI_AVAIL(a)        ((a & 0xFFFFFFF8) - SMPI_CACHE_LINE_SIZE)
 
-                                                                                                                                               
-#elif defined(_IA64_) || defined(__powerpc__) || defined(__ppc__) || defined(__PPC__) || defined(__powerpc64__) || defined(__ppc64__) || defined(__PPC64__)
+#elif defined(_IA64_) || defined(__powerpc__) || defined(__ppc__) ||           \
+    defined(__PPC__) || defined(__powerpc64__) || defined(__ppc64__) ||        \
+    defined(__PPC64__)
 
 #define SMPI_CACHE_LINE_SIZE 128
-#define SMPI_ALIGN(a)                                               \
-((a + SMPI_CACHE_LINE_SIZE + 7) & 0xFFFFFFFFFFFFFFF8)
-#define SMPI_AVAIL(a)   \
- ((a & 0xFFFFFFFFFFFFFFF8) - SMPI_CACHE_LINE_SIZE)
+#define SMPI_ALIGN(a)        ((a + SMPI_CACHE_LINE_SIZE + 7) & 0xFFFFFFFFFFFFFFF8)
+#define SMPI_AVAIL(a)        ((a & 0xFFFFFFFFFFFFFFF8) - SMPI_CACHE_LINE_SIZE)
 
 #elif defined(__x86_64__) && defined(_AMD_QUAD_CORE_)
 
 #define SMPI_CACHE_LINE_SIZE 128
-#define SMPI_ALIGN(a)                                               \
-((a + SMPI_CACHE_LINE_SIZE + 7) & 0xFFFFFFFFFFFFFFF8)
-#define SMPI_AVAIL(a)   \
- ((a & 0xFFFFFFFFFFFFFFF8) - SMPI_CACHE_LINE_SIZE)
+#define SMPI_ALIGN(a)        ((a + SMPI_CACHE_LINE_SIZE + 7) & 0xFFFFFFFFFFFFFFF8)
+#define SMPI_AVAIL(a)        ((a & 0xFFFFFFFFFFFFFFF8) - SMPI_CACHE_LINE_SIZE)
 
 #elif defined(__x86_64__)
 
 #define SMPI_CACHE_LINE_SIZE 64
-#define SMPI_ALIGN(a)                                               \
-((a + SMPI_CACHE_LINE_SIZE + 7) & 0xFFFFFFFFFFFFFFF8)
-#define SMPI_AVAIL(a)   \
- ((a & 0xFFFFFFFFFFFFFFF8) - SMPI_CACHE_LINE_SIZE)
+#define SMPI_ALIGN(a)        ((a + SMPI_CACHE_LINE_SIZE + 7) & 0xFFFFFFFFFFFFFFF8)
+#define SMPI_AVAIL(a)        ((a & 0xFFFFFFFFFFFFFFF8) - SMPI_CACHE_LINE_SIZE)
 
 #elif defined(_EM64T_)
 
 #define SMPI_CACHE_LINE_SIZE 64
-#define SMPI_ALIGN(a) (a +SMPI_CACHE_LINE_SIZE)
+#define SMPI_ALIGN(a)        (a + SMPI_CACHE_LINE_SIZE)
 
-#define SMPI_AVAIL(a)   \
-((a & 0xFFFFFFFFFFFFFFF8) - SMPI_CACHE_LINE_SIZE)
+#define SMPI_AVAIL(a) ((a & 0xFFFFFFFFFFFFFFF8) - SMPI_CACHE_LINE_SIZE)
 
 #elif defined(MAC_OSX)
 
 #define SMPI_CACHE_LINE_SIZE 16
-#define SMPI_ALIGN(a)                                               \
-(((a + SMPI_CACHE_LINE_SIZE + 7) & 0xFFFFFFF8))
-#define SMPI_AVAIL(a)   \
-((a & 0xFFFFFFF8) - SMPI_CACHE_LINE_SIZE)
+#define SMPI_ALIGN(a)        (((a + SMPI_CACHE_LINE_SIZE + 7) & 0xFFFFFFF8))
+#define SMPI_AVAIL(a)        ((a & 0xFFFFFFF8) - SMPI_CACHE_LINE_SIZE)
 
 #else
-                                                                                                                                               
-#define SMPI_CACHE_LINE_SIZE 64
-#define SMPI_ALIGN(a) (a +SMPI_CACHE_LINE_SIZE)
 
-#define SMPI_AVAIL(a)   \
-((a & 0xFFFFFFFFFFFFFFF8) - SMPI_CACHE_LINE_SIZE)
+#define SMPI_CACHE_LINE_SIZE 64
+#define SMPI_ALIGN(a)        (a + SMPI_CACHE_LINE_SIZE)
+
+#define SMPI_AVAIL(a) ((a & 0xFFFFFFFFFFFFFFF8) - SMPI_CACHE_LINE_SIZE)
 
 #endif
 
@@ -145,16 +113,16 @@ typedef struct {
 typedef struct {
     volatile unsigned int msgs_total_in;
     volatile unsigned int msgs_total_out;
-    char pad[SMPI_CACHE_LINE_SIZE/2 - 8];
+    char pad[SMPI_CACHE_LINE_SIZE / 2 - 8];
 } smpi_rqueues;
 
 #if defined(_ENABLE_CUDA_) && defined(HAVE_CUDA_IPC)
 typedef struct {
     volatile unsigned int device_head;
     volatile unsigned int device_tail;
-    char pad[SMPI_CACHE_LINE_SIZE/2 - 8];
+    char pad[SMPI_CACHE_LINE_SIZE / 2 - 8];
 } smpi_device_ipc_attr;
-#endif  
+#endif
 
 typedef struct {
     volatile size_t ptr;
@@ -168,7 +136,7 @@ typedef struct {
 
 /* the shared area itself */
 struct shared_mem {
-    volatile int *pid;   /* use for initial synchro */
+    volatile int *pid; /* use for initial synchro */
 
     smpi_shared_tails **shared_tails;
 
@@ -182,7 +150,7 @@ struct shared_mem {
     /* the receives queues */
     char *pool;
 #ifdef _SMP_CMA_
-    volatile char * volatile * cma_test_buffer;
+    volatile char *volatile *cma_test_buffer;
 #endif
 };
 
@@ -206,28 +174,24 @@ struct shared_buffer_pool {
 
 #if defined(_SMP_CMA_)
 struct cma_header {
-    struct iovec remote[1]; 
+    struct iovec remote[1];
     intptr_t total_bytes;
     pid_t pid;
     struct MPIR_Request *csend_req_id;
 };
-extern int g_smp_use_cma;
 #endif
 
 #if defined(_SMP_LIMIC_)
 struct limic_header {
-    limic_user lu; 
+    limic_user lu;
     intptr_t total_bytes;
     struct MPIR_Request *send_req_id;
 };
-extern int g_smp_use_limic2;
-extern int g_use_limic2_coll;
 #endif
 
 extern struct smpi_var g_smpi;
 extern struct shared_mem *g_smpi_shmem;
 extern unsigned long eager_buffer_max_usage;
 extern unsigned long rndv_buffer_max_usage;
-extern int g_smp_max_switch;
 
 #endif

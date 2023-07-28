@@ -3,15 +3,15 @@
  *     See COPYRIGHT in top-level directory
  */
 
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 #include <strings.h>
@@ -19,17 +19,14 @@
 #include "mpiimpl.h"
 #include "mpi_init.h"
 
-#if defined(CHANNEL_MRAIL) || defined(_MV2_CH4_OVERRIDE_)
-#include "mv2_coll_shmem.h"
+#if defined(CHANNEL_MRAIL) || defined(_MVP_CH4_OVERRIDE_)
+#include "mvp_coll_shmem.h"
 extern int smpi_identify_my_numa_id(void);
 extern int smpi_identify_my_sock_id(void);
-extern int mv2_my_cpu_id;
-extern int mv2_my_sock_id;
-extern int mv2_my_numa_id;
-extern int mv2_my_l3_id;
-#endif
-#if defined(CHANNEL_MRAIL)
-int mv2_use_aligned_alloc = 0;
+extern int mvp_my_cpu_id;
+extern int mvp_my_sock_id;
+extern int mvp_my_numa_id;
+extern int mvp_my_l3_id;
 #endif
 
 extern int smpi_load_hwloc_topology_whole(void);
@@ -120,15 +117,6 @@ int MPI_Init(int *argc, char ***argv)
     MPIR_FUNC_TERSE_INIT_STATE_DECL(MPID_STATE_MPI_INIT);
     MPIR_FUNC_TERSE_INIT_ENTER(MPID_STATE_MPI_INIT);
 
-#if defined(CHANNEL_MRAIL)
-    {
-        char* value = NULL;
-        if ((value = getenv("MV2_USE_ALIGNED_ALLOC")) != NULL) {
-            mv2_use_aligned_alloc = !!atoi(value);
-        }
-    }
-#endif
-
     /* Handle mpich_state in case of Re-init */
     if (MPL_atomic_load_int(&MPIR_Process.mpich_state) == MPICH_MPI_STATE__POST_FINALIZED) {
         MPL_atomic_store_int(&MPIR_Process.mpich_state, MPICH_MPI_STATE__PRE_INIT);
@@ -175,14 +163,15 @@ int MPI_Init(int *argc, char ***argv)
 
 
 #if defined(CHANNEL_MRAIL)
-    if(mv2_use_osu_collectives && mv2_enable_shmem_collectives &&
-           (mv2_enable_socket_aware_collectives || mv2_enable_topo_aware_collectives)) {
+    if (MVP_USE_OSU_COLLECTIVES && MVP_USE_SHARED_MEM &&
+        (MVP_ENABLE_SOCKET_AWARE_COLLECTIVES ||
+         MVP_ENABLE_TOPO_AWARE_COLLECTIVES)) {
         mpi_errno = smpi_load_hwloc_topology_whole();
         if (mpi_errno != MPI_SUCCESS) {
             MPIR_ERR_POP(mpi_errno);
         }
 
-        if(mv2_enable_topo_aware_collectives) {
+        if (MVP_ENABLE_TOPO_AWARE_COLLECTIVES) {
 #if defined(CHANNEL_MRAIL)
             /* Find the NUMA domain I am bound to */
             mpi_errno = smpi_identify_my_numa_id();
@@ -195,7 +184,7 @@ int MPI_Init(int *argc, char ***argv)
                 MPIR_ERR_POP(mpi_errno);
             }
             /* PRINT_DEBUG(DEBUG_INIT_verbose, "cpu_id = %d, sock_id = %d, numa_id = %d, l3_id = %d\n",
-                    mv2_my_cpu_id, mv2_my_sock_id, mv2_my_numa_id, mv2_my_l3_id); */
+                    mvp_my_cpu_id, mvp_my_sock_id, mvp_my_numa_id, mvp_my_l3_id); */
         }
 #endif /* #if defined(CHANNEL_MRAIL) */
     }
@@ -203,18 +192,15 @@ int MPI_Init(int *argc, char ***argv)
 
 #if defined(CHANNEL_MRAIL_GEN2)
     /* initialize the two level communicator for MPI_COMM_WORLD  */
-    if (mv2_use_osu_collectives && 
-            mv2_enable_shmem_collectives) {
+    if (MVP_USE_OSU_COLLECTIVES && MVP_USE_SHARED_MEM) {
+        MPIR_Comm *comm_ptr = NULL;
+        MPIR_Comm_get_ptr(MPI_COMM_WORLD, comm_ptr);
+        int flag = 0;
+        PMPI_Comm_test_inter(comm_ptr->handle, &flag);
 
-       MPIR_Comm *comm_ptr = NULL;
-       MPIR_Comm_get_ptr(MPI_COMM_WORLD, comm_ptr);
-       int flag=0; 
-       PMPI_Comm_test_inter(comm_ptr->handle, &flag);
-
-       if(flag == 0 && comm_ptr->dev.ch.shmem_coll_ok == 0 &&
-               comm_ptr->local_size < mv2_two_level_comm_early_init_threshold &&
-               check_split_comm(pthread_self())) { 
-
+        if (flag == 0 && comm_ptr->dev.ch.shmem_coll_ok == 0 &&
+            comm_ptr->local_size < MVP_TWO_LEVEL_COMM_EARLY_INIT_THRESHOLD &&
+            check_split_comm(pthread_self())) {
             disable_split_comm(pthread_self());
             mpi_errno = create_2level_comm(comm_ptr->handle, comm_ptr->local_size, comm_ptr->rank);
             if(mpi_errno) {
@@ -224,7 +210,7 @@ int MPI_Init(int *argc, char ***argv)
             if(mpi_errno) {
                MPIR_ERR_POP(mpi_errno);
             }
-       } 
+        }
     }
 #endif /*defined(CHANNEL_MRAIL_GEN2) */
 

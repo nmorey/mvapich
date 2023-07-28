@@ -1,17 +1,17 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
 #include <m_state.h>
-#include <mv2_debug_utils.h>
+#include <mvp_debug_utils.h>
 
 #include <stdlib.h>
 #include <pthread.h>
@@ -21,8 +21,7 @@ static M_STATE m_state = M_INITIALIZE;
 static pthread_cond_t state_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t state_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-static inline const char * 
-M_STATE_STR(const M_STATE state)
+static inline const char *M_STATE_STR(const M_STATE state)
 {
     switch (state) {
         case M_INITIALIZE:
@@ -41,7 +40,7 @@ M_STATE_STR(const M_STATE state)
 }
 
 M_STATE
-m_state_transition (const M_STATE_SET old_state, const M_STATE new_state)
+m_state_transition(const M_STATE_SET old_state, const M_STATE new_state)
 {
     M_STATE state;
     pthread_mutex_lock(&state_mutex);
@@ -50,8 +49,7 @@ m_state_transition (const M_STATE_SET old_state, const M_STATE new_state)
         m_state = new_state;
         pthread_cond_broadcast(&state_cond);
         PRINT_DEBUG(0, "m_state_transition %s -> %s\n", M_STATE_STR(old_state),
-                M_STATE_STR(new_state));
-
+                    M_STATE_STR(new_state));
     }
 
     state = m_state;
@@ -60,8 +58,7 @@ m_state_transition (const M_STATE_SET old_state, const M_STATE new_state)
     return state;
 }
 
-void
-m_state_exit (void)
+void m_state_exit(void)
 {
     pthread_mutex_lock(&state_mutex);
     m_state = M_EXIT;
@@ -69,8 +66,7 @@ m_state_exit (void)
     pthread_mutex_unlock(&state_mutex);
 }
 
-void
-m_state_fail (void)
+void m_state_fail(void)
 {
     extern int m_exit_code;
 
@@ -78,24 +74,19 @@ m_state_fail (void)
     m_state_exit();
 }
 
-int
-m_state_get_exit_code (void)
-{
-    return m_exit_code;
-}
+int m_state_get_exit_code(void) { return m_exit_code; }
 
 M_STATE
-m_state_get (void)
-{
-    return m_state;
-}
+m_state_get(void) { return m_state; }
 
 M_STATE
-m_state_wait_while (const M_STATE_SET state) {
+m_state_wait_while(const M_STATE_SET state)
+{
     M_STATE current_state;
 
     pthread_mutex_lock(&state_mutex);
-    while (state & m_state) pthread_cond_wait(&state_cond, &state_mutex);
+    while (state & m_state)
+        pthread_cond_wait(&state_cond, &state_mutex);
     current_state = m_state;
     pthread_mutex_unlock(&state_mutex);
 
@@ -103,15 +94,15 @@ m_state_wait_while (const M_STATE_SET state) {
 }
 
 M_STATE
-m_state_wait_until (const M_STATE_SET state)
+m_state_wait_until(const M_STATE_SET state)
 {
     M_STATE current_state;
 
     pthread_mutex_lock(&state_mutex);
-    while (!(state & m_state)) pthread_cond_wait(&state_cond, &state_mutex);
+    while (!(state & m_state))
+        pthread_cond_wait(&state_cond, &state_mutex);
     current_state = m_state;
     pthread_mutex_unlock(&state_mutex);
 
     return current_state;
 }
-

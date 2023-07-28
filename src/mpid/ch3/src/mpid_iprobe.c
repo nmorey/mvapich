@@ -2,15 +2,15 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -29,7 +29,7 @@ int MPID_Iprobe(int source, int tag, MPIR_Comm *comm, int context_offset,
 
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_IPROBE);
 
-    MV2_INC_NUM_UNEXP_RECV();
+    MVP_INC_NUM_UNEXP_RECV();
 
     /* Check to make sure the communicator hasn't already been revoked */
     if (comm->revoked &&
@@ -108,7 +108,7 @@ int MPID_Iprobe(int source, int tag, MPIR_Comm *comm, int context_offset,
     *flag = found;
 
  fn_exit:    
-    MV2_DEC_NUM_UNEXP_RECV();
+    MVP_DEC_NUM_UNEXP_RECV();
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_IPROBE);
     return mpi_errno;
  fn_fail:

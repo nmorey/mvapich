@@ -91,7 +91,7 @@ MPIR_Request ** const MPID_Recvq_unexpected_head_ptr = &recvq_unexpected_head;
       ((match1).parts.context_id == (match2).parts.context_id)))
 
 
-long int mv2_posted_recvq_length = 0;
+long int mvp_posted_recvq_length = 0;
 
 static unsigned PVAR_LEVEL_posted_recvq_length ATTRIBUTE((unused));
 static unsigned PVAR_LEVEL_unexpected_recvq_length ATTRIBUTE((unused));
@@ -579,7 +579,7 @@ MPIR_Request * MPIDI_CH3U_Recvq_FDU_or_AEP(int source, int tag,
 
 	MPIDI_Request_create_rreq( rreq, mpi_errno, goto lock_exit );
 #ifdef _ENABLE_CUDA_
-    if (mv2_enable_device) {
+    if (mvp_enable_device) {
         rreq->mrail.cts_received   = 1;
     }
 #endif
@@ -618,10 +618,10 @@ MPIR_Request * MPIDI_CH3U_Recvq_FDU_or_AEP(int source, int tag,
             }
 #if defined(CHANNEL_MRAIL)
             if (SMP_INIT && vc->smp.local_nodes >= 0) {
-                MV2_INC_NUM_POSTED_RECV();
+                MVP_INC_NUM_POSTED_RECV();
             }
         } else {
-            MV2_INC_NUM_POSTED_RECV();
+            MVP_INC_NUM_POSTED_RECV();
 #endif
         }
 

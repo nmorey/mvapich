@@ -1,17 +1,17 @@
 /* Malloc implementation for multiple threads without lock contention. */
 
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
- 
+
 /*
   This is a version (aka ptmalloc2) of malloc/free/realloc written by
   Doug Lea and adapted to multiple threads/arenas by Wolfram Gloger.
@@ -213,13 +213,13 @@
     DEFAULT_MMAP_MAX           65536
 
     There are several other #defined constants and macros that you
-    probably don't want to touch unless you are extending or adapting malloc.  */
+    probably don't want to touch unless you are extending or adapting malloc. */
 
 /* <CHANNEL_MRAIL> */
 #ifndef NEMESIS_BUILD
 #include "mpichconf.h"
 #include "mpl_base.h"
-extern int mv2_use_aligned_alloc;
+extern int MVP_USE_ALIGNED_ALLOC;
 #endif
 #include "dreg.h"
 #if !defined(DISABLE_PTMALLOC)
@@ -233,12 +233,11 @@ extern int mv2_use_aligned_alloc;
 
 #ifndef __STD_C
 #if defined(__STDC__) || defined(__cplusplus)
-#define __STD_C     1
+#define __STD_C 1
 #else
-#define __STD_C     0
+#define __STD_C 0
 #endif
 #endif /*__STD_C*/
-
 
 /*
   Void_t* is the pointer type that malloc should say it returns
@@ -246,15 +245,15 @@ extern int mv2_use_aligned_alloc;
 
 #ifndef Void_t
 #if (__STD_C || defined(WIN32))
-#define Void_t      void
+#define Void_t void
 #else
-#define Void_t      char
+#define Void_t char
 #endif
 #endif /*Void_t*/
 
 #if __STD_C
-#include <stddef.h>   /* for size_t */
-#include <stdlib.h>   /* for getenv(), abort() */
+#include <stddef.h> /* for size_t */
+#include <stdlib.h> /* for getenv(), abort() */
 #else
 #include <sys/types.h>
 #endif
@@ -271,17 +270,17 @@ extern int mv2_use_aligned_alloc;
 /* Channel specific memory hooks. */
 #include <mem_hooks.h>
 
-mvapich2_malloc_info_t mvapich2_minfo;
+mvapich_malloc_info_t mvapich_minfo;
 
-#define munmap(buf,len) mvapich2_munmap(buf, len)
+#define munmap(buf, len) mvapich_munmap(buf, len)
 
 #if !defined(DISABLE_TRAP_SBRK)
-#define MORECORE mvapich2_sbrk
+#define MORECORE mvapich_sbrk
 #endif /* !defined(DISABLE_TRAP_SBRK) */
 
-#define HAVE_MREMAP 0
-#define MORECORE_CANNOT_TRIM 1
-#define DEFAULT_MMAP_THRESHOLD (1<<30)
+#define HAVE_MREMAP            0
+#define MORECORE_CANNOT_TRIM   1
+#define DEFAULT_MMAP_THRESHOLD (1 << 30)
 
 #if !defined(__GNUC__)
 #define __const const
@@ -305,10 +304,8 @@ extern "C" {
 
 /* #define  LACKS_SYS_PARAM_H */
 
-
-#include <stdio.h>    /* needed for malloc_stats */
-#include <errno.h>    /* needed for optional MALLOC_FAILURE_ACTION */
-
+#include <stdio.h> /* needed for malloc_stats */
+#include <errno.h> /* needed for optional MALLOC_FAILURE_ACTION */
 
 /*
   Debugging:
@@ -349,7 +346,6 @@ extern "C" {
 #define assert(x) ((void)0)
 #endif
 
-
 /*
   INTERNAL_SIZE_T is the word-size used for internal bookkeeping
   of chunk sizes.
@@ -386,8 +382,7 @@ extern "C" {
 #endif
 
 /* The corresponding word size */
-#define SIZE_SZ                (sizeof(INTERNAL_SIZE_T))
-
+#define SIZE_SZ (sizeof(INTERNAL_SIZE_T))
 
 /*
   MALLOC_ALIGNMENT is the minimum alignment for malloc'ed chunks.
@@ -397,15 +392,12 @@ extern "C" {
   are optimized for the case of 8-byte alignment.
 */
 
-
 #ifndef MALLOC_ALIGNMENT
-#define MALLOC_ALIGNMENT       (2 * SIZE_SZ)
+#define MALLOC_ALIGNMENT (2 * SIZE_SZ)
 #endif
 
 /* The corresponding bit mask value */
-#define MALLOC_ALIGN_MASK      (MALLOC_ALIGNMENT - 1)
-
-
+#define MALLOC_ALIGN_MASK (MALLOC_ALIGNMENT - 1)
 
 /*
   REALLOC_ZERO_BYTES_FREES should be set if a call to
@@ -435,9 +427,8 @@ extern "C" {
 */
 
 #ifndef TRIM_FASTBINS
-#define TRIM_FASTBINS  0
+#define TRIM_FASTBINS 0
 #endif
-
 
 /*
   USE_DL_PREFIX will prefix all public routines with the string 'dl'.
@@ -446,7 +437,6 @@ extern "C" {
 */
 
 /* #define USE_DL_PREFIX */
-
 
 /*
    Two-phase name translation.
@@ -477,33 +467,33 @@ extern "C" {
 #ifdef _LIBC
 
 /* Special defines for the GNU C library.  */
-#define public_cALLOc    __libc_calloc
-#define public_fREe      __libc_free
-#define public_cFREe     __libc_cfree
-#define public_mALLOc    __libc_malloc
-#define public_mEMALIGn  __libc_memalign
-#define public_rEALLOc   __libc_realloc
-#define public_vALLOc    __libc_valloc
-#define public_pVALLOc   __libc_pvalloc
-#define public_mALLINFo  __libc_mallinfo
-#define public_mALLOPt   __libc_mallopt
-#define public_mTRIm     __malloc_trim
-#define public_mSTATs    __malloc_stats
-#define public_mUSABLe   __malloc_usable_size
-#define public_iCALLOc   __libc_independent_calloc
-#define public_iCOMALLOc __libc_independent_comalloc
-#define public_gET_STATe __malloc_get_state
-#define public_sET_STATe __malloc_set_state
+#define public_cALLOc      __libc_calloc
+#define public_fREe        __libc_free
+#define public_cFREe       __libc_cfree
+#define public_mALLOc      __libc_malloc
+#define public_mEMALIGn    __libc_memalign
+#define public_rEALLOc     __libc_realloc
+#define public_vALLOc      __libc_valloc
+#define public_pVALLOc     __libc_pvalloc
+#define public_mALLINFo    __libc_mallinfo
+#define public_mALLOPt     __libc_mallopt
+#define public_mTRIm       __malloc_trim
+#define public_mSTATs      __malloc_stats
+#define public_mUSABLe     __malloc_usable_size
+#define public_iCALLOc     __libc_independent_calloc
+#define public_iCOMALLOc   __libc_independent_comalloc
+#define public_gET_STATe   __malloc_get_state
+#define public_sET_STATe   __malloc_set_state
 #define malloc_getpagesize __getpagesize()
-#define open             __open
-#define mmap             __mmap
-#define munmap           __munmap
-#define mremap           __mremap
-#define mprotect         __mprotect
-#define MORECORE         (*__morecore)
-#define MORECORE_FAILURE 0
+#define open               __open
+#define mmap               __mmap
+#define munmap             __munmap
+#define mremap             __mremap
+#define mprotect           __mprotect
+#define MORECORE           (*__morecore)
+#define MORECORE_FAILURE   0
 
-Void_t * __default_morecore (ptrdiff_t);
+Void_t *__default_morecore(ptrdiff_t);
 Void_t *(*__morecore)(ptrdiff_t) = __default_morecore;
 
 #else /* !_LIBC */
@@ -527,8 +517,7 @@ Void_t *(*__morecore)(ptrdiff_t) = __default_morecore;
 #endif /* _LIBC */
 #endif /* USE_DL_PREFIX */
 
-
-#if !defined _LIBC && (!defined __GNUC__ || __GNUC__<3)
+#if !defined _LIBC && (!defined __GNUC__ || __GNUC__ < 3)
 #define __builtin_expect(expr, val) (expr)
 #endif
 
@@ -556,21 +545,20 @@ Void_t *(*__morecore)(ptrdiff_t) = __default_morecore;
 #endif
 #endif
 
-
 #if (__STD_C || defined(HAVE_MEMCPY))
 
 #ifdef _LIBC
-# include <string.h>
+#include <string.h>
 #else
 #ifdef WIN32
 /* On Win32 memset and memcpy are already declared in windows.h */
 #else
 #if __STD_C
-void* memset(void*, int, size_t);
-void* memcpy(void*, const void*, size_t);
+void *memset(void *, int, size_t);
+void *memcpy(void *, const void *, size_t);
 #else
-Void_t* memset();
-Void_t* memcpy();
+Void_t *memset();
+Void_t *memcpy();
 #endif
 #endif
 #endif
@@ -586,8 +574,7 @@ Void_t* memcpy();
 
 #ifndef MALLOC_FAILURE_ACTION
 #if __STD_C
-#define MALLOC_FAILURE_ACTION \
-   errno = ENOMEM;
+#define MALLOC_FAILURE_ACTION errno = ENOMEM;
 
 #else
 #define MALLOC_FAILURE_ACTION
@@ -598,13 +585,12 @@ Void_t* memcpy();
   MORECORE-related declarations. By default, rely on sbrk
 */
 
-
 #ifdef LACKS_UNISTD_H
 #if !defined(__FreeBSD__) && !defined(__OpenBSD__) && !defined(__NetBSD__)
 #if __STD_C
-extern Void_t*     sbrk(ptrdiff_t);
+extern Void_t *sbrk(ptrdiff_t);
 #else
-extern Void_t*     sbrk();
+extern Void_t *sbrk();
 #endif
 #endif
 #endif
@@ -667,7 +653,6 @@ extern Void_t*     sbrk();
 #define MORECORE_CLEARS 1
 #endif
 
-
 /*
   Define HAVE_MMAP as true to optionally make malloc() use mmap() to
   allocate very large blocks.  These will be returned to the
@@ -697,7 +682,6 @@ extern Void_t*     sbrk();
 #define MMAP_CLEARS 0
 #endif
 #endif
-
 
 /*
    MMAP_AS_MORECORE_SIZE is the minimum mmap size argument to use if
@@ -752,18 +736,17 @@ extern Void_t*     sbrk();
    start of main()). */
 
 #ifndef USE_STARTER
-# ifndef _LIBC
-#  define USE_STARTER 1
-# else
-#  if USE___THREAD || (defined USE_TLS && !defined SHARED)
-    /* These routines are never needed in this configuration.  */
-#   define USE_STARTER 0
-#  else
-#   define USE_STARTER (USE_TLS ? 4 : 1)
-#  endif
-# endif
+#ifndef _LIBC
+#define USE_STARTER 1
+#else
+#if USE___THREAD || (defined USE_TLS && !defined SHARED)
+/* These routines are never needed in this configuration.  */
+#define USE_STARTER 0
+#else
+#define USE_STARTER (USE_TLS ? 4 : 1)
 #endif
-
+#endif
+#endif
 
 /*
   The system page size. To the extent possible, this malloc manages
@@ -777,56 +760,55 @@ extern Void_t*     sbrk();
   the actual value probably doesn't impact performance.
 */
 
-
 #ifndef malloc_getpagesize
 
 #ifndef LACKS_UNISTD_H
-#  include <unistd.h>
+#include <unistd.h>
 #endif
 
-#  ifdef _SC_PAGESIZE         /* some SVR4 systems omit an underscore */
-#    ifndef _SC_PAGE_SIZE
-#      define _SC_PAGE_SIZE _SC_PAGESIZE
-#    endif
-#  endif
+#ifdef _SC_PAGESIZE /* some SVR4 systems omit an underscore */
+#ifndef _SC_PAGE_SIZE
+#define _SC_PAGE_SIZE _SC_PAGESIZE
+#endif
+#endif
 
-#  ifdef _SC_PAGE_SIZE
-#    define malloc_getpagesize sysconf(_SC_PAGE_SIZE)
-#  else
-#    if defined(BSD) || defined(DGUX) || defined(HAVE_GETPAGESIZE)
-       extern size_t getpagesize();
-#      define malloc_getpagesize getpagesize()
-#    else
-#      ifdef WIN32 /* use supplied emulation of getpagesize */
-#        define malloc_getpagesize getpagesize()
-#      else
-#        ifndef LACKS_SYS_PARAM_H
-#          include <sys/param.h>
-#        endif
-#        ifdef EXEC_PAGESIZE
-#          define malloc_getpagesize EXEC_PAGESIZE
-#        else
-#          ifdef NBPG
-#            ifndef CLSIZE
-#              define malloc_getpagesize NBPG
-#            else
-#              define malloc_getpagesize (NBPG * CLSIZE)
-#            endif
-#          else
-#            ifdef NBPC
-#              define malloc_getpagesize NBPC
-#            else
-#              ifdef PAGESIZE
-#                define malloc_getpagesize PAGESIZE
-#              else /* just guess */
-#                define malloc_getpagesize (4096)
-#              endif
-#            endif
-#          endif
-#        endif
-#      endif
-#    endif
-#  endif
+#ifdef _SC_PAGE_SIZE
+#define malloc_getpagesize sysconf(_SC_PAGE_SIZE)
+#else
+#if defined(BSD) || defined(DGUX) || defined(HAVE_GETPAGESIZE)
+extern size_t getpagesize();
+#define malloc_getpagesize getpagesize()
+#else
+#ifdef WIN32 /* use supplied emulation of getpagesize */
+#define malloc_getpagesize getpagesize()
+#else
+#ifndef LACKS_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+#ifdef EXEC_PAGESIZE
+#define malloc_getpagesize EXEC_PAGESIZE
+#else
+#ifdef NBPG
+#ifndef CLSIZE
+#define malloc_getpagesize NBPG
+#else
+#define malloc_getpagesize (NBPG * CLSIZE)
+#endif
+#else
+#ifdef NBPC
+#define malloc_getpagesize NBPC
+#else
+#ifdef PAGESIZE
+#define malloc_getpagesize PAGESIZE
+#else /* just guess */
+#define malloc_getpagesize (4096)
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
 #endif
 
 /*
@@ -862,7 +844,6 @@ extern Void_t*     sbrk();
 #include "/usr/include/malloc.h"
 #endif
 
-
 /* ---------- description of public routines ------------ */
 
 /*
@@ -880,12 +861,12 @@ extern Void_t*     sbrk();
   representable value of a size_t.
 */
 #if __STD_C
-Void_t*  public_mALLOc(size_t);
+Void_t *public_mALLOc(size_t);
 #else
-Void_t*  public_mALLOc();
+Void_t *public_mALLOc();
 #endif
 #ifdef libc_hidden_proto
-libc_hidden_proto (public_mALLOc)
+libc_hidden_proto(public_mALLOc)
 #endif
 
 /*
@@ -900,12 +881,12 @@ libc_hidden_proto (public_mALLOc)
   back unused memory to the system, thus reducing program footprint.
 */
 #if __STD_C
-void     public_fREe(Void_t*);
+    void public_fREe(Void_t *);
 #else
-void     public_fREe();
+void public_fREe();
 #endif
 #ifdef libc_hidden_proto
-libc_hidden_proto (public_fREe)
+libc_hidden_proto(public_fREe)
 #endif
 
 /*
@@ -914,9 +895,9 @@ libc_hidden_proto (public_fREe)
   set to zero.
 */
 #if __STD_C
-Void_t*  public_cALLOc(size_t, size_t);
+    Void_t *public_cALLOc(size_t, size_t);
 #else
-Void_t*  public_cALLOc();
+Void_t *public_cALLOc();
 #endif
 
 /*
@@ -947,12 +928,12 @@ Void_t*  public_cALLOc();
   to be used as an argument to realloc is not supported.
 */
 #if __STD_C
-Void_t*  public_rEALLOc(Void_t*, size_t);
+Void_t *public_rEALLOc(Void_t *, size_t);
 #else
-Void_t*  public_rEALLOc();
+Void_t *public_rEALLOc();
 #endif
 #ifdef libc_hidden_proto
-libc_hidden_proto (public_rEALLOc)
+libc_hidden_proto(public_rEALLOc)
 #endif
 
 /*
@@ -968,12 +949,12 @@ libc_hidden_proto (public_rEALLOc)
   Overreliance on memalign is a sure way to fragment space.
 */
 #if __STD_C
-Void_t*  public_mEMALIGn(size_t, size_t);
+    Void_t *public_mEMALIGn(size_t, size_t);
 #else
-Void_t*  public_mEMALIGn();
+Void_t *public_mEMALIGn();
 #endif
 #ifdef libc_hidden_proto
-libc_hidden_proto (public_mEMALIGn)
+libc_hidden_proto(public_mEMALIGn)
 #endif
 
 /*
@@ -982,12 +963,10 @@ libc_hidden_proto (public_mEMALIGn)
   size of the system. If the pagesize is unknown, 4096 is used.
 */
 #if __STD_C
-Void_t*  public_vALLOc(size_t);
+    Void_t *public_vALLOc(size_t);
 #else
-Void_t*  public_vALLOc();
+Void_t *public_vALLOc();
 #endif
-
-
 
 /*
   mallopt(int parameter_number, int parameter_value)
@@ -1011,11 +990,10 @@ Void_t*  public_vALLOc();
   M_MMAP_MAX       -4         65536      any   (0 disables use of mmap)
 */
 #if __STD_C
-int      public_mALLOPt(int, int);
+int public_mALLOPt(int, int);
 #else
-int      public_mALLOPt();
+int public_mALLOPt();
 #endif
-
 
 /*
   mallinfo()
@@ -1099,9 +1077,9 @@ struct mallinfo public_mALLINFo();
   }
 */
 #if __STD_C
-Void_t** public_iCALLOc(size_t, size_t, Void_t**);
+Void_t **public_iCALLOc(size_t, size_t, Void_t **);
 #else
-Void_t** public_iCALLOc();
+Void_t **public_iCALLOc();
 #endif
 
 /*
@@ -1164,11 +1142,10 @@ Void_t** public_iCALLOc();
   might be available for some of the elements.
 */
 #if __STD_C
-Void_t** public_iCOMALLOc(size_t, size_t*, Void_t**);
+Void_t **public_iCOMALLOc(size_t, size_t *, Void_t **);
 #else
-Void_t** public_iCOMALLOc();
+Void_t **public_iCOMALLOc();
 #endif
-
 
 /*
   pvalloc(size_t n);
@@ -1176,9 +1153,9 @@ Void_t** public_iCOMALLOc();
   round up n to nearest pagesize.
  */
 #if __STD_C
-Void_t*  public_pVALLOc(size_t);
+Void_t *public_pVALLOc(size_t);
 #else
-Void_t*  public_pVALLOc();
+Void_t *public_pVALLOc();
 #endif
 
 /*
@@ -1190,9 +1167,9 @@ Void_t*  public_pVALLOc();
   code in the first edition of K&R).
 */
 #if __STD_C
-void     public_cFREe(Void_t*);
+void public_cFREe(Void_t *);
 #else
-void     public_cFREe();
+void public_cFREe();
 #endif
 
 /*
@@ -1220,9 +1197,9 @@ void     public_cFREe();
   rreturn 0.
 */
 #if __STD_C
-int      public_mTRIm(size_t);
+int public_mTRIm(size_t);
 #else
-int      public_mTRIm();
+int public_mTRIm();
 #endif
 
 /*
@@ -1241,9 +1218,9 @@ int      public_mTRIm();
 
 */
 #if __STD_C
-size_t   public_mUSABLe(Void_t*);
+size_t public_mUSABLe(Void_t *);
 #else
-size_t   public_mUSABLe();
+size_t public_mUSABLe();
 #endif
 
 /*
@@ -1267,9 +1244,9 @@ size_t   public_mUSABLe();
 
 */
 #if __STD_C
-void     public_mSTATs(void);
+void public_mSTATs(void);
 #else
-void     public_mSTATs();
+void public_mSTATs();
 #endif
 
 /*
@@ -1279,9 +1256,9 @@ void     public_mSTATs();
   structure.
 */
 #if __STD_C
-Void_t*  public_gET_STATe(void);
+Void_t *public_gET_STATe(void);
 #else
-Void_t*  public_gET_STATe();
+Void_t *public_gET_STATe();
 #endif
 
 /*
@@ -1291,9 +1268,9 @@ Void_t*  public_gET_STATe();
   malloc_get_state().
 */
 #if __STD_C
-int      public_sET_STATe(Void_t*);
+int public_sET_STATe(Void_t *);
 #else
-int      public_sET_STATe();
+int public_sET_STATe();
 #endif
 
 #ifdef _LIBC
@@ -1302,7 +1279,7 @@ int      public_sET_STATe();
 
   POSIX wrapper like memalign(), checking for validity of size.
 */
-int      __posix_memalign(void **, size_t, size_t);
+int __posix_memalign(void **, size_t, size_t);
 /*
   void * aligned_alloc (size_t alignment, size_t size)
 
@@ -1310,7 +1287,7 @@ int      __posix_memalign(void **, size_t, size_t);
   whose address is a multiple of alignment. The alignment must
   be a power of two and size must be a multiple of alignment.
 */
-void *  __aligned_alloc(size_t, size_t);
+void *__aligned_alloc(size_t, size_t);
 #endif
 
 /* mallopt tuning options */
@@ -1340,16 +1317,14 @@ void *  __aligned_alloc(size_t, size_t);
   slower.
 */
 
-
 /* M_MXFAST is a standard SVID/XPG tuning option, usually listed in malloc.h */
 #ifndef M_MXFAST
-#define M_MXFAST            1
+#define M_MXFAST 1
 #endif
 
 #ifndef DEFAULT_MXFAST
-#define DEFAULT_MXFAST     64
+#define DEFAULT_MXFAST 64
 #endif
-
 
 /*
   M_TRIM_THRESHOLD is the maximum amount of unused top-most memory
@@ -1411,7 +1386,7 @@ void *  __aligned_alloc(size_t, size_t);
   since that memory will immediately be returned to the system.
 */
 
-#define M_TRIM_THRESHOLD       -1
+#define M_TRIM_THRESHOLD -1
 
 #ifndef DEFAULT_TRIM_THRESHOLD
 #define DEFAULT_TRIM_THRESHOLD (1024 * 1024)
@@ -1444,10 +1419,10 @@ void *  __aligned_alloc(size_t, size_t);
   the program needs.
 */
 
-#define M_TOP_PAD              -2
+#define M_TOP_PAD -2
 
 #ifndef DEFAULT_TOP_PAD
-#define DEFAULT_TOP_PAD        (0)
+#define DEFAULT_TOP_PAD (0)
 #endif
 
 /*
@@ -1491,7 +1466,7 @@ void *  __aligned_alloc(size_t, size_t);
   systems.
 */
 
-#define M_MMAP_THRESHOLD      -3
+#define M_MMAP_THRESHOLD -3
 
 #ifndef DEFAULT_MMAP_THRESHOLD
 #define DEFAULT_MMAP_THRESHOLD (128 * 1024)
@@ -1510,13 +1485,13 @@ void *  __aligned_alloc(size_t, size_t);
   to non-zero values in mallopt will fail.
 */
 
-#define M_MMAP_MAX             -4
+#define M_MMAP_MAX -4
 
 #ifndef DEFAULT_MMAP_MAX
 #if HAVE_MMAP
-#define DEFAULT_MMAP_MAX       (65536)
+#define DEFAULT_MMAP_MAX (65536)
 #else
-#define DEFAULT_MMAP_MAX       (0)
+#define DEFAULT_MMAP_MAX (0)
 #endif
 #endif
 
@@ -1537,75 +1512,71 @@ void *  __aligned_alloc(size_t, size_t);
    Let the environment provide a macro and define it to be empty if it
    is not available.  */
 #ifndef internal_function
-# define internal_function
+#define internal_function
 #endif
 
 /* Forward declarations.  */
 struct malloc_chunk;
-typedef struct malloc_chunk* mchunkptr;
+typedef struct malloc_chunk *mchunkptr;
 
 /* Internal routines.  */
 
 #if __STD_C
 
-Void_t*         _int_malloc(mstate, size_t);
-void            _int_free(mstate, Void_t*);
-Void_t*         _int_realloc(mstate, Void_t*, size_t);
-Void_t*         _int_memalign(mstate, size_t, size_t);
-Void_t*         _int_valloc(mstate, size_t);
-static Void_t*  _int_pvalloc(mstate, size_t);
+Void_t *_int_malloc(mstate, size_t);
+void _int_free(mstate, Void_t *);
+Void_t *_int_realloc(mstate, Void_t *, size_t);
+Void_t *_int_memalign(mstate, size_t, size_t);
+Void_t *_int_valloc(mstate, size_t);
+static Void_t *_int_pvalloc(mstate, size_t);
 /*static Void_t*  cALLOc(size_t, size_t);*/
-static Void_t** _int_icalloc(mstate, size_t, size_t, Void_t**);
-static Void_t** _int_icomalloc(mstate, size_t, size_t*, Void_t**);
-static int      mTRIm(size_t);
-static size_t   mUSABLe(Void_t*);
-static int      mALLOPt(int, int);
+static Void_t **_int_icalloc(mstate, size_t, size_t, Void_t **);
+static Void_t **_int_icomalloc(mstate, size_t, size_t *, Void_t **);
+static int mTRIm(size_t);
+static size_t mUSABLe(Void_t *);
+static int mALLOPt(int, int);
 
-static Void_t* internal_function mem2mem_check(Void_t *p, size_t sz);
+static Void_t *internal_function mem2mem_check(Void_t *p, size_t sz);
 static int internal_function top_check(void);
 static void internal_function munmap_chunk(mchunkptr p);
 #if HAVE_MREMAP
 static mchunkptr internal_function mremap_chunk(mchunkptr p, size_t new_size);
 #endif
 
-static Void_t*   malloc_check(size_t sz, const Void_t *caller);
-static void      free_check(Void_t* mem, const Void_t *caller);
-static Void_t*   realloc_check(Void_t* oldmem, size_t bytes,
-			       const Void_t *caller);
-static Void_t*   memalign_check(size_t alignment, size_t bytes,
-				const Void_t *caller);
+static Void_t *malloc_check(size_t sz, const Void_t *caller);
+static void free_check(Void_t *mem, const Void_t *caller);
+static Void_t *realloc_check(Void_t *oldmem, size_t bytes,
+                             const Void_t *caller);
+static Void_t *memalign_check(size_t alignment, size_t bytes,
+                              const Void_t *caller);
 #ifndef NO_THREADS
-# if USE_STARTER
-static Void_t*   malloc_starter(size_t sz, const Void_t *caller);
-static Void_t*   memalign_starter(size_t aln, size_t sz, const Void_t *caller);
-static void      free_starter(Void_t* mem, const Void_t *caller);
-# endif
-static Void_t*   malloc_atfork(size_t sz, const Void_t *caller);
-static void      free_atfork(Void_t* mem, const Void_t *caller);
+#if USE_STARTER
+static Void_t *malloc_starter(size_t sz, const Void_t *caller);
+static Void_t *memalign_starter(size_t aln, size_t sz, const Void_t *caller);
+static void free_starter(Void_t *mem, const Void_t *caller);
+#endif
+static Void_t *malloc_atfork(size_t sz, const Void_t *caller);
+static void free_atfork(Void_t *mem, const Void_t *caller);
 #endif
 
 #else
 
-Void_t*         _int_malloc();
-void            _int_free();
-Void_t*         _int_realloc();
-Void_t*         _int_memalign();
-Void_t*         _int_valloc();
-Void_t*         _int_pvalloc();
+Void_t *_int_malloc();
+void _int_free();
+Void_t *_int_realloc();
+Void_t *_int_memalign();
+Void_t *_int_valloc();
+Void_t *_int_pvalloc();
 /*static Void_t*  cALLOc();*/
-static Void_t** _int_icalloc();
-static Void_t** _int_icomalloc();
-static int      mTRIm();
-static size_t   mUSABLe();
-static int      mALLOPt();
+static Void_t **_int_icalloc();
+static Void_t **_int_icomalloc();
+static int mTRIm();
+static size_t mUSABLe();
+static int mALLOPt();
 
 #endif
 
-
-
-
 /* ------------- Optional versions of memcopy ---------------- */
-
 
 #if USE_MEMCPY
 
@@ -1614,54 +1585,89 @@ static int      mALLOPt();
   so the (usually slower) memmove is not needed.
 */
 
-#define MALLOC_COPY(dest, src, nbytes)  memcpy(dest, src, nbytes)
-#define MALLOC_ZERO(dest, nbytes)       memset(dest, 0,   nbytes)
+#define MALLOC_COPY(dest, src, nbytes) memcpy(dest, src, nbytes)
+#define MALLOC_ZERO(dest, nbytes)      memset(dest, 0, nbytes)
 
 #else /* !USE_MEMCPY */
 
 /* Use Duff's device for good zeroing/copying performance. */
 
-#define MALLOC_ZERO(charp, nbytes)                                            \
-do {                                                                          \
-  INTERNAL_SIZE_T* mzp = (INTERNAL_SIZE_T*)(charp);                           \
-  unsigned long mctmp = (nbytes)/sizeof(INTERNAL_SIZE_T);                     \
-  long mcn;                                                                   \
-  if (mctmp < 8) mcn = 0; else { mcn = (mctmp-1)/8; mctmp %= 8; }             \
-  switch (mctmp) {                                                            \
-    case 0: for(;;) { *mzp++ = 0;                                             \
-    case 7:           *mzp++ = 0;                                             \
-    case 6:           *mzp++ = 0;                                             \
-    case 5:           *mzp++ = 0;                                             \
-    case 4:           *mzp++ = 0;                                             \
-    case 3:           *mzp++ = 0;                                             \
-    case 2:           *mzp++ = 0;                                             \
-    case 1:           *mzp++ = 0; if(mcn <= 0) break; mcn--; }                \
-  }                                                                           \
-} while(0)
+#define MALLOC_ZERO(charp, nbytes)                                             \
+    do {                                                                       \
+        INTERNAL_SIZE_T *mzp = (INTERNAL_SIZE_T *)(charp);                     \
+        unsigned long mctmp = (nbytes) / sizeof(INTERNAL_SIZE_T);              \
+        long mcn;                                                              \
+        if (mctmp < 8)                                                         \
+            mcn = 0;                                                           \
+        else {                                                                 \
+            mcn = (mctmp - 1) / 8;                                             \
+            mctmp %= 8;                                                        \
+        }                                                                      \
+        switch (mctmp) {                                                       \
+            case 0:                                                            \
+                for (;;) {                                                     \
+                    *mzp++ = 0;                                                \
+                    case 7:                                                    \
+                        *mzp++ = 0;                                            \
+                    case 6:                                                    \
+                        *mzp++ = 0;                                            \
+                    case 5:                                                    \
+                        *mzp++ = 0;                                            \
+                    case 4:                                                    \
+                        *mzp++ = 0;                                            \
+                    case 3:                                                    \
+                        *mzp++ = 0;                                            \
+                    case 2:                                                    \
+                        *mzp++ = 0;                                            \
+                    case 1:                                                    \
+                        *mzp++ = 0;                                            \
+                        if (mcn <= 0)                                          \
+                            break;                                             \
+                        mcn--;                                                 \
+                }                                                              \
+        }                                                                      \
+    } while (0)
 
-#define MALLOC_COPY(dest,src,nbytes)                                          \
-do {                                                                          \
-  INTERNAL_SIZE_T* mcsrc = (INTERNAL_SIZE_T*) src;                            \
-  INTERNAL_SIZE_T* mcdst = (INTERNAL_SIZE_T*) dest;                           \
-  unsigned long mctmp = (nbytes)/sizeof(INTERNAL_SIZE_T);                     \
-  long mcn;                                                                   \
-  if (mctmp < 8) mcn = 0; else { mcn = (mctmp-1)/8; mctmp %= 8; }             \
-  switch (mctmp) {                                                            \
-    case 0: for(;;) { *mcdst++ = *mcsrc++;                                    \
-    case 7:           *mcdst++ = *mcsrc++;                                    \
-    case 6:           *mcdst++ = *mcsrc++;                                    \
-    case 5:           *mcdst++ = *mcsrc++;                                    \
-    case 4:           *mcdst++ = *mcsrc++;                                    \
-    case 3:           *mcdst++ = *mcsrc++;                                    \
-    case 2:           *mcdst++ = *mcsrc++;                                    \
-    case 1:           *mcdst++ = *mcsrc++; if(mcn <= 0) break; mcn--; }       \
-  }                                                                           \
-} while(0)
+#define MALLOC_COPY(dest, src, nbytes)                                         \
+    do {                                                                       \
+        INTERNAL_SIZE_T *mcsrc = (INTERNAL_SIZE_T *)src;                       \
+        INTERNAL_SIZE_T *mcdst = (INTERNAL_SIZE_T *)dest;                      \
+        unsigned long mctmp = (nbytes) / sizeof(INTERNAL_SIZE_T);              \
+        long mcn;                                                              \
+        if (mctmp < 8)                                                         \
+            mcn = 0;                                                           \
+        else {                                                                 \
+            mcn = (mctmp - 1) / 8;                                             \
+            mctmp %= 8;                                                        \
+        }                                                                      \
+        switch (mctmp) {                                                       \
+            case 0:                                                            \
+                for (;;) {                                                     \
+                    *mcdst++ = *mcsrc++;                                       \
+                    case 7:                                                    \
+                        *mcdst++ = *mcsrc++;                                   \
+                    case 6:                                                    \
+                        *mcdst++ = *mcsrc++;                                   \
+                    case 5:                                                    \
+                        *mcdst++ = *mcsrc++;                                   \
+                    case 4:                                                    \
+                        *mcdst++ = *mcsrc++;                                   \
+                    case 3:                                                    \
+                        *mcdst++ = *mcsrc++;                                   \
+                    case 2:                                                    \
+                        *mcdst++ = *mcsrc++;                                   \
+                    case 1:                                                    \
+                        *mcdst++ = *mcsrc++;                                   \
+                        if (mcn <= 0)                                          \
+                            break;                                             \
+                        mcn--;                                                 \
+                }                                                              \
+        }                                                                      \
+    } while (0)
 
 #endif
 
 /* ------------------ MMAP support ------------------  */
-
 
 #if HAVE_MMAP
 
@@ -1671,18 +1677,18 @@ do {                                                                          \
 #endif
 
 #if !defined(MAP_ANONYMOUS) && defined(MAP_ANON)
-# define MAP_ANONYMOUS MAP_ANON
+#define MAP_ANONYMOUS MAP_ANON
 #endif
 #if !defined(MAP_FAILED)
-# define MAP_FAILED ((char*)-1)
+#define MAP_FAILED ((char *)-1)
 #endif
 
 #ifndef MAP_NORESERVE
-# ifdef MAP_AUTORESRV
-#  define MAP_NORESERVE MAP_AUTORESRV
-# else
-#  define MAP_NORESERVE 0
-# endif
+#ifdef MAP_AUTORESRV
+#define MAP_NORESERVE MAP_AUTORESRV
+#else
+#define MAP_NORESERVE 0
+#endif
 #endif
 
 /*
@@ -1695,26 +1701,24 @@ do {                                                                          \
 
 static int dev_zero_fd = -1; /* Cached file descriptor for /dev/zero. */
 
-#define MMAP(addr, size, prot, flags) ((dev_zero_fd < 0) ? \
- (dev_zero_fd = open("/dev/zero", O_RDWR), \
-  mmap((addr), (size), (prot), (flags), dev_zero_fd, 0)) : \
-   mmap((addr), (size), (prot), (flags), dev_zero_fd, 0))
+#define MMAP(addr, size, prot, flags)                                          \
+    ((dev_zero_fd < 0) ?                                                       \
+         (dev_zero_fd = open("/dev/zero", O_RDWR),                             \
+          mmap((addr), (size), (prot), (flags), dev_zero_fd, 0)) :             \
+         mmap((addr), (size), (prot), (flags), dev_zero_fd, 0))
 
 #else
 
-#define MMAP(addr, size, prot, flags) \
- (mmap((addr), (size), (prot), (flags)|MAP_ANONYMOUS, -1, 0))
+#define MMAP(addr, size, prot, flags)                                          \
+    (mmap((addr), (size), (prot), (flags) | MAP_ANONYMOUS, -1, 0))
 
 #endif
 
-
 #endif /* HAVE_MMAP */
-
 
 /*
   -----------------------  Chunk representations -----------------------
 */
-
 
 /*
   This struct declaration is misleading (but accurate and necessary).
@@ -1723,14 +1727,12 @@ static int dev_zero_fd = -1; /* Cached file descriptor for /dev/zero. */
 */
 
 struct malloc_chunk {
+    INTERNAL_SIZE_T prev_size; /* Size of previous chunk (if free).  */
+    INTERNAL_SIZE_T size;      /* Size in bytes, including overhead. */
 
-  INTERNAL_SIZE_T      prev_size;  /* Size of previous chunk (if free).  */
-  INTERNAL_SIZE_T      size;       /* Size in bytes, including overhead. */
-
-  struct malloc_chunk* fd;         /* double links -- used only if free. */
-  struct malloc_chunk* bk;
+    struct malloc_chunk *fd; /* double links -- used only if free. */
+    struct malloc_chunk *bk;
 };
-
 
 /*
    malloc_chunk details:
@@ -1825,21 +1827,20 @@ nextchunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 /* conversion from malloc headers to user pointers, and back */
 
-#define chunk2mem(p)   ((Void_t*)((char*)(p) + 2*SIZE_SZ))
-#define mem2chunk(mem) ((mchunkptr)((char*)(mem) - 2*SIZE_SZ))
+#define chunk2mem(p)   ((Void_t *)((char *)(p) + 2 * SIZE_SZ))
+#define mem2chunk(mem) ((mchunkptr)((char *)(mem)-2 * SIZE_SZ))
 
 /* The smallest possible chunk */
-#define MIN_CHUNK_SIZE        (sizeof(struct malloc_chunk))
+#define MIN_CHUNK_SIZE (sizeof(struct malloc_chunk))
 
 /* The smallest size we can malloc is an aligned minimal chunk */
 
-#define MINSIZE  \
-  (unsigned long)(((MIN_CHUNK_SIZE+MALLOC_ALIGN_MASK) & ~MALLOC_ALIGN_MASK))
+#define MINSIZE                                                                \
+    (unsigned long)(((MIN_CHUNK_SIZE + MALLOC_ALIGN_MASK) & ~MALLOC_ALIGN_MASK))
 
 /* Check if m has acceptable alignment */
 
-#define aligned_OK(m)  (((unsigned long)((m)) & (MALLOC_ALIGN_MASK)) == 0)
-
+#define aligned_OK(m) (((unsigned long)((m)) & (MALLOC_ALIGN_MASK)) == 0)
 
 /*
    Check if a request is so large that it would wrap around zero when
@@ -1847,44 +1848,40 @@ nextchunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    low enough so that adding MINSIZE will also not wrap around zero.
 */
 
-#define REQUEST_OUT_OF_RANGE(req)                                 \
-  ((unsigned long)(req) >=                                        \
-   (unsigned long)(INTERNAL_SIZE_T)(-2 * MINSIZE))
+#define REQUEST_OUT_OF_RANGE(req)                                              \
+    ((unsigned long)(req) >= (unsigned long)(INTERNAL_SIZE_T)(-2 * MINSIZE))
 
 /* pad request bytes into a usable size -- internal version */
 
-#define request2size(req)                                         \
-  (((req) + SIZE_SZ + MALLOC_ALIGN_MASK < MINSIZE)  ?             \
-   MINSIZE :                                                      \
-   ((req) + SIZE_SZ + MALLOC_ALIGN_MASK) & ~MALLOC_ALIGN_MASK)
+#define request2size(req)                                                      \
+    (((req) + SIZE_SZ + MALLOC_ALIGN_MASK < MINSIZE) ?                         \
+         MINSIZE :                                                             \
+         ((req) + SIZE_SZ + MALLOC_ALIGN_MASK) & ~MALLOC_ALIGN_MASK)
 
 /*  Same, except also perform argument check */
 
-#define checked_request2size(req, sz)                             \
-  if (REQUEST_OUT_OF_RANGE(req)) {                                \
-    MALLOC_FAILURE_ACTION;                                        \
-    return 0;                                                     \
-  }                                                               \
-  (sz) = request2size(req);
+#define checked_request2size(req, sz)                                          \
+    if (REQUEST_OUT_OF_RANGE(req)) {                                           \
+        MALLOC_FAILURE_ACTION;                                                 \
+        return 0;                                                              \
+    }                                                                          \
+    (sz) = request2size(req);
 
 /*
   --------------- Physical chunk operations ---------------
 */
 
-
 /* size field is or'ed with PREV_INUSE when previous adjacent chunk in use */
 #define PREV_INUSE 0x1
 
 /* extract inuse bit of previous chunk */
-#define prev_inuse(p)       ((p)->size & PREV_INUSE)
-
+#define prev_inuse(p) ((p)->size & PREV_INUSE)
 
 /* size field is or'ed with IS_MMAPPED if the chunk was obtained with mmap() */
 #define IS_MMAPPED 0x2
 
 /* check for mmap()'ed chunk */
 #define chunk_is_mmapped(p) ((p)->size & IS_MMAPPED)
-
 
 /* size field is or'ed with NON_MAIN_ARENA if the chunk was obtained
    from a non-main arena.  This is only set immediately before handing
@@ -1894,7 +1891,6 @@ nextchunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 /* check for chunk from non-main arena */
 #define chunk_non_main_arena(p) ((p)->size & NON_MAIN_ARENA)
 
-
 /*
   Bits to mask off when extracting size
 
@@ -1903,53 +1899,51 @@ nextchunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   cause helpful core dumps to occur if it is tried by accident by
   people extending or adapting this malloc.
 */
-#define SIZE_BITS (PREV_INUSE|IS_MMAPPED|NON_MAIN_ARENA)
+#define SIZE_BITS (PREV_INUSE | IS_MMAPPED | NON_MAIN_ARENA)
 
 /* Get size, ignoring use bits */
-#define chunksize(p)         ((p)->size & ~(SIZE_BITS))
-
+#define chunksize(p) ((p)->size & ~(SIZE_BITS))
 
 /* Ptr to next physical malloc_chunk. */
-#define next_chunk(p) ((mchunkptr)( ((char*)(p)) + ((p)->size & ~SIZE_BITS) ))
+#define next_chunk(p) ((mchunkptr)(((char *)(p)) + ((p)->size & ~SIZE_BITS)))
 
 /* Ptr to previous physical malloc_chunk */
-#define prev_chunk(p) ((mchunkptr)( ((char*)(p)) - ((p)->prev_size) ))
+#define prev_chunk(p) ((mchunkptr)(((char *)(p)) - ((p)->prev_size)))
 
 /* Treat space at ptr + offset as a chunk */
-#define chunk_at_offset(p, s)  ((mchunkptr)(((char*)(p)) + (s)))
+#define chunk_at_offset(p, s) ((mchunkptr)(((char *)(p)) + (s)))
 
 /* extract p's inuse bit */
-#define inuse(p)\
-((((mchunkptr)(((char*)(p))+((p)->size & ~SIZE_BITS)))->size) & PREV_INUSE)
+#define inuse(p)                                                               \
+    ((((mchunkptr)(((char *)(p)) + ((p)->size & ~SIZE_BITS)))->size) &         \
+     PREV_INUSE)
 
 /* set/clear chunk as being inuse without otherwise disturbing */
-#define set_inuse(p)\
-((mchunkptr)(((char*)(p)) + ((p)->size & ~SIZE_BITS)))->size |= PREV_INUSE
+#define set_inuse(p)                                                           \
+    ((mchunkptr)(((char *)(p)) + ((p)->size & ~SIZE_BITS)))->size |= PREV_INUSE
 
-#define clear_inuse(p)\
-((mchunkptr)(((char*)(p)) + ((p)->size & ~SIZE_BITS)))->size &= ~(PREV_INUSE)
-
+#define clear_inuse(p)                                                         \
+    ((mchunkptr)(((char *)(p)) + ((p)->size & ~SIZE_BITS)))->size &=           \
+        ~(PREV_INUSE)
 
 /* check/set/clear inuse bits in known places */
-#define inuse_bit_at_offset(p, s)\
- (((mchunkptr)(((char*)(p)) + (s)))->size & PREV_INUSE)
+#define inuse_bit_at_offset(p, s)                                              \
+    (((mchunkptr)(((char *)(p)) + (s)))->size & PREV_INUSE)
 
-#define set_inuse_bit_at_offset(p, s)\
- (((mchunkptr)(((char*)(p)) + (s)))->size |= PREV_INUSE)
+#define set_inuse_bit_at_offset(p, s)                                          \
+    (((mchunkptr)(((char *)(p)) + (s)))->size |= PREV_INUSE)
 
-#define clear_inuse_bit_at_offset(p, s)\
- (((mchunkptr)(((char*)(p)) + (s)))->size &= ~(PREV_INUSE))
-
+#define clear_inuse_bit_at_offset(p, s)                                        \
+    (((mchunkptr)(((char *)(p)) + (s)))->size &= ~(PREV_INUSE))
 
 /* Set size at head, without disturbing its use bit */
-#define set_head_size(p, s)  ((p)->size = (((p)->size & SIZE_BITS) | (s)))
+#define set_head_size(p, s) ((p)->size = (((p)->size & SIZE_BITS) | (s)))
 
 /* Set size/use field */
-#define set_head(p, s)       ((p)->size = (s))
+#define set_head(p, s) ((p)->size = (s))
 
 /* Set size at footer (only when chunk is not in use) */
-#define set_foot(p, s)       (((mchunkptr)((char*)(p) + (s)))->prev_size = (s))
-
+#define set_foot(p, s) (((mchunkptr)((char *)(p) + (s)))->prev_size = (s))
 
 /*
   -------------------- Internal data structures --------------------
@@ -2002,25 +1996,27 @@ nextchunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     to treat these as the fields of a malloc_chunk*.
 */
 
-typedef struct malloc_chunk* mbinptr;
+typedef struct malloc_chunk *mbinptr;
 
 /* addressing -- note that bin_at(0) does not exist */
-#define bin_at(m, i) ((mbinptr)((char*)&((m)->bins[(i)<<1]) - (SIZE_SZ<<1)))
+#define bin_at(m, i)                                                           \
+    ((mbinptr)((char *)&((m)->bins[(i) << 1]) - (SIZE_SZ << 1)))
 
 /* analog of ++bin */
-#define next_bin(b)  ((mbinptr)((char*)(b) + (sizeof(mchunkptr)<<1)))
+#define next_bin(b) ((mbinptr)((char *)(b) + (sizeof(mchunkptr) << 1)))
 
 /* Reminders about list directionality within bins */
-#define first(b)     ((b)->fd)
-#define last(b)      ((b)->bk)
+#define first(b) ((b)->fd)
+#define last(b)  ((b)->bk)
 
 /* Take a chunk off a bin list */
-#define unlink(P, BK, FD) {                                            \
-  FD = P->fd;                                                          \
-  BK = P->bk;                                                          \
-  FD->bk = BK;                                                         \
-  BK->fd = FD;                                                         \
-}
+#define unlink(P, BK, FD)                                                      \
+    {                                                                          \
+        FD = P->fd;                                                            \
+        BK = P->bk;                                                            \
+        FD->bk = BK;                                                           \
+        BK->fd = FD;                                                           \
+    }
 
 /*
   Indexing
@@ -2043,27 +2039,32 @@ typedef struct malloc_chunk* mbinptr;
     requests via mmap.
 */
 
-#define NBINS             128
-#define NSMALLBINS         64
-#define SMALLBIN_WIDTH      8
-#define MIN_LARGE_SIZE    512
-#define MV2_GENERIC_CACHE_LINE_SIZE    128
+#define NBINS                       128
+#define NSMALLBINS                  64
+#define SMALLBIN_WIDTH              8
+#define MIN_LARGE_SIZE              512
+#define MVP_GENERIC_CACHE_LINE_SIZE 128
 
-#define in_smallbin_range(sz)  \
-  ((unsigned long)(sz) < (unsigned long)MIN_LARGE_SIZE)
+#define in_smallbin_range(sz)                                                  \
+    ((unsigned long)(sz) < (unsigned long)MIN_LARGE_SIZE)
 
-#define smallbin_index(sz)     (((unsigned)(sz)) >> 3)
+#define smallbin_index(sz) (((unsigned)(sz)) >> 3)
 
-#define largebin_index(sz)                                                   \
-(((((unsigned long)(sz)) >>  6) <= 32)?  56 + (((unsigned long)(sz)) >>  6): \
- ((((unsigned long)(sz)) >>  9) <= 20)?  91 + (((unsigned long)(sz)) >>  9): \
- ((((unsigned long)(sz)) >> 12) <= 10)? 110 + (((unsigned long)(sz)) >> 12): \
- ((((unsigned long)(sz)) >> 15) <=  4)? 119 + (((unsigned long)(sz)) >> 15): \
- ((((unsigned long)(sz)) >> 18) <=  2)? 124 + (((unsigned long)(sz)) >> 18): \
-                                        126)
+#define largebin_index(sz)                                                     \
+    (((((unsigned long)(sz)) >> 6) <= 32) ?                                    \
+         56 + (((unsigned long)(sz)) >> 6) :                                   \
+     ((((unsigned long)(sz)) >> 9) <= 20) ?                                    \
+         91 + (((unsigned long)(sz)) >> 9) :                                   \
+     ((((unsigned long)(sz)) >> 12) <= 10) ?                                   \
+         110 + (((unsigned long)(sz)) >> 12) :                                 \
+     ((((unsigned long)(sz)) >> 15) <= 4) ?                                    \
+         119 + (((unsigned long)(sz)) >> 15) :                                 \
+     ((((unsigned long)(sz)) >> 18) <= 2) ?                                    \
+         124 + (((unsigned long)(sz)) >> 18) :                                 \
+         126)
 
-#define bin_index(sz) \
- ((in_smallbin_range(sz)) ? smallbin_index(sz) : largebin_index(sz))
+#define bin_index(sz)                                                          \
+    ((in_smallbin_range(sz)) ? smallbin_index(sz) : largebin_index(sz))
 
 /*
   FIRST_SORTED_BIN_SIZE is the chunk size corresponding to the
@@ -2072,19 +2073,19 @@ typedef struct malloc_chunk* mbinptr;
 
   Normally, this should be MIN_LARGE_SIZE. But you can weaken
   best fit guarantees to sometimes speed up malloc by increasing value.
-  Doing this means that malloc may choose a chunk that is 
+  Doing this means that malloc may choose a chunk that is
   non-best-fitting by up to the width of the bin.
 
   Some useful cutoff values:
       512 - all bins sorted
-     2560 - leaves bins <=     64 bytes wide unsorted  
+     2560 - leaves bins <=     64 bytes wide unsorted
     12288 - leaves bins <=    512 bytes wide unsorted
     65536 - leaves bins <=   4096 bytes wide unsorted
    262144 - leaves bins <=  32768 bytes wide unsorted
        -1 - no bins sorted (not recommended!)
 */
 
-#define FIRST_SORTED_BIN_SIZE MIN_LARGE_SIZE 
+#define FIRST_SORTED_BIN_SIZE MIN_LARGE_SIZE
 /* #define FIRST_SORTED_BIN_SIZE 65536 */
 
 /*
@@ -2102,7 +2103,7 @@ typedef struct malloc_chunk* mbinptr;
 */
 
 /* The otherwise unindexable 1-bin is used to hold unsorted chunks. */
-#define unsorted_chunks(M)          (bin_at(M, 1))
+#define unsorted_chunks(M) (bin_at(M, 1))
 
 /*
   Top
@@ -2123,7 +2124,7 @@ typedef struct malloc_chunk* mbinptr;
 */
 
 /* Conveniently, the unsorted bin can be used as dummy top on first call */
-#define initial_top(M)              (unsorted_chunks(M))
+#define initial_top(M) (unsorted_chunks(M))
 
 /*
   Binmap
@@ -2137,16 +2138,16 @@ typedef struct malloc_chunk* mbinptr;
 */
 
 /* Conservatively use 32 bits per map word, even if on 64bit system */
-#define BINMAPSHIFT      5
-#define BITSPERMAP       (1U << BINMAPSHIFT)
-#define BINMAPSIZE       (NBINS / BITSPERMAP)
+#define BINMAPSHIFT 5
+#define BITSPERMAP  (1U << BINMAPSHIFT)
+#define BINMAPSIZE  (NBINS / BITSPERMAP)
 
-#define idx2block(i)     ((i) >> BINMAPSHIFT)
-#define idx2bit(i)       ((1U << ((i) & ((1U << BINMAPSHIFT)-1))))
+#define idx2block(i) ((i) >> BINMAPSHIFT)
+#define idx2bit(i)   ((1U << ((i) & ((1U << BINMAPSHIFT) - 1))))
 
-#define mark_bin(m,i)    ((m)->binmap[idx2block(i)] |=  idx2bit(i))
-#define unmark_bin(m,i)  ((m)->binmap[idx2block(i)] &= ~(idx2bit(i)))
-#define get_binmap(m,i)  ((m)->binmap[idx2block(i)] &   idx2bit(i))
+#define mark_bin(m, i)   ((m)->binmap[idx2block(i)] |= idx2bit(i))
+#define unmark_bin(m, i) ((m)->binmap[idx2block(i)] &= ~(idx2bit(i)))
+#define get_binmap(m, i) ((m)->binmap[idx2block(i)] & idx2bit(i))
 
 /*
   Fastbins
@@ -2165,15 +2166,15 @@ typedef struct malloc_chunk* mbinptr;
     other free chunks.
 */
 
-typedef struct malloc_chunk* mfastbinptr;
+typedef struct malloc_chunk *mfastbinptr;
 
 /* offset 2 to use otherwise unindexable first 2 bins */
-#define fastbin_index(sz)        ((((unsigned int)(sz)) >> 3) - 2)
+#define fastbin_index(sz) ((((unsigned int)(sz)) >> 3) - 2)
 
 /* The maximum fastbin request size we support */
-#define MAX_FAST_SIZE     80
+#define MAX_FAST_SIZE 80
 
-#define NFASTBINS  (fastbin_index(request2size(MAX_FAST_SIZE))+1)
+#define NFASTBINS (fastbin_index(request2size(MAX_FAST_SIZE)) + 1)
 
 /*
   FASTBIN_CONSOLIDATION_THRESHOLD is the size of a chunk in free()
@@ -2186,7 +2187,7 @@ typedef struct malloc_chunk* mfastbinptr;
   if trimming is not used.
 */
 
-#define FASTBIN_CONSOLIDATION_THRESHOLD  (262144UL)
+#define FASTBIN_CONSOLIDATION_THRESHOLD (262144UL)
 
 /*
   Since the lowest 2 bits in max_fast don't matter in size comparisons,
@@ -2203,11 +2204,11 @@ typedef struct malloc_chunk* mfastbinptr;
   initialization checks.
 */
 
-#define FASTCHUNKS_BIT        (1U)
+#define FASTCHUNKS_BIT (1U)
 
-#define have_fastchunks(M)     (((M)->max_fast &  FASTCHUNKS_BIT) == 0)
-#define clear_fastchunks(M)    ((M)->max_fast |=  FASTCHUNKS_BIT)
-#define set_fastchunks(M)      ((M)->max_fast &= ~FASTCHUNKS_BIT)
+#define have_fastchunks(M)  (((M)->max_fast & FASTCHUNKS_BIT) == 0)
+#define clear_fastchunks(M) ((M)->max_fast |= FASTCHUNKS_BIT)
+#define set_fastchunks(M)   ((M)->max_fast &= ~FASTCHUNKS_BIT)
 
 /*
   NONCONTIGUOUS_BIT indicates that MORECORE does not return contiguous
@@ -2218,12 +2219,12 @@ typedef struct malloc_chunk* mfastbinptr;
   changed dynamically if mmap is ever used as an sbrk substitute.
 */
 
-#define NONCONTIGUOUS_BIT     (2U)
+#define NONCONTIGUOUS_BIT (2U)
 
-#define contiguous(M)          (((M)->max_fast &  NONCONTIGUOUS_BIT) == 0)
-#define noncontiguous(M)       (((M)->max_fast &  NONCONTIGUOUS_BIT) != 0)
-#define set_noncontiguous(M)   ((M)->max_fast |=  NONCONTIGUOUS_BIT)
-#define set_contiguous(M)      ((M)->max_fast &= ~NONCONTIGUOUS_BIT)
+#define contiguous(M)        (((M)->max_fast & NONCONTIGUOUS_BIT) == 0)
+#define noncontiguous(M)     (((M)->max_fast & NONCONTIGUOUS_BIT) != 0)
+#define set_noncontiguous(M) ((M)->max_fast |= NONCONTIGUOUS_BIT)
+#define set_contiguous(M)    ((M)->max_fast &= ~NONCONTIGUOUS_BIT)
 
 /*
    Set value of max_fast.
@@ -2232,73 +2233,71 @@ typedef struct malloc_chunk* mfastbinptr;
    Setting the value clears fastchunk bit but preserves noncontiguous bit.
 */
 
-#define set_max_fast(M, s) \
-  (M)->max_fast = (((s) == 0)? SMALLBIN_WIDTH: request2size(s)) | \
-  FASTCHUNKS_BIT | \
-  ((M)->max_fast &  NONCONTIGUOUS_BIT)
-
+#define set_max_fast(M, s)                                                     \
+    (M)->max_fast = (((s) == 0) ? SMALLBIN_WIDTH : request2size(s)) |          \
+                    FASTCHUNKS_BIT | ((M)->max_fast & NONCONTIGUOUS_BIT)
 
 /*
    ----------- Internal state representation and initialization -----------
 */
 
 struct malloc_state {
-  /* Serialize access.  */
-  mutex_t mutex;
+    /* Serialize access.  */
+    mutex_t mutex;
 
-  /* Statistics for locking.  Only used if THREAD_STATS is defined.  */
-  long stat_lock_direct, stat_lock_loop, stat_lock_wait;
-  long pad0_[1]; /* try to give the mutex its own cacheline */
+    /* Statistics for locking.  Only used if THREAD_STATS is defined.  */
+    long stat_lock_direct, stat_lock_loop, stat_lock_wait;
+    long pad0_[1]; /* try to give the mutex its own cacheline */
 
-  /* The maximum chunk size to be eligible for fastbin */
-  INTERNAL_SIZE_T  max_fast;   /* low 2 bits used as flags */
+    /* The maximum chunk size to be eligible for fastbin */
+    INTERNAL_SIZE_T max_fast; /* low 2 bits used as flags */
 
-  /* Fastbins */
-  mfastbinptr      fastbins[NFASTBINS];
+    /* Fastbins */
+    mfastbinptr fastbins[NFASTBINS];
 
-  /* Base of the topmost chunk -- not otherwise kept in a bin */
-  mchunkptr        top;
+    /* Base of the topmost chunk -- not otherwise kept in a bin */
+    mchunkptr top;
 
-  /* The remainder from the most recent split of a small request */
-  mchunkptr        last_remainder;
+    /* The remainder from the most recent split of a small request */
+    mchunkptr last_remainder;
 
-  /* Normal bins packed as described above */
-  mchunkptr        bins[NBINS * 2];
+    /* Normal bins packed as described above */
+    mchunkptr bins[NBINS * 2];
 
-  /* Bitmap of bins */
-  unsigned int     binmap[BINMAPSIZE];
+    /* Bitmap of bins */
+    unsigned int binmap[BINMAPSIZE];
 
-  /* Linked list */
-  struct malloc_state *next;
+    /* Linked list */
+    struct malloc_state *next;
 
-  /* Memory allocated from the system in this arena.  */
-  INTERNAL_SIZE_T system_mem;
-  INTERNAL_SIZE_T max_system_mem;
+    /* Memory allocated from the system in this arena.  */
+    INTERNAL_SIZE_T system_mem;
+    INTERNAL_SIZE_T max_system_mem;
 };
 
 struct malloc_par {
-  /* Tunable parameters */
-  unsigned long    trim_threshold;
-  INTERNAL_SIZE_T  top_pad;
-  INTERNAL_SIZE_T  mmap_threshold;
+    /* Tunable parameters */
+    unsigned long trim_threshold;
+    INTERNAL_SIZE_T top_pad;
+    INTERNAL_SIZE_T mmap_threshold;
 
-  /* Memory map support */
-  int              n_mmaps;
-  int              n_mmaps_max;
-  int              max_n_mmaps;
+    /* Memory map support */
+    int n_mmaps;
+    int n_mmaps_max;
+    int max_n_mmaps;
 
-  /* Cache malloc_getpagesize */
-  unsigned int     pagesize;
+    /* Cache malloc_getpagesize */
+    unsigned int pagesize;
 
-  /* Statistics */
-  INTERNAL_SIZE_T  mmapped_mem;
-  /*INTERNAL_SIZE_T  sbrked_mem;*/
-  /*INTERNAL_SIZE_T  max_sbrked_mem;*/
-  INTERNAL_SIZE_T  max_mmapped_mem;
-  INTERNAL_SIZE_T  max_total_mem; /* only kept for NO_THREADS */
+    /* Statistics */
+    INTERNAL_SIZE_T mmapped_mem;
+    /*INTERNAL_SIZE_T  sbrked_mem;*/
+    /*INTERNAL_SIZE_T  max_sbrked_mem;*/
+    INTERNAL_SIZE_T max_mmapped_mem;
+    INTERNAL_SIZE_T max_total_mem; /* only kept for NO_THREADS */
 
-  /* First address handed out by MORECORE/sbrk.  */
-  char*            sbrk_base;
+    /* First address handed out by MORECORE/sbrk.  */
+    char *sbrk_base;
 };
 
 /* There are several instances of this struct ("arenas") in this
@@ -2329,23 +2328,23 @@ static void malloc_init_state(mstate av)
 static void malloc_init_state(av) mstate av;
 #endif
 {
-  int     i;
-  mbinptr bin;
+    int i;
+    mbinptr bin;
 
-  /* Establish circular links for normal bins */
-  for (i = 1; i < NBINS; ++i) {
-    bin = bin_at(av,i);
-    bin->fd = bin->bk = bin;
-  }
+    /* Establish circular links for normal bins */
+    for (i = 1; i < NBINS; ++i) {
+        bin = bin_at(av, i);
+        bin->fd = bin->bk = bin;
+    }
 
 #if MORECORE_CONTIGUOUS
-  if (av != &main_arena)
+    if (av != &main_arena)
 #endif
-    set_noncontiguous(av);
+        set_noncontiguous(av);
 
-  set_max_fast(av, DEFAULT_MXFAST);
+    set_max_fast(av, DEFAULT_MXFAST);
 
-  av->top            = initial_top(av);
+    av->top = initial_top(av);
 }
 
 /*
@@ -2353,25 +2352,24 @@ static void malloc_init_state(av) mstate av;
 */
 
 #if __STD_C
-static Void_t*  sYSMALLOc(INTERNAL_SIZE_T, mstate);
+static Void_t *sYSMALLOc(INTERNAL_SIZE_T, mstate);
 /* <CHANNEL_MRAIL> */
 #if !defined(MORECORE_CANNOT_TRIM)
-static int      sYSTRIm(size_t, mstate);
+static int sYSTRIm(size_t, mstate);
 #endif /* !defined(MORECORE_CANNOT_TRIM) */
 /* </CHANNEL_MRAIL> */
-static void     malloc_consolidate(mstate);
-static Void_t** iALLOc(mstate, size_t, size_t*, int, Void_t**);
+static void malloc_consolidate(mstate);
+static Void_t **iALLOc(mstate, size_t, size_t *, int, Void_t **);
 #else
-static Void_t*  sYSMALLOc();
+static Void_t *sYSMALLOc();
 /* <CHANNEL_MRAIL> */
 #if !defined(MORECORE_CANNOT_TRIM)
-static int      sYSTRIm();
+static int sYSTRIm();
 #endif /* !defined(MORECORE_CANNOT_TRIM) */
 /* </CHANNEL_MRAIL> */
-static void     malloc_consolidate();
-static Void_t** iALLOc();
+static void malloc_consolidate();
+static Void_t **iALLOc();
 #endif
-
 
 /* -------------- Early definitions for debugging hooks ---------------- */
 
@@ -2388,35 +2386,33 @@ static Void_t** iALLOc();
 #endif
 
 #if !(USE_STARTER & 2)
-# define free_hook_ini     NULL
+#define free_hook_ini NULL
 /* Forward declarations.  */
-static Void_t* malloc_hook_ini __MALLOC_P ((size_t sz,
-					    const __malloc_ptr_t caller));
-static Void_t* realloc_hook_ini __MALLOC_P ((Void_t* ptr, size_t sz,
-					     const __malloc_ptr_t caller));
-static Void_t* memalign_hook_ini __MALLOC_P ((size_t alignment, size_t sz,
-					      const __malloc_ptr_t caller));
+static Void_t *malloc_hook_ini __MALLOC_P((size_t sz,
+                                           const __malloc_ptr_t caller));
+static Void_t *realloc_hook_ini __MALLOC_P((Void_t * ptr, size_t sz,
+                                            const __malloc_ptr_t caller));
+static Void_t *memalign_hook_ini __MALLOC_P((size_t alignment, size_t sz,
+                                             const __malloc_ptr_t caller));
 #else
-# define free_hook_ini     free_starter
-# define malloc_hook_ini   malloc_starter
-# define realloc_hook_ini  NULL
-# define memalign_hook_ini memalign_starter
+#define free_hook_ini     free_starter
+#define malloc_hook_ini   malloc_starter
+#define realloc_hook_ini  NULL
+#define memalign_hook_ini memalign_starter
 #endif
 
-void weak_variable (*__malloc_initialize_hook) __MALLOC_PMT ((void)) = NULL;
-void weak_variable (*__free_hook) __MALLOC_PMT ((__malloc_ptr_t __ptr,
-                                                 const __malloc_ptr_t))
-     = free_hook_ini;
-__malloc_ptr_t weak_variable (*__malloc_hook)
- __MALLOC_PMT ((size_t __size, const __malloc_ptr_t)) = malloc_hook_ini;
-__malloc_ptr_t weak_variable (*__realloc_hook)
- __MALLOC_PMT ((__malloc_ptr_t __ptr, size_t __size, const __malloc_ptr_t))
-     = realloc_hook_ini;
-__malloc_ptr_t weak_variable (*__memalign_hook)
- __MALLOC_PMT ((size_t __alignment, size_t __size, const __malloc_ptr_t))
-     = memalign_hook_ini;
-void weak_variable (*__after_morecore_hook) __MALLOC_P ((void)) = NULL;
-
+void weak_variable(*__malloc_initialize_hook) __MALLOC_PMT((void)) = NULL;
+void weak_variable(*__free_hook)
+    __MALLOC_PMT((__malloc_ptr_t __ptr, const __malloc_ptr_t)) = free_hook_ini;
+__malloc_ptr_t weak_variable(*__malloc_hook)
+    __MALLOC_PMT((size_t __size, const __malloc_ptr_t)) = malloc_hook_ini;
+__malloc_ptr_t weak_variable(*__realloc_hook)
+    __MALLOC_PMT((__malloc_ptr_t __ptr, size_t __size,
+                  const __malloc_ptr_t)) = realloc_hook_ini;
+__malloc_ptr_t weak_variable(*__memalign_hook)
+    __MALLOC_PMT((size_t __alignment, size_t __size,
+                  const __malloc_ptr_t)) = memalign_hook_ini;
+void weak_variable(*__after_morecore_hook) __MALLOC_P((void)) = NULL;
 
 /* ------------------- Support for multiple arenas -------------------- */
 #include "arena.c"
@@ -2431,23 +2427,23 @@ void weak_variable (*__after_morecore_hook) __MALLOC_P ((void)) = NULL;
   in malloc. In which case, please report it!)
 */
 
-#if ! MALLOC_DEBUG
+#if !MALLOC_DEBUG
 
-#define check_chunk(A,P)
-#define check_free_chunk(A,P)
-#define check_inuse_chunk(A,P)
-#define check_remalloced_chunk(A,P,N)
-#define check_malloced_chunk(A,P,N)
+#define check_chunk(A, P)
+#define check_free_chunk(A, P)
+#define check_inuse_chunk(A, P)
+#define check_remalloced_chunk(A, P, N)
+#define check_malloced_chunk(A, P, N)
 #define check_malloc_state(A)
 
 #else
 
-#define check_chunk(A,P)              do_check_chunk(A,P)
-#define check_free_chunk(A,P)         do_check_free_chunk(A,P)
-#define check_inuse_chunk(A,P)        do_check_inuse_chunk(A,P)
-#define check_remalloced_chunk(A,P,N) do_check_remalloced_chunk(A,P,N)
-#define check_malloced_chunk(A,P,N)   do_check_malloced_chunk(A,P,N)
-#define check_malloc_state(A)         do_check_malloc_state(A)
+#define check_chunk(A, P)               do_check_chunk(A, P)
+#define check_free_chunk(A, P)          do_check_free_chunk(A, P)
+#define check_inuse_chunk(A, P)         do_check_inuse_chunk(A, P)
+#define check_remalloced_chunk(A, P, N) do_check_remalloced_chunk(A, P, N)
+#define check_malloced_chunk(A, P, N)   do_check_malloced_chunk(A, P, N)
+#define check_malloc_state(A)           do_check_malloc_state(A)
 
 /*
   Properties of all chunks
@@ -2456,46 +2452,44 @@ void weak_variable (*__after_morecore_hook) __MALLOC_P ((void)) = NULL;
 #if __STD_C
 static void do_check_chunk(mstate av, mchunkptr p)
 #else
-static void do_check_chunk(av, p) mstate av; mchunkptr p;
+static void do_check_chunk(av, p) mstate av;
+mchunkptr p;
 #endif
 {
-  unsigned long sz = chunksize(p);
-  /* min and max possible addresses assuming contiguous allocation */
-  char* max_address = (char*)(av->top) + chunksize(av->top);
-  char* min_address = max_address - av->system_mem;
+    unsigned long sz = chunksize(p);
+    /* min and max possible addresses assuming contiguous allocation */
+    char *max_address = (char *)(av->top) + chunksize(av->top);
+    char *min_address = max_address - av->system_mem;
 
-  if (!chunk_is_mmapped(p)) {
+    if (!chunk_is_mmapped(p)) {
+        /* Has legal address ... */
+        if (p != av->top) {
+            if (contiguous(av)) {
+                assert(((char *)p) >= min_address);
+                assert(((char *)p + sz) <= ((char *)(av->top)));
+            }
+        } else {
+            /* top size is always at least MINSIZE */
+            assert((unsigned long)(sz) >= MINSIZE);
+            /* top predecessor always marked inuse */
+            assert(prev_inuse(p));
+        }
 
-    /* Has legal address ... */
-    if (p != av->top) {
-      if (contiguous(av)) {
-        assert(((char*)p) >= min_address);
-        assert(((char*)p + sz) <= ((char*)(av->top)));
-      }
-    }
-    else {
-      /* top size is always at least MINSIZE */
-      assert((unsigned long)(sz) >= MINSIZE);
-      /* top predecessor always marked inuse */
-      assert(prev_inuse(p));
-    }
-
-  }
-  else {
+    } else {
 #if HAVE_MMAP
-    /* address is outside main heap  */
-    if (contiguous(av) && av->top != initial_top(av)) {
-      assert(((char*)p) < min_address || ((char*)p) > max_address);
-    }
-    /* chunk is page-aligned */
-    assert(((p->prev_size + sz) & (mp_.pagesize-1)) == 0);
-    /* mem is aligned */
-    assert(aligned_OK(chunk2mem(p)));
+        /* address is outside main heap  */
+        if (contiguous(av) && av->top != initial_top(av)) {
+            assert(((char *)p) < min_address || ((char *)p) > max_address);
+        }
+        /* chunk is page-aligned */
+        assert(((p->prev_size + sz) & (mp_.pagesize - 1)) == 0);
+        /* mem is aligned */
+        assert(aligned_OK(chunk2mem(p)));
 #else
-    /* force an appropriate assert violation if debug set */
-    assert(!chunk_is_mmapped(p));
+        /* force an appropriate assert violation if debug set */
+        assert(!chunk_is_mmapped(p));
 #endif
-  }
+    }
 }
 
 /*
@@ -2505,35 +2499,34 @@ static void do_check_chunk(av, p) mstate av; mchunkptr p;
 #if __STD_C
 static void do_check_free_chunk(mstate av, mchunkptr p)
 #else
-static void do_check_free_chunk(av, p) mstate av; mchunkptr p;
+static void do_check_free_chunk(av, p) mstate av;
+mchunkptr p;
 #endif
 {
-  INTERNAL_SIZE_T sz = p->size & ~(PREV_INUSE|NON_MAIN_ARENA);
-  mchunkptr next = chunk_at_offset(p, sz);
+    INTERNAL_SIZE_T sz = p->size & ~(PREV_INUSE | NON_MAIN_ARENA);
+    mchunkptr next = chunk_at_offset(p, sz);
 
-  do_check_chunk(av, p);
+    do_check_chunk(av, p);
 
-  /* Chunk must claim to be free ... */
-  assert(!inuse(p));
-  assert (!chunk_is_mmapped(p));
+    /* Chunk must claim to be free ... */
+    assert(!inuse(p));
+    assert(!chunk_is_mmapped(p));
 
-  /* Unless a special marker, must have OK fields */
-  if ((unsigned long)(sz) >= MINSIZE)
-  {
-    assert((sz & MALLOC_ALIGN_MASK) == 0);
-    assert(aligned_OK(chunk2mem(p)));
-    /* ... matching footer field */
-    assert(next->prev_size == sz);
-    /* ... and is fully consolidated */
-    assert(prev_inuse(p));
-    assert (next == av->top || inuse(next));
+    /* Unless a special marker, must have OK fields */
+    if ((unsigned long)(sz) >= MINSIZE) {
+        assert((sz & MALLOC_ALIGN_MASK) == 0);
+        assert(aligned_OK(chunk2mem(p)));
+        /* ... matching footer field */
+        assert(next->prev_size == sz);
+        /* ... and is fully consolidated */
+        assert(prev_inuse(p));
+        assert(next == av->top || inuse(next));
 
-    /* ... and has minimally sane links */
-    assert(p->fd->bk == p);
-    assert(p->bk->fd == p);
-  }
-  else /* markers are always of size SIZE_SZ */
-    assert(sz == SIZE_SZ);
+        /* ... and has minimally sane links */
+        assert(p->fd->bk == p);
+        assert(p->bk->fd == p);
+    } else /* markers are always of size SIZE_SZ */
+        assert(sz == SIZE_SZ);
 }
 
 /*
@@ -2543,38 +2536,38 @@ static void do_check_free_chunk(av, p) mstate av; mchunkptr p;
 #if __STD_C
 static void do_check_inuse_chunk(mstate av, mchunkptr p)
 #else
-static void do_check_inuse_chunk(av, p) mstate av; mchunkptr p;
+static void do_check_inuse_chunk(av, p) mstate av;
+mchunkptr p;
 #endif
 {
-  mchunkptr next;
+    mchunkptr next;
 
-  do_check_chunk(av, p);
+    do_check_chunk(av, p);
 
-  if (chunk_is_mmapped(p))
-    return; /* mmapped chunks have no next/prev */
+    if (chunk_is_mmapped(p))
+        return; /* mmapped chunks have no next/prev */
 
-  /* Check whether it claims to be in use ... */
-  assert(inuse(p));
+    /* Check whether it claims to be in use ... */
+    assert(inuse(p));
 
-  next = next_chunk(p);
+    next = next_chunk(p);
 
-  /* ... and is surrounded by OK chunks.
-    Since more things can be checked with free chunks than inuse ones,
-    if an inuse chunk borders them and debug is on, it's worth doing them.
-  */
-  if (!prev_inuse(p))  {
-    /* Note that we cannot even look at prev unless it is not inuse */
-    mchunkptr prv = prev_chunk(p);
-    assert(next_chunk(prv) == p);
-    do_check_free_chunk(av, prv);
-  }
+    /* ... and is surrounded by OK chunks.
+      Since more things can be checked with free chunks than inuse ones,
+      if an inuse chunk borders them and debug is on, it's worth doing them.
+    */
+    if (!prev_inuse(p)) {
+        /* Note that we cannot even look at prev unless it is not inuse */
+        mchunkptr prv = prev_chunk(p);
+        assert(next_chunk(prv) == p);
+        do_check_free_chunk(av, prv);
+    }
 
-  if (next == av->top) {
-    assert(prev_inuse(next));
-    assert(chunksize(next) >= MINSIZE);
-  }
-  else if (!inuse(next))
-    do_check_free_chunk(av, next);
+    if (next == av->top) {
+        assert(prev_inuse(next));
+        assert(chunksize(next) >= MINSIZE);
+    } else if (!inuse(next))
+        do_check_free_chunk(av, next);
 }
 
 /*
@@ -2584,30 +2577,31 @@ static void do_check_inuse_chunk(av, p) mstate av; mchunkptr p;
 #if __STD_C
 static void do_check_remalloced_chunk(mstate av, mchunkptr p, INTERNAL_SIZE_T s)
 #else
-static void do_check_remalloced_chunk(av, p, s)
-mstate av; mchunkptr p; INTERNAL_SIZE_T s;
+static void do_check_remalloced_chunk(av, p, s) mstate av;
+mchunkptr p;
+INTERNAL_SIZE_T s;
 #endif
 {
-  INTERNAL_SIZE_T sz = p->size & ~(PREV_INUSE|NON_MAIN_ARENA);
+    INTERNAL_SIZE_T sz = p->size & ~(PREV_INUSE | NON_MAIN_ARENA);
 
-  if (!chunk_is_mmapped(p)) {
-    assert(av == arena_for_chunk(p));
-    if (chunk_non_main_arena(p))
-      assert(av != &main_arena);
-    else
-      assert(av == &main_arena);
-  }
+    if (!chunk_is_mmapped(p)) {
+        assert(av == arena_for_chunk(p));
+        if (chunk_non_main_arena(p))
+            assert(av != &main_arena);
+        else
+            assert(av == &main_arena);
+    }
 
-  do_check_inuse_chunk(av, p);
+    do_check_inuse_chunk(av, p);
 
-  /* Legal size ... */
-  assert((sz & MALLOC_ALIGN_MASK) == 0);
-  assert((unsigned long)(sz) >= MINSIZE);
-  /* ... and alignment */
-  assert(aligned_OK(chunk2mem(p)));
-  /* chunk is less than MINSIZE more than request */
-  assert((long)(sz) - (long)(s) >= 0);
-  assert((long)(sz) - (long)(s + MINSIZE) < 0);
+    /* Legal size ... */
+    assert((sz & MALLOC_ALIGN_MASK) == 0);
+    assert((unsigned long)(sz) >= MINSIZE);
+    /* ... and alignment */
+    assert(aligned_OK(chunk2mem(p)));
+    /* chunk is less than MINSIZE more than request */
+    assert((long)(sz) - (long)(s) >= 0);
+    assert((long)(sz) - (long)(s + MINSIZE) < 0);
 }
 
 /*
@@ -2617,26 +2611,26 @@ mstate av; mchunkptr p; INTERNAL_SIZE_T s;
 #if __STD_C
 static void do_check_malloced_chunk(mstate av, mchunkptr p, INTERNAL_SIZE_T s)
 #else
-static void do_check_malloced_chunk(av, p, s)
-mstate av; mchunkptr p; INTERNAL_SIZE_T s;
+static void do_check_malloced_chunk(av, p, s) mstate av;
+mchunkptr p;
+INTERNAL_SIZE_T s;
 #endif
 {
-  /* same as recycled case ... */
-  do_check_remalloced_chunk(av, p, s);
+    /* same as recycled case ... */
+    do_check_remalloced_chunk(av, p, s);
 
-  /*
-    ... plus,  must obey implementation invariant that prev_inuse is
-    always true of any allocated chunk; i.e., that each allocated
-    chunk borders either a previously allocated and still in-use
-    chunk, or the base of its memory arena. This is ensured
-    by making all allocations from the the `lowest' part of any found
-    chunk.  This does not necessarily hold however for chunks
-    recycled via fastbins.
-  */
+    /*
+      ... plus,  must obey implementation invariant that prev_inuse is
+      always true of any allocated chunk; i.e., that each allocated
+      chunk borders either a previously allocated and still in-use
+      chunk, or the base of its memory arena. This is ensured
+      by making all allocations from the the `lowest' part of any found
+      chunk.  This does not necessarily hold however for chunks
+      recycled via fastbins.
+    */
 
-  assert(prev_inuse(p));
+    assert(prev_inuse(p));
 }
-
 
 /*
   Properties of malloc_state.
@@ -2651,132 +2645,129 @@ mstate av; mchunkptr p; INTERNAL_SIZE_T s;
 
 static void do_check_malloc_state(mstate av)
 {
-  int i;
-  mchunkptr p;
-  mchunkptr q;
-  mbinptr b;
-  unsigned int binbit;
-  int empty;
-  unsigned int idx;
-  INTERNAL_SIZE_T size;
-  unsigned long total = 0;
-  int max_fast_bin;
+    int i;
+    mchunkptr p;
+    mchunkptr q;
+    mbinptr b;
+    unsigned int binbit;
+    int empty;
+    unsigned int idx;
+    INTERNAL_SIZE_T size;
+    unsigned long total = 0;
+    int max_fast_bin;
 
-  /* internal size_t must be no wider than pointer type */
-  assert(sizeof(INTERNAL_SIZE_T) <= sizeof(char*));
+    /* internal size_t must be no wider than pointer type */
+    assert(sizeof(INTERNAL_SIZE_T) <= sizeof(char *));
 
-  /* alignment is a power of 2 */
-  assert((MALLOC_ALIGNMENT & (MALLOC_ALIGNMENT-1)) == 0);
+    /* alignment is a power of 2 */
+    assert((MALLOC_ALIGNMENT & (MALLOC_ALIGNMENT - 1)) == 0);
 
-  /* cannot run remaining checks until fully initialized */
-  if (av->top == 0 || av->top == initial_top(av))
-    return;
+    /* cannot run remaining checks until fully initialized */
+    if (av->top == 0 || av->top == initial_top(av))
+        return;
 
-  /* pagesize is a power of 2 */
-  assert((mp_.pagesize & (mp_.pagesize-1)) == 0);
+    /* pagesize is a power of 2 */
+    assert((mp_.pagesize & (mp_.pagesize - 1)) == 0);
 
-  /* A contiguous main_arena is consistent with sbrk_base.  */
-  if (av == &main_arena && contiguous(av))
-    assert((char*)mp_.sbrk_base + av->system_mem ==
-	   (char*)av->top + chunksize(av->top));
+    /* A contiguous main_arena is consistent with sbrk_base.  */
+    if (av == &main_arena && contiguous(av))
+        assert((char *)mp_.sbrk_base + av->system_mem ==
+               (char *)av->top + chunksize(av->top));
 
-  /* properties of fastbins */
+    /* properties of fastbins */
 
-  /* max_fast is in allowed range */
-  assert((av->max_fast & ~1) <= request2size(MAX_FAST_SIZE));
+    /* max_fast is in allowed range */
+    assert((av->max_fast & ~1) <= request2size(MAX_FAST_SIZE));
 
-  max_fast_bin = fastbin_index(av->max_fast);
+    max_fast_bin = fastbin_index(av->max_fast);
 
-  for (i = 0; i < NFASTBINS; ++i) {
-    p = av->fastbins[i];
+    for (i = 0; i < NFASTBINS; ++i) {
+        p = av->fastbins[i];
 
-    /* all bins past max_fast are empty */
-    if (i > max_fast_bin)
-      assert(p == 0);
+        /* all bins past max_fast are empty */
+        if (i > max_fast_bin)
+            assert(p == 0);
 
-    while (p != 0) {
-      /* each chunk claims to be inuse */
-      do_check_inuse_chunk(av, p);
-      total += chunksize(p);
-      /* chunk belongs in this bin */
-      assert(fastbin_index(chunksize(p)) == i);
-      p = p->fd;
-    }
-  }
-
-  if (total != 0)
-    assert(have_fastchunks(av));
-  else if (!have_fastchunks(av))
-    assert(total == 0);
-
-  /* check normal bins */
-  for (i = 1; i < NBINS; ++i) {
-    b = bin_at(av,i);
-
-    /* binmap is accurate (except for bin 1 == unsorted_chunks) */
-    if (i >= 2) {
-      binbit = get_binmap(av,i);
-      empty = last(b) == b;
-      if (!binbit)
-        assert(empty);
-      else if (!empty)
-        assert(binbit);
+        while (p != 0) {
+            /* each chunk claims to be inuse */
+            do_check_inuse_chunk(av, p);
+            total += chunksize(p);
+            /* chunk belongs in this bin */
+            assert(fastbin_index(chunksize(p)) == i);
+            p = p->fd;
+        }
     }
 
-    for (p = last(b); p != b; p = p->bk) {
-      /* each chunk claims to be free */
-      do_check_free_chunk(av, p);
-      size = chunksize(p);
-      total += size;
-      if (i >= 2) {
-        /* chunk belongs in bin */
-        idx = bin_index(size);
-        assert(idx == i);
-        /* lists are sorted */
-        if ((unsigned long) size >= (unsigned long)(FIRST_SORTED_BIN_SIZE)) {
-	  assert(p->bk == b ||
-		 (unsigned long)chunksize(p->bk) >=
-		 (unsigned long)chunksize(p));
-	}
-      }
-      /* chunk is followed by a legal chain of inuse chunks */
-      for (q = next_chunk(p);
-           (q != av->top && inuse(q) &&
-             (unsigned long)(chunksize(q)) >= MINSIZE);
-           q = next_chunk(q))
-        do_check_inuse_chunk(av, q);
+    if (total != 0)
+        assert(have_fastchunks(av));
+    else if (!have_fastchunks(av))
+        assert(total == 0);
+
+    /* check normal bins */
+    for (i = 1; i < NBINS; ++i) {
+        b = bin_at(av, i);
+
+        /* binmap is accurate (except for bin 1 == unsorted_chunks) */
+        if (i >= 2) {
+            binbit = get_binmap(av, i);
+            empty = last(b) == b;
+            if (!binbit)
+                assert(empty);
+            else if (!empty)
+                assert(binbit);
+        }
+
+        for (p = last(b); p != b; p = p->bk) {
+            /* each chunk claims to be free */
+            do_check_free_chunk(av, p);
+            size = chunksize(p);
+            total += size;
+            if (i >= 2) {
+                /* chunk belongs in bin */
+                idx = bin_index(size);
+                assert(idx == i);
+                /* lists are sorted */
+                if ((unsigned long)size >=
+                    (unsigned long)(FIRST_SORTED_BIN_SIZE)) {
+                    assert(p->bk == b || (unsigned long)chunksize(p->bk) >=
+                                             (unsigned long)chunksize(p));
+                }
+            }
+            /* chunk is followed by a legal chain of inuse chunks */
+            for (q = next_chunk(p); (q != av->top && inuse(q) &&
+                                     (unsigned long)(chunksize(q)) >= MINSIZE);
+                 q = next_chunk(q))
+                do_check_inuse_chunk(av, q);
+        }
     }
-  }
 
-  /* top chunk is OK */
-  check_chunk(av, av->top);
+    /* top chunk is OK */
+    check_chunk(av, av->top);
 
-  /* sanity checks for statistics */
+    /* sanity checks for statistics */
 
 #ifdef NO_THREADS
-  assert(total <= (unsigned long)(mp_.max_total_mem));
-  assert(mp_.n_mmaps >= 0);
+    assert(total <= (unsigned long)(mp_.max_total_mem));
+    assert(mp_.n_mmaps >= 0);
 #endif
-  assert(mp_.n_mmaps <= mp_.n_mmaps_max);
-  assert(mp_.n_mmaps <= mp_.max_n_mmaps);
+    assert(mp_.n_mmaps <= mp_.n_mmaps_max);
+    assert(mp_.n_mmaps <= mp_.max_n_mmaps);
 
-  assert((unsigned long)(av->system_mem) <=
-         (unsigned long)(av->max_system_mem));
+    assert((unsigned long)(av->system_mem) <=
+           (unsigned long)(av->max_system_mem));
 
-  assert((unsigned long)(mp_.mmapped_mem) <=
-         (unsigned long)(mp_.max_mmapped_mem));
+    assert((unsigned long)(mp_.mmapped_mem) <=
+           (unsigned long)(mp_.max_mmapped_mem));
 
 #ifdef NO_THREADS
-  assert((unsigned long)(mp_.max_total_mem) >=
-         (unsigned long)(mp_.mmapped_mem) + (unsigned long)(av->system_mem));
+    assert((unsigned long)(mp_.max_total_mem) >=
+           (unsigned long)(mp_.mmapped_mem) + (unsigned long)(av->system_mem));
 #endif
 }
 #endif
 
-
 /* ----------------- Support for debugging hooks -------------------- */
 #include "hooks.c"
-
 
 /* ----------- Routines dealing with system allocation -------------- */
 
@@ -2788,460 +2779,465 @@ static void do_check_malloc_state(mstate av)
 */
 
 #if __STD_C
-static Void_t* sYSMALLOc(INTERNAL_SIZE_T nb, mstate av)
+static Void_t *sYSMALLOc(INTERNAL_SIZE_T nb, mstate av)
 #else
-static Void_t* sYSMALLOc(nb, av) INTERNAL_SIZE_T nb; mstate av;
+static Void_t *sYSMALLOc(nb, av)
+INTERNAL_SIZE_T nb;
+mstate av;
 #endif
 {
-  mchunkptr       old_top;        /* incoming value of av->top */
-  INTERNAL_SIZE_T old_size;       /* its size */
-  char*           old_end;        /* its end address */
+    mchunkptr old_top;        /* incoming value of av->top */
+    INTERNAL_SIZE_T old_size; /* its size */
+    char *old_end;            /* its end address */
 
-  long            size;           /* arg to first MORECORE or mmap call */
-  char*           brk;            /* return value from MORECORE */
+    long size; /* arg to first MORECORE or mmap call */
+    char *brk; /* return value from MORECORE */
 
-  long            correction;     /* arg to 2nd MORECORE call */
-  char*           snd_brk;        /* 2nd return val */
+    long correction; /* arg to 2nd MORECORE call */
+    char *snd_brk;   /* 2nd return val */
 
-  INTERNAL_SIZE_T front_misalign; /* unusable bytes at front of new space */
-  INTERNAL_SIZE_T end_misalign;   /* partial page left at end of new space */
-  char*           aligned_brk;    /* aligned offset into brk */
+    INTERNAL_SIZE_T front_misalign; /* unusable bytes at front of new space */
+    INTERNAL_SIZE_T end_misalign;   /* partial page left at end of new space */
+    char *aligned_brk;              /* aligned offset into brk */
 
-  mchunkptr       p;              /* the allocated/returned chunk */
-  mchunkptr       remainder;      /* remainder from allocation */
-  unsigned long   remainder_size; /* its size */
+    mchunkptr p;                  /* the allocated/returned chunk */
+    mchunkptr remainder;          /* remainder from allocation */
+    unsigned long remainder_size; /* its size */
 
-  unsigned long   sum;            /* for updating stats */
+    unsigned long sum; /* for updating stats */
 
-  size_t          pagemask  = mp_.pagesize - 1;
-
+    size_t pagemask = mp_.pagesize - 1;
 
 #if HAVE_MMAP
 
-  /*
-    If have mmap, and the request size meets the mmap threshold, and
-    the system supports mmap, and there are few enough currently
-    allocated mmapped regions, try to directly map this request
-    rather than expanding top.
-  */
-
-  if ((unsigned long)(nb) >= (unsigned long)(mp_.mmap_threshold) &&
-      (mp_.n_mmaps < mp_.n_mmaps_max)) {
-
-    char* mm;             /* return value from mmap call*/
-
     /*
-      Round up size to nearest page.  For mmapped chunks, the overhead
-      is one SIZE_SZ unit larger than for normal chunks, because there
-      is no following chunk whose prev_size field could be used.
+      If have mmap, and the request size meets the mmap threshold, and
+      the system supports mmap, and there are few enough currently
+      allocated mmapped regions, try to directly map this request
+      rather than expanding top.
     */
-    size = (nb + SIZE_SZ + MALLOC_ALIGN_MASK + pagemask) & ~pagemask;
 
-    /* Don't try if size wraps around 0 */
-    if ((unsigned long)(size) > (unsigned long)(nb)) {
-
-      mm = (char*)(MMAP(0, size, PROT_READ|PROT_WRITE, MAP_PRIVATE));
-
-      if (mm != MAP_FAILED) {
+    if ((unsigned long)(nb) >= (unsigned long)(mp_.mmap_threshold) &&
+        (mp_.n_mmaps < mp_.n_mmaps_max)) {
+        char *mm; /* return value from mmap call*/
 
         /*
-          The offset to the start of the mmapped region is stored
-          in the prev_size field of the chunk. This allows us to adjust
-          returned start address to meet alignment requirements here
-          and in memalign(), and still be able to compute proper
-          address argument for later munmap in free() and realloc().
+          Round up size to nearest page.  For mmapped chunks, the overhead
+          is one SIZE_SZ unit larger than for normal chunks, because there
+          is no following chunk whose prev_size field could be used.
         */
+        size = (nb + SIZE_SZ + MALLOC_ALIGN_MASK + pagemask) & ~pagemask;
 
-        front_misalign = (INTERNAL_SIZE_T)chunk2mem(mm) & MALLOC_ALIGN_MASK;
-        if (front_misalign > 0) {
-          correction = MALLOC_ALIGNMENT - front_misalign;
-          p = (mchunkptr)(mm + correction);
-          p->prev_size = correction;
-          set_head(p, (size - correction) |IS_MMAPPED);
-        }
-        else {
-          p = (mchunkptr)mm;
-          set_head(p, size|IS_MMAPPED);
-        }
+        /* Don't try if size wraps around 0 */
+        if ((unsigned long)(size) > (unsigned long)(nb)) {
+            mm = (char *)(MMAP(0, size, PROT_READ | PROT_WRITE, MAP_PRIVATE));
 
-        /* update statistics */
+            if (mm != MAP_FAILED) {
+                /*
+                  The offset to the start of the mmapped region is stored
+                  in the prev_size field of the chunk. This allows us to adjust
+                  returned start address to meet alignment requirements here
+                  and in memalign(), and still be able to compute proper
+                  address argument for later munmap in free() and realloc().
+                */
 
-        if (++mp_.n_mmaps > mp_.max_n_mmaps)
-          mp_.max_n_mmaps = mp_.n_mmaps;
+                front_misalign =
+                    (INTERNAL_SIZE_T)chunk2mem(mm) & MALLOC_ALIGN_MASK;
+                if (front_misalign > 0) {
+                    correction = MALLOC_ALIGNMENT - front_misalign;
+                    p = (mchunkptr)(mm + correction);
+                    p->prev_size = correction;
+                    set_head(p, (size - correction) | IS_MMAPPED);
+                } else {
+                    p = (mchunkptr)mm;
+                    set_head(p, size | IS_MMAPPED);
+                }
 
-        sum = mp_.mmapped_mem += size;
-        if (sum > (unsigned long)(mp_.max_mmapped_mem))
-          mp_.max_mmapped_mem = sum;
+                /* update statistics */
+
+                if (++mp_.n_mmaps > mp_.max_n_mmaps)
+                    mp_.max_n_mmaps = mp_.n_mmaps;
+
+                sum = mp_.mmapped_mem += size;
+                if (sum > (unsigned long)(mp_.max_mmapped_mem))
+                    mp_.max_mmapped_mem = sum;
 #ifdef NO_THREADS
-        sum += av->system_mem;
-        if (sum > (unsigned long)(mp_.max_total_mem))
-          mp_.max_total_mem = sum;
+                sum += av->system_mem;
+                if (sum > (unsigned long)(mp_.max_total_mem))
+                    mp_.max_total_mem = sum;
 #endif
 
-        check_chunk(av, p);
+                check_chunk(av, p);
 
-        return chunk2mem(p);
-      }
+                return chunk2mem(p);
+            }
+        }
     }
-  }
 #endif
 
-  /* Record incoming configuration of top */
+    /* Record incoming configuration of top */
 
-  old_top  = av->top;
-  old_size = chunksize(old_top);
-  old_end  = (char*)(chunk_at_offset(old_top, old_size));
+    old_top = av->top;
+    old_size = chunksize(old_top);
+    old_end = (char *)(chunk_at_offset(old_top, old_size));
 
-  brk = snd_brk = (char*)(MORECORE_FAILURE);
+    brk = snd_brk = (char *)(MORECORE_FAILURE);
 
-  /*
-     If not the first time through, we require old_size to be
-     at least MINSIZE and to have prev_inuse set.
-  */
+    /*
+       If not the first time through, we require old_size to be
+       at least MINSIZE and to have prev_inuse set.
+    */
 
-  assert((old_top == initial_top(av) && old_size == 0) ||
-         ((unsigned long) (old_size) >= MINSIZE &&
-          prev_inuse(old_top) &&
-	  ((unsigned long)old_end & pagemask) == 0));
+    assert((old_top == initial_top(av) && old_size == 0) ||
+           ((unsigned long)(old_size) >= MINSIZE && prev_inuse(old_top) &&
+            ((unsigned long)old_end & pagemask) == 0));
 
-  /* Precondition: not enough current space to satisfy nb request */
-  assert((unsigned long)(old_size) < (unsigned long)(nb + MINSIZE));
+    /* Precondition: not enough current space to satisfy nb request */
+    assert((unsigned long)(old_size) < (unsigned long)(nb + MINSIZE));
 
-  /* Precondition: all fastbins are consolidated */
-  assert(!have_fastchunks(av));
+    /* Precondition: all fastbins are consolidated */
+    assert(!have_fastchunks(av));
 
+    if (av != &main_arena) {
+        heap_info *old_heap, *heap;
+        size_t old_heap_size;
 
-  if (av != &main_arena) {
-
-    heap_info *old_heap, *heap;
-    size_t old_heap_size;
-
-    /* First try to extend the current heap. */
-    old_heap = heap_for_ptr(old_top);
-    old_heap_size = old_heap->size;
-    if (grow_heap(old_heap, MINSIZE + nb - old_size) == 0) {
-      av->system_mem += old_heap->size - old_heap_size;
-      arena_mem += old_heap->size - old_heap_size;
+        /* First try to extend the current heap. */
+        old_heap = heap_for_ptr(old_top);
+        old_heap_size = old_heap->size;
+        if (grow_heap(old_heap, MINSIZE + nb - old_size) == 0) {
+            av->system_mem += old_heap->size - old_heap_size;
+            arena_mem += old_heap->size - old_heap_size;
 #if 0
       if(mmapped_mem + arena_mem + sbrked_mem > max_total_mem)
         max_total_mem = mmapped_mem + arena_mem + sbrked_mem;
 #endif
-      set_head(old_top, (((char *)old_heap + old_heap->size) - (char *)old_top)
-	       | PREV_INUSE);
-    }
-    else if ((heap = new_heap(nb + (MINSIZE + sizeof(*heap)), mp_.top_pad))) {
-      /* Setup fencepost and free the old top chunk. */
-      /* The fencepost takes at least MINSIZE bytes, because it might
-	 become the top chunk again later.  Note that a footer is set
-	 up, too, although the chunk is marked in use. */
-      old_size -= MINSIZE;
-      set_head(chunk_at_offset(old_top, old_size + 2*SIZE_SZ), 0|PREV_INUSE);
-      if (old_size >= MINSIZE) {
-	set_head(chunk_at_offset(old_top, old_size), (2*SIZE_SZ)|PREV_INUSE);
-	set_foot(chunk_at_offset(old_top, old_size), (2*SIZE_SZ));
-	set_head(old_top, old_size|PREV_INUSE|NON_MAIN_ARENA);
-	_int_free(av, chunk2mem(old_top));
-      } else {
-	set_head(old_top, (old_size + 2*SIZE_SZ)|PREV_INUSE);
-	set_foot(old_top, (old_size + 2*SIZE_SZ));
-      }
+            set_head(old_top,
+                     (((char *)old_heap + old_heap->size) - (char *)old_top) |
+                         PREV_INUSE);
+        } else if ((heap = new_heap(nb + (MINSIZE + sizeof(*heap)),
+                                    mp_.top_pad))) {
+            /* Setup fencepost and free the old top chunk. */
+            /* The fencepost takes at least MINSIZE bytes, because it might
+           become the top chunk again later.  Note that a footer is set
+           up, too, although the chunk is marked in use. */
+            old_size -= MINSIZE;
+            set_head(chunk_at_offset(old_top, old_size + 2 * SIZE_SZ),
+                     0 | PREV_INUSE);
+            if (old_size >= MINSIZE) {
+                set_head(chunk_at_offset(old_top, old_size),
+                         (2 * SIZE_SZ) | PREV_INUSE);
+                set_foot(chunk_at_offset(old_top, old_size), (2 * SIZE_SZ));
+                set_head(old_top, old_size | PREV_INUSE | NON_MAIN_ARENA);
+                _int_free(av, chunk2mem(old_top));
+            } else {
+                set_head(old_top, (old_size + 2 * SIZE_SZ) | PREV_INUSE);
+                set_foot(old_top, (old_size + 2 * SIZE_SZ));
+            }
 
-      /* Use a newly allocated heap.  */
-      heap->ar_ptr = av;
-      heap->prev = heap_for_ptr(av->top);
-      av->system_mem += heap->size;
-      arena_mem += heap->size;
+            /* Use a newly allocated heap.  */
+            heap->ar_ptr = av;
+            heap->prev = heap_for_ptr(av->top);
+            av->system_mem += heap->size;
+            arena_mem += heap->size;
 #if 0
       if((unsigned long)(mmapped_mem + arena_mem + sbrked_mem) > max_total_mem)
 	max_total_mem = mmapped_mem + arena_mem + sbrked_mem;
 #endif
-      /* Set up the new top.  */
-      top(av) = chunk_at_offset(heap, sizeof(*heap));
-      set_head(top(av), (heap->size - sizeof(*heap)) | PREV_INUSE);
-    }
+            /* Set up the new top.  */
+            top(av) = chunk_at_offset(heap, sizeof(*heap));
+            set_head(top(av), (heap->size - sizeof(*heap)) | PREV_INUSE);
+        }
 
-  } else { /* av == main_arena */
+    } else { /* av == main_arena */
 
+        /* Request enough space for nb + pad + overhead */
 
-  /* Request enough space for nb + pad + overhead */
+        size = nb + mp_.top_pad + MINSIZE;
 
-  size = nb + mp_.top_pad + MINSIZE;
+        /*
+          If contiguous, we can subtract out existing space that we hope to
+          combine with new space. We add it back later only if
+          we don't actually get contiguous space.
+        */
 
-  /*
-    If contiguous, we can subtract out existing space that we hope to
-    combine with new space. We add it back later only if
-    we don't actually get contiguous space.
-  */
+        if (contiguous(av))
+            size -= old_size;
 
-  if (contiguous(av))
-    size -= old_size;
+        /*
+          Round to a multiple of page size.
+          If MORECORE is not contiguous, this ensures that we only call it
+          with whole-page arguments.  And if MORECORE is contiguous and
+          this is not first time through, this preserves page-alignment of
+          previous calls. Otherwise, we correct to page-align below.
+        */
 
-  /*
-    Round to a multiple of page size.
-    If MORECORE is not contiguous, this ensures that we only call it
-    with whole-page arguments.  And if MORECORE is contiguous and
-    this is not first time through, this preserves page-alignment of
-    previous calls. Otherwise, we correct to page-align below.
-  */
+        size = (size + pagemask) & ~pagemask;
 
-  size = (size + pagemask) & ~pagemask;
+        /*
+          Don't try to call MORECORE if argument is so big as to appear
+          negative. Note that since mmap takes size_t arg, it may succeed
+          below even if we cannot call MORECORE.
+        */
 
-  /*
-    Don't try to call MORECORE if argument is so big as to appear
-    negative. Note that since mmap takes size_t arg, it may succeed
-    below even if we cannot call MORECORE.
-  */
+        if (size > 0)
+            brk = (char *)(MORECORE(size));
 
-  if (size > 0)
-    brk = (char*)(MORECORE(size));
-
-  if (brk != (char*)(MORECORE_FAILURE)) {
-    /* Call the `morecore' hook if necessary.  */
-    if (__after_morecore_hook)
-      (*__after_morecore_hook) ();
-  } else {
-  /*
-    If have mmap, try using it as a backup when MORECORE fails or
-    cannot be used. This is worth doing on systems that have "holes" in
-    address space, so sbrk cannot extend to give contiguous space, but
-    space is available elsewhere.  Note that we ignore mmap max count
-    and threshold limits, since the space will not be used as a
-    segregated mmap region.
-  */
+        if (brk != (char *)(MORECORE_FAILURE)) {
+            /* Call the `morecore' hook if necessary.  */
+            if (__after_morecore_hook)
+                (*__after_morecore_hook)();
+        } else {
+            /*
+              If have mmap, try using it as a backup when MORECORE fails or
+              cannot be used. This is worth doing on systems that have "holes"
+              in address space, so sbrk cannot extend to give contiguous space,
+              but space is available elsewhere.  Note that we ignore mmap max
+              count and threshold limits, since the space will not be used as a
+              segregated mmap region.
+            */
 
 #if HAVE_MMAP
-    /* Cannot merge with old top, so add its size back in */
-    if (contiguous(av))
-      size = (size + old_size + pagemask) & ~pagemask;
+            /* Cannot merge with old top, so add its size back in */
+            if (contiguous(av))
+                size = (size + old_size + pagemask) & ~pagemask;
 
-    /* If we are relying on mmap as backup, then use larger units */
-    if ((unsigned long)(size) < (unsigned long)(MMAP_AS_MORECORE_SIZE))
-      size = MMAP_AS_MORECORE_SIZE;
+            /* If we are relying on mmap as backup, then use larger units */
+            if ((unsigned long)(size) < (unsigned long)(MMAP_AS_MORECORE_SIZE))
+                size = MMAP_AS_MORECORE_SIZE;
 
-    /* Don't try if size wraps around 0 */
-    if ((unsigned long)(size) > (unsigned long)(nb)) {
+            /* Don't try if size wraps around 0 */
+            if ((unsigned long)(size) > (unsigned long)(nb)) {
+                char *mbrk = (char *)(MMAP(0, size, PROT_READ | PROT_WRITE,
+                                           MAP_PRIVATE));
 
-      char *mbrk = (char*)(MMAP(0, size, PROT_READ|PROT_WRITE, MAP_PRIVATE));
+                if (mbrk != MAP_FAILED) {
+                    /* We do not need, and cannot use, another sbrk call to find
+                     * end */
+                    brk = mbrk;
+                    snd_brk = brk + size;
 
-      if (mbrk != MAP_FAILED) {
-
-        /* We do not need, and cannot use, another sbrk call to find end */
-        brk = mbrk;
-        snd_brk = brk + size;
-
-        /*
-           Record that we no longer have a contiguous sbrk region.
-           After the first time mmap is used as backup, we do not
-           ever rely on contiguous space since this could incorrectly
-           bridge regions.
-        */
-        set_noncontiguous(av);
-      }
-    }
+                    /*
+                       Record that we no longer have a contiguous sbrk region.
+                       After the first time mmap is used as backup, we do not
+                       ever rely on contiguous space since this could
+                       incorrectly bridge regions.
+                    */
+                    set_noncontiguous(av);
+                }
+            }
 #endif
-  }
-
-  if (brk != (char*)(MORECORE_FAILURE)) {
-    if (mp_.sbrk_base == 0)
-      mp_.sbrk_base = brk;
-    av->system_mem += size;
-
-    /*
-      If MORECORE extends previous space, we can likewise extend top size.
-    */
-
-    if (brk == old_end && snd_brk == (char*)(MORECORE_FAILURE))
-      set_head(old_top, (size + old_size) | PREV_INUSE);
-
-    else if (contiguous(av) && old_size && brk < old_end) {
-      /* Oops!  Someone else killed our space..  Can't touch anything.  */
-      assert(0);
-    }
-
-    /*
-      Otherwise, make adjustments:
-
-      * If the first time through or noncontiguous, we need to call sbrk
-        just to find out where the end of memory lies.
-
-      * We need to ensure that all returned chunks from malloc will meet
-        MALLOC_ALIGNMENT
-
-      * If there was an intervening foreign sbrk, we need to adjust sbrk
-        request size to account for fact that we will not be able to
-        combine new space with existing space in old_top.
-
-      * Almost all systems internally allocate whole pages at a time, in
-        which case we might as well use the whole last page of request.
-        So we allocate enough more memory to hit a page boundary now,
-        which in turn causes future contiguous calls to page-align.
-    */
-
-    else {
-      front_misalign = 0;
-      end_misalign = 0;
-      correction = 0;
-      aligned_brk = brk;
-
-      /* handle contiguous cases */
-      if (contiguous(av)) {
-
-	/* Count foreign sbrk as system_mem.  */
-	if (old_size)
-	  av->system_mem += brk - old_end;
-
-        /* Guarantee alignment of first new chunk made from this space */
-
-        front_misalign = (INTERNAL_SIZE_T)chunk2mem(brk) & MALLOC_ALIGN_MASK;
-        if (front_misalign > 0) {
-
-          /*
-            Skip over some bytes to arrive at an aligned position.
-            We don't need to specially mark these wasted front bytes.
-            They will never be accessed anyway because
-            prev_inuse of av->top (and any chunk created from its start)
-            is always true after initialization.
-          */
-
-          correction = MALLOC_ALIGNMENT - front_misalign;
-          aligned_brk += correction;
         }
 
-        /*
-          If this isn't adjacent to existing space, then we will not
-          be able to merge with old_top space, so must add to 2nd request.
-        */
+        if (brk != (char *)(MORECORE_FAILURE)) {
+            if (mp_.sbrk_base == 0)
+                mp_.sbrk_base = brk;
+            av->system_mem += size;
 
-        correction += old_size;
+            /*
+              If MORECORE extends previous space, we can likewise extend top
+              size.
+            */
 
-        /* Extend the end address to hit a page boundary */
-        end_misalign = (INTERNAL_SIZE_T)(brk + size + correction);
-        correction += ((end_misalign + pagemask) & ~pagemask) - end_misalign;
+            if (brk == old_end && snd_brk == (char *)(MORECORE_FAILURE))
+                set_head(old_top, (size + old_size) | PREV_INUSE);
 
-        assert(correction >= 0);
-        snd_brk = (char*)(MORECORE(correction));
+            else if (contiguous(av) && old_size && brk < old_end) {
+                /* Oops!  Someone else killed our space..  Can't touch anything.
+                 */
+                assert(0);
+            }
 
-        /*
-          If can't allocate correction, try to at least find out current
-          brk.  It might be enough to proceed without failing.
+            /*
+              Otherwise, make adjustments:
 
-          Note that if second sbrk did NOT fail, we assume that space
-          is contiguous with first sbrk. This is a safe assumption unless
-          program is multithreaded but doesn't use locks and a foreign sbrk
-          occurred between our first and second calls.
-        */
+              * If the first time through or noncontiguous, we need to call sbrk
+                just to find out where the end of memory lies.
 
-        if (snd_brk == (char*)(MORECORE_FAILURE)) {
-          correction = 0;
-          snd_brk = (char*)(MORECORE(0));
-        } else
-	  /* Call the `morecore' hook if necessary.  */
-	  if (__after_morecore_hook)
-	    (*__after_morecore_hook) ();
-      }
+              * We need to ensure that all returned chunks from malloc will meet
+                MALLOC_ALIGNMENT
 
-      /* handle non-contiguous cases */
-      else {
-        /* MORECORE/mmap must correctly align */
-        assert(((unsigned long)chunk2mem(brk) & MALLOC_ALIGN_MASK) == 0);
+              * If there was an intervening foreign sbrk, we need to adjust sbrk
+                request size to account for fact that we will not be able to
+                combine new space with existing space in old_top.
 
-        /* Find out current end of memory */
-        if (snd_brk == (char*)(MORECORE_FAILURE)) {
-          snd_brk = (char*)(MORECORE(0));
-        }
-      }
+              * Almost all systems internally allocate whole pages at a time, in
+                which case we might as well use the whole last page of request.
+                So we allocate enough more memory to hit a page boundary now,
+                which in turn causes future contiguous calls to page-align.
+            */
 
-      /* Adjust top based on results of second sbrk */
-      if (snd_brk != (char*)(MORECORE_FAILURE)) {
-        av->top = (mchunkptr)aligned_brk;
-        set_head(av->top, (snd_brk - aligned_brk + correction) | PREV_INUSE);
-        av->system_mem += correction;
+            else {
+                front_misalign = 0;
+                end_misalign = 0;
+                correction = 0;
+                aligned_brk = brk;
 
-        /*
-          If not the first time through, we either have a
-          gap due to foreign sbrk or a non-contiguous region.  Insert a
-          double fencepost at old_top to prevent consolidation with space
-          we don't own. These fenceposts are artificial chunks that are
-          marked as inuse and are in any case too small to use.  We need
-          two to make sizes and alignments work out.
-        */
+                /* handle contiguous cases */
+                if (contiguous(av)) {
+                    /* Count foreign sbrk as system_mem.  */
+                    if (old_size)
+                        av->system_mem += brk - old_end;
 
-        if (old_size != 0) {
-          /*
-             Shrink old_top to insert fenceposts, keeping size a
-             multiple of MALLOC_ALIGNMENT. We know there is at least
-             enough space in old_top to do this.
-          */
-          old_size = (old_size - 4*SIZE_SZ) & ~MALLOC_ALIGN_MASK;
-          set_head(old_top, old_size | PREV_INUSE);
+                    /* Guarantee alignment of first new chunk made from this
+                     * space */
 
-          /*
-            Note that the following assignments completely overwrite
-            old_top when old_size was previously MINSIZE.  This is
-            intentional. We need the fencepost, even if old_top otherwise gets
-            lost.
-          */
-          chunk_at_offset(old_top, old_size            )->size =
-            (2*SIZE_SZ)|PREV_INUSE;
+                    front_misalign =
+                        (INTERNAL_SIZE_T)chunk2mem(brk) & MALLOC_ALIGN_MASK;
+                    if (front_misalign > 0) {
+                        /*
+                          Skip over some bytes to arrive at an aligned position.
+                          We don't need to specially mark these wasted front
+                          bytes. They will never be accessed anyway because
+                          prev_inuse of av->top (and any chunk created from its
+                          start) is always true after initialization.
+                        */
 
-          chunk_at_offset(old_top, old_size + 2*SIZE_SZ)->size =
-            (2*SIZE_SZ)|PREV_INUSE;
+                        correction = MALLOC_ALIGNMENT - front_misalign;
+                        aligned_brk += correction;
+                    }
 
-          /* If possible, release the rest. */
-          if (old_size >= MINSIZE) {
-            _int_free(av, chunk2mem(old_top));
-          }
+                    /*
+                      If this isn't adjacent to existing space, then we will not
+                      be able to merge with old_top space, so must add to 2nd
+                      request.
+                    */
 
-        }
-      }
-    }
+                    correction += old_size;
 
-    /* Update statistics */
+                    /* Extend the end address to hit a page boundary */
+                    end_misalign = (INTERNAL_SIZE_T)(brk + size + correction);
+                    correction +=
+                        ((end_misalign + pagemask) & ~pagemask) - end_misalign;
+
+                    assert(correction >= 0);
+                    snd_brk = (char *)(MORECORE(correction));
+
+                    /*
+                      If can't allocate correction, try to at least find out
+                      current brk.  It might be enough to proceed without
+                      failing.
+
+                      Note that if second sbrk did NOT fail, we assume that
+                      space is contiguous with first sbrk. This is a safe
+                      assumption unless program is multithreaded but doesn't use
+                      locks and a foreign sbrk occurred between our first and
+                      second calls.
+                    */
+
+                    if (snd_brk == (char *)(MORECORE_FAILURE)) {
+                        correction = 0;
+                        snd_brk = (char *)(MORECORE(0));
+                    } else
+                        /* Call the `morecore' hook if necessary.  */
+                        if (__after_morecore_hook)
+                            (*__after_morecore_hook)();
+                }
+
+                /* handle non-contiguous cases */
+                else {
+                    /* MORECORE/mmap must correctly align */
+                    assert(((unsigned long)chunk2mem(brk) &
+                            MALLOC_ALIGN_MASK) == 0);
+
+                    /* Find out current end of memory */
+                    if (snd_brk == (char *)(MORECORE_FAILURE)) {
+                        snd_brk = (char *)(MORECORE(0));
+                    }
+                }
+
+                /* Adjust top based on results of second sbrk */
+                if (snd_brk != (char *)(MORECORE_FAILURE)) {
+                    av->top = (mchunkptr)aligned_brk;
+                    set_head(av->top,
+                             (snd_brk - aligned_brk + correction) | PREV_INUSE);
+                    av->system_mem += correction;
+
+                    /*
+                      If not the first time through, we either have a
+                      gap due to foreign sbrk or a non-contiguous region. Insert
+                      a double fencepost at old_top to prevent consolidation
+                      with space we don't own. These fenceposts are artificial
+                      chunks that are marked as inuse and are in any case too
+                      small to use.  We need two to make sizes and alignments
+                      work out.
+                    */
+
+                    if (old_size != 0) {
+                        /*
+                           Shrink old_top to insert fenceposts, keeping size a
+                           multiple of MALLOC_ALIGNMENT. We know there is at
+                           least enough space in old_top to do this.
+                        */
+                        old_size =
+                            (old_size - 4 * SIZE_SZ) & ~MALLOC_ALIGN_MASK;
+                        set_head(old_top, old_size | PREV_INUSE);
+
+                        /*
+                          Note that the following assignments completely
+                          overwrite old_top when old_size was previously
+                          MINSIZE.  This is intentional. We need the fencepost,
+                          even if old_top otherwise gets lost.
+                        */
+                        chunk_at_offset(old_top, old_size)->size =
+                            (2 * SIZE_SZ) | PREV_INUSE;
+
+                        chunk_at_offset(old_top, old_size + 2 * SIZE_SZ)->size =
+                            (2 * SIZE_SZ) | PREV_INUSE;
+
+                        /* If possible, release the rest. */
+                        if (old_size >= MINSIZE) {
+                            _int_free(av, chunk2mem(old_top));
+                        }
+                    }
+                }
+            }
+
+            /* Update statistics */
 #ifdef NO_THREADS
-    sum = av->system_mem + mp_.mmapped_mem;
-    if (sum > (unsigned long)(mp_.max_total_mem))
-      mp_.max_total_mem = sum;
+            sum = av->system_mem + mp_.mmapped_mem;
+            if (sum > (unsigned long)(mp_.max_total_mem))
+                mp_.max_total_mem = sum;
 #endif
+        }
 
-  }
+    } /* if (av !=  &main_arena) */
 
-  } /* if (av !=  &main_arena) */
+    if ((unsigned long)av->system_mem > (unsigned long)(av->max_system_mem))
+        av->max_system_mem = av->system_mem;
+    check_malloc_state(av);
 
-  if ((unsigned long)av->system_mem > (unsigned long)(av->max_system_mem))
-    av->max_system_mem = av->system_mem;
-  check_malloc_state(av);
+    /* finally, do the allocation */
+    p = av->top;
+    size = chunksize(p);
 
-  /* finally, do the allocation */
-  p = av->top;
-  size = chunksize(p);
+    /* check that one of the above allocation paths succeeded */
+    if ((unsigned long)(size) >= (unsigned long)(nb + MINSIZE)) {
+        remainder_size = size - nb;
+        remainder = chunk_at_offset(p, nb);
+        av->top = remainder;
+        set_head(p, nb | PREV_INUSE | (av != &main_arena ? NON_MAIN_ARENA : 0));
+        set_head(remainder, remainder_size | PREV_INUSE);
+        check_malloced_chunk(av, p, nb);
 
-  /* check that one of the above allocation paths succeeded */
-  if ((unsigned long)(size) >= (unsigned long)(nb + MINSIZE)) {
-    remainder_size = size - nb;
-    remainder = chunk_at_offset(p, nb);
-    av->top = remainder;
-    set_head(p, nb | PREV_INUSE | (av != &main_arena ? NON_MAIN_ARENA : 0));
-    set_head(remainder, remainder_size | PREV_INUSE);
-    check_malloced_chunk(av, p, nb);
+        /* OSU */
+        /* We should not be calling flush_dereg_() function from here. If the CM
+         * thread is trying to setup a new connection and if the main thread is
+         * already inside the flush_dereg_() function, we can run into a
+         * deadlock, because the CM thread has the memory lock and the main
+         * thread has the dereg_lock.
+         */
+        /* flush_dereg_mrs_external(); */
+
+        return chunk2mem(p);
+    }
 
     /* OSU */
-    /* We should not be calling flush_dereg_() function from here. If the CM
-     * thread is trying to setup a new connection and if the main thread is
-     * already inside the flush_dereg_() function, we can run into a deadlock,
-     * because the CM thread has the memory lock and the main thread has the dereg_lock. 
-     */ 
     /* flush_dereg_mrs_external(); */
 
-    return chunk2mem(p);
-  }
-
-  /* OSU */
-  /* flush_dereg_mrs_external(); */
-
-
-  /* catch all failure paths */
-  MALLOC_FAILURE_ACTION;
-  return 0;
+    /* catch all failure paths */
+    MALLOC_FAILURE_ACTION;
+    return 0;
 }
 
 /* <CHANNEL_MRAIL> */
@@ -3258,141 +3254,143 @@ static Void_t* sYSMALLOc(nb, av) INTERNAL_SIZE_T nb; mstate av;
 #if __STD_C
 static int sYSTRIm(size_t pad, mstate av)
 #else
-static int sYSTRIm(pad, av) size_t pad; mstate av;
+static int sYSTRIm(pad, av)
+size_t pad;
+mstate av;
 #endif
 {
-  long  top_size;        /* Amount of top-most memory */
-  long  extra;           /* Amount to release */
-  long  released;        /* Amount actually released */
-  char* current_brk;     /* address returned by pre-check sbrk call */
-  char* new_brk;         /* address returned by post-check sbrk call */
-  size_t pagesz;
+    long top_size;     /* Amount of top-most memory */
+    long extra;        /* Amount to release */
+    long released;     /* Amount actually released */
+    char *current_brk; /* address returned by pre-check sbrk call */
+    char *new_brk;     /* address returned by post-check sbrk call */
+    size_t pagesz;
 
-  pagesz = mp_.pagesize;
-  top_size = chunksize(av->top);
+    pagesz = mp_.pagesize;
+    top_size = chunksize(av->top);
 
-  /* Release in pagesize units, keeping at least one page */
-  extra = ((top_size - pad - MINSIZE + (pagesz-1)) / pagesz - 1) * pagesz;
+    /* Release in pagesize units, keeping at least one page */
+    extra = ((top_size - pad - MINSIZE + (pagesz - 1)) / pagesz - 1) * pagesz;
 
-  if (extra > 0) {
+    if (extra > 0) {
+        /*
+          Only proceed if end of memory is where we last set it.
+          This avoids problems if there were foreign sbrk calls.
+        */
+        current_brk = (char *)(MORECORE(0));
+        if (current_brk == (char *)(av->top) + top_size) {
+            /*
+              Attempt to release memory. We ignore MORECORE return value,
+              and instead call again to find out where new end of memory is.
+              This avoids problems if first call releases less than we asked,
+              of if failure somehow altered brk value. (We could still
+              encounter problems if it altered brk in some very bad way,
+              but the only thing we can do is adjust anyway, which will cause
+              some downstream failure.)
+            */
 
-    /*
-      Only proceed if end of memory is where we last set it.
-      This avoids problems if there were foreign sbrk calls.
-    */
-    current_brk = (char*)(MORECORE(0));
-    if (current_brk == (char*)(av->top) + top_size) {
+            MORECORE(-extra);
+            /* Call the `morecore' hook if necessary.  */
+            if (__after_morecore_hook)
+                (*__after_morecore_hook)();
+            new_brk = (char *)(MORECORE(0));
 
-      /*
-        Attempt to release memory. We ignore MORECORE return value,
-        and instead call again to find out where new end of memory is.
-        This avoids problems if first call releases less than we asked,
-        of if failure somehow altered brk value. (We could still
-        encounter problems if it altered brk in some very bad way,
-        but the only thing we can do is adjust anyway, which will cause
-        some downstream failure.)
-      */
+            if (new_brk != (char *)MORECORE_FAILURE) {
+                released = (long)(current_brk - new_brk);
 
-      MORECORE(-extra);
-      /* Call the `morecore' hook if necessary.  */
-      if (__after_morecore_hook)
-	(*__after_morecore_hook) ();
-      new_brk = (char*)(MORECORE(0));
-
-      if (new_brk != (char*)MORECORE_FAILURE) {
-        released = (long)(current_brk - new_brk);
-
-        if (released != 0) {
-          /* Success. Adjust top. */
-          av->system_mem -= released;
-          set_head(av->top, (top_size - released) | PREV_INUSE);
-          check_malloc_state(av);
-          return 1;
+                if (released != 0) {
+                    /* Success. Adjust top. */
+                    av->system_mem -= released;
+                    set_head(av->top, (top_size - released) | PREV_INUSE);
+                    check_malloc_state(av);
+                    return 1;
+                }
+            }
         }
-      }
     }
-  }
-  return 0;
+    return 0;
 }
 #endif /* !defined(MORECORE_CANNOT_TRIM) */
 /* </CHANNEL_MRAIL> */
 
 #ifdef HAVE_MMAP
 
-static void
-internal_function
+static void internal_function
 #if __STD_C
 munmap_chunk(mchunkptr p)
 #else
-munmap_chunk(p) mchunkptr p;
+munmap_chunk(p)
+mchunkptr p;
 #endif
 {
-  INTERNAL_SIZE_T size = chunksize(p);
-  int ret;
+    INTERNAL_SIZE_T size = chunksize(p);
+    int ret;
 
-  assert (chunk_is_mmapped(p));
+    assert(chunk_is_mmapped(p));
 #if 0
   assert(! ((char*)p >= mp_.sbrk_base && (char*)p < mp_.sbrk_base + mp_.sbrked_mem));
   assert((mp_.n_mmaps > 0));
 #endif
-  assert(((p->prev_size + size) & (mp_.pagesize-1)) == 0);
+    assert(((p->prev_size + size) & (mp_.pagesize - 1)) == 0);
 
-  mp_.n_mmaps--;
-  mp_.mmapped_mem -= (size + p->prev_size);
+    mp_.n_mmaps--;
+    mp_.mmapped_mem -= (size + p->prev_size);
 
-  ret = munmap((char *)p - p->prev_size, size + p->prev_size);
+    ret = munmap((char *)p - p->prev_size, size + p->prev_size);
 
-  /* munmap returns non-zero on failure */
-  assert(ret == 0);
+    /* munmap returns non-zero on failure */
+    assert(ret == 0);
 }
 
 #if HAVE_MREMAP
 
-static mchunkptr
-internal_function
+static mchunkptr internal_function
 #if __STD_C
 mremap_chunk(mchunkptr p, size_t new_size)
 #else
-mremap_chunk(p, new_size) mchunkptr p; size_t new_size;
+mremap_chunk(p, new_size)
+mchunkptr p;
+size_t new_size;
 #endif
 {
-  size_t page_mask = mp_.pagesize - 1;
-  INTERNAL_SIZE_T offset = p->prev_size;
-  INTERNAL_SIZE_T size = chunksize(p);
-  char *cp;
+    size_t page_mask = mp_.pagesize - 1;
+    INTERNAL_SIZE_T offset = p->prev_size;
+    INTERNAL_SIZE_T size = chunksize(p);
+    char *cp;
 
-  assert (chunk_is_mmapped(p));
+    assert(chunk_is_mmapped(p));
 #if 0
   assert(! ((char*)p >= mp_.sbrk_base && (char*)p < mp_.sbrk_base + mp_.sbrked_mem));
   assert((mp_.n_mmaps > 0));
 #endif
-  assert(((size + offset) & (mp_.pagesize-1)) == 0);
+    assert(((size + offset) & (mp_.pagesize - 1)) == 0);
 
-  /* Note the extra SIZE_SZ overhead as in mmap_chunk(). */
-  new_size = (new_size + offset + SIZE_SZ + page_mask) & ~page_mask;
+    /* Note the extra SIZE_SZ overhead as in mmap_chunk(). */
+    new_size = (new_size + offset + SIZE_SZ + page_mask) & ~page_mask;
 
-  cp = (char *)mremap((char *)p - offset, size + offset, new_size,
-                      MREMAP_MAYMOVE);
+    cp = (char *)mremap((char *)p - offset, size + offset, new_size,
+                        MREMAP_MAYMOVE);
 
-  if (cp == MAP_FAILED) return 0;
+    if (cp == MAP_FAILED)
+        return 0;
 
-  p = (mchunkptr)(cp + offset);
+    p = (mchunkptr)(cp + offset);
 
-  assert(aligned_OK(chunk2mem(p)));
+    assert(aligned_OK(chunk2mem(p)));
 
-  assert((p->prev_size == offset));
-  set_head(p, (new_size - offset)|IS_MMAPPED);
+    assert((p->prev_size == offset));
+    set_head(p, (new_size - offset) | IS_MMAPPED);
 
-  mp_.mmapped_mem -= size + offset;
-  mp_.mmapped_mem += new_size;
-  if ((unsigned long)mp_.mmapped_mem > (unsigned long)mp_.max_mmapped_mem)
-    mp_.max_mmapped_mem = mp_.mmapped_mem;
+    mp_.mmapped_mem -= size + offset;
+    mp_.mmapped_mem += new_size;
+    if ((unsigned long)mp_.mmapped_mem > (unsigned long)mp_.max_mmapped_mem)
+        mp_.max_mmapped_mem = mp_.mmapped_mem;
 #ifdef NO_THREADS
-  if ((unsigned long)(mp_.mmapped_mem + arena_mem + main_arena.system_mem) >
-      mp_.max_total_mem)
-    mp_.max_total_mem = mp_.mmapped_mem + arena_mem + main_arena.system_mem;
+    if ((unsigned long)(mp_.mmapped_mem + arena_mem + main_arena.system_mem) >
+        mp_.max_total_mem)
+        mp_.max_total_mem = mp_.mmapped_mem + arena_mem + main_arena.system_mem;
 #endif
-  return p;
+    return p;
 }
 
 #endif /* HAVE_MREMAP */
@@ -3401,1126 +3399,1119 @@ mremap_chunk(p, new_size) mchunkptr p; size_t new_size;
 
 /*------------------------ Public wrappers. --------------------------------*/
 
-Void_t*
-public_mALLOc(size_t bytes)
+Void_t *public_mALLOc(size_t bytes)
 {
-  mstate ar_ptr;
-  Void_t *victim;
+    mstate ar_ptr;
+    Void_t *victim;
 
-  __malloc_ptr_t (*hook) __MALLOC_P ((size_t, __const __malloc_ptr_t)) =
-    __malloc_hook;
-  if (hook != NULL)
-    return (*hook)(bytes, RETURN_ADDRESS (0));
+    __malloc_ptr_t(*hook) __MALLOC_P((size_t, __const __malloc_ptr_t)) =
+        __malloc_hook;
+    if (hook != NULL)
+        return (*hook)(bytes, RETURN_ADDRESS(0));
 
-  arena_get(ar_ptr, bytes);
-  if(!ar_ptr)
-    return 0;
-  if (likely(!mv2_use_aligned_alloc)) {
-    victim = _int_malloc(ar_ptr, bytes);
-  } else {
-    victim = _int_memalign(ar_ptr, MV2_GENERIC_CACHE_LINE_SIZE, bytes);
-  }
-  if(!victim) {
-    /* Maybe the failure is due to running out of mmapped areas. */
-    if(ar_ptr != &main_arena) {
-      (void)mutex_unlock(&ar_ptr->mutex);
-      (void)mutex_lock(&main_arena.mutex);
-      if (likely(!mv2_use_aligned_alloc)) {
-        victim = _int_malloc(&main_arena, bytes);
-      } else {
-        victim = _int_memalign(&main_arena, MV2_GENERIC_CACHE_LINE_SIZE, bytes);
-      }
-      (void)mutex_unlock(&main_arena.mutex);
+    arena_get(ar_ptr, bytes);
+    if (!ar_ptr)
+        return 0;
+    if (likely(!MVP_USE_ALIGNED_ALLOC)) {
+        victim = _int_malloc(ar_ptr, bytes);
     } else {
-#if USE_ARENAS
-      /* ... or sbrk() has failed and there is still a chance to mmap() */
-      ar_ptr = arena_get2(ar_ptr->next ? ar_ptr : 0, bytes);
-      (void)mutex_unlock(&main_arena.mutex);
-      if(ar_ptr) {
-        if (likely(!mv2_use_aligned_alloc)) {
-          victim = _int_malloc(ar_ptr, bytes);
-        } else {
-          victim = _int_memalign(ar_ptr, MV2_GENERIC_CACHE_LINE_SIZE, bytes);
-        }
-        (void)mutex_unlock(&ar_ptr->mutex);
-      }
-#endif
+        victim = _int_memalign(ar_ptr, MVP_GENERIC_CACHE_LINE_SIZE, bytes);
     }
-  } else
-    (void)mutex_unlock(&ar_ptr->mutex);
-  assert(!victim || chunk_is_mmapped(mem2chunk(victim)) ||
-	 ar_ptr == arena_for_chunk(mem2chunk(victim)));
+    if (!victim) {
+        /* Maybe the failure is due to running out of mmapped areas. */
+        if (ar_ptr != &main_arena) {
+            (void)mutex_unlock(&ar_ptr->mutex);
+            (void)mutex_lock(&main_arena.mutex);
+            if (likely(!MVP_USE_ALIGNED_ALLOC)) {
+                victim = _int_malloc(&main_arena, bytes);
+            } else {
+                victim = _int_memalign(&main_arena, MVP_GENERIC_CACHE_LINE_SIZE,
+                                       bytes);
+            }
+            (void)mutex_unlock(&main_arena.mutex);
+        } else {
+#if USE_ARENAS
+            /* ... or sbrk() has failed and there is still a chance to mmap() */
+            ar_ptr = arena_get2(ar_ptr->next ? ar_ptr : 0, bytes);
+            (void)mutex_unlock(&main_arena.mutex);
+            if (ar_ptr) {
+                if (likely(!MVP_USE_ALIGNED_ALLOC)) {
+                    victim = _int_malloc(ar_ptr, bytes);
+                } else {
+                    victim = _int_memalign(ar_ptr, MVP_GENERIC_CACHE_LINE_SIZE,
+                                           bytes);
+                }
+                (void)mutex_unlock(&ar_ptr->mutex);
+            }
+#endif
+        }
+    } else
+        (void)mutex_unlock(&ar_ptr->mutex);
+    assert(!victim || chunk_is_mmapped(mem2chunk(victim)) ||
+           ar_ptr == arena_for_chunk(mem2chunk(victim)));
 
-/* <CHANNEL_MRAIL> */
-  mvapich2_minfo.is_our_malloc = 1;
-/* </CHANNEL_MRAIL> */
+    /* <CHANNEL_MRAIL> */
+    mvapich_minfo.is_our_malloc = 1;
+    /* </CHANNEL_MRAIL> */
 
-  return victim;
+    return victim;
 }
 #ifdef libc_hidden_def
 libc_hidden_def(public_mALLOc)
 #endif
 
-void
-public_fREe(Void_t* mem)
+    void public_fREe(Void_t *mem)
 {
-  mstate ar_ptr;
-  mchunkptr p;                          /* chunk corresponding to mem */
+    mstate ar_ptr;
+    mchunkptr p; /* chunk corresponding to mem */
 
-  void (*hook) __MALLOC_P ((__malloc_ptr_t, __const __malloc_ptr_t)) =
-    __free_hook;
-  if (hook != NULL) {
-    (*hook)(mem, RETURN_ADDRESS (0));
-    return;
-  }
+    void(*hook) __MALLOC_P((__malloc_ptr_t, __const __malloc_ptr_t)) =
+        __free_hook;
+    if (hook != NULL) {
+        (*hook)(mem, RETURN_ADDRESS(0));
+        return;
+    }
 
-/* <CHANNEL_MRAIL> */
-  mvapich2_minfo.is_our_free = 1;
+    /* <CHANNEL_MRAIL> */
+    mvapich_minfo.is_our_free = 1;
 
 #if defined(DISABLE_TRAP_SBRK)
-  if (!mvapich2_minfo.is_inside_free)
-  {
-      mvapich2_minfo.is_inside_free = 1;
-      mvapich2_mem_unhook(mem, mUSABLe(mem));
-      mvapich2_minfo.is_inside_free = 0;
-  }
+    if (!mvapich_minfo.is_inside_free) {
+        mvapich_minfo.is_inside_free = 1;
+        mvapich_mem_unhook(mem, mUSABLe(mem));
+        mvapich_minfo.is_inside_free = 0;
+    }
 #endif /* defined(DISABLE_TRAP_SBRK) */
-/* </CHANNEL_MRAIL> */
+       /* </CHANNEL_MRAIL> */
 
-  if (mem == 0)                              /* free(0) has no effect */
-    return;
+    if (mem == 0) /* free(0) has no effect */
+        return;
 
-  p = mem2chunk(mem);
+    p = mem2chunk(mem);
 
 #if HAVE_MMAP
-  if (chunk_is_mmapped(p))                       /* release mmapped memory. */
-  {
-    munmap_chunk(p);
-    /* OSU */
-    /* It is ok to call flush_dereg_ from here. We do not have the memory lock,
-     * yet */
-    flush_dereg_mrs_external();
-    return;
-  }
+    if (chunk_is_mmapped(p)) /* release mmapped memory. */
+    {
+        munmap_chunk(p);
+        /* OSU */
+        /* It is ok to call flush_dereg_ from here. We do not have the memory
+         * lock, yet */
+        flush_dereg_mrs_external();
+        return;
+    }
 #endif
 
-  ar_ptr = arena_for_chunk(p);
+    ar_ptr = arena_for_chunk(p);
 #if THREAD_STATS
-  if(!mutex_trylock(&ar_ptr->mutex))
-    ++(ar_ptr->stat_lock_direct);
-  else {
-    (void)mutex_lock(&ar_ptr->mutex);
-    ++(ar_ptr->stat_lock_wait);
-  }
+    if (!mutex_trylock(&ar_ptr->mutex))
+        ++(ar_ptr->stat_lock_direct);
+    else {
+        (void)mutex_lock(&ar_ptr->mutex);
+        ++(ar_ptr->stat_lock_wait);
+    }
 #else
-  (void)mutex_lock(&ar_ptr->mutex);
+    (void)mutex_lock(&ar_ptr->mutex);
 #endif
-  _int_free(ar_ptr, mem);
-  (void)mutex_unlock(&ar_ptr->mutex);
+    _int_free(ar_ptr, mem);
+    (void)mutex_unlock(&ar_ptr->mutex);
 
-  /* OSU */
-  /* It is ok to call flush_dereg_ from here. We just released the memory lock */
-  flush_dereg_mrs_external();
-
+    /* OSU */
+    /* It is ok to call flush_dereg_ from here. We just released the memory lock
+     */
+    flush_dereg_mrs_external();
 }
 #ifdef libc_hidden_def
-libc_hidden_def (public_fREe)
+libc_hidden_def(public_fREe)
 #endif
 
-Void_t*
-public_rEALLOc(Void_t* oldmem, size_t bytes)
+    Void_t *public_rEALLOc(Void_t *oldmem, size_t bytes)
 {
-  mstate ar_ptr;
-  INTERNAL_SIZE_T    nb;      /* padded request size */
+    mstate ar_ptr;
+    INTERNAL_SIZE_T nb; /* padded request size */
 
-  mchunkptr oldp;             /* chunk corresponding to oldmem */
-  INTERNAL_SIZE_T    oldsize; /* its size */
+    mchunkptr oldp;          /* chunk corresponding to oldmem */
+    INTERNAL_SIZE_T oldsize; /* its size */
 
-  Void_t* newp;             /* chunk to return */
+    Void_t *newp; /* chunk to return */
 
-  __malloc_ptr_t (*hook) __MALLOC_P ((__malloc_ptr_t, size_t,
-				      __const __malloc_ptr_t)) =
-    __realloc_hook;
-  if (hook != NULL)
-    return (*hook)(oldmem, bytes, RETURN_ADDRESS (0));
-/* <CHANNEL_MRAIL> */
-  mvapich2_minfo.is_our_realloc = 1;
-/* </CHANNEL_MRAIL> */
+    __malloc_ptr_t(*hook)
+        __MALLOC_P((__malloc_ptr_t, size_t, __const __malloc_ptr_t)) =
+            __realloc_hook;
+    if (hook != NULL)
+        return (*hook)(oldmem, bytes, RETURN_ADDRESS(0));
+    /* <CHANNEL_MRAIL> */
+    mvapich_minfo.is_our_realloc = 1;
+    /* </CHANNEL_MRAIL> */
 
 #if REALLOC_ZERO_BYTES_FREES
-  if (bytes == 0 && oldmem != NULL) { public_fREe(oldmem); return 0; }
+    if (bytes == 0 && oldmem != NULL) {
+        public_fREe(oldmem);
+        return 0;
+    }
 #endif
 
-  /* realloc of null is supposed to be same as malloc */
-  if (oldmem == 0) return public_mALLOc(bytes);
+    /* realloc of null is supposed to be same as malloc */
+    if (oldmem == 0)
+        return public_mALLOc(bytes);
 
-  oldp    = mem2chunk(oldmem);
-  oldsize = chunksize(oldp);
+    oldp = mem2chunk(oldmem);
+    oldsize = chunksize(oldp);
 
-  checked_request2size(bytes, nb);
+    checked_request2size(bytes, nb);
 
 #if HAVE_MMAP
-  if (chunk_is_mmapped(oldp))
-  {
-    Void_t* newmem;
+    if (chunk_is_mmapped(oldp)) {
+        Void_t *newmem;
 
 #if HAVE_MREMAP
-    newp = mremap_chunk(oldp, nb);
-    if(newp)
-/* <CHANNEL_MRAIL> */
-    {
-        mvapich2_minfo.is_our_realloc = 1;
-/* </CHANNEL_MRAIL> */
-             return chunk2mem(newp);
-/* <CHANNEL_MRAIL> */
-    }
-/* </CHANNEL_MRAIL> */
-#endif
-    /* Note the extra SIZE_SZ overhead. */
-    if(oldsize - SIZE_SZ >= nb)
-/* <CHANNEL_MRAIL> */
-    {
-        mvapich2_minfo.is_our_realloc = 1;
-/* </CHANNEL_MRAIL> */
-                                return oldmem; /* do nothing */
-/* <CHANNEL_MRAIL> */
-    }
-/* </CHANNEL_MRAIL> */
-    /* Must alloc, copy, free. */
-    newmem = public_mALLOc(bytes);
-    if (newmem == 0) return 0; /* propagate failure */
-    MALLOC_COPY(newmem, oldmem, oldsize - 2*SIZE_SZ);
-    munmap_chunk(oldp);
-/* <CHANNEL_MRAIL> */
-    mvapich2_minfo.is_our_realloc = 1;
-    flush_dereg_mrs_external();
-/* </CHANNEL_MRAIL> */
-    return newmem;
-  }
-#endif
-
-  ar_ptr = arena_for_chunk(oldp);
-#if THREAD_STATS
-  if(!mutex_trylock(&ar_ptr->mutex))
-    ++(ar_ptr->stat_lock_direct);
-  else {
-    (void)mutex_lock(&ar_ptr->mutex);
-    ++(ar_ptr->stat_lock_wait);
-  }
-#else
-  (void)mutex_lock(&ar_ptr->mutex);
-#endif
-
-  newp = _int_realloc(ar_ptr, oldmem, bytes);
-
-  (void)mutex_unlock(&ar_ptr->mutex);
-  assert(!newp || chunk_is_mmapped(mem2chunk(newp)) ||
-	 ar_ptr == arena_for_chunk(mem2chunk(newp)));
-/* <CHANNEL_MRAIL> */
-  mvapich2_minfo.is_our_realloc = 1;
-  flush_dereg_mrs_external();
-/* </CHANNEL_MRAIL> */
-  return newp;
-}
-#ifdef libc_hidden_def
-libc_hidden_def (public_rEALLOc)
-#endif
-
-Void_t*
-public_mEMALIGn(size_t alignment, size_t bytes)
-{
-  mstate ar_ptr;
-  Void_t *p;
-
-  __malloc_ptr_t (*hook) __MALLOC_PMT ((size_t, size_t,
-					__const __malloc_ptr_t)) =
-    __memalign_hook;
-  if (hook != NULL)
-    return (*hook)(alignment, bytes, RETURN_ADDRESS (0));
-
-  /* If need less alignment than we give anyway, just relay to malloc */
-  if (alignment <= MALLOC_ALIGNMENT) return public_mALLOc(bytes);
-
-  /* Otherwise, ensure that it is at least a minimum chunk size */
-  if (alignment <  MINSIZE) alignment = MINSIZE;
-
-  arena_get(ar_ptr, bytes + alignment + MINSIZE);
-  if(!ar_ptr)
-    return 0;
-  p = _int_memalign(ar_ptr, alignment, bytes);
-  (void)mutex_unlock(&ar_ptr->mutex);
-  if(!p) {
-    /* Maybe the failure is due to running out of mmapped areas. */
-    if(ar_ptr != &main_arena) {
-      (void)mutex_lock(&main_arena.mutex);
-      p = _int_memalign(&main_arena, alignment, bytes);
-      (void)mutex_unlock(&main_arena.mutex);
-    } else {
-#if USE_ARENAS
-      /* ... or sbrk() has failed and there is still a chance to mmap() */
-      ar_ptr = arena_get2(ar_ptr->next ? ar_ptr : 0, bytes);
-      if(ar_ptr) {
-        p = _int_memalign(ar_ptr, alignment, bytes);
-        (void)mutex_unlock(&ar_ptr->mutex);
-      }
-#endif
-    }
-  }
-  assert(!p || chunk_is_mmapped(mem2chunk(p)) ||
-	 ar_ptr == arena_for_chunk(mem2chunk(p)));
-/* <CHANNEL_MRAIL> */
-  mvapich2_minfo.is_our_memalign = 1;
-  flush_dereg_mrs_external();
-/* </CHANNEL_MRAIL> */
-  return p;
-}
-#ifdef libc_hidden_def
-libc_hidden_def (public_mEMALIGn)
-#endif
-
-Void_t*
-public_vALLOc(size_t bytes)
-{
-  mstate ar_ptr;
-  Void_t *p;
-
-  if(__malloc_initialized < 0)
-    ptmalloc_init ();
-  arena_get(ar_ptr, bytes + mp_.pagesize + MINSIZE);
-  if(!ar_ptr)
-    return 0;
-  p = _int_valloc(ar_ptr, bytes);
-  (void)mutex_unlock(&ar_ptr->mutex);
-/* <CHANNEL_MRAIL> */
-  mvapich2_minfo.is_our_valloc = 1;
-  flush_dereg_mrs_external(); 
-/* </CHANNEL_MRAIL> */
-  return p;
-}
-
-Void_t*
-public_pVALLOc(size_t bytes)
-{
-  mstate ar_ptr;
-  Void_t *p;
-
-  if(__malloc_initialized < 0)
-    ptmalloc_init ();
-  arena_get(ar_ptr, bytes + 2*mp_.pagesize + MINSIZE);
-  p = _int_pvalloc(ar_ptr, bytes);
-  (void)mutex_unlock(&ar_ptr->mutex);
-/* <CHANNEL_MRAIL> */
-  mvapich2_minfo.is_our_valloc = 1;
-  flush_dereg_mrs_external(); 
-/* </CHANNEL_MRAIL> */
-  return p;
-}
-
-Void_t*
-public_cALLOc(size_t n, size_t elem_size)
-{
-  mstate av;
-  mchunkptr oldtop, p;
-  INTERNAL_SIZE_T bytes, sz, csz, oldtopsize;
-  Void_t* mem;
-  unsigned long clearsize;
-  unsigned long nclears;
-  INTERNAL_SIZE_T* d;
-  __malloc_ptr_t (*hook) __MALLOC_PMT ((size_t, __const __malloc_ptr_t)) =
-    __malloc_hook;
-
-  /* size_t is unsigned so the behavior on overflow is defined.  */
-  bytes = n * elem_size;
-#define HALF_INTERNAL_SIZE_T \
-  (((INTERNAL_SIZE_T) 1) << (8 * sizeof (INTERNAL_SIZE_T) / 2))
-  if (__builtin_expect ((n | elem_size) >= HALF_INTERNAL_SIZE_T, 0)) {
-    if (elem_size != 0 && bytes / elem_size != n) {
-      MALLOC_FAILURE_ACTION;
-      return 0;
-    }
-  }
-
-  if (hook != NULL) {
-    sz = bytes;
-    mem = (*hook)(sz, RETURN_ADDRESS (0));
-    if(mem == 0)
-      return 0;
-#ifdef HAVE_MEMCPY
-    return memset(mem, 0, sz);
-#else
-    while(sz > 0) ((char*)mem)[--sz] = 0; /* rather inefficient */
-/* <CHANNEL_MRAIL> */
-    mvapich2_minfo.is_our_calloc = 1;
-/* </CHANNEL_MRAIL> */
-    return mem;
-#endif
-  }
-
-  sz = bytes;
-
-  arena_get(av, sz);
-  if(!av)
-    return 0;
-
-  /* Check if we hand out the top chunk, in which case there may be no
-     need to clear. */
-#if MORECORE_CLEARS
-  oldtop = top(av);
-  oldtopsize = chunksize(top(av));
-#if MORECORE_CLEARS < 2
-  /* Only newly allocated memory is guaranteed to be cleared.  */
-  if (av == &main_arena &&
-/* <CHANNEL_MRAIL> */
-      oldtopsize < (INTERNAL_SIZE_T)(mp_.sbrk_base + av->max_system_mem - (char *)oldtop))
-/*      oldtopsize < mp_.sbrk_base + av->max_system_mem - (char *)oldtop)
- * </CHANNEL_MRAIL>
- */
-    oldtopsize = (mp_.sbrk_base + av->max_system_mem - (char *)oldtop);
-#endif
-#endif
-  if (likely(!mv2_use_aligned_alloc)) {
-    mem = _int_malloc(av, sz);
-  } else {
-    mem = _int_memalign(av, MV2_GENERIC_CACHE_LINE_SIZE, sz);
-  }
-
-  /* Only clearing follows, so we can unlock early. */
-  (void)mutex_unlock(&av->mutex);
-
-  assert(!mem || chunk_is_mmapped(mem2chunk(mem)) ||
-	 av == arena_for_chunk(mem2chunk(mem)));
-
-  if (mem == 0) {
-    /* Maybe the failure is due to running out of mmapped areas. */
-    if(av != &main_arena) {
-      (void)mutex_lock(&main_arena.mutex);
-      if (likely(!mv2_use_aligned_alloc)) {
-        mem = _int_malloc(&main_arena, sz);
-      } else {
-        mem = _int_memalign(&main_arena, MV2_GENERIC_CACHE_LINE_SIZE, sz);
-      }
-      (void)mutex_unlock(&main_arena.mutex);
-    } else {
-#if USE_ARENAS
-      /* ... or sbrk() has failed and there is still a chance to mmap() */
-      (void)mutex_lock(&main_arena.mutex);
-      av = arena_get2(av->next ? av : 0, sz);
-      (void)mutex_unlock(&main_arena.mutex);
-      if(av) {
-        if (likely(!mv2_use_aligned_alloc)) {
-          mem = _int_malloc(av, sz);
-        } else {
-          mem = _int_memalign(av, MV2_GENERIC_CACHE_LINE_SIZE, sz);
+        newp = mremap_chunk(oldp, nb);
+        if (newp)
+        /* <CHANNEL_MRAIL> */
+        {
+            mvapich_minfo.is_our_realloc = 1;
+            /* </CHANNEL_MRAIL> */
+            return chunk2mem(newp);
+            /* <CHANNEL_MRAIL> */
         }
-        (void)mutex_unlock(&av->mutex);
-      }
+/* </CHANNEL_MRAIL> */
+#endif
+        /* Note the extra SIZE_SZ overhead. */
+        if (oldsize - SIZE_SZ >= nb)
+        /* <CHANNEL_MRAIL> */
+        {
+            mvapich_minfo.is_our_realloc = 1;
+            /* </CHANNEL_MRAIL> */
+            return oldmem; /* do nothing */
+                           /* <CHANNEL_MRAIL> */
+        }
+        /* </CHANNEL_MRAIL> */
+        /* Must alloc, copy, free. */
+        newmem = public_mALLOc(bytes);
+        if (newmem == 0)
+            return 0; /* propagate failure */
+        MALLOC_COPY(newmem, oldmem, oldsize - 2 * SIZE_SZ);
+        munmap_chunk(oldp);
+        /* <CHANNEL_MRAIL> */
+        mvapich_minfo.is_our_realloc = 1;
+        flush_dereg_mrs_external();
+        /* </CHANNEL_MRAIL> */
+        return newmem;
+    }
+#endif
+
+    ar_ptr = arena_for_chunk(oldp);
+#if THREAD_STATS
+    if (!mutex_trylock(&ar_ptr->mutex))
+        ++(ar_ptr->stat_lock_direct);
+    else {
+        (void)mutex_lock(&ar_ptr->mutex);
+        ++(ar_ptr->stat_lock_wait);
+    }
+#else
+    (void)mutex_lock(&ar_ptr->mutex);
+#endif
+
+    newp = _int_realloc(ar_ptr, oldmem, bytes);
+
+    (void)mutex_unlock(&ar_ptr->mutex);
+    assert(!newp || chunk_is_mmapped(mem2chunk(newp)) ||
+           ar_ptr == arena_for_chunk(mem2chunk(newp)));
+    /* <CHANNEL_MRAIL> */
+    mvapich_minfo.is_our_realloc = 1;
+    flush_dereg_mrs_external();
+    /* </CHANNEL_MRAIL> */
+    return newp;
+}
+#ifdef libc_hidden_def
+libc_hidden_def(public_rEALLOc)
+#endif
+
+    Void_t *public_mEMALIGn(size_t alignment, size_t bytes)
+{
+    mstate ar_ptr;
+    Void_t *p;
+
+    __malloc_ptr_t(*hook)
+        __MALLOC_PMT((size_t, size_t, __const __malloc_ptr_t)) =
+            __memalign_hook;
+    if (hook != NULL)
+        return (*hook)(alignment, bytes, RETURN_ADDRESS(0));
+
+    /* If need less alignment than we give anyway, just relay to malloc */
+    if (alignment <= MALLOC_ALIGNMENT)
+        return public_mALLOc(bytes);
+
+    /* Otherwise, ensure that it is at least a minimum chunk size */
+    if (alignment < MINSIZE)
+        alignment = MINSIZE;
+
+    arena_get(ar_ptr, bytes + alignment + MINSIZE);
+    if (!ar_ptr)
+        return 0;
+    p = _int_memalign(ar_ptr, alignment, bytes);
+    (void)mutex_unlock(&ar_ptr->mutex);
+    if (!p) {
+        /* Maybe the failure is due to running out of mmapped areas. */
+        if (ar_ptr != &main_arena) {
+            (void)mutex_lock(&main_arena.mutex);
+            p = _int_memalign(&main_arena, alignment, bytes);
+            (void)mutex_unlock(&main_arena.mutex);
+        } else {
+#if USE_ARENAS
+            /* ... or sbrk() has failed and there is still a chance to mmap() */
+            ar_ptr = arena_get2(ar_ptr->next ? ar_ptr : 0, bytes);
+            if (ar_ptr) {
+                p = _int_memalign(ar_ptr, alignment, bytes);
+                (void)mutex_unlock(&ar_ptr->mutex);
+            }
+#endif
+        }
+    }
+    assert(!p || chunk_is_mmapped(mem2chunk(p)) ||
+           ar_ptr == arena_for_chunk(mem2chunk(p)));
+    /* <CHANNEL_MRAIL> */
+    mvapich_minfo.is_our_memalign = 1;
+    flush_dereg_mrs_external();
+    /* </CHANNEL_MRAIL> */
+    return p;
+}
+#ifdef libc_hidden_def
+libc_hidden_def(public_mEMALIGn)
+#endif
+
+    Void_t *public_vALLOc(size_t bytes)
+{
+    mstate ar_ptr;
+    Void_t *p;
+
+    if (__malloc_initialized < 0)
+        ptmalloc_init();
+    arena_get(ar_ptr, bytes + mp_.pagesize + MINSIZE);
+    if (!ar_ptr)
+        return 0;
+    p = _int_valloc(ar_ptr, bytes);
+    (void)mutex_unlock(&ar_ptr->mutex);
+    /* <CHANNEL_MRAIL> */
+    mvapich_minfo.is_our_valloc = 1;
+    flush_dereg_mrs_external();
+    /* </CHANNEL_MRAIL> */
+    return p;
+}
+
+Void_t *public_pVALLOc(size_t bytes)
+{
+    mstate ar_ptr;
+    Void_t *p;
+
+    if (__malloc_initialized < 0)
+        ptmalloc_init();
+    arena_get(ar_ptr, bytes + 2 * mp_.pagesize + MINSIZE);
+    p = _int_pvalloc(ar_ptr, bytes);
+    (void)mutex_unlock(&ar_ptr->mutex);
+    /* <CHANNEL_MRAIL> */
+    mvapich_minfo.is_our_valloc = 1;
+    flush_dereg_mrs_external();
+    /* </CHANNEL_MRAIL> */
+    return p;
+}
+
+Void_t *public_cALLOc(size_t n, size_t elem_size)
+{
+    mstate av;
+    mchunkptr oldtop, p;
+    INTERNAL_SIZE_T bytes, sz, csz, oldtopsize;
+    Void_t *mem;
+    unsigned long clearsize;
+    unsigned long nclears;
+    INTERNAL_SIZE_T *d;
+    __malloc_ptr_t(*hook) __MALLOC_PMT((size_t, __const __malloc_ptr_t)) =
+        __malloc_hook;
+
+    /* size_t is unsigned so the behavior on overflow is defined.  */
+    bytes = n * elem_size;
+#define HALF_INTERNAL_SIZE_T                                                   \
+    (((INTERNAL_SIZE_T)1) << (8 * sizeof(INTERNAL_SIZE_T) / 2))
+    if (__builtin_expect((n | elem_size) >= HALF_INTERNAL_SIZE_T, 0)) {
+        if (elem_size != 0 && bytes / elem_size != n) {
+            MALLOC_FAILURE_ACTION;
+            return 0;
+        }
+    }
+
+    if (hook != NULL) {
+        sz = bytes;
+        mem = (*hook)(sz, RETURN_ADDRESS(0));
+        if (mem == 0)
+            return 0;
+#ifdef HAVE_MEMCPY
+        return memset(mem, 0, sz);
+#else
+        while (sz > 0)
+            ((char *)mem)[--sz] = 0; /* rather inefficient */
+                                     /* <CHANNEL_MRAIL> */
+        mvapich_minfo.is_our_calloc = 1;
+        /* </CHANNEL_MRAIL> */
+        return mem;
 #endif
     }
-    if (mem == 0) return 0;
-  }
-  p = mem2chunk(mem);
 
-  /* Two optional cases in which clearing not necessary */
+    sz = bytes;
+
+    arena_get(av, sz);
+    if (!av)
+        return 0;
+
+        /* Check if we hand out the top chunk, in which case there may be no
+           need to clear. */
+#if MORECORE_CLEARS
+    oldtop = top(av);
+    oldtopsize = chunksize(top(av));
+#if MORECORE_CLEARS < 2
+    /* Only newly allocated memory is guaranteed to be cleared.  */
+    if (av == &main_arena &&
+        /* <CHANNEL_MRAIL> */
+        oldtopsize < (INTERNAL_SIZE_T)(mp_.sbrk_base + av->max_system_mem -
+                                       (char *)oldtop))
+        /*      oldtopsize < mp_.sbrk_base + av->max_system_mem - (char
+         * *)oldtop)
+         * </CHANNEL_MRAIL>
+         */
+        oldtopsize = (mp_.sbrk_base + av->max_system_mem - (char *)oldtop);
+#endif
+#endif
+    if (likely(!MVP_USE_ALIGNED_ALLOC)) {
+        mem = _int_malloc(av, sz);
+    } else {
+        mem = _int_memalign(av, MVP_GENERIC_CACHE_LINE_SIZE, sz);
+    }
+
+    /* Only clearing follows, so we can unlock early. */
+    (void)mutex_unlock(&av->mutex);
+
+    assert(!mem || chunk_is_mmapped(mem2chunk(mem)) ||
+           av == arena_for_chunk(mem2chunk(mem)));
+
+    if (mem == 0) {
+        /* Maybe the failure is due to running out of mmapped areas. */
+        if (av != &main_arena) {
+            (void)mutex_lock(&main_arena.mutex);
+            if (likely(!MVP_USE_ALIGNED_ALLOC)) {
+                mem = _int_malloc(&main_arena, sz);
+            } else {
+                mem =
+                    _int_memalign(&main_arena, MVP_GENERIC_CACHE_LINE_SIZE, sz);
+            }
+            (void)mutex_unlock(&main_arena.mutex);
+        } else {
+#if USE_ARENAS
+            /* ... or sbrk() has failed and there is still a chance to mmap() */
+            (void)mutex_lock(&main_arena.mutex);
+            av = arena_get2(av->next ? av : 0, sz);
+            (void)mutex_unlock(&main_arena.mutex);
+            if (av) {
+                if (likely(!MVP_USE_ALIGNED_ALLOC)) {
+                    mem = _int_malloc(av, sz);
+                } else {
+                    mem = _int_memalign(av, MVP_GENERIC_CACHE_LINE_SIZE, sz);
+                }
+                (void)mutex_unlock(&av->mutex);
+            }
+#endif
+        }
+        if (mem == 0)
+            return 0;
+    }
+    p = mem2chunk(mem);
+
+    /* Two optional cases in which clearing not necessary */
 #if HAVE_MMAP
-  if (chunk_is_mmapped(p))
-/* <CHANNEL_MRAIL> */
-  {
-      mvapich2_minfo.is_our_calloc = 1;
-/* </CHANNEL_MRAIL> */
-    return mem;
-/* <CHANNEL_MRAIL> */
-  }
+    if (chunk_is_mmapped(p))
+    /* <CHANNEL_MRAIL> */
+    {
+        mvapich_minfo.is_our_calloc = 1;
+        /* </CHANNEL_MRAIL> */
+        return mem;
+        /* <CHANNEL_MRAIL> */
+    }
 /* </CHANNEL_MRAIL> */
 #endif
 
-  csz = chunksize(p);
+    csz = chunksize(p);
 
 #if MORECORE_CLEARS
-  if (p == oldtop && csz > oldtopsize) {
-    /* clear only the bytes from non-freshly-sbrked memory */
-    csz = oldtopsize;
-  }
+    if (p == oldtop && csz > oldtopsize) {
+        /* clear only the bytes from non-freshly-sbrked memory */
+        csz = oldtopsize;
+    }
 #endif
 
-  /* Unroll clear of <= 36 bytes (72 if 8byte sizes).  We know that
-     contents have an odd number of INTERNAL_SIZE_T-sized words;
-     minimally 3.  */
-  d = (INTERNAL_SIZE_T*)mem;
-  clearsize = csz - SIZE_SZ;
-  nclears = clearsize / sizeof(INTERNAL_SIZE_T);
-  assert(nclears >= 3);
+    /* Unroll clear of <= 36 bytes (72 if 8byte sizes).  We know that
+       contents have an odd number of INTERNAL_SIZE_T-sized words;
+       minimally 3.  */
+    d = (INTERNAL_SIZE_T *)mem;
+    clearsize = csz - SIZE_SZ;
+    nclears = clearsize / sizeof(INTERNAL_SIZE_T);
+    assert(nclears >= 3);
 
-  if (nclears > 9)
-    MALLOC_ZERO(d, clearsize);
+    if (nclears > 9)
+        MALLOC_ZERO(d, clearsize);
 
-  else {
-    *(d+0) = 0;
-    *(d+1) = 0;
-    *(d+2) = 0;
-    if (nclears > 4) {
-      *(d+3) = 0;
-      *(d+4) = 0;
-      if (nclears > 6) {
-	*(d+5) = 0;
-	*(d+6) = 0;
-	if (nclears > 8) {
-	  *(d+7) = 0;
-	  *(d+8) = 0;
-	}
-      }
+    else {
+        *(d + 0) = 0;
+        *(d + 1) = 0;
+        *(d + 2) = 0;
+        if (nclears > 4) {
+            *(d + 3) = 0;
+            *(d + 4) = 0;
+            if (nclears > 6) {
+                *(d + 5) = 0;
+                *(d + 6) = 0;
+                if (nclears > 8) {
+                    *(d + 7) = 0;
+                    *(d + 8) = 0;
+                }
+            }
+        }
     }
-  }
 
-/* <CHANNEL_MRAIL> */
-  mvapich2_minfo.is_our_calloc = 1;
-/* </CHANNEL_MRAIL> */
-  return mem;
+    /* <CHANNEL_MRAIL> */
+    mvapich_minfo.is_our_calloc = 1;
+    /* </CHANNEL_MRAIL> */
+    return mem;
 }
 
-Void_t**
-public_iCALLOc(size_t n, size_t elem_size, Void_t** chunks)
+Void_t **public_iCALLOc(size_t n, size_t elem_size, Void_t **chunks)
 {
-  mstate ar_ptr;
-  Void_t** m;
+    mstate ar_ptr;
+    Void_t **m;
 
-  arena_get(ar_ptr, n*elem_size);
-  if(!ar_ptr)
-    return 0;
+    arena_get(ar_ptr, n * elem_size);
+    if (!ar_ptr)
+        return 0;
 
-  m = _int_icalloc(ar_ptr, n, elem_size, chunks);
-  (void)mutex_unlock(&ar_ptr->mutex);
-/* <CHANNEL_MRAIL> */
-  mvapich2_minfo.is_our_calloc = 1;
-/* </CHANNEL_MRAIL> */
-  return m;
+    m = _int_icalloc(ar_ptr, n, elem_size, chunks);
+    (void)mutex_unlock(&ar_ptr->mutex);
+    /* <CHANNEL_MRAIL> */
+    mvapich_minfo.is_our_calloc = 1;
+    /* </CHANNEL_MRAIL> */
+    return m;
 }
 
-Void_t**
-public_iCOMALLOc(size_t n, size_t sizes[], Void_t** chunks)
+Void_t **public_iCOMALLOc(size_t n, size_t sizes[], Void_t **chunks)
 {
-  mstate ar_ptr;
-  Void_t** m;
+    mstate ar_ptr;
+    Void_t **m;
 
-  arena_get(ar_ptr, 0);
-  if(!ar_ptr)
-    return 0;
+    arena_get(ar_ptr, 0);
+    if (!ar_ptr)
+        return 0;
 
-  m = _int_icomalloc(ar_ptr, n, sizes, chunks);
-  (void)mutex_unlock(&ar_ptr->mutex);
-  return m;
+    m = _int_icomalloc(ar_ptr, n, sizes, chunks);
+    (void)mutex_unlock(&ar_ptr->mutex);
+    return m;
 }
 
 #ifndef _LIBC
 
-void
-public_cFREe(Void_t* m)
-{
-  public_fREe(m);
-}
+void public_cFREe(Void_t *m) { public_fREe(m); }
 
 #endif /* _LIBC */
 
-int
-public_mTRIm(size_t s)
+int public_mTRIm(size_t s)
 {
-  int result;
+    int result;
 
-  (void)mutex_lock(&main_arena.mutex);
-  result = mTRIm(s);
-  (void)mutex_unlock(&main_arena.mutex);
+    (void)mutex_lock(&main_arena.mutex);
+    result = mTRIm(s);
+    (void)mutex_unlock(&main_arena.mutex);
 
-  /* OSU */
-  flush_dereg_mrs_external();
+    /* OSU */
+    flush_dereg_mrs_external();
 
-  return result;
+    return result;
 }
 
-size_t
-public_mUSABLe(Void_t* m)
+size_t public_mUSABLe(Void_t *m)
 {
-  size_t result;
+    size_t result;
 
-  result = mUSABLe(m);
-  return result;
+    result = mUSABLe(m);
+    return result;
 }
 
 /* This exists mainly for backward compatibility.  Calling
    _int_get_arena_info() directly is more useful.  */
-struct mallinfo
-public_mALLINFo()
+struct mallinfo public_mALLINFo()
 {
-  struct malloc_arena_info mai;
-  struct mallinfo m;
-  size_t avail;
+    struct malloc_arena_info mai;
+    struct mallinfo m;
+    size_t avail;
 
-  if(__malloc_initialized < 0)
-    ptmalloc_init ();
-  _int_get_arena_info(&main_arena, &mai);
-  /* Account for top */
-  avail = mai.fastavail + mai.binavail + mai.top_size;
-  m.smblks = mai.nfastblocks;
-  m.ordblks = mai.nbinblocks + 1;
-  m.fordblks = avail;
-  m.uordblks = mai.system_mem - avail;
-  m.arena = mai.system_mem;
-  m.hblks = mp_.n_mmaps;
-  m.hblkhd = mp_.mmapped_mem;
-  m.fsmblks = mai.fastavail;
-  m.keepcost = mai.top_size;
-  m.usmblks = mp_.max_total_mem;
-  return m;
+    if (__malloc_initialized < 0)
+        ptmalloc_init();
+    _int_get_arena_info(&main_arena, &mai);
+    /* Account for top */
+    avail = mai.fastavail + mai.binavail + mai.top_size;
+    m.smblks = mai.nfastblocks;
+    m.ordblks = mai.nbinblocks + 1;
+    m.fordblks = avail;
+    m.uordblks = mai.system_mem - avail;
+    m.arena = mai.system_mem;
+    m.hblks = mp_.n_mmaps;
+    m.hblkhd = mp_.mmapped_mem;
+    m.fsmblks = mai.fastavail;
+    m.keepcost = mai.top_size;
+    m.usmblks = mp_.max_total_mem;
+    return m;
 }
 
-int
-public_mALLOPt(int p, int v)
+int public_mALLOPt(int p, int v)
 {
-  int result;
-  result = mALLOPt(p, v);
-  return result;
+    int result;
+    result = mALLOPt(p, v);
+    return result;
 }
 
 /*
   ------------------------------ malloc ------------------------------
 */
 
-Void_t*
-_int_malloc(mstate av, size_t bytes)
+Void_t *_int_malloc(mstate av, size_t bytes)
 {
-  INTERNAL_SIZE_T nb;               /* normalized request size */
-  unsigned int    idx;              /* associated bin index */
-  mbinptr         bin;              /* associated bin */
-  mfastbinptr*    fb;               /* associated fastbin */
+    INTERNAL_SIZE_T nb; /* normalized request size */
+    unsigned int idx;   /* associated bin index */
+    mbinptr bin;        /* associated bin */
+    mfastbinptr *fb;    /* associated fastbin */
 
-  mchunkptr       victim;           /* inspected/selected chunk */
-  INTERNAL_SIZE_T size;             /* its size */
-  int             victim_index;     /* its bin index */
+    mchunkptr victim;     /* inspected/selected chunk */
+    INTERNAL_SIZE_T size; /* its size */
+    int victim_index;     /* its bin index */
 
-  mchunkptr       remainder;        /* remainder from a split */
-  unsigned long   remainder_size;   /* its size */
+    mchunkptr remainder;          /* remainder from a split */
+    unsigned long remainder_size; /* its size */
 
-  unsigned int    block;            /* bit map traverser */
-  unsigned int    bit;              /* bit map traverser */
-  unsigned int    map;              /* current word of binmap */
+    unsigned int block; /* bit map traverser */
+    unsigned int bit;   /* bit map traverser */
+    unsigned int map;   /* current word of binmap */
 
-  mchunkptr       fwd;              /* misc temp for linking */
-  mchunkptr       bck;              /* misc temp for linking */
+    mchunkptr fwd; /* misc temp for linking */
+    mchunkptr bck; /* misc temp for linking */
 
-  /*
-    Convert request size to internal form by adding SIZE_SZ bytes
-    overhead plus possibly more to obtain necessary alignment and/or
-    to obtain a size of at least MINSIZE, the smallest allocatable
-    size. Also, checked_request2size traps (returning 0) request sizes
-    that are so large that they wrap around zero when padded and
-    aligned.
-  */
+    /*
+      Convert request size to internal form by adding SIZE_SZ bytes
+      overhead plus possibly more to obtain necessary alignment and/or
+      to obtain a size of at least MINSIZE, the smallest allocatable
+      size. Also, checked_request2size traps (returning 0) request sizes
+      that are so large that they wrap around zero when padded and
+      aligned.
+    */
 
-  checked_request2size(bytes, nb);
+    checked_request2size(bytes, nb);
 
-  /*
-    If the size qualifies as a fastbin, first check corresponding bin.
-    This code is safe to execute even if av is not yet initialized, so we
-    can try it without checking, which saves some time on this fast path.
-  */
+    /*
+      If the size qualifies as a fastbin, first check corresponding bin.
+      This code is safe to execute even if av is not yet initialized, so we
+      can try it without checking, which saves some time on this fast path.
+    */
 
-  if ((unsigned long)(nb) <= (unsigned long)(av->max_fast)) {
-    fb = &(av->fastbins[(fastbin_index(nb))]);
-    if ( (victim = *fb) != 0) {
-      *fb = victim->fd;
-      check_remalloced_chunk(av, victim, nb);
-      return chunk2mem(victim);
-    }
-  }
-
-  /*
-    If a small request, check regular bin.  Since these "smallbins"
-    hold one size each, no searching within bins is necessary.
-    (For a large request, we need to wait until unsorted chunks are
-    processed to find best fit. But for small ones, fits are exact
-    anyway, so we can check now, which is faster.)
-  */
-
-  if (in_smallbin_range(nb)) {
-    idx = smallbin_index(nb);
-    bin = bin_at(av,idx);
-
-    if ( (victim = last(bin)) != bin) {
-      if (victim == 0) /* initialization check */
-        malloc_consolidate(av);
-      else {
-        bck = victim->bk;
-        set_inuse_bit_at_offset(victim, nb);
-        bin->bk = bck;
-        bck->fd = bin;
-
-        if (av != &main_arena)
-	  victim->size |= NON_MAIN_ARENA;
-        check_malloced_chunk(av, victim, nb);
-        return chunk2mem(victim);
-      }
-    }
-  }
-
-  /*
-     If this is a large request, consolidate fastbins before continuing.
-     While it might look excessive to kill all fastbins before
-     even seeing if there is space available, this avoids
-     fragmentation problems normally associated with fastbins.
-     Also, in practice, programs tend to have runs of either small or
-     large requests, but less often mixtures, so consolidation is not
-     invoked all that often in most programs. And the programs that
-     it is called frequently in otherwise tend to fragment.
-  */
-
-  else {
-    idx = largebin_index(nb);
-    if (have_fastchunks(av))
-      malloc_consolidate(av);
-  }
-
-  /*
-    Process recently freed or remaindered chunks, taking one only if
-    it is exact fit, or, if this a small request, the chunk is remainder from
-    the most recent non-exact fit.  Place other traversed chunks in
-    bins.  Note that this step is the only place in any routine where
-    chunks are placed in bins.
-
-    The outer loop here is needed because we might not realize until
-    near the end of malloc that we should have consolidated, so must
-    do so and retry. This happens at most once, and only when we would
-    otherwise need to expand memory to service a "small" request.
-  */
-
-  for(;;) {
-
-    while ( (victim = unsorted_chunks(av)->bk) != unsorted_chunks(av)) {
-      bck = victim->bk;
-      size = chunksize(victim);
-
-      /*
-         If a small request, try to use last remainder if it is the
-         only chunk in unsorted bin.  This helps promote locality for
-         runs of consecutive small requests. This is the only
-         exception to best-fit, and applies only when there is
-         no exact fit for a small chunk.
-      */
-
-      if (in_smallbin_range(nb) &&
-          bck == unsorted_chunks(av) &&
-          victim == av->last_remainder &&
-          (unsigned long)(size) > (unsigned long)(nb + MINSIZE)) {
-
-        /* split and reattach remainder */
-        remainder_size = size - nb;
-        remainder = chunk_at_offset(victim, nb);
-        unsorted_chunks(av)->bk = unsorted_chunks(av)->fd = remainder;
-        av->last_remainder = remainder;
-        remainder->bk = remainder->fd = unsorted_chunks(av);
-
-        set_head(victim, nb | PREV_INUSE |
-		 (av != &main_arena ? NON_MAIN_ARENA : 0));
-        set_head(remainder, remainder_size | PREV_INUSE);
-        set_foot(remainder, remainder_size);
-
-        check_malloced_chunk(av, victim, nb);
-        return chunk2mem(victim);
-      }
-
-      /* remove from unsorted list */
-      unsorted_chunks(av)->bk = bck;
-      bck->fd = unsorted_chunks(av);
-
-      /* Take now instead of binning if exact fit */
-
-      if (size == nb) {
-        set_inuse_bit_at_offset(victim, size);
-	if (av != &main_arena)
-	  victim->size |= NON_MAIN_ARENA;
-        check_malloced_chunk(av, victim, nb);
-        return chunk2mem(victim);
-      }
-
-      /* place chunk in bin */
-
-      if (in_smallbin_range(size)) {
-        victim_index = smallbin_index(size);
-        bck = bin_at(av, victim_index);
-        fwd = bck->fd;
-      }
-      else {
-        victim_index = largebin_index(size);
-        bck = bin_at(av, victim_index);
-        fwd = bck->fd;
-
-        if (fwd != bck) {
-          /* if smaller than smallest, place first */
-	  assert((bck->bk->size & NON_MAIN_ARENA) == 0);
-          if ((unsigned long)(size) < (unsigned long)(bck->bk->size)) {
-            fwd = bck;
-            bck = bck->bk;
-          }
-          else if ((unsigned long)(size) >= 
-                   (unsigned long)(FIRST_SORTED_BIN_SIZE)) {
-
-            /* maintain large bins in sorted order */
-            size |= PREV_INUSE; /* Or with inuse bit to speed comparisons */
-	    assert((fwd->size & NON_MAIN_ARENA) == 0);
-            while ((unsigned long)(size) < (unsigned long)(fwd->size)) {
-              fwd = fwd->fd;
-	      assert((fwd->size & NON_MAIN_ARENA) == 0);
-	    }
-            bck = fwd->bk;
-          }
+    if ((unsigned long)(nb) <= (unsigned long)(av->max_fast)) {
+        fb = &(av->fastbins[(fastbin_index(nb))]);
+        if ((victim = *fb) != 0) {
+            *fb = victim->fd;
+            check_remalloced_chunk(av, victim, nb);
+            return chunk2mem(victim);
         }
-      }
-
-      mark_bin(av, victim_index);
-      victim->bk = bck;
-      victim->fd = fwd;
-      fwd->bk = victim;
-      bck->fd = victim;
     }
 
     /*
-      If a large request, scan through the chunks of current bin in
-      sorted order to find smallest that fits.  This is the only step
-      where an unbounded number of chunks might be scanned without doing
-      anything useful with them. However the lists tend to be short.
+      If a small request, check regular bin.  Since these "smallbins"
+      hold one size each, no searching within bins is necessary.
+      (For a large request, we need to wait until unsorted chunks are
+      processed to find best fit. But for small ones, fits are exact
+      anyway, so we can check now, which is faster.)
     */
 
-    if (!in_smallbin_range(nb)) {
-      bin = bin_at(av, idx);
+    if (in_smallbin_range(nb)) {
+        idx = smallbin_index(nb);
+        bin = bin_at(av, idx);
 
-      for (victim = last(bin); victim != bin; victim = victim->bk) {
-	size = chunksize(victim);
+        if ((victim = last(bin)) != bin) {
+            if (victim == 0) /* initialization check */
+                malloc_consolidate(av);
+            else {
+                bck = victim->bk;
+                set_inuse_bit_at_offset(victim, nb);
+                bin->bk = bck;
+                bck->fd = bin;
 
-	if ((unsigned long)(size) >= (unsigned long)(nb)) {
-	  remainder_size = size - nb;
-	  unlink(victim, bck, fwd);
-
-	  /* Exhaust */
-	  if (remainder_size < MINSIZE)  {
-	    set_inuse_bit_at_offset(victim, size);
-	    if (av != &main_arena)
-	      victim->size |= NON_MAIN_ARENA;
-	    check_malloced_chunk(av, victim, nb);
-	    return chunk2mem(victim);
-	  }
-	  /* Split */
-	  else {
-	    remainder = chunk_at_offset(victim, nb);
-	    unsorted_chunks(av)->bk = unsorted_chunks(av)->fd = remainder;
-	    remainder->bk = remainder->fd = unsorted_chunks(av);
-	    set_head(victim, nb | PREV_INUSE |
-		     (av != &main_arena ? NON_MAIN_ARENA : 0));
-	    set_head(remainder, remainder_size | PREV_INUSE);
-	    set_foot(remainder, remainder_size);
-	    check_malloced_chunk(av, victim, nb);
-	    return chunk2mem(victim);
-	  }
-	}
-      }
+                if (av != &main_arena)
+                    victim->size |= NON_MAIN_ARENA;
+                check_malloced_chunk(av, victim, nb);
+                return chunk2mem(victim);
+            }
+        }
     }
 
     /*
-      Search for a chunk by scanning bins, starting with next largest
-      bin. This search is strictly by best-fit; i.e., the smallest
-      (with ties going to approximately the least recently used) chunk
-      that fits is selected.
-
-      The bitmap avoids needing to check that most blocks are nonempty.
-      The particular case of skipping all bins during warm-up phases
-      when no chunks have been returned yet is faster than it might look.
+       If this is a large request, consolidate fastbins before continuing.
+       While it might look excessive to kill all fastbins before
+       even seeing if there is space available, this avoids
+       fragmentation problems normally associated with fastbins.
+       Also, in practice, programs tend to have runs of either small or
+       large requests, but less often mixtures, so consolidation is not
+       invoked all that often in most programs. And the programs that
+       it is called frequently in otherwise tend to fragment.
     */
 
-    ++idx;
-    bin = bin_at(av,idx);
-    block = idx2block(idx);
-    map = av->binmap[block];
-    bit = idx2bit(idx);
+    else {
+        idx = largebin_index(nb);
+        if (have_fastchunks(av))
+            malloc_consolidate(av);
+    }
+
+    /*
+      Process recently freed or remaindered chunks, taking one only if
+      it is exact fit, or, if this a small request, the chunk is remainder from
+      the most recent non-exact fit.  Place other traversed chunks in
+      bins.  Note that this step is the only place in any routine where
+      chunks are placed in bins.
+
+      The outer loop here is needed because we might not realize until
+      near the end of malloc that we should have consolidated, so must
+      do so and retry. This happens at most once, and only when we would
+      otherwise need to expand memory to service a "small" request.
+    */
 
     for (;;) {
+        while ((victim = unsorted_chunks(av)->bk) != unsorted_chunks(av)) {
+            bck = victim->bk;
+            size = chunksize(victim);
 
-      /* Skip rest of block if there are no more set bits in this block.  */
-      if (bit > map || bit == 0) {
-        do {
-          if (++block >= BINMAPSIZE)  /* out of bins */
-            goto use_top;
-        } while ( (map = av->binmap[block]) == 0);
+            /*
+               If a small request, try to use last remainder if it is the
+               only chunk in unsorted bin.  This helps promote locality for
+               runs of consecutive small requests. This is the only
+               exception to best-fit, and applies only when there is
+               no exact fit for a small chunk.
+            */
 
-        bin = bin_at(av, (block << BINMAPSHIFT));
-        bit = 1;
-      }
+            if (in_smallbin_range(nb) && bck == unsorted_chunks(av) &&
+                victim == av->last_remainder &&
+                (unsigned long)(size) > (unsigned long)(nb + MINSIZE)) {
+                /* split and reattach remainder */
+                remainder_size = size - nb;
+                remainder = chunk_at_offset(victim, nb);
+                unsorted_chunks(av)->bk = unsorted_chunks(av)->fd = remainder;
+                av->last_remainder = remainder;
+                remainder->bk = remainder->fd = unsorted_chunks(av);
 
-      /* Advance to bin with set bit. There must be one. */
-      while ((bit & map) == 0) {
-        bin = next_bin(bin);
-        bit <<= 1;
-        assert(bit != 0);
-      }
+                set_head(victim, nb | PREV_INUSE |
+                                     (av != &main_arena ? NON_MAIN_ARENA : 0));
+                set_head(remainder, remainder_size | PREV_INUSE);
+                set_foot(remainder, remainder_size);
 
-      /* Inspect the bin. It is likely to be non-empty */
-      victim = last(bin);
+                check_malloced_chunk(av, victim, nb);
+                return chunk2mem(victim);
+            }
 
-      /*  If a false alarm (empty bin), clear the bit. */
-      if (victim == bin) {
-        av->binmap[block] = map &= ~bit; /* Write through */
-        bin = next_bin(bin);
-        bit <<= 1;
-      }
+            /* remove from unsorted list */
+            unsorted_chunks(av)->bk = bck;
+            bck->fd = unsorted_chunks(av);
 
-      else {
+            /* Take now instead of binning if exact fit */
+
+            if (size == nb) {
+                set_inuse_bit_at_offset(victim, size);
+                if (av != &main_arena)
+                    victim->size |= NON_MAIN_ARENA;
+                check_malloced_chunk(av, victim, nb);
+                return chunk2mem(victim);
+            }
+
+            /* place chunk in bin */
+
+            if (in_smallbin_range(size)) {
+                victim_index = smallbin_index(size);
+                bck = bin_at(av, victim_index);
+                fwd = bck->fd;
+            } else {
+                victim_index = largebin_index(size);
+                bck = bin_at(av, victim_index);
+                fwd = bck->fd;
+
+                if (fwd != bck) {
+                    /* if smaller than smallest, place first */
+                    assert((bck->bk->size & NON_MAIN_ARENA) == 0);
+                    if ((unsigned long)(size) <
+                        (unsigned long)(bck->bk->size)) {
+                        fwd = bck;
+                        bck = bck->bk;
+                    } else if ((unsigned long)(size) >=
+                               (unsigned long)(FIRST_SORTED_BIN_SIZE)) {
+                        /* maintain large bins in sorted order */
+                        size |= PREV_INUSE; /* Or with inuse bit to speed
+                                               comparisons */
+                        assert((fwd->size & NON_MAIN_ARENA) == 0);
+                        while ((unsigned long)(size) <
+                               (unsigned long)(fwd->size)) {
+                            fwd = fwd->fd;
+                            assert((fwd->size & NON_MAIN_ARENA) == 0);
+                        }
+                        bck = fwd->bk;
+                    }
+                }
+            }
+
+            mark_bin(av, victim_index);
+            victim->bk = bck;
+            victim->fd = fwd;
+            fwd->bk = victim;
+            bck->fd = victim;
+        }
+
+        /*
+          If a large request, scan through the chunks of current bin in
+          sorted order to find smallest that fits.  This is the only step
+          where an unbounded number of chunks might be scanned without doing
+          anything useful with them. However the lists tend to be short.
+        */
+
+        if (!in_smallbin_range(nb)) {
+            bin = bin_at(av, idx);
+
+            for (victim = last(bin); victim != bin; victim = victim->bk) {
+                size = chunksize(victim);
+
+                if ((unsigned long)(size) >= (unsigned long)(nb)) {
+                    remainder_size = size - nb;
+                    unlink(victim, bck, fwd);
+
+                    /* Exhaust */
+                    if (remainder_size < MINSIZE) {
+                        set_inuse_bit_at_offset(victim, size);
+                        if (av != &main_arena)
+                            victim->size |= NON_MAIN_ARENA;
+                        check_malloced_chunk(av, victim, nb);
+                        return chunk2mem(victim);
+                    }
+                    /* Split */
+                    else {
+                        remainder = chunk_at_offset(victim, nb);
+                        unsorted_chunks(av)->bk = unsorted_chunks(av)->fd =
+                            remainder;
+                        remainder->bk = remainder->fd = unsorted_chunks(av);
+                        set_head(victim,
+                                 nb | PREV_INUSE |
+                                     (av != &main_arena ? NON_MAIN_ARENA : 0));
+                        set_head(remainder, remainder_size | PREV_INUSE);
+                        set_foot(remainder, remainder_size);
+                        check_malloced_chunk(av, victim, nb);
+                        return chunk2mem(victim);
+                    }
+                }
+            }
+        }
+
+        /*
+          Search for a chunk by scanning bins, starting with next largest
+          bin. This search is strictly by best-fit; i.e., the smallest
+          (with ties going to approximately the least recently used) chunk
+          that fits is selected.
+
+          The bitmap avoids needing to check that most blocks are nonempty.
+          The particular case of skipping all bins during warm-up phases
+          when no chunks have been returned yet is faster than it might look.
+        */
+
+        ++idx;
+        bin = bin_at(av, idx);
+        block = idx2block(idx);
+        map = av->binmap[block];
+        bit = idx2bit(idx);
+
+        for (;;) {
+            /* Skip rest of block if there are no more set bits in this block.
+             */
+            if (bit > map || bit == 0) {
+                do {
+                    if (++block >= BINMAPSIZE) /* out of bins */
+                        goto use_top;
+                } while ((map = av->binmap[block]) == 0);
+
+                bin = bin_at(av, (block << BINMAPSHIFT));
+                bit = 1;
+            }
+
+            /* Advance to bin with set bit. There must be one. */
+            while ((bit & map) == 0) {
+                bin = next_bin(bin);
+                bit <<= 1;
+                assert(bit != 0);
+            }
+
+            /* Inspect the bin. It is likely to be non-empty */
+            victim = last(bin);
+
+            /*  If a false alarm (empty bin), clear the bit. */
+            if (victim == bin) {
+                av->binmap[block] = map &= ~bit; /* Write through */
+                bin = next_bin(bin);
+                bit <<= 1;
+            }
+
+            else {
+                size = chunksize(victim);
+
+                /*  We know the first chunk in this bin is big enough to use. */
+                assert((unsigned long)(size) >= (unsigned long)(nb));
+
+                remainder_size = size - nb;
+
+                /* unlink */
+                bck = victim->bk;
+                bin->bk = bck;
+                bck->fd = bin;
+
+                /* Exhaust */
+                if (remainder_size < MINSIZE) {
+                    set_inuse_bit_at_offset(victim, size);
+                    if (av != &main_arena)
+                        victim->size |= NON_MAIN_ARENA;
+                    check_malloced_chunk(av, victim, nb);
+                    return chunk2mem(victim);
+                }
+
+                /* Split */
+                else {
+                    remainder = chunk_at_offset(victim, nb);
+
+                    unsorted_chunks(av)->bk = unsorted_chunks(av)->fd =
+                        remainder;
+                    remainder->bk = remainder->fd = unsorted_chunks(av);
+                    /* advertise as last remainder */
+                    if (in_smallbin_range(nb))
+                        av->last_remainder = remainder;
+
+                    set_head(victim,
+                             nb | PREV_INUSE |
+                                 (av != &main_arena ? NON_MAIN_ARENA : 0));
+                    set_head(remainder, remainder_size | PREV_INUSE);
+                    set_foot(remainder, remainder_size);
+                    check_malloced_chunk(av, victim, nb);
+                    return chunk2mem(victim);
+                }
+            }
+        }
+
+    use_top:
+        /*
+          If large enough, split off the chunk bordering the end of memory
+          (held in av->top). Note that this is in accord with the best-fit
+          search rule.  In effect, av->top is treated as larger (and thus
+          less well fitting) than any other available chunk since it can
+          be extended to be as large as necessary (up to system
+          limitations).
+
+          We require that av->top always exists (i.e., has size >=
+          MINSIZE) after initialization, so if it would otherwise be
+          exhuasted by current request, it is replenished. (The main
+          reason for ensuring it exists is that we may need MINSIZE space
+          to put in fenceposts in sysmalloc.)
+        */
+
+        victim = av->top;
         size = chunksize(victim);
 
-        /*  We know the first chunk in this bin is big enough to use. */
-        assert((unsigned long)(size) >= (unsigned long)(nb));
+        if ((unsigned long)(size) >= (unsigned long)(nb + MINSIZE)) {
+            remainder_size = size - nb;
+            remainder = chunk_at_offset(victim, nb);
+            av->top = remainder;
+            set_head(victim, nb | PREV_INUSE |
+                                 (av != &main_arena ? NON_MAIN_ARENA : 0));
+            set_head(remainder, remainder_size | PREV_INUSE);
 
-        remainder_size = size - nb;
-
-        /* unlink */
-        bck = victim->bk;
-        bin->bk = bck;
-        bck->fd = bin;
-
-        /* Exhaust */
-        if (remainder_size < MINSIZE) {
-          set_inuse_bit_at_offset(victim, size);
-	  if (av != &main_arena)
-	    victim->size |= NON_MAIN_ARENA;
-          check_malloced_chunk(av, victim, nb);
-          return chunk2mem(victim);
+            check_malloced_chunk(av, victim, nb);
+            return chunk2mem(victim);
         }
 
-        /* Split */
-        else {
-          remainder = chunk_at_offset(victim, nb);
+        /*
+          If there is space available in fastbins, consolidate and retry,
+          to possibly avoid expanding memory. This can occur only if nb is
+          in smallbin range so we didn't consolidate upon entry.
+        */
 
-          unsorted_chunks(av)->bk = unsorted_chunks(av)->fd = remainder;
-          remainder->bk = remainder->fd = unsorted_chunks(av);
-          /* advertise as last remainder */
-          if (in_smallbin_range(nb))
-            av->last_remainder = remainder;
-
-          set_head(victim, nb | PREV_INUSE |
-		   (av != &main_arena ? NON_MAIN_ARENA : 0));
-          set_head(remainder, remainder_size | PREV_INUSE);
-          set_foot(remainder, remainder_size);
-          check_malloced_chunk(av, victim, nb);
-          return chunk2mem(victim);
+        else if (have_fastchunks(av)) {
+            assert(in_smallbin_range(nb));
+            malloc_consolidate(av);
+            idx = smallbin_index(nb); /* restore original bin index */
         }
-      }
+
+        /*
+           Otherwise, relay to handle system-dependent cases
+        */
+        else
+            return sYSMALLOc(nb, av);
     }
-
-  use_top:
-    /*
-      If large enough, split off the chunk bordering the end of memory
-      (held in av->top). Note that this is in accord with the best-fit
-      search rule.  In effect, av->top is treated as larger (and thus
-      less well fitting) than any other available chunk since it can
-      be extended to be as large as necessary (up to system
-      limitations).
-
-      We require that av->top always exists (i.e., has size >=
-      MINSIZE) after initialization, so if it would otherwise be
-      exhuasted by current request, it is replenished. (The main
-      reason for ensuring it exists is that we may need MINSIZE space
-      to put in fenceposts in sysmalloc.)
-    */
-
-    victim = av->top;
-    size = chunksize(victim);
-
-    if ((unsigned long)(size) >= (unsigned long)(nb + MINSIZE)) {
-      remainder_size = size - nb;
-      remainder = chunk_at_offset(victim, nb);
-      av->top = remainder;
-      set_head(victim, nb | PREV_INUSE |
-	       (av != &main_arena ? NON_MAIN_ARENA : 0));
-      set_head(remainder, remainder_size | PREV_INUSE);
-
-      check_malloced_chunk(av, victim, nb);
-      return chunk2mem(victim);
-    }
-
-    /*
-      If there is space available in fastbins, consolidate and retry,
-      to possibly avoid expanding memory. This can occur only if nb is
-      in smallbin range so we didn't consolidate upon entry.
-    */
-
-    else if (have_fastchunks(av)) {
-      assert(in_smallbin_range(nb));
-      malloc_consolidate(av);
-      idx = smallbin_index(nb); /* restore original bin index */
-    }
-
-    /*
-       Otherwise, relay to handle system-dependent cases
-    */
-    else
-      return sYSMALLOc(nb, av);
-  }
 }
 
 /*
   ------------------------------ free ------------------------------
 */
 
-void
-_int_free(mstate av, Void_t* mem)
+void _int_free(mstate av, Void_t *mem)
 {
-  mchunkptr       p;           /* chunk corresponding to mem */
-  INTERNAL_SIZE_T size;        /* its size */
-  mfastbinptr*    fb;          /* associated fastbin */
-  mchunkptr       nextchunk;   /* next contiguous chunk */
-  INTERNAL_SIZE_T nextsize;    /* its size */
-  int             nextinuse;   /* true if nextchunk is used */
-  INTERNAL_SIZE_T prevsize;    /* size of previous contiguous chunk */
-  mchunkptr       bck;         /* misc temp for linking */
-  mchunkptr       fwd;         /* misc temp for linking */
+    mchunkptr p;              /* chunk corresponding to mem */
+    INTERNAL_SIZE_T size;     /* its size */
+    mfastbinptr *fb;          /* associated fastbin */
+    mchunkptr nextchunk;      /* next contiguous chunk */
+    INTERNAL_SIZE_T nextsize; /* its size */
+    int nextinuse;            /* true if nextchunk is used */
+    INTERNAL_SIZE_T prevsize; /* size of previous contiguous chunk */
+    mchunkptr bck;            /* misc temp for linking */
+    mchunkptr fwd;            /* misc temp for linking */
 
+    /* free(0) has no effect */
+    if (mem != 0) {
+        p = mem2chunk(mem);
+        size = chunksize(p);
 
-  /* free(0) has no effect */
-  if (mem != 0) {
-    p = mem2chunk(mem);
-    size = chunksize(p);
+        check_inuse_chunk(av, p);
 
-    check_inuse_chunk(av, p);
-
-    /*
-      If eligible, place chunk on a fastbin so it can be found
-      and used quickly in malloc.
-    */
-
-    if ((unsigned long)(size) <= (unsigned long)(av->max_fast)
-
-#if TRIM_FASTBINS
         /*
-           If TRIM_FASTBINS set, don't place chunks
-           bordering top into fastbins
+          If eligible, place chunk on a fastbin so it can be found
+          and used quickly in malloc.
         */
-        && (chunk_at_offset(p, size) != av->top)
+
+        if ((unsigned long)(size) <= (unsigned long)(av->max_fast)
+#if TRIM_FASTBINS
+            /*
+               If TRIM_FASTBINS set, don't place chunks
+               bordering top into fastbins
+            */
+            && (chunk_at_offset(p, size) != av->top)
 #endif
         ) {
 
-      set_fastchunks(av);
-      fb = &(av->fastbins[fastbin_index(size)]);
-      p->fd = *fb;
-      *fb = p;
-    }
-
-    /*
-       Consolidate other non-mmapped chunks as they arrive.
-    */
-
-    else if (!chunk_is_mmapped(p)) {
-      nextchunk = chunk_at_offset(p, size);
-      nextsize = chunksize(nextchunk);
-      assert(nextsize > 0);
-
-      /* consolidate backward */
-      if (!prev_inuse(p)) {
-        prevsize = p->prev_size;
-        size += prevsize;
-        p = chunk_at_offset(p, -((long) prevsize));
-        unlink(p, bck, fwd);
-      }
-
-      if (nextchunk != av->top) {
-        /* get and clear inuse bit */
-        nextinuse = inuse_bit_at_offset(nextchunk, nextsize);
-
-        /* consolidate forward */
-        if (!nextinuse) {
-          unlink(nextchunk, bck, fwd);
-          size += nextsize;
-        } else
-	  clear_inuse_bit_at_offset(nextchunk, 0);
+            set_fastchunks(av);
+            fb = &(av->fastbins[fastbin_index(size)]);
+            p->fd = *fb;
+            *fb = p;
+        }
 
         /*
-          Place the chunk in unsorted chunk list. Chunks are
-          not placed into regular bins until after they have
-          been given one chance to be used in malloc.
+           Consolidate other non-mmapped chunks as they arrive.
         */
 
-        bck = unsorted_chunks(av);
-        fwd = bck->fd;
-        p->bk = bck;
-        p->fd = fwd;
-        bck->fd = p;
-        fwd->bk = p;
+        else if (!chunk_is_mmapped(p)) {
+            nextchunk = chunk_at_offset(p, size);
+            nextsize = chunksize(nextchunk);
+            assert(nextsize > 0);
 
-        set_head(p, size | PREV_INUSE);
-        set_foot(p, size);
+            /* consolidate backward */
+            if (!prev_inuse(p)) {
+                prevsize = p->prev_size;
+                size += prevsize;
+                p = chunk_at_offset(p, -((long)prevsize));
+                unlink(p, bck, fwd);
+            }
 
-        check_free_chunk(av, p);
-      }
+            if (nextchunk != av->top) {
+                /* get and clear inuse bit */
+                nextinuse = inuse_bit_at_offset(nextchunk, nextsize);
 
-      /*
-         If the chunk borders the current high end of memory,
-         consolidate into top
-      */
+                /* consolidate forward */
+                if (!nextinuse) {
+                    unlink(nextchunk, bck, fwd);
+                    size += nextsize;
+                } else
+                    clear_inuse_bit_at_offset(nextchunk, 0);
 
-      else {
-        size += nextsize;
-        set_head(p, size | PREV_INUSE);
-        av->top = p;
-        check_chunk(av, p);
-      }
+                /*
+                  Place the chunk in unsorted chunk list. Chunks are
+                  not placed into regular bins until after they have
+                  been given one chance to be used in malloc.
+                */
 
-      /*
-        If freeing a large space, consolidate possibly-surrounding
-        chunks. Then, if the total unused topmost memory exceeds trim
-        threshold, ask malloc_trim to reduce top.
+                bck = unsorted_chunks(av);
+                fwd = bck->fd;
+                p->bk = bck;
+                p->fd = fwd;
+                bck->fd = p;
+                fwd->bk = p;
 
-        Unless max_fast is 0, we don't know if there are fastbins
-        bordering top, so we cannot tell for sure whether threshold
-        has been reached unless fastbins are consolidated.  But we
-        don't want to consolidate on each free.  As a compromise,
-        consolidation is performed if FASTBIN_CONSOLIDATION_THRESHOLD
-        is reached.
-      */
+                set_head(p, size | PREV_INUSE);
+                set_foot(p, size);
 
-      if ((unsigned long)(size) >= FASTBIN_CONSOLIDATION_THRESHOLD) {
-        if (have_fastchunks(av))
-          malloc_consolidate(av);
+                check_free_chunk(av, p);
+            }
 
-	if (av == &main_arena) {
+            /*
+               If the chunk borders the current high end of memory,
+               consolidate into top
+            */
+
+            else {
+                size += nextsize;
+                set_head(p, size | PREV_INUSE);
+                av->top = p;
+                check_chunk(av, p);
+            }
+
+            /*
+              If freeing a large space, consolidate possibly-surrounding
+              chunks. Then, if the total unused topmost memory exceeds trim
+              threshold, ask malloc_trim to reduce top.
+
+              Unless max_fast is 0, we don't know if there are fastbins
+              bordering top, so we cannot tell for sure whether threshold
+              has been reached unless fastbins are consolidated.  But we
+              don't want to consolidate on each free.  As a compromise,
+              consolidation is performed if FASTBIN_CONSOLIDATION_THRESHOLD
+              is reached.
+            */
+
+            if ((unsigned long)(size) >= FASTBIN_CONSOLIDATION_THRESHOLD) {
+                if (have_fastchunks(av))
+                    malloc_consolidate(av);
+
+                if (av == &main_arena) {
 #ifndef MORECORE_CANNOT_TRIM
-	  if ((unsigned long)(chunksize(av->top)) >=
-	      (unsigned long)(mp_.trim_threshold))
-	    sYSTRIm(mp_.top_pad, av);
+                    if ((unsigned long)(chunksize(av->top)) >=
+                        (unsigned long)(mp_.trim_threshold))
+                        sYSTRIm(mp_.top_pad, av);
 #endif
-	} else {
-	  /* Always try heap_trim(), even if the top chunk is not
-             large, because the corresponding heap might go away.  */
-	  heap_info *heap = heap_for_ptr(top(av));
+                } else {
+                    /* Always try heap_trim(), even if the top chunk is not
+                           large, because the corresponding heap might go away.
+                     */
+                    heap_info *heap = heap_for_ptr(top(av));
 
-	  assert(heap->ar_ptr == av);
-	  heap_trim(heap, mp_.top_pad);
-	}
-      }
+                    assert(heap->ar_ptr == av);
+                    heap_trim(heap, mp_.top_pad);
+                }
+            }
 
-    }
-    /*
-      If the chunk was allocated via mmap, release via munmap(). Note
-      that if HAVE_MMAP is false but chunk_is_mmapped is true, then
-      user must have overwritten memory. There's nothing we can do to
-      catch this error unless MALLOC_DEBUG is set, in which case
-      check_inuse_chunk (above) will have triggered error.
-    */
+        }
+        /*
+          If the chunk was allocated via mmap, release via munmap(). Note
+          that if HAVE_MMAP is false but chunk_is_mmapped is true, then
+          user must have overwritten memory. There's nothing we can do to
+          catch this error unless MALLOC_DEBUG is set, in which case
+          check_inuse_chunk (above) will have triggered error.
+        */
 
-    else {
+        else {
 #if HAVE_MMAP
-      int ret;
-      INTERNAL_SIZE_T offset = p->prev_size;
-      mp_.n_mmaps--;
-      mp_.mmapped_mem -= (size + offset);
-      ret = munmap((char*)p - offset, size + offset);
-      /* munmap returns non-zero on failure */
-      assert(ret == 0);
+            int ret;
+            INTERNAL_SIZE_T offset = p->prev_size;
+            mp_.n_mmaps--;
+            mp_.mmapped_mem -= (size + offset);
+            ret = munmap((char *)p - offset, size + offset);
+            /* munmap returns non-zero on failure */
+            assert(ret == 0);
 #endif
+        }
     }
-  }
 }
 
 /*
@@ -4543,440 +4534,442 @@ static void malloc_consolidate(mstate av)
 static void malloc_consolidate(av) mstate av;
 #endif
 {
-  mfastbinptr*    fb;                 /* current fastbin being consolidated */
-  mfastbinptr*    maxfb;              /* last fastbin (for loop control) */
-  mchunkptr       p;                  /* current chunk being consolidated */
-  mchunkptr       nextp;              /* next chunk to consolidate */
-  mchunkptr       unsorted_bin;       /* bin header */
-  mchunkptr       first_unsorted;     /* chunk to link to */
+    mfastbinptr *fb;          /* current fastbin being consolidated */
+    mfastbinptr *maxfb;       /* last fastbin (for loop control) */
+    mchunkptr p;              /* current chunk being consolidated */
+    mchunkptr nextp;          /* next chunk to consolidate */
+    mchunkptr unsorted_bin;   /* bin header */
+    mchunkptr first_unsorted; /* chunk to link to */
 
-  /* These have same use as in free() */
-  mchunkptr       nextchunk;
-  INTERNAL_SIZE_T size;
-  INTERNAL_SIZE_T nextsize;
-  INTERNAL_SIZE_T prevsize;
-  int             nextinuse;
-  mchunkptr       bck;
-  mchunkptr       fwd;
-
-  /*
-    If max_fast is 0, we know that av hasn't
-    yet been initialized, in which case do so below
-  */
-
-  if (av->max_fast != 0) {
-    clear_fastchunks(av);
-
-    unsorted_bin = unsorted_chunks(av);
+    /* These have same use as in free() */
+    mchunkptr nextchunk;
+    INTERNAL_SIZE_T size;
+    INTERNAL_SIZE_T nextsize;
+    INTERNAL_SIZE_T prevsize;
+    int nextinuse;
+    mchunkptr bck;
+    mchunkptr fwd;
 
     /*
-      Remove each chunk from fast bin and consolidate it, placing it
-      then in unsorted bin. Among other reasons for doing this,
-      placing in unsorted bin avoids needing to calculate actual bins
-      until malloc is sure that chunks aren't immediately going to be
-      reused anyway.
+      If max_fast is 0, we know that av hasn't
+      yet been initialized, in which case do so below
     */
 
-    maxfb = &(av->fastbins[fastbin_index(av->max_fast)]);
-    fb = &(av->fastbins[0]);
-    do {
-      if ( (p = *fb) != 0) {
-        *fb = 0;
+    if (av->max_fast != 0) {
+        clear_fastchunks(av);
 
+        unsorted_bin = unsorted_chunks(av);
+
+        /*
+          Remove each chunk from fast bin and consolidate it, placing it
+          then in unsorted bin. Among other reasons for doing this,
+          placing in unsorted bin avoids needing to calculate actual bins
+          until malloc is sure that chunks aren't immediately going to be
+          reused anyway.
+        */
+
+        maxfb = &(av->fastbins[fastbin_index(av->max_fast)]);
+        fb = &(av->fastbins[0]);
         do {
-          check_inuse_chunk(av, p);
-          nextp = p->fd;
+            if ((p = *fb) != 0) {
+                *fb = 0;
 
-          /* Slightly streamlined version of consolidation code in free() */
-          size = p->size & ~(PREV_INUSE|NON_MAIN_ARENA);
-          nextchunk = chunk_at_offset(p, size);
-          nextsize = chunksize(nextchunk);
+                do {
+                    check_inuse_chunk(av, p);
+                    nextp = p->fd;
 
-          if (!prev_inuse(p)) {
-            prevsize = p->prev_size;
-            size += prevsize;
-            p = chunk_at_offset(p, -((long) prevsize));
-            unlink(p, bck, fwd);
-          }
+                    /* Slightly streamlined version of consolidation code in
+                     * free() */
+                    size = p->size & ~(PREV_INUSE | NON_MAIN_ARENA);
+                    nextchunk = chunk_at_offset(p, size);
+                    nextsize = chunksize(nextchunk);
 
-          if (nextchunk != av->top) {
-            nextinuse = inuse_bit_at_offset(nextchunk, nextsize);
+                    if (!prev_inuse(p)) {
+                        prevsize = p->prev_size;
+                        size += prevsize;
+                        p = chunk_at_offset(p, -((long)prevsize));
+                        unlink(p, bck, fwd);
+                    }
 
-            if (!nextinuse) {
-              size += nextsize;
-              unlink(nextchunk, bck, fwd);
-            } else
-	      clear_inuse_bit_at_offset(nextchunk, 0);
+                    if (nextchunk != av->top) {
+                        nextinuse = inuse_bit_at_offset(nextchunk, nextsize);
 
-            first_unsorted = unsorted_bin->fd;
-            unsorted_bin->fd = p;
-            first_unsorted->bk = p;
+                        if (!nextinuse) {
+                            size += nextsize;
+                            unlink(nextchunk, bck, fwd);
+                        } else
+                            clear_inuse_bit_at_offset(nextchunk, 0);
 
-            set_head(p, size | PREV_INUSE);
-            p->bk = unsorted_bin;
-            p->fd = first_unsorted;
-            set_foot(p, size);
-          }
+                        first_unsorted = unsorted_bin->fd;
+                        unsorted_bin->fd = p;
+                        first_unsorted->bk = p;
 
-          else {
-            size += nextsize;
-            set_head(p, size | PREV_INUSE);
-            av->top = p;
-          }
+                        set_head(p, size | PREV_INUSE);
+                        p->bk = unsorted_bin;
+                        p->fd = first_unsorted;
+                        set_foot(p, size);
+                    }
 
-        } while ( (p = nextp) != 0);
+                    else {
+                        size += nextsize;
+                        set_head(p, size | PREV_INUSE);
+                        av->top = p;
+                    }
 
-      }
-    } while (fb++ != maxfb);
-  }
-  else {
-    malloc_init_state(av);
-    check_malloc_state(av);
-  }
+                } while ((p = nextp) != 0);
+            }
+        } while (fb++ != maxfb);
+    } else {
+        malloc_init_state(av);
+        check_malloc_state(av);
+    }
 }
 
 /*
   ------------------------------ realloc ------------------------------
 */
 
-Void_t*
-_int_realloc(mstate av, Void_t* oldmem, size_t bytes)
+Void_t *_int_realloc(mstate av, Void_t *oldmem, size_t bytes)
 {
-  INTERNAL_SIZE_T  nb;              /* padded request size */
+    INTERNAL_SIZE_T nb; /* padded request size */
 
-  mchunkptr        oldp;            /* chunk corresponding to oldmem */
-  INTERNAL_SIZE_T  oldsize;         /* its size */
+    mchunkptr oldp;          /* chunk corresponding to oldmem */
+    INTERNAL_SIZE_T oldsize; /* its size */
 
-  mchunkptr        newp;            /* chunk to return */
-  INTERNAL_SIZE_T  newsize;         /* its size */
-  Void_t*          newmem;          /* corresponding user mem */
+    mchunkptr newp;          /* chunk to return */
+    INTERNAL_SIZE_T newsize; /* its size */
+    Void_t *newmem;          /* corresponding user mem */
 
-  mchunkptr        next;            /* next contiguous chunk after oldp */
+    mchunkptr next; /* next contiguous chunk after oldp */
 
-  mchunkptr        remainder;       /* extra space at end of newp */
-  unsigned long    remainder_size;  /* its size */
+    mchunkptr remainder;          /* extra space at end of newp */
+    unsigned long remainder_size; /* its size */
 
-  mchunkptr        bck;             /* misc temp for linking */
-  mchunkptr        fwd;             /* misc temp for linking */
+    mchunkptr bck; /* misc temp for linking */
+    mchunkptr fwd; /* misc temp for linking */
 
-  unsigned long    copysize;        /* bytes to copy */
-  unsigned int     ncopies;         /* INTERNAL_SIZE_T words to copy */
-  INTERNAL_SIZE_T* s;               /* copy source */
-  INTERNAL_SIZE_T* d;               /* copy destination */
-
+    unsigned long copysize; /* bytes to copy */
+    unsigned int ncopies;   /* INTERNAL_SIZE_T words to copy */
+    INTERNAL_SIZE_T *s;     /* copy source */
+    INTERNAL_SIZE_T *d;     /* copy destination */
 
 #if REALLOC_ZERO_BYTES_FREES
-  if (bytes == 0) {
-    _int_free(av, oldmem);
-    return 0;
-  }
+    if (bytes == 0) {
+        _int_free(av, oldmem);
+        return 0;
+    }
 #endif
 
-  /* realloc of null is supposed to be same as malloc */
-  if (likely(!mv2_use_aligned_alloc)) {
-    if (oldmem == 0) return _int_malloc(av, bytes);
-  } else {
-    if (oldmem == 0) return _int_memalign(av, MV2_GENERIC_CACHE_LINE_SIZE, bytes);
-  }
-
-  checked_request2size(bytes, nb);
-
-  oldp    = mem2chunk(oldmem);
-  oldsize = chunksize(oldp);
-
-  check_inuse_chunk(av, oldp);
-
-  if (!chunk_is_mmapped(oldp)) {
-
-    if ((unsigned long)(oldsize) >= (unsigned long)(nb)) {
-      /* already big enough; split below */
-      newp = oldp;
-      newsize = oldsize;
+    /* realloc of null is supposed to be same as malloc */
+    if (likely(!MVP_USE_ALIGNED_ALLOC)) {
+        if (oldmem == 0)
+            return _int_malloc(av, bytes);
+    } else {
+        if (oldmem == 0)
+            return _int_memalign(av, MVP_GENERIC_CACHE_LINE_SIZE, bytes);
     }
+
+    checked_request2size(bytes, nb);
+
+    oldp = mem2chunk(oldmem);
+    oldsize = chunksize(oldp);
+
+    check_inuse_chunk(av, oldp);
+
+    if (!chunk_is_mmapped(oldp)) {
+        if ((unsigned long)(oldsize) >= (unsigned long)(nb)) {
+            /* already big enough; split below */
+            newp = oldp;
+            newsize = oldsize;
+        }
+
+        else {
+            next = chunk_at_offset(oldp, oldsize);
+
+            /* Try to expand forward into top */
+            if (next == av->top &&
+                (unsigned long)(newsize = oldsize + chunksize(next)) >=
+                    (unsigned long)(nb + MINSIZE)) {
+                set_head_size(oldp,
+                              nb | (av != &main_arena ? NON_MAIN_ARENA : 0));
+                av->top = chunk_at_offset(oldp, nb);
+                set_head(av->top, (newsize - nb) | PREV_INUSE);
+                check_inuse_chunk(av, oldp);
+                return chunk2mem(oldp);
+            }
+
+            /* Try to expand forward into next chunk;  split off remainder below
+             */
+            else if (next != av->top && !inuse(next) &&
+                     (unsigned long)(newsize = oldsize + chunksize(next)) >=
+                         (unsigned long)(nb)) {
+                newp = oldp;
+                unlink(next, bck, fwd);
+            }
+
+            /* allocate, copy, free */
+            else {
+                if (likely(!MVP_USE_ALIGNED_ALLOC)) {
+                    newmem = _int_malloc(av, nb - MALLOC_ALIGN_MASK);
+                } else {
+                    newmem = _int_memalign(av, MVP_GENERIC_CACHE_LINE_SIZE,
+                                           nb - MALLOC_ALIGN_MASK);
+                }
+                if (newmem == 0)
+                    return 0; /* propagate failure */
+
+                newp = mem2chunk(newmem);
+                newsize = chunksize(newp);
+
+                /*
+                  Avoid copy if newp is next chunk after oldp.
+                */
+                if (newp == next) {
+                    newsize += oldsize;
+                    newp = oldp;
+                } else {
+                    /*
+                      Unroll copy of <= 36 bytes (72 if 8byte sizes)
+                      We know that contents have an odd number of
+                      INTERNAL_SIZE_T-sized words; minimally 3.
+                    */
+
+                    copysize = oldsize - SIZE_SZ;
+                    s = (INTERNAL_SIZE_T *)(oldmem);
+                    d = (INTERNAL_SIZE_T *)(newmem);
+                    ncopies = copysize / sizeof(INTERNAL_SIZE_T);
+                    assert(ncopies >= 3);
+
+                    if (ncopies > 9)
+                        MALLOC_COPY(d, s, copysize);
+
+                    else {
+                        *(d + 0) = *(s + 0);
+                        *(d + 1) = *(s + 1);
+                        *(d + 2) = *(s + 2);
+                        if (ncopies > 4) {
+                            *(d + 3) = *(s + 3);
+                            *(d + 4) = *(s + 4);
+                            if (ncopies > 6) {
+                                *(d + 5) = *(s + 5);
+                                *(d + 6) = *(s + 6);
+                                if (ncopies > 8) {
+                                    *(d + 7) = *(s + 7);
+                                    *(d + 8) = *(s + 8);
+                                }
+                            }
+                        }
+                    }
+
+                    _int_free(av, oldmem);
+                    check_inuse_chunk(av, newp);
+
+                    return chunk2mem(newp);
+                }
+            }
+        }
+
+        /* If possible, free extra space in old or extended chunk */
+
+        assert((unsigned long)(newsize) >= (unsigned long)(nb));
+
+        remainder_size = newsize - nb;
+
+        if (remainder_size < MINSIZE) { /* not enough extra to split off */
+            set_head_size(newp,
+                          newsize | (av != &main_arena ? NON_MAIN_ARENA : 0));
+            set_inuse_bit_at_offset(newp, newsize);
+        } else { /* split remainder */
+            remainder = chunk_at_offset(newp, nb);
+            set_head_size(newp, nb | (av != &main_arena ? NON_MAIN_ARENA : 0));
+            set_head(remainder, remainder_size | PREV_INUSE |
+                                    (av != &main_arena ? NON_MAIN_ARENA : 0));
+            /* Mark remainder as inuse so free() won't complain */
+            set_inuse_bit_at_offset(remainder, remainder_size);
+            _int_free(av, chunk2mem(remainder));
+        }
+
+        check_inuse_chunk(av, newp);
+        return chunk2mem(newp);
+    }
+
+    /*
+      Handle mmap cases
+    */
 
     else {
-      next = chunk_at_offset(oldp, oldsize);
-
-      /* Try to expand forward into top */
-      if (next == av->top &&
-          (unsigned long)(newsize = oldsize + chunksize(next)) >=
-          (unsigned long)(nb + MINSIZE)) {
-        set_head_size(oldp, nb | (av != &main_arena ? NON_MAIN_ARENA : 0));
-        av->top = chunk_at_offset(oldp, nb);
-        set_head(av->top, (newsize - nb) | PREV_INUSE);
-	check_inuse_chunk(av, oldp);
-        return chunk2mem(oldp);
-      }
-
-      /* Try to expand forward into next chunk;  split off remainder below */
-      else if (next != av->top &&
-               !inuse(next) &&
-               (unsigned long)(newsize = oldsize + chunksize(next)) >=
-               (unsigned long)(nb)) {
-        newp = oldp;
-        unlink(next, bck, fwd);
-      }
-
-      /* allocate, copy, free */
-      else {
-        if (likely(!mv2_use_aligned_alloc)) {
-          newmem = _int_malloc(av, nb - MALLOC_ALIGN_MASK);
-        } else {
-          newmem = _int_memalign(av, MV2_GENERIC_CACHE_LINE_SIZE, nb - MALLOC_ALIGN_MASK);
-        }
-        if (newmem == 0)
-          return 0; /* propagate failure */
-
-        newp = mem2chunk(newmem);
-        newsize = chunksize(newp);
-
-        /*
-          Avoid copy if newp is next chunk after oldp.
-        */
-        if (newp == next) {
-          newsize += oldsize;
-          newp = oldp;
-        }
-        else {
-          /*
-            Unroll copy of <= 36 bytes (72 if 8byte sizes)
-            We know that contents have an odd number of
-            INTERNAL_SIZE_T-sized words; minimally 3.
-          */
-
-          copysize = oldsize - SIZE_SZ;
-          s = (INTERNAL_SIZE_T*)(oldmem);
-          d = (INTERNAL_SIZE_T*)(newmem);
-          ncopies = copysize / sizeof(INTERNAL_SIZE_T);
-          assert(ncopies >= 3);
-
-          if (ncopies > 9)
-            MALLOC_COPY(d, s, copysize);
-
-          else {
-            *(d+0) = *(s+0);
-            *(d+1) = *(s+1);
-            *(d+2) = *(s+2);
-            if (ncopies > 4) {
-              *(d+3) = *(s+3);
-              *(d+4) = *(s+4);
-              if (ncopies > 6) {
-                *(d+5) = *(s+5);
-                *(d+6) = *(s+6);
-                if (ncopies > 8) {
-                  *(d+7) = *(s+7);
-                  *(d+8) = *(s+8);
-                }
-              }
-            }
-          }
-
-          _int_free(av, oldmem);
-          check_inuse_chunk(av, newp);
-
-          return chunk2mem(newp);
-        }
-      }
-    }
-
-    /* If possible, free extra space in old or extended chunk */
-
-    assert((unsigned long)(newsize) >= (unsigned long)(nb));
-
-    remainder_size = newsize - nb;
-
-    if (remainder_size < MINSIZE) { /* not enough extra to split off */
-      set_head_size(newp, newsize | (av != &main_arena ? NON_MAIN_ARENA : 0));
-      set_inuse_bit_at_offset(newp, newsize);
-    }
-    else { /* split remainder */
-      remainder = chunk_at_offset(newp, nb);
-      set_head_size(newp, nb | (av != &main_arena ? NON_MAIN_ARENA : 0));
-      set_head(remainder, remainder_size | PREV_INUSE |
-	       (av != &main_arena ? NON_MAIN_ARENA : 0));
-      /* Mark remainder as inuse so free() won't complain */
-      set_inuse_bit_at_offset(remainder, remainder_size);
-      _int_free(av, chunk2mem(remainder));
-
-    }
-
-    check_inuse_chunk(av, newp);
-    return chunk2mem(newp);
-  }
-
-  /*
-    Handle mmap cases
-  */
-
-  else {
 #if HAVE_MMAP
 
 #if HAVE_MREMAP
-    INTERNAL_SIZE_T offset = oldp->prev_size;
-    size_t pagemask = mp_.pagesize - 1;
-    char *cp;
-    unsigned long sum;
+        INTERNAL_SIZE_T offset = oldp->prev_size;
+        size_t pagemask = mp_.pagesize - 1;
+        char *cp;
+        unsigned long sum;
 
-    /* Note the extra SIZE_SZ overhead */
-    newsize = (nb + offset + SIZE_SZ + pagemask) & ~pagemask;
+        /* Note the extra SIZE_SZ overhead */
+        newsize = (nb + offset + SIZE_SZ + pagemask) & ~pagemask;
 
-    /* don't need to remap if still within same page */
-    if (oldsize == newsize - offset)
-      return oldmem;
+        /* don't need to remap if still within same page */
+        if (oldsize == newsize - offset)
+            return oldmem;
 
-    cp = (char*)mremap((char*)oldp - offset, oldsize + offset, newsize, 1);
+        cp =
+            (char *)mremap((char *)oldp - offset, oldsize + offset, newsize, 1);
 
-    if (cp != MAP_FAILED) {
+        if (cp != MAP_FAILED) {
+            newp = (mchunkptr)(cp + offset);
+            set_head(newp, (newsize - offset) | IS_MMAPPED);
 
-      newp = (mchunkptr)(cp + offset);
-      set_head(newp, (newsize - offset)|IS_MMAPPED);
+            assert(aligned_OK(chunk2mem(newp)));
+            assert((newp->prev_size == offset));
 
-      assert(aligned_OK(chunk2mem(newp)));
-      assert((newp->prev_size == offset));
-
-      /* update statistics */
-      sum = mp_.mmapped_mem += newsize - oldsize;
-      if (sum > (unsigned long)(mp_.max_mmapped_mem))
-        mp_.max_mmapped_mem = sum;
+            /* update statistics */
+            sum = mp_.mmapped_mem += newsize - oldsize;
+            if (sum > (unsigned long)(mp_.max_mmapped_mem))
+                mp_.max_mmapped_mem = sum;
 #ifdef NO_THREADS
-      sum += main_arena.system_mem;
-      if (sum > (unsigned long)(mp_.max_total_mem))
-        mp_.max_total_mem = sum;
+            sum += main_arena.system_mem;
+            if (sum > (unsigned long)(mp_.max_total_mem))
+                mp_.max_total_mem = sum;
 #endif
 
-      return chunk2mem(newp);
-    }
+            return chunk2mem(newp);
+        }
 #endif
 
-    /* Note the extra SIZE_SZ overhead. */
-    if ((unsigned long)(oldsize) >= (unsigned long)(nb + SIZE_SZ))
-      newmem = oldmem; /* do nothing */
-    else {
-      /* Must alloc, copy, free. */
-      if (likely(!mv2_use_aligned_alloc)) {
-        newmem = _int_malloc(av, nb - MALLOC_ALIGN_MASK);
-      } else {
-        newmem = _int_memalign(av, MV2_GENERIC_CACHE_LINE_SIZE, nb - MALLOC_ALIGN_MASK);
-      }
-      if (newmem != 0) {
-        MALLOC_COPY(newmem, oldmem, oldsize - 2*SIZE_SZ);
-        _int_free(av, oldmem);
-      }
-    }
-    return newmem;
+        /* Note the extra SIZE_SZ overhead. */
+        if ((unsigned long)(oldsize) >= (unsigned long)(nb + SIZE_SZ))
+            newmem = oldmem; /* do nothing */
+        else {
+            /* Must alloc, copy, free. */
+            if (likely(!MVP_USE_ALIGNED_ALLOC)) {
+                newmem = _int_malloc(av, nb - MALLOC_ALIGN_MASK);
+            } else {
+                newmem = _int_memalign(av, MVP_GENERIC_CACHE_LINE_SIZE,
+                                       nb - MALLOC_ALIGN_MASK);
+            }
+            if (newmem != 0) {
+                MALLOC_COPY(newmem, oldmem, oldsize - 2 * SIZE_SZ);
+                _int_free(av, oldmem);
+            }
+        }
+        return newmem;
 
 #else
-    /* If !HAVE_MMAP, but chunk_is_mmapped, user must have overwritten mem */
-    check_malloc_state(av);
-    MALLOC_FAILURE_ACTION;
-    return 0;
+        /* If !HAVE_MMAP, but chunk_is_mmapped, user must have overwritten mem
+         */
+        check_malloc_state(av);
+        MALLOC_FAILURE_ACTION;
+        return 0;
 #endif
-  }
+    }
 }
 
 /*
   ------------------------------ memalign ------------------------------
 */
 
-Void_t*
-_int_memalign(mstate av, size_t alignment, size_t bytes)
+Void_t *_int_memalign(mstate av, size_t alignment, size_t bytes)
 {
-  INTERNAL_SIZE_T nb;             /* padded  request size */
-  char*           m;              /* memory returned by malloc call */
-  mchunkptr       p;              /* corresponding chunk */
-  char*           brk;            /* alignment point within p */
-  mchunkptr       newp;           /* chunk to return */
-  INTERNAL_SIZE_T newsize;        /* its size */
-  INTERNAL_SIZE_T leadsize;       /* leading space before alignment point */
-  mchunkptr       remainder;      /* spare room at end to split off */
-  unsigned long   remainder_size; /* its size */
-  INTERNAL_SIZE_T size;
+    INTERNAL_SIZE_T nb;           /* padded  request size */
+    char *m;                      /* memory returned by malloc call */
+    mchunkptr p;                  /* corresponding chunk */
+    char *brk;                    /* alignment point within p */
+    mchunkptr newp;               /* chunk to return */
+    INTERNAL_SIZE_T newsize;      /* its size */
+    INTERNAL_SIZE_T leadsize;     /* leading space before alignment point */
+    mchunkptr remainder;          /* spare room at end to split off */
+    unsigned long remainder_size; /* its size */
+    INTERNAL_SIZE_T size;
 
-  /* If need less alignment than we give anyway, just relay to malloc */
+    /* If need less alignment than we give anyway, just relay to malloc */
 
-  if (alignment <= MALLOC_ALIGNMENT) return _int_malloc(av, bytes);
+    if (alignment <= MALLOC_ALIGNMENT)
+        return _int_malloc(av, bytes);
 
-  /* Otherwise, ensure that it is at least a minimum chunk size */
+    /* Otherwise, ensure that it is at least a minimum chunk size */
 
-  if (alignment <  MINSIZE) alignment = MINSIZE;
+    if (alignment < MINSIZE)
+        alignment = MINSIZE;
 
-  /* Make sure alignment is power of 2 (in case MINSIZE is not).  */
-  if ((alignment & (alignment - 1)) != 0) {
-    size_t a = MALLOC_ALIGNMENT * 2;
-    while ((unsigned long)a < (unsigned long)alignment) a <<= 1;
-    alignment = a;
-  }
+    /* Make sure alignment is power of 2 (in case MINSIZE is not).  */
+    if ((alignment & (alignment - 1)) != 0) {
+        size_t a = MALLOC_ALIGNMENT * 2;
+        while ((unsigned long)a < (unsigned long)alignment)
+            a <<= 1;
+        alignment = a;
+    }
 
-  checked_request2size(bytes, nb);
-
-  /*
-    Strategy: find a spot within that chunk that meets the alignment
-    request, and then possibly free the leading and trailing space.
-  */
-
-
-  /* Call malloc with worst case padding to hit alignment. */
-
-  m  = (char*)(_int_malloc(av, nb + alignment + MINSIZE));
-
-  if (m == 0) return 0; /* propagate failure */
-
-  p = mem2chunk(m);
-
-  if ((((unsigned long)(m)) % alignment) != 0) { /* misaligned */
+    checked_request2size(bytes, nb);
 
     /*
-      Find an aligned spot inside chunk.  Since we need to give back
-      leading space in a chunk of at least MINSIZE, if the first
-      calculation places us at a spot with less than MINSIZE leader,
-      we can move to the next aligned spot -- we've allocated enough
-      total room so that this is always possible.
+      Strategy: find a spot within that chunk that meets the alignment
+      request, and then possibly free the leading and trailing space.
     */
 
-    brk = (char*)mem2chunk(((unsigned long)(m + alignment - 1)) &
-                           -((signed long) alignment));
-    if ((unsigned long)(brk - (char*)(p)) < MINSIZE)
-      brk += alignment;
+    /* Call malloc with worst case padding to hit alignment. */
 
-    newp = (mchunkptr)brk;
-    leadsize = brk - (char*)(p);
-    newsize = chunksize(p) - leadsize;
+    m = (char *)(_int_malloc(av, nb + alignment + MINSIZE));
 
-    /* For mmapped chunks, just adjust offset */
-    if (chunk_is_mmapped(p)) {
-      newp->prev_size = p->prev_size + leadsize;
-      set_head(newp, newsize|IS_MMAPPED);
-      return chunk2mem(newp);
+    if (m == 0)
+        return 0; /* propagate failure */
+
+    p = mem2chunk(m);
+
+    if ((((unsigned long)(m)) % alignment) != 0) { /* misaligned */
+
+        /*
+          Find an aligned spot inside chunk.  Since we need to give back
+          leading space in a chunk of at least MINSIZE, if the first
+          calculation places us at a spot with less than MINSIZE leader,
+          we can move to the next aligned spot -- we've allocated enough
+          total room so that this is always possible.
+        */
+
+        brk = (char *)mem2chunk(((unsigned long)(m + alignment - 1)) &
+                                -((signed long)alignment));
+        if ((unsigned long)(brk - (char *)(p)) < MINSIZE)
+            brk += alignment;
+
+        newp = (mchunkptr)brk;
+        leadsize = brk - (char *)(p);
+        newsize = chunksize(p) - leadsize;
+
+        /* For mmapped chunks, just adjust offset */
+        if (chunk_is_mmapped(p)) {
+            newp->prev_size = p->prev_size + leadsize;
+            set_head(newp, newsize | IS_MMAPPED);
+            return chunk2mem(newp);
+        }
+
+        /* Otherwise, give back leader, use the rest */
+        set_head(newp, newsize | PREV_INUSE |
+                           (av != &main_arena ? NON_MAIN_ARENA : 0));
+        set_inuse_bit_at_offset(newp, newsize);
+        set_head_size(p, leadsize | (av != &main_arena ? NON_MAIN_ARENA : 0));
+        _int_free(av, chunk2mem(p));
+        p = newp;
+
+        assert(newsize >= nb &&
+               (((unsigned long)(chunk2mem(p))) % alignment) == 0);
     }
 
-    /* Otherwise, give back leader, use the rest */
-    set_head(newp, newsize | PREV_INUSE |
-	     (av != &main_arena ? NON_MAIN_ARENA : 0));
-    set_inuse_bit_at_offset(newp, newsize);
-    set_head_size(p, leadsize | (av != &main_arena ? NON_MAIN_ARENA : 0));
-    _int_free(av, chunk2mem(p));
-    p = newp;
-
-    assert (newsize >= nb &&
-            (((unsigned long)(chunk2mem(p))) % alignment) == 0);
-  }
-
-  /* Also give back spare room at the end */
-  if (!chunk_is_mmapped(p)) {
-    size = chunksize(p);
-    if ((unsigned long)(size) > (unsigned long)(nb + MINSIZE)) {
-      remainder_size = size - nb;
-      remainder = chunk_at_offset(p, nb);
-      set_head(remainder, remainder_size | PREV_INUSE |
-	       (av != &main_arena ? NON_MAIN_ARENA : 0));
-      set_head_size(p, nb);
-      _int_free(av, chunk2mem(remainder));
+    /* Also give back spare room at the end */
+    if (!chunk_is_mmapped(p)) {
+        size = chunksize(p);
+        if ((unsigned long)(size) > (unsigned long)(nb + MINSIZE)) {
+            remainder_size = size - nb;
+            remainder = chunk_at_offset(p, nb);
+            set_head(remainder, remainder_size | PREV_INUSE |
+                                    (av != &main_arena ? NON_MAIN_ARENA : 0));
+            set_head_size(p, nb);
+            _int_free(av, chunk2mem(remainder));
+        }
     }
-  }
 
-  check_inuse_chunk(av, p);
+    check_inuse_chunk(av, p);
 
-  return chunk2mem(p);
+    return chunk2mem(p);
 }
 
 #if 0
@@ -5045,34 +5038,39 @@ Void_t* cALLOc(n_elements, elem_size) size_t n_elements; size_t elem_size;
   ------------------------- independent_calloc -------------------------
 */
 
-Void_t**
+Void_t **
 #if __STD_C
-_int_icalloc(mstate av, size_t n_elements, size_t elem_size, Void_t* chunks[])
+_int_icalloc(mstate av, size_t n_elements, size_t elem_size, Void_t *chunks[])
 #else
 _int_icalloc(av, n_elements, elem_size, chunks)
-mstate av; size_t n_elements; size_t elem_size; Void_t* chunks[];
+mstate av;
+size_t n_elements;
+size_t elem_size;
+Void_t *chunks[];
 #endif
 {
-  size_t sz = elem_size; /* serves as 1-element array */
-  /* opts arg of 3 means all elements are same size, and should be cleared */
-  return iALLOc(av, n_elements, &sz, 3, chunks);
+    size_t sz = elem_size; /* serves as 1-element array */
+    /* opts arg of 3 means all elements are same size, and should be cleared */
+    return iALLOc(av, n_elements, &sz, 3, chunks);
 }
 
 /*
   ------------------------- independent_comalloc -------------------------
 */
 
-Void_t**
+Void_t **
 #if __STD_C
-_int_icomalloc(mstate av, size_t n_elements, size_t sizes[], Void_t* chunks[])
+_int_icomalloc(mstate av, size_t n_elements, size_t sizes[], Void_t *chunks[])
 #else
 _int_icomalloc(av, n_elements, sizes, chunks)
-mstate av; size_t n_elements; size_t sizes[]; Void_t* chunks[];
+mstate av;
+size_t n_elements;
+size_t sizes[];
+Void_t *chunks[];
 #endif
 {
-  return iALLOc(av, n_elements, sizes, 0, chunks);
+    return iALLOc(av, n_elements, sizes, 0, chunks);
 }
-
 
 /*
   ------------------------------ ialloc ------------------------------
@@ -5084,187 +5082,191 @@ mstate av; size_t n_elements; size_t sizes[]; Void_t* chunks[];
     bit 1 set if elements should be zeroed
 */
 
-
-static Void_t**
+static Void_t **
 #if __STD_C
-iALLOc(mstate av, size_t n_elements, size_t* sizes, int opts, Void_t* chunks[])
+iALLOc(mstate av, size_t n_elements, size_t *sizes, int opts, Void_t *chunks[])
 #else
 iALLOc(av, n_elements, sizes, opts, chunks)
-mstate av; size_t n_elements; size_t* sizes; int opts; Void_t* chunks[];
+mstate av;
+size_t n_elements;
+size_t *sizes;
+int opts;
+Void_t *chunks[];
 #endif
 {
-  INTERNAL_SIZE_T element_size;   /* chunksize of each element, if all same */
-  INTERNAL_SIZE_T contents_size;  /* total size of elements */
-  INTERNAL_SIZE_T array_size;     /* request size of pointer array */
-  Void_t*         mem;            /* malloced aggregate space */
-  mchunkptr       p;              /* corresponding chunk */
-  INTERNAL_SIZE_T remainder_size; /* remaining bytes while splitting */
-  Void_t**        marray;         /* either "chunks" or malloced ptr array */
-  mchunkptr       array_chunk;    /* chunk for malloced ptr array */
-  int             mmx;            /* to disable mmap */
-  INTERNAL_SIZE_T size;
-  INTERNAL_SIZE_T size_flags;
-  size_t          i;
+    INTERNAL_SIZE_T element_size;   /* chunksize of each element, if all same */
+    INTERNAL_SIZE_T contents_size;  /* total size of elements */
+    INTERNAL_SIZE_T array_size;     /* request size of pointer array */
+    Void_t *mem;                    /* malloced aggregate space */
+    mchunkptr p;                    /* corresponding chunk */
+    INTERNAL_SIZE_T remainder_size; /* remaining bytes while splitting */
+    Void_t **marray;                /* either "chunks" or malloced ptr array */
+    mchunkptr array_chunk;          /* chunk for malloced ptr array */
+    int mmx;                        /* to disable mmap */
+    INTERNAL_SIZE_T size;
+    INTERNAL_SIZE_T size_flags;
+    size_t i;
 
-  /* Ensure initialization/consolidation */
-  if (have_fastchunks(av)) malloc_consolidate(av);
+    /* Ensure initialization/consolidation */
+    if (have_fastchunks(av))
+        malloc_consolidate(av);
 
-  /* compute array length, if needed */
-  if (chunks != 0) {
-    if (n_elements == 0)
-      return chunks; /* nothing to do */
-    marray = chunks;
-    array_size = 0;
-  }
-  else {
-    /* if empty req, must still return chunk representing empty array */
-    if (n_elements == 0) {
-      if (likely(!mv2_use_aligned_alloc)) {
-        return (Void_t**) _int_malloc(av, 0);
-      } else {
-        return (Void_t**) _int_memalign(av, MV2_GENERIC_CACHE_LINE_SIZE, 0);
-      }
+    /* compute array length, if needed */
+    if (chunks != 0) {
+        if (n_elements == 0)
+            return chunks; /* nothing to do */
+        marray = chunks;
+        array_size = 0;
+    } else {
+        /* if empty req, must still return chunk representing empty array */
+        if (n_elements == 0) {
+            if (likely(!MVP_USE_ALIGNED_ALLOC)) {
+                return (Void_t **)_int_malloc(av, 0);
+            } else {
+                return (Void_t **)_int_memalign(av, MVP_GENERIC_CACHE_LINE_SIZE,
+                                                0);
+            }
+        }
+        marray = 0;
+        array_size = request2size(n_elements * (sizeof(Void_t *)));
     }
-    marray = 0;
-    array_size = request2size(n_elements * (sizeof(Void_t*)));
-  }
 
-  /* compute total element size */
-  if (opts & 0x1) { /* all-same-size */
-    element_size = request2size(*sizes);
-    contents_size = n_elements * element_size;
-  }
-  else { /* add up all the sizes */
-    element_size = 0;
-    contents_size = 0;
-    for (i = 0; i != n_elements; ++i)
-      contents_size += request2size(sizes[i]);
-  }
-
-  /* subtract out alignment bytes from total to minimize overallocation */
-  size = contents_size + array_size - MALLOC_ALIGN_MASK;
-
-  /*
-     Allocate the aggregate chunk.
-     But first disable mmap so malloc won't use it, since
-     we would not be able to later free/realloc space internal
-     to a segregated mmap region.
-  */
-  mmx = mp_.n_mmaps_max;   /* disable mmap */
-  mp_.n_mmaps_max = 0;
-  if (likely(!mv2_use_aligned_alloc)) {
-    mem = _int_malloc(av, size);
-  } else {
-    mem = _int_memalign(av, MV2_GENERIC_CACHE_LINE_SIZE, size);
-  }
-  mp_.n_mmaps_max = mmx;   /* reset mmap */
-  if (mem == 0)
-    return 0;
-
-  p = mem2chunk(mem);
-  assert(!chunk_is_mmapped(p));
-  remainder_size = chunksize(p);
-
-  if (opts & 0x2) {       /* optionally clear the elements */
-    MALLOC_ZERO(mem, remainder_size - SIZE_SZ - array_size);
-  }
-
-  size_flags = PREV_INUSE | (av != &main_arena ? NON_MAIN_ARENA : 0);
-
-  /* If not provided, allocate the pointer array as final part of chunk */
-  if (marray == 0) {
-    array_chunk = chunk_at_offset(p, contents_size);
-    marray = (Void_t**) (chunk2mem(array_chunk));
-    set_head(array_chunk, (remainder_size - contents_size) | size_flags);
-    remainder_size = contents_size;
-  }
-
-  /* split out elements */
-  for (i = 0; ; ++i) {
-    marray[i] = chunk2mem(p);
-    if (i != n_elements-1) {
-      if (element_size != 0)
-        size = element_size;
-      else
-        size = request2size(sizes[i]);
-      remainder_size -= size;
-      set_head(p, size | size_flags);
-      p = chunk_at_offset(p, size);
+    /* compute total element size */
+    if (opts & 0x1) { /* all-same-size */
+        element_size = request2size(*sizes);
+        contents_size = n_elements * element_size;
+    } else { /* add up all the sizes */
+        element_size = 0;
+        contents_size = 0;
+        for (i = 0; i != n_elements; ++i)
+            contents_size += request2size(sizes[i]);
     }
-    else { /* the final element absorbs any overallocation slop */
-      set_head(p, remainder_size | size_flags);
-      break;
+
+    /* subtract out alignment bytes from total to minimize overallocation */
+    size = contents_size + array_size - MALLOC_ALIGN_MASK;
+
+    /*
+       Allocate the aggregate chunk.
+       But first disable mmap so malloc won't use it, since
+       we would not be able to later free/realloc space internal
+       to a segregated mmap region.
+    */
+    mmx = mp_.n_mmaps_max; /* disable mmap */
+    mp_.n_mmaps_max = 0;
+    if (likely(!MVP_USE_ALIGNED_ALLOC)) {
+        mem = _int_malloc(av, size);
+    } else {
+        mem = _int_memalign(av, MVP_GENERIC_CACHE_LINE_SIZE, size);
     }
-  }
+    mp_.n_mmaps_max = mmx; /* reset mmap */
+    if (mem == 0)
+        return 0;
+
+    p = mem2chunk(mem);
+    assert(!chunk_is_mmapped(p));
+    remainder_size = chunksize(p);
+
+    if (opts & 0x2) { /* optionally clear the elements */
+        MALLOC_ZERO(mem, remainder_size - SIZE_SZ - array_size);
+    }
+
+    size_flags = PREV_INUSE | (av != &main_arena ? NON_MAIN_ARENA : 0);
+
+    /* If not provided, allocate the pointer array as final part of chunk */
+    if (marray == 0) {
+        array_chunk = chunk_at_offset(p, contents_size);
+        marray = (Void_t **)(chunk2mem(array_chunk));
+        set_head(array_chunk, (remainder_size - contents_size) | size_flags);
+        remainder_size = contents_size;
+    }
+
+    /* split out elements */
+    for (i = 0;; ++i) {
+        marray[i] = chunk2mem(p);
+        if (i != n_elements - 1) {
+            if (element_size != 0)
+                size = element_size;
+            else
+                size = request2size(sizes[i]);
+            remainder_size -= size;
+            set_head(p, size | size_flags);
+            p = chunk_at_offset(p, size);
+        } else { /* the final element absorbs any overallocation slop */
+            set_head(p, remainder_size | size_flags);
+            break;
+        }
+    }
 
 #if MALLOC_DEBUG
-  if (marray != chunks) {
-    /* final element must have exactly exhausted chunk */
-    if (element_size != 0)
-      assert(remainder_size == element_size);
-    else
-      assert(remainder_size == request2size(sizes[i]));
-    check_inuse_chunk(av, mem2chunk(marray));
-  }
+    if (marray != chunks) {
+        /* final element must have exactly exhausted chunk */
+        if (element_size != 0)
+            assert(remainder_size == element_size);
+        else
+            assert(remainder_size == request2size(sizes[i]));
+        check_inuse_chunk(av, mem2chunk(marray));
+    }
 
-  for (i = 0; i != n_elements; ++i)
-    check_inuse_chunk(av, mem2chunk(marray[i]));
+    for (i = 0; i != n_elements; ++i)
+        check_inuse_chunk(av, mem2chunk(marray[i]));
 #endif
 
-  return marray;
+    return marray;
 }
-
 
 /*
   ------------------------------ valloc ------------------------------
 */
 
-Void_t*
+Void_t *
 #if __STD_C
 _int_valloc(mstate av, size_t bytes)
 #else
-_int_valloc(av, bytes) mstate av; size_t bytes;
+_int_valloc(av, bytes)
+mstate av;
+size_t bytes;
 #endif
 {
-    Void_t * p;
-  /* Ensure initialization/consolidation */
-  if (have_fastchunks(av)) malloc_consolidate(av);
-  p = _int_memalign(av, mp_.pagesize, bytes);
+    Void_t *p;
+    /* Ensure initialization/consolidation */
+    if (have_fastchunks(av))
+        malloc_consolidate(av);
+    p = _int_memalign(av, mp_.pagesize, bytes);
 
-  /* OSU */
-  /* This thread is currently holding on to the memory lock. We should not be
-   * calling flush_dereg_ from here */ 
-  /* flush_dereg_mrs_external(); */ 
+    /* OSU */
+    /* This thread is currently holding on to the memory lock. We should not be
+     * calling flush_dereg_ from here */
+    /* flush_dereg_mrs_external(); */
 
-  return p;
+    return p;
 }
 
 /*
   ------------------------------ pvalloc ------------------------------
 */
 
-
-Void_t*
+Void_t *
 #if __STD_C
 _int_pvalloc(mstate av, size_t bytes)
 #else
-_int_pvalloc(av, bytes) mstate av, size_t bytes;
+_int_pvalloc(av, bytes)
+mstate av, size_t bytes;
 #endif
 {
-  size_t pagesz;
-  Void_t * p;
+    size_t pagesz;
+    Void_t *p;
 
-  /* Ensure initialization/consolidation */
-  if (have_fastchunks(av)) malloc_consolidate(av);
-  pagesz = mp_.pagesize;
-  p = _int_memalign(av, pagesz, (bytes + pagesz - 1) & ~(pagesz - 1));
+    /* Ensure initialization/consolidation */
+    if (have_fastchunks(av))
+        malloc_consolidate(av);
+    pagesz = mp_.pagesize;
+    p = _int_memalign(av, pagesz, (bytes + pagesz - 1) & ~(pagesz - 1));
 
-  /* OSU */
-  /* flush_dereg_mrs_external(); */
+    /* OSU */
+    /* flush_dereg_mrs_external(); */
 
-  return p;
+    return p;
 }
-
 
 /*
   ------------------------------ malloc_trim ------------------------------
@@ -5273,41 +5275,42 @@ _int_pvalloc(av, bytes) mstate av, size_t bytes;
 #if __STD_C
 int mTRIm(size_t pad)
 #else
-int mTRIm(pad) size_t pad;
+int mTRIm(pad)
+size_t pad;
 #endif
 {
-  mstate av = &main_arena; /* already locked */
+    mstate av = &main_arena; /* already locked */
 
-  /* Ensure initialization/consolidation */
-  malloc_consolidate(av);
+    /* Ensure initialization/consolidation */
+    malloc_consolidate(av);
 
 #ifndef MORECORE_CANNOT_TRIM
-  return sYSTRIm(pad, av);
+    return sYSTRIm(pad, av);
 #else
-  return 0;
+    return 0;
 #endif
 }
-
 
 /*
   ------------------------- malloc_usable_size -------------------------
 */
 
 #if __STD_C
-size_t mUSABLe(Void_t* mem)
+size_t mUSABLe(Void_t *mem)
 #else
-size_t mUSABLe(mem) Void_t* mem;
+size_t mUSABLe(mem)
+Void_t *mem;
 #endif
 {
-  mchunkptr p;
-  if (mem != 0) {
-    p = mem2chunk(mem);
-    if (chunk_is_mmapped(p))
-      return chunksize(p) - 2*SIZE_SZ;
-    else if (inuse(p))
-      return chunksize(p) - SIZE_SZ;
-  }
-  return 0;
+    mchunkptr p;
+    if (mem != 0) {
+        p = mem2chunk(mem);
+        if (chunk_is_mmapped(p))
+            return chunksize(p) - 2 * SIZE_SZ;
+        else if (inuse(p))
+            return chunksize(p) - SIZE_SZ;
+    }
+    return 0;
 }
 
 /*
@@ -5316,64 +5319,64 @@ size_t mUSABLe(mem) Void_t* mem;
 
 void _int_get_arena_info(mstate av, struct malloc_arena_info *mai)
 {
-  size_t i;
-  mbinptr b;
-  mchunkptr p;
-  size_t binavail = 0;
-  size_t fastavail = 0;
-  int nbinblocks = 0;
-  int nfastblocks = 0;
+    size_t i;
+    mbinptr b;
+    mchunkptr p;
+    size_t binavail = 0;
+    size_t fastavail = 0;
+    int nbinblocks = 0;
+    int nfastblocks = 0;
 
-  (void)mutex_lock(&av->mutex);
+    (void)mutex_lock(&av->mutex);
 
-  /* Ensure initialization */
-  if (av->top == 0)  malloc_consolidate(av);
+    /* Ensure initialization */
+    if (av->top == 0)
+        malloc_consolidate(av);
 
-  check_malloc_state(av);
+    check_malloc_state(av);
 
-  /* traverse fastbins */
-  for (i = 0; i < NFASTBINS; ++i) {
-    for (p = av->fastbins[i]; p != 0; p = p->fd) {
-      ++nfastblocks;
-      fastavail += chunksize(p);
+    /* traverse fastbins */
+    for (i = 0; i < NFASTBINS; ++i) {
+        for (p = av->fastbins[i]; p != 0; p = p->fd) {
+            ++nfastblocks;
+            fastavail += chunksize(p);
+        }
     }
-  }
 
-  /* traverse regular bins */
-  for (i = 1; i < NBINS; ++i) {
-    b = bin_at(av, i);
-    for (p = last(b); p != b; p = p->bk) {
-      ++nbinblocks;
-      binavail += chunksize(p);
+    /* traverse regular bins */
+    for (i = 1; i < NBINS; ++i) {
+        b = bin_at(av, i);
+        for (p = last(b); p != b; p = p->bk) {
+            ++nbinblocks;
+            binavail += chunksize(p);
+        }
     }
-  }
 
-  mai->nfastblocks = nfastblocks;
-  mai->nbinblocks = nbinblocks;
-  mai->fastavail = fastavail;
-  mai->binavail = binavail;
-  mai->top_size = chunksize(av->top);
-  mai->system_mem = av->system_mem;
-  mai->max_system_mem = av->max_system_mem;
-  mai->stat_lock_direct = av->stat_lock_direct;
-  mai->stat_lock_loop   = av->stat_lock_loop;
-  mai->stat_lock_wait   = av->stat_lock_wait;
+    mai->nfastblocks = nfastblocks;
+    mai->nbinblocks = nbinblocks;
+    mai->fastavail = fastavail;
+    mai->binavail = binavail;
+    mai->top_size = chunksize(av->top);
+    mai->system_mem = av->system_mem;
+    mai->max_system_mem = av->max_system_mem;
+    mai->stat_lock_direct = av->stat_lock_direct;
+    mai->stat_lock_loop = av->stat_lock_loop;
+    mai->stat_lock_wait = av->stat_lock_wait;
 
-  (void)mutex_unlock(&av->mutex);
+    (void)mutex_unlock(&av->mutex);
 }
 
-void
-_int_get_global_info (struct malloc_global_info *mgi)
+void _int_get_global_info(struct malloc_global_info *mgi)
 {
-  mgi->n_mmaps = mp_.n_mmaps;
-  mgi->max_n_mmaps = mp_.max_n_mmaps;
-  mgi->mmapped_mem = mp_.mmapped_mem;
-  mgi->max_mmapped_mem = mp_.max_mmapped_mem;
-  mgi->max_total_mem = mp_.max_total_mem;
+    mgi->n_mmaps = mp_.n_mmaps;
+    mgi->max_n_mmaps = mp_.max_n_mmaps;
+    mgi->mmapped_mem = mp_.mmapped_mem;
+    mgi->max_mmapped_mem = mp_.max_mmapped_mem;
+    mgi->max_total_mem = mp_.max_total_mem;
 #if THREAD_STATS
-  mgi->stat_n_heaps = stat_n_heaps;
+    mgi->stat_n_heaps = stat_n_heaps;
 #else
-  mgi->stat_n_heaps = 0;
+    mgi->stat_n_heaps = 0;
 #endif
 }
 
@@ -5390,67 +5393,66 @@ _int_get_global_info (struct malloc_global_info *mgi)
 #if __STD_C
 int mALLOPt(int param_number, int value)
 #else
-int mALLOPt(param_number, value) int param_number; int value;
+int mALLOPt(param_number, value)
+int param_number;
+int value;
 #endif
 {
-  mstate av = &main_arena;
-  int res = 1;
+    mstate av = &main_arena;
+    int res = 1;
 
-  if(__malloc_initialized < 0)
-    ptmalloc_init ();
-  (void)mutex_lock(&av->mutex);
-  /* Ensure initialization/consolidation */
-  malloc_consolidate(av);
+    if (__malloc_initialized < 0)
+        ptmalloc_init();
+    (void)mutex_lock(&av->mutex);
+    /* Ensure initialization/consolidation */
+    malloc_consolidate(av);
 
-  switch(param_number) {
-  case M_MXFAST:
-    if (value >= 0 && value <= MAX_FAST_SIZE) {
-      set_max_fast(av, value);
-    }
-    else
-      res = 0;
-    break;
+    switch (param_number) {
+        case M_MXFAST:
+            if (value >= 0 && value <= MAX_FAST_SIZE) {
+                set_max_fast(av, value);
+            } else
+                res = 0;
+            break;
 
-  case M_TRIM_THRESHOLD:
-    mp_.trim_threshold = value;
-    break;
+        case M_TRIM_THRESHOLD:
+            mp_.trim_threshold = value;
+            break;
 
-  case M_TOP_PAD:
-    mp_.top_pad = value;
-    break;
+        case M_TOP_PAD:
+            mp_.top_pad = value;
+            break;
 
-  case M_MMAP_THRESHOLD:
+        case M_MMAP_THRESHOLD:
 #if USE_ARENAS
-    /* Forbid setting the threshold too high. */
-    if((unsigned long)value > HEAP_MAX_SIZE/2)
-      res = 0;
-    else
+            /* Forbid setting the threshold too high. */
+            if ((unsigned long)value > HEAP_MAX_SIZE / 2)
+                res = 0;
+            else
 #endif
-      mp_.mmap_threshold = value;
-    break;
+                mp_.mmap_threshold = value;
+            break;
 
-  case M_MMAP_MAX:
+        case M_MMAP_MAX:
 #if !HAVE_MMAP
-    if (value != 0)
-      res = 0;
-    else
+            if (value != 0)
+                res = 0;
+            else
 #endif
-      mp_.n_mmaps_max = value;
-    break;
+                mp_.n_mmaps_max = value;
+            break;
 
-  case M_CHECK_ACTION:
-    check_action = value;
-    break;
-  }
-  (void)mutex_unlock(&av->mutex);
-  return res;
+        case M_CHECK_ACTION:
+            check_action = value;
+            break;
+    }
+    (void)mutex_unlock(&av->mutex);
+    return res;
 }
-
 
 /*
   -------------------- Alternative MORECORE functions --------------------
 */
-
 
 /*
   General Requirements for MORECORE.
@@ -5585,46 +5587,44 @@ int mALLOPt(param_number, value) int param_number; int value;
 
 */
 
-
 /* CHANNEL_MRAIL: We need to expose our own posix_memalign or the wrong one
  * will be used.
 #ifdef _LIBC
 */
-# include <sys/param.h>
+#include <sys/param.h>
 
 /* We need a wrapper function for one of the additions of POSIX.  */
 int
 /* <CHANNEL_MRAIL> */
-posix_memalign (void **memptr, size_t alignment, size_t size)
+posix_memalign(void **memptr, size_t alignment, size_t size)
 /* __posix_memalign (void **memptr, size_t alignment, size_t size)
  * </CHANNEL_MRAIL>
  */
 {
-  void *mem;
-  __malloc_ptr_t (*hook) __MALLOC_PMT ((size_t, size_t,
-					__const __malloc_ptr_t)) =
-    __memalign_hook;
+    void *mem;
+    __malloc_ptr_t(*hook)
+        __MALLOC_PMT((size_t, size_t, __const __malloc_ptr_t)) =
+            __memalign_hook;
 
-  /* Test whether the SIZE argument is valid.  It must be a power of
-     two multiple of sizeof (void *).  */
-  if (alignment % sizeof (void *) != 0
-      || !powerof2 (alignment / sizeof (void *)) != 0
-      || alignment == 0)
-    return EINVAL;
+    /* Test whether the SIZE argument is valid.  It must be a power of
+       two multiple of sizeof (void *).  */
+    if (alignment % sizeof(void *) != 0 ||
+        !powerof2(alignment / sizeof(void *)) != 0 || alignment == 0)
+        return EINVAL;
 
-  /* Call the hook here, so that caller is posix_memalign's caller
-     and not posix_memalign itself.  */
-  if (hook != NULL)
-    mem = (*hook)(alignment, size, RETURN_ADDRESS (0));
-  else
-    mem = public_mEMALIGn (alignment, size);
+    /* Call the hook here, so that caller is posix_memalign's caller
+       and not posix_memalign itself.  */
+    if (hook != NULL)
+        mem = (*hook)(alignment, size, RETURN_ADDRESS(0));
+    else
+        mem = public_mEMALIGn(alignment, size);
 
-  if (mem != NULL) {
-    *memptr = mem;
-    return 0;
-  }
+    if (mem != NULL) {
+        *memptr = mem;
+        return 0;
+    }
 
-  return ENOMEM;
+    return ENOMEM;
 }
 
 /* CHANNEL_MRAIL: We need to expose our own aligned_alloc or the wrong one
@@ -5634,78 +5634,87 @@ posix_memalign (void **memptr, size_t alignment, size_t size)
 
 void *
 /* <CHANNEL_MRAIL> */
-aligned_alloc (size_t alignment, size_t size)
+aligned_alloc(size_t alignment, size_t size)
 /* __aligned_alloc (size_t alignment, size_t size)
  * </CHANNEL_MRAIL>
  */
 {
-  void *mem;
-  __malloc_ptr_t (*hook) __MALLOC_PMT ((size_t, size_t,
-					__const __malloc_ptr_t)) =
-    __memalign_hook;
+    void *mem;
+    __malloc_ptr_t(*hook)
+        __MALLOC_PMT((size_t, size_t, __const __malloc_ptr_t)) =
+            __memalign_hook;
 
-  /* Test whether the size and alignment arguments are valid.
-     The alignment must be a power of two and
-     size must be a multiple of alignment. */
-  if (size % alignment != 0
-      || !powerof2 (alignment) != 0
-      || alignment == 0) {
+    /* Test whether the size and alignment arguments are valid.
+       The alignment must be a power of two and
+       size must be a multiple of alignment. */
+    if (size % alignment != 0 || !powerof2(alignment) != 0 || alignment == 0) {
+        MALLOC_FAILURE_ACTION
+        return 0;
+    }
+
+    /* Call the hook here, so that caller is posix_memalign's caller
+       and not posix_memalign itself.  */
+    if (hook != NULL)
+        mem = (*hook)(alignment, size, RETURN_ADDRESS(0));
+    else
+        mem = public_mEMALIGn(alignment, size);
+
+    if (mem != NULL) {
+        return mem;
+    }
+
     MALLOC_FAILURE_ACTION
     return 0;
-  }
-
-  /* Call the hook here, so that caller is posix_memalign's caller
-     and not posix_memalign itself.  */
-  if (hook != NULL)
-    mem = (*hook)(alignment, size, RETURN_ADDRESS (0));
-  else
-    mem = public_mEMALIGn (alignment, size);
-
-  if (mem != NULL) {
-    return mem;
-  }
-
-  MALLOC_FAILURE_ACTION
-  return 0;
 }
 
 /* <CHANNEL_MRAIL> */
 #if defined(_LIBC)
 /* </CHANNEL_MRAIL> */
-weak_alias (__posix_memalign, posix_memalign)
-weak_alias (__aligned_alloc, aligned_alloc)
+weak_alias(__posix_memalign, posix_memalign) weak_alias(__aligned_alloc,
+                                                        aligned_alloc)
 
-strong_alias (__libc_calloc, __calloc) weak_alias (__libc_calloc, calloc)
-strong_alias (__libc_free, __cfree) weak_alias (__libc_free, cfree)
-strong_alias (__libc_free, __free) strong_alias (__libc_free, free)
-strong_alias (__libc_malloc, __malloc) strong_alias (__libc_malloc, malloc)
-strong_alias (__libc_memalign, __memalign)
-weak_alias (__libc_memalign, memalign)
-strong_alias (__libc_realloc, __realloc) strong_alias (__libc_realloc, realloc)
-strong_alias (__libc_valloc, __valloc) weak_alias (__libc_valloc, valloc)
-strong_alias (__libc_pvalloc, __pvalloc) weak_alias (__libc_pvalloc, pvalloc)
-strong_alias (__libc_mallinfo, __mallinfo)
-weak_alias (__libc_mallinfo, mallinfo)
-strong_alias (__libc_mallopt, __mallopt) weak_alias (__libc_mallopt, mallopt)
+    strong_alias(__libc_calloc,
+                 __calloc) weak_alias(__libc_calloc,
+                                      calloc) strong_alias(__libc_free, __cfree)
+        weak_alias(__libc_free,
+                   cfree) strong_alias(__libc_free,
+                                       __free) strong_alias(__libc_free, free)
+            strong_alias(__libc_malloc, __malloc) strong_alias(
+                __libc_malloc, malloc) strong_alias(__libc_memalign, __memalign)
+                weak_alias(__libc_memalign,
+                           memalign) strong_alias(__libc_realloc, __realloc)
+                    strong_alias(__libc_realloc, realloc) strong_alias(
+                        __libc_valloc, __valloc) weak_alias(__libc_valloc,
+                                                            valloc)
+                        strong_alias(__libc_pvalloc, __pvalloc) weak_alias(
+                            __libc_pvalloc,
+                            pvalloc) strong_alias(__libc_mallinfo, __mallinfo)
+                            weak_alias(__libc_mallinfo,
+                                       mallinfo) strong_alias(__libc_mallopt,
+                                                              __mallopt)
+                                weak_alias(__libc_mallopt, mallopt)
 
-weak_alias (__malloc_usable_size, malloc_usable_size)
-weak_alias (__malloc_trim, malloc_trim)
-weak_alias (__malloc_get_state, malloc_get_state)
-weak_alias (__malloc_set_state, malloc_set_state)
+                                    weak_alias(__malloc_usable_size,
+                                               malloc_usable_size)
+                                        weak_alias(__malloc_trim, malloc_trim)
+                                            weak_alias(__malloc_get_state,
+                                                       malloc_get_state)
+                                                weak_alias(__malloc_set_state,
+                                                           malloc_set_state)
 /* <CHANNEL_MRAIL> */
-#endif /* defined(_LIBC) */
+#endif       /* defined(_LIBC) */
 /* #endif */ /* _LIBC */
-#endif /* !defined(DISABLE_PTMALLOC) */
-/* </CHANNEL_MRAIL> */
+#endif       /* !defined(DISABLE_PTMALLOC) */
+    /* </CHANNEL_MRAIL> */
 
-/* ------------------------------------------------------------
-History:
+    /* ------------------------------------------------------------
+    History:
 
-[see ftp://g.oswego.edu/pub/misc/malloc.c for the history of dlmalloc]
+    [see ftp://g.oswego.edu/pub/misc/malloc.c for the history of dlmalloc]
 
-*/
-/*
- * Local variables:
- * c-basic-offset: 2
- * End:
- */
+    */
+    /*
+     * Local variables:
+     * c-basic-offset: 2
+     * End:
+     */

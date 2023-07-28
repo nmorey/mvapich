@@ -2,7 +2,7 @@
 
 /* FIXME it would be nice if we could refactor things to minimize
  * duplication between this and MPIR_Scatter_intra and friends.  We can't use
- * MPIR_Scatter_intra as is without inducing an extra copy 
+ * MPIR_Scatter_intra as is without inducing an extra copy
  * in the noncontaig case. */
 /* There are additional arguments included here that are unused because we
  * always assume that the noncontig case has been packed into a contig case by
@@ -10,23 +10,20 @@
  * we can start handling it here.
  * At the moment this function always scatters a buffer of nbytes starting at
  * tmp_buf address. */
-static int scatter_for_bcast_MV2(void *buffer ATTRIBUTE((unused)),
+static int scatter_for_bcast_MVP(void *buffer ATTRIBUTE((unused)),
                                  int count ATTRIBUTE((unused)),
                                  MPI_Datatype datatype ATTRIBUTE((unused)),
-                                 int root,
-                                 MPIR_Comm * comm_ptr,
-                                 intptr_t nbytes,
-                                 void *tmp_buf,
-                                 int is_contig, int is_homogeneous, 
-                                 MPIR_Errflag_t *errflag)
+                                 int root, MPIR_Comm *comm_ptr, intptr_t nbytes,
+                                 void *tmp_buf, int is_contig,
+                                 int is_homogeneous, MPIR_Errflag_t *errflag)
 {
     MPI_Status status;
     int rank, comm_size, src, dst;
     int relative_rank, mask;
     int mpi_errno = MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
-    intptr_t scatter_size=0, recv_size = 0, send_size=0;
-    //intptr_t curr_size = 0;
+    intptr_t scatter_size = 0, recv_size = 0, send_size = 0;
+    // intptr_t curr_size = 0;
     MPI_Count byte_count, curr_size = 0;
 
     comm_size = comm_ptr->local_size;
@@ -61,18 +58,16 @@ static int scatter_for_bcast_MV2(void *buffer ATTRIBUTE((unused)),
                sender. We don't need compute the exact value because MPI
                allows you to post a larger recv. */
             if (recv_size <= 0) {
-                curr_size = 0;  /* this process doesn't receive any data
-                                   because of uneven division */
+                curr_size = 0; /* this process doesn't receive any data
+                                  because of uneven division */
             } else {
-                MPIR_PVAR_INC(bcast, scatter_for_bcast, recv,
-                              recv_size, MPI_BYTE);
-                mpi_errno = MPIC_Recv(((char *)tmp_buf + relative_rank *
-                                               scatter_size),
-                                       recv_size, MPI_BYTE, src,
-                                       MPIR_BCAST_TAG, comm_ptr,
-                                       &status, errflag);
+                MPIR_PVAR_INC(bcast, scatter_for_bcast, recv, recv_size,
+                              MPI_BYTE);
+                mpi_errno = MPIC_Recv(
+                    ((char *)tmp_buf + relative_rank * scatter_size), recv_size,
+                    MPI_BYTE, src, MPIR_BCAST_TAG, comm_ptr, &status, errflag);
                 if (mpi_errno) {
-                    /* for communication errors, 
+                    /* for communication errors,
                      * just record the error but continue */
                     *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
                     MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
@@ -81,7 +76,7 @@ static int scatter_for_bcast_MV2(void *buffer ATTRIBUTE((unused)),
                 } else
                     /* query actual size of data received */
                     byte_count = MPIR_STATUS_GET_COUNT(status);
-                    MPIR_Get_elements_x_impl(&byte_count, MPI_BYTE, &curr_size);
+                MPIR_Get_elements_x_impl(&byte_count, MPI_BYTE, &curr_size);
             }
             break;
         }
@@ -103,13 +98,12 @@ static int scatter_for_bcast_MV2(void *buffer ATTRIBUTE((unused)),
                 dst = rank + mask;
                 if (dst >= comm_size)
                     dst -= comm_size;
-                MPIR_PVAR_INC(bcast, scatter_for_bcast, 
-                              send, send_size, MPI_BYTE);
-                mpi_errno = MPIC_Send(((char *) tmp_buf +
-                                          scatter_size * (relative_rank +
-                                                          mask)), send_size,
-                                         MPI_BYTE, dst, MPIR_BCAST_TAG, 
-                                         comm_ptr, errflag);
+                MPIR_PVAR_INC(bcast, scatter_for_bcast, send, send_size,
+                              MPI_BYTE);
+                mpi_errno = MPIC_Send(
+                    ((char *)tmp_buf + scatter_size * (relative_rank + mask)),
+                    send_size, MPI_BYTE, dst, MPIR_BCAST_TAG, comm_ptr,
+                    errflag);
                 if (mpi_errno) {
                     /* for communication errors, just record the error but
                      * continue */
@@ -151,11 +145,9 @@ static int scatter_for_bcast_MV2(void *buffer ATTRIBUTE((unused)),
    Total Cost = 2.lgp.alpha + 2.n.((p-1)/p).beta
 */
 
-int MPIR_Bcast_scatter_doubling_allgather_MV2(void *buffer,
-                                              int count,
-                                              MPI_Datatype datatype,
-                                              int root,
-                                              MPIR_Comm * comm_ptr, 
+int MPIR_Bcast_scatter_doubling_allgather_MVP(void *buffer, int count,
+                                              MPI_Datatype datatype, int root,
+                                              MPIR_Comm *comm_ptr,
                                               MPIR_Errflag_t *errflag)
 {
     MPIR_TIMER_START(coll, bcast, scatter_doubling_allgather);
@@ -166,7 +158,7 @@ int MPIR_Bcast_scatter_doubling_allgather_MV2(void *buffer,
     int mpi_errno_ret = MPI_SUCCESS;
     intptr_t scatter_size, recv_size = 0;
     MPI_Count curr_size, byte_count;
-    intptr_t  nbytes = 0;
+    intptr_t nbytes = 0;
     int j, k, i, tmp_mask, is_contig, is_homogeneous;
     MPI_Aint type_size;
     int relative_dst, dst_tree_root, my_tree_root, send_offset;
@@ -177,8 +169,7 @@ int MPIR_Bcast_scatter_doubling_allgather_MV2(void *buffer,
     MPI_Aint true_extent, true_lb;
     void *tmp_buf;
 
-    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_bcast_scatter_doubling_allgather,
-            1);
+    MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_bcast_scatter_doubling_allgather, 1);
     comm_size = comm_ptr->local_size;
     rank = comm_ptr->rank;
     relative_rank = (rank >= root) ? rank - root : rank - root + comm_size;
@@ -213,11 +204,11 @@ int MPIR_Bcast_scatter_doubling_allgather_MV2(void *buffer,
         MPIR_Pack_size_impl(1, datatype, &type_size);
     }
 
-    nbytes = (intptr_t) (count) * type_size;
+    nbytes = (intptr_t)(count)*type_size;
 
     if (nbytes < comm_size && !comm_ptr->dev.ch.is_pof2) {
-	mpi_errno = MPIR_Bcast_scatter_ring_allgather_MV2(buffer, count, 
-                                        datatype, root, comm_ptr,  errflag);
+        mpi_errno = MPIR_Bcast_scatter_ring_allgather_MVP(
+            buffer, count, datatype, root, comm_ptr, errflag);
         goto fn_exit;
     }
 
@@ -225,7 +216,7 @@ int MPIR_Bcast_scatter_doubling_allgather_MV2(void *buffer,
         /* contiguous and homogeneous. no need to pack. */
         MPIR_Type_get_true_extent_impl(datatype, &true_lb, &true_extent);
 
-        tmp_buf = (char *) buffer + true_lb;
+        tmp_buf = (char *)buffer + true_lb;
     } else {
         MPIR_CHKLMEM_MALLOC(tmp_buf, void *, nbytes, mpi_errno, "tmp_buf",
                             MPL_MEM_COLL);
@@ -234,18 +225,18 @@ int MPIR_Bcast_scatter_doubling_allgather_MV2(void *buffer,
         position = 0;
         if (rank == root) {
             mpi_errno = MPIR_Typerep_pack(buffer, count, datatype, position,
-                                            tmp_buf, nbytes, &position);
+                                          tmp_buf, nbytes, &position);
             MPIR_ERR_CHECK(mpi_errno);
         }
     }
 
     scatter_size = (nbytes + comm_size - 1) / comm_size; /* ceiling division */
-    curr_size = (rank == root) ? nbytes : 0;    /* root starts with all the
-                                                   data */
+    curr_size = (rank == root) ? nbytes : 0; /* root starts with all the
+                                                data */
 
-    mpi_errno = scatter_for_bcast_MV2(buffer, count, datatype, root, comm_ptr,
-                                      nbytes, tmp_buf, is_contig,
-                                      is_homogeneous, errflag);
+    mpi_errno =
+        scatter_for_bcast_MVP(buffer, count, datatype, root, comm_ptr, nbytes,
+                              tmp_buf, is_contig, is_homogeneous, errflag);
     if (mpi_errno) {
         /* for communication errors, just record the error but continue */
         *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
@@ -278,22 +269,18 @@ int MPIR_Bcast_scatter_doubling_allgather_MV2(void *buffer,
         recv_offset = dst_tree_root * scatter_size;
 
         if (relative_dst < comm_size) {
-            MPIR_PVAR_INC(bcast, scatter_doubling_allgather, 
-                          send, curr_size, MPI_BYTE);
-            MPIR_PVAR_INC(bcast, scatter_doubling_allgather, recv, 
-                (nbytes - recv_offset < 0 ? 0 : nbytes - recv_offset), 
-                MPI_BYTE);
-            mpi_errno = MPIC_Sendrecv(((char *) tmp_buf + send_offset),
-                                         curr_size, MPI_BYTE, dst,
-                                         MPIR_BCAST_TAG,
-                                         ((char *) tmp_buf + recv_offset),
-                                         (nbytes - recv_offset <
-                                          0 ? 0 : nbytes - recv_offset),
-                                         MPI_BYTE, dst, MPIR_BCAST_TAG, 
-                                         comm_ptr,
-                                         &status, errflag);
+            MPIR_PVAR_INC(bcast, scatter_doubling_allgather, send, curr_size,
+                          MPI_BYTE);
+            MPIR_PVAR_INC(bcast, scatter_doubling_allgather, recv,
+                          (nbytes - recv_offset < 0 ? 0 : nbytes - recv_offset),
+                          MPI_BYTE);
+            mpi_errno = MPIC_Sendrecv(
+                ((char *)tmp_buf + send_offset), curr_size, MPI_BYTE, dst,
+                MPIR_BCAST_TAG, ((char *)tmp_buf + recv_offset),
+                (nbytes - recv_offset < 0 ? 0 : nbytes - recv_offset), MPI_BYTE,
+                dst, MPIR_BCAST_TAG, comm_ptr, &status, errflag);
             if (mpi_errno) {
-                /* for communication errors, 
+                /* for communication errors,
                  * just record the error but continue */
                 *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
                 MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
@@ -349,19 +336,18 @@ int MPIR_Bcast_scatter_doubling_allgather_MV2(void *buffer,
                    doesn't have data. */
 
                 if ((relative_dst > relative_rank) &&
-                    (relative_rank < tree_root + nprocs_completed)
-                    && (relative_dst >= tree_root + nprocs_completed)) {
-
-                    MPIR_PVAR_INC(bcast, scatter_doubling_allgather, send, 
+                    (relative_rank < tree_root + nprocs_completed) &&
+                    (relative_dst >= tree_root + nprocs_completed)) {
+                    MPIR_PVAR_INC(bcast, scatter_doubling_allgather, send,
                                   recv_size, MPI_BYTE);
-                    mpi_errno = MPIC_Send(((char *) tmp_buf + offset),
-                                             recv_size, MPI_BYTE, dst,
-                                             MPIR_BCAST_TAG, comm_ptr, errflag);
+                    mpi_errno = MPIC_Send(((char *)tmp_buf + offset), recv_size,
+                                          MPI_BYTE, dst, MPIR_BCAST_TAG,
+                                          comm_ptr, errflag);
                     /* recv_size was set in the previous
                        receive. that's the amount of data to be
                        sent now. */
                     if (mpi_errno) {
-                        /* for communication errors, 
+                        /* for communication errors,
                          * just record the error but continue */
                         *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
                         MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
@@ -373,16 +359,15 @@ int MPIR_Bcast_scatter_doubling_allgather_MV2(void *buffer,
                 else if ((relative_dst < relative_rank) &&
                          (relative_dst < tree_root + nprocs_completed) &&
                          (relative_rank >= tree_root + nprocs_completed)) {
-                    MPIR_PVAR_INC(bcast, scatter_doubling_allgather, 
-                                  recv, nbytes - offset, MPI_BYTE);
-                    mpi_errno = MPIC_Recv(((char *) tmp_buf + offset),
-                                             nbytes - offset,
-                                             MPI_BYTE, dst, MPIR_BCAST_TAG,
-                                             comm_ptr, &status, errflag);
+                    MPIR_PVAR_INC(bcast, scatter_doubling_allgather, recv,
+                                  nbytes - offset, MPI_BYTE);
+                    mpi_errno = MPIC_Recv(
+                        ((char *)tmp_buf + offset), nbytes - offset, MPI_BYTE,
+                        dst, MPIR_BCAST_TAG, comm_ptr, &status, errflag);
                     /* nprocs_completed is also equal to the no. of processes
                        whose data we don't have */
                     if (mpi_errno) {
-                        /* for communication errors, 
+                        /* for communication errors,
                          * just record the error but continue */
                         *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
                         MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
@@ -390,7 +375,7 @@ int MPIR_Bcast_scatter_doubling_allgather_MV2(void *buffer,
                         recv_size = 0;
                     } else {
                         byte_count = MPIR_STATUS_GET_COUNT(status);
-                        MPIR_Get_elements_x_impl(&byte_count, MPI_BYTE, 
+                        MPIR_Get_elements_x_impl(&byte_count, MPI_BYTE,
                                                  &curr_size);
                     }
                     curr_size += recv_size;
@@ -409,12 +394,12 @@ int MPIR_Bcast_scatter_doubling_allgather_MV2(void *buffer,
         if (rank != root) {
             position = 0;
             mpi_errno = MPIR_Typerep_unpack(tmp_buf, nbytes, buffer, count,
-                                                datatype, position, &position);
+                                            datatype, position, &position);
             MPIR_ERR_CHECK(mpi_errno);
         }
     }
 
-  fn_exit:
+fn_exit:
     MPIR_CHKLMEM_FREEALL();
     if (mpi_errno_ret)
         mpi_errno = mpi_errno_ret;
@@ -422,7 +407,7 @@ int MPIR_Bcast_scatter_doubling_allgather_MV2(void *buffer,
         MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**coll_fail");
     MPIR_TIMER_END(coll, bcast, scatter_doubling_allgather);
     return mpi_errno;
-  fn_fail:
+fn_fail:
     goto fn_exit;
 }
 
@@ -442,27 +427,26 @@ int MPIR_Bcast_scatter_doubling_allgather_MV2(void *buffer,
    medium-sized non-power-of-two messages.
    Total Cost = (lgp+p-1).alpha + 2.n.((p-1)/p).beta
 */
-int MPIR_Bcast_scatter_ring_allgather_MV2(void *buffer,
-                                          int count,
-                                          MPI_Datatype datatype,
-                                          int root, MPIR_Comm * comm_ptr, 
+int MPIR_Bcast_scatter_ring_allgather_MVP(void *buffer, int count,
+                                          MPI_Datatype datatype, int root,
+                                          MPIR_Comm *comm_ptr,
                                           MPIR_Errflag_t *errflag)
 {
     MPIR_TIMER_START(coll, bcast, scatter_ring_allgather);
     int rank, comm_size;
     int mpi_errno = MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
-    intptr_t nbytes=0, scatter_size=0;
+    intptr_t nbytes = 0, scatter_size = 0;
     int j, i, is_contig, is_homogeneous;
     MPI_Aint type_size, position;
-    intptr_t *recvcnts=NULL, *displs=NULL;
+    intptr_t *recvcnts = NULL, *displs = NULL;
     int left, right, jnext;
     void *tmp_buf;
     MPIR_Datatype *dtp;
     MPI_Aint true_extent, true_lb;
     MPIR_CHKLMEM_DECL(3);
 
-    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_bcast_scatter_ring_allgather, 1);
+    MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_bcast_scatter_ring_allgather, 1);
     comm_size = comm_ptr->local_size;
     rank = comm_ptr->rank;
 
@@ -496,13 +480,13 @@ int MPIR_Bcast_scatter_ring_allgather_MV2(void *buffer,
         MPIR_Pack_size_impl(1, datatype, &type_size);
     }
 
-    nbytes = (intptr_t) (count) * type_size;
+    nbytes = (intptr_t)(count)*type_size;
 
     if (is_contig && is_homogeneous) {
         /* contiguous and homogeneous. no need to pack. */
         MPIR_Type_get_true_extent_impl(datatype, &true_lb, &true_extent);
 
-        tmp_buf = (char *) buffer + true_lb;
+        tmp_buf = (char *)buffer + true_lb;
     } else {
         MPIR_CHKLMEM_MALLOC(tmp_buf, void *, nbytes, mpi_errno, "tmp_buf",
                             MPL_MEM_COLL);
@@ -511,16 +495,16 @@ int MPIR_Bcast_scatter_ring_allgather_MV2(void *buffer,
         position = 0;
         if (rank == root) {
             mpi_errno = MPIR_Typerep_pack(buffer, count, datatype, position,
-                                            tmp_buf, nbytes, &position);
+                                          tmp_buf, nbytes, &position);
             MPIR_ERR_CHECK(mpi_errno);
         }
     }
 
     scatter_size = (nbytes + comm_size - 1) / comm_size; /* ceiling division */
 
-    mpi_errno = scatter_for_bcast_MV2(buffer, count, datatype, root, comm_ptr,
-                                      nbytes, tmp_buf, is_contig,
-                                      is_homogeneous, errflag);
+    mpi_errno =
+        scatter_for_bcast_MVP(buffer, count, datatype, root, comm_ptr, nbytes,
+                              tmp_buf, is_contig, is_homogeneous, errflag);
     if (mpi_errno) {
         /* for communication errors, just record the error but continue */
         *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
@@ -531,9 +515,9 @@ int MPIR_Bcast_scatter_ring_allgather_MV2(void *buffer,
     /* long-message allgather or medium-size but non-power-of-two. use ring
      * algorithm. */
 
-    MPIR_CHKLMEM_MALLOC(recvcnts, intptr_t *, comm_size * sizeof (intptr_t),
+    MPIR_CHKLMEM_MALLOC(recvcnts, intptr_t *, comm_size * sizeof(intptr_t),
                         mpi_errno, "recvcnts", MPL_MEM_COLL);
-    MPIR_CHKLMEM_MALLOC(displs, intptr_t *, comm_size * sizeof (intptr_t),
+    MPIR_CHKLMEM_MALLOC(displs, intptr_t *, comm_size * sizeof(intptr_t),
                         mpi_errno, "displs", MPL_MEM_COLL);
 
     for (i = 0; i < comm_size; i++) {
@@ -554,21 +538,18 @@ int MPIR_Bcast_scatter_ring_allgather_MV2(void *buffer,
     j = rank;
     jnext = left;
     for (i = 1; i < comm_size; i++) {
-        MPIR_PVAR_INC(bcast, scatter_ring_allgather, send, 
-                    recvcnts[(j - root + comm_size) % comm_size], MPI_BYTE);
-        MPIR_PVAR_INC(bcast, scatter_ring_allgather, recv, 
-                    recvcnts[(jnext - root + comm_size) % comm_size], MPI_BYTE);
-        mpi_errno =
-            MPIC_Sendrecv((char *) tmp_buf +
-                             displs[(j - root + comm_size) % comm_size],
-                             recvcnts[(j - root + comm_size) % comm_size],
-                             MPI_BYTE, right, MPIR_BCAST_TAG,
-                             (char *) tmp_buf +
-                             displs[(jnext - root + comm_size) % comm_size],
-                             recvcnts[(jnext - root + comm_size) % comm_size],
-                             MPI_BYTE, left,
-                             MPIR_BCAST_TAG, comm_ptr, 
-                             MPI_STATUS_IGNORE, errflag);
+        MPIR_PVAR_INC(bcast, scatter_ring_allgather, send,
+                      recvcnts[(j - root + comm_size) % comm_size], MPI_BYTE);
+        MPIR_PVAR_INC(bcast, scatter_ring_allgather, recv,
+                      recvcnts[(jnext - root + comm_size) % comm_size],
+                      MPI_BYTE);
+        mpi_errno = MPIC_Sendrecv(
+            (char *)tmp_buf + displs[(j - root + comm_size) % comm_size],
+            recvcnts[(j - root + comm_size) % comm_size], MPI_BYTE, right,
+            MPIR_BCAST_TAG,
+            (char *)tmp_buf + displs[(jnext - root + comm_size) % comm_size],
+            recvcnts[(jnext - root + comm_size) % comm_size], MPI_BYTE, left,
+            MPIR_BCAST_TAG, comm_ptr, MPI_STATUS_IGNORE, errflag);
         if (mpi_errno) {
             /* for communication errors, just record the error but continue */
             *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
@@ -584,12 +565,12 @@ int MPIR_Bcast_scatter_ring_allgather_MV2(void *buffer,
         if (rank != root) {
             position = 0;
             mpi_errno = MPIR_Typerep_unpack(tmp_buf, nbytes, buffer, count,
-                                                datatype, position, &position);
+                                            datatype, position, &position);
             MPIR_ERR_CHECK(mpi_errno);
         }
     }
 
-  fn_exit:
+fn_exit:
     MPIR_CHKLMEM_FREEALL();
     if (mpi_errno_ret)
         mpi_errno = mpi_errno_ret;
@@ -597,32 +578,30 @@ int MPIR_Bcast_scatter_ring_allgather_MV2(void *buffer,
         MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**coll_fail");
     MPIR_TIMER_END(coll, bcast, scatter_ring_allgather);
     return mpi_errno;
-  fn_fail:
+fn_fail:
     goto fn_exit;
 }
 
 /*
-   This function is based on MPIR_Bcast_scatter_ring_allgather_MV2(),
+   This function is based on MPIR_Bcast_scatter_ring_allgather_MVP(),
    we overlap shared memory bcast with the allgather phase
 */
-int MPIR_Bcast_scatter_ring_allgather_shm_MV2(void *buffer,
-                                              int count,
-                                              MPI_Datatype datatype,
-                                              int root,
-                                              MPIR_Comm * comm_ptr,
+int MPIR_Bcast_scatter_ring_allgather_shm_MVP(void *buffer, int count,
+                                              MPI_Datatype datatype, int root,
+                                              MPIR_Comm *comm_ptr,
                                               MPIR_Errflag_t *errflag)
 {
     MPIR_TIMER_START(coll, bcast, scatter_ring_allgather_shm);
     int rank, comm_size, local_rank;
     int mpi_errno = MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
-    intptr_t nbytes=0, scatter_size=0;
+    intptr_t nbytes = 0, scatter_size = 0;
     int j, i, is_contig = 1, is_homogeneous = 1;
     MPI_Aint type_size;
     int left = -1, right = -1, jnext;
-    intptr_t *recvcnts=NULL, *displs=NULL;
+    intptr_t *recvcnts = NULL, *displs = NULL;
     MPI_Aint true_extent, true_lb;
-    void * tmp_buf = NULL;
+    void *tmp_buf = NULL;
     MPIR_CHKLMEM_DECL(3);
 
     comm_size = comm_ptr->local_size;
@@ -635,13 +614,12 @@ int MPIR_Bcast_scatter_ring_allgather_shm_MV2(void *buffer,
     MPIR_Comm_get_ptr(shmem_comm, shmem_commptr);
     bcast_ring_allgather_shm_packet para_packet;
 
-    intptr_t  shmem_offset, shmem_nbytes;
+    intptr_t shmem_offset, shmem_nbytes;
     MPI_Comm leader_comm;
     leader_comm = comm_ptr->dev.ch.leader_comm;
     MPIR_Comm_get_ptr(leader_comm, leader_commptr);
 
-    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_bcast_scatter_ring_allgather_shm,
-            1);
+    MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_bcast_scatter_ring_allgather_shm, 1);
     local_rank = shmem_commptr->rank;
     rank = comm_ptr->rank;
     if (local_rank == 0) {
@@ -655,25 +633,24 @@ int MPIR_Bcast_scatter_ring_allgather_shm_MV2(void *buffer,
      * might be non zero */
     tmp_buf = buffer + true_lb;
 
-    MPIR_Bcast_MV2(&comm_size, 1, MPI_INT, 0, shmem_commptr, errflag);
+    MPIR_Bcast_MVP(&comm_size, 1, MPI_INT, 0, shmem_commptr, errflag);
     if (comm_size == 1) {
         goto fn_exit;
     }
 
-    if(local_rank==0) {
-
+    if (local_rank == 0) {
         MPIR_Datatype_get_size_macro(datatype, type_size);
-        nbytes = (intptr_t) (count) * (type_size);
+        nbytes = (intptr_t)(count) * (type_size);
 
-        scatter_size = (nbytes + comm_size - 1) / comm_size; 
+        scatter_size = (nbytes + comm_size - 1) / comm_size;
         /* ceiling division */
 
         /* long-message allgather or medium-size but non-power-of-two. use ring
          * algorithm. */
 
-        MPIR_CHKLMEM_MALLOC(recvcnts, intptr_t *, comm_size * sizeof (intptr_t),
+        MPIR_CHKLMEM_MALLOC(recvcnts, intptr_t *, comm_size * sizeof(intptr_t),
                             mpi_errno, "recvcnts", MPL_MEM_COLL);
-        MPIR_CHKLMEM_MALLOC(displs, intptr_t *, comm_size * sizeof (intptr_t),
+        MPIR_CHKLMEM_MALLOC(displs, intptr_t *, comm_size * sizeof(intptr_t),
                             mpi_errno, "displs", MPL_MEM_COLL);
 
         for (i = 0; i < comm_size; i++) {
@@ -699,19 +676,18 @@ int MPIR_Bcast_scatter_ring_allgather_shm_MV2(void *buffer,
         /* parameters are packed up and broadcasted within the node,
          * therefore a leader pass the parameters to non-leaders
          */
-        para_packet.j=j;
-        para_packet.jnext=jnext;
-        para_packet.root=root;
-        para_packet.nbytes=nbytes;
-        para_packet.scatter_size=scatter_size;
+        para_packet.j = j;
+        para_packet.jnext = jnext;
+        para_packet.root = root;
+        para_packet.nbytes = nbytes;
+        para_packet.scatter_size = scatter_size;
 
-        MPIR_Bcast_MV2(&para_packet, sizeof(bcast_ring_allgather_shm_packet),
+        MPIR_Bcast_MVP(&para_packet, sizeof(bcast_ring_allgather_shm_packet),
                        MPI_BYTE, 0, shmem_commptr, errflag);
 
-        mpi_errno = scatter_for_bcast_MV2(tmp_buf, count, datatype, 
-                                        root, leader_commptr,
-                                        nbytes, tmp_buf, is_contig,
-                                        is_homogeneous, errflag);
+        mpi_errno = scatter_for_bcast_MVP(tmp_buf, count, datatype, root,
+                                          leader_commptr, nbytes, tmp_buf,
+                                          is_contig, is_homogeneous, errflag);
         if (mpi_errno) {
             /* for communication errors, just record the error but continue */
             *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
@@ -719,31 +695,28 @@ int MPIR_Bcast_scatter_ring_allgather_shm_MV2(void *buffer,
             MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
         }
 
-        /* one chunk is moving along the allgather ring, 
+        /* one chunk is moving along the allgather ring,
          * node-leaders are involved*/
-        MPIR_PVAR_INC(bcast, scatter_ring_allgather_shm, recv, 
-                recvcnts[(jnext - root + comm_size) % comm_size], MPI_BYTE);
-        MPIC_Irecv((char *) tmp_buf +
-                   displs[(jnext - root + comm_size) % comm_size],
-                   recvcnts[(jnext - root + comm_size) % comm_size],
-                   MPI_BYTE, left, MPIR_BCAST_TAG,
-                   leader_commptr, &request[0]);
+        MPIR_PVAR_INC(bcast, scatter_ring_allgather_shm, recv,
+                      recvcnts[(jnext - root + comm_size) % comm_size],
+                      MPI_BYTE);
+        MPIC_Irecv((char *)tmp_buf +
+                       displs[(jnext - root + comm_size) % comm_size],
+                   recvcnts[(jnext - root + comm_size) % comm_size], MPI_BYTE,
+                   left, MPIR_BCAST_TAG, leader_commptr, &request[0]);
 
-        MPIR_PVAR_INC(bcast, scatter_ring_allgather_shm, send, 
-                recvcnts[(j - root + comm_size) % comm_size], MPI_BYTE);
-        MPIC_Isend((char *) tmp_buf +
-                   displs[(j - root + comm_size) % comm_size],
-                   recvcnts[(j - root + comm_size) % comm_size],
-                   MPI_BYTE, right, MPIR_BCAST_TAG,
-                   leader_commptr, &request[1], errflag);
+        MPIR_PVAR_INC(bcast, scatter_ring_allgather_shm, send,
+                      recvcnts[(j - root + comm_size) % comm_size], MPI_BYTE);
+        MPIC_Isend((char *)tmp_buf + displs[(j - root + comm_size) % comm_size],
+                   recvcnts[(j - root + comm_size) % comm_size], MPI_BYTE,
+                   right, MPIR_BCAST_TAG, leader_commptr, &request[1], errflag);
 
-        shmem_offset =  displs[(j - root + comm_size) % comm_size];
-        shmem_nbytes =  recvcnts[(j - root + comm_size) % comm_size];
+        shmem_offset = displs[(j - root + comm_size) % comm_size];
+        shmem_nbytes = recvcnts[(j - root + comm_size) % comm_size];
 
-        mpi_errno = MPIR_Shmem_Bcast_MV2(tmp_buf + shmem_offset, 
-                                        shmem_nbytes, MPI_BYTE,
-                                        INTRA_NODE_ROOT, shmem_commptr, 
-                                        errflag);
+        mpi_errno =
+            MPIR_Shmem_Bcast_MVP(tmp_buf + shmem_offset, shmem_nbytes, MPI_BYTE,
+                                 INTRA_NODE_ROOT, shmem_commptr, errflag);
 
         mpi_errno = MPIC_Waitall(2, request, status, errflag);
 
@@ -757,44 +730,42 @@ int MPIR_Bcast_scatter_ring_allgather_shm_MV2(void *buffer,
         j = jnext;
         jnext = (comm_size + jnext - 1) % comm_size;
 
-        /* Leaders receive other chunks via allgather ring. 
+        /* Leaders receive other chunks via allgather ring.
          * When a leader is getting
-         * ith chunk from another leader, 
+         * ith chunk from another leader,
          * it broadcast (i-1)th chunk to non-leaders
          * inside the node
-        */
+         */
         for (i = 2; i < comm_size; i++) {
-            MPIR_PVAR_INC(bcast, scatter_ring_allgather_shm, recv, 
-                    recvcnts[(jnext - root + comm_size) % comm_size], MPI_BYTE);
-            MPIC_Irecv((char *) tmp_buf +
-                        displs[(jnext - root + comm_size) % comm_size],
-                        recvcnts[(jnext - root + comm_size) % comm_size],
-                        MPI_BYTE, left, MPIR_BCAST_TAG,
-                        leader_commptr, &request[0]);
+            MPIR_PVAR_INC(bcast, scatter_ring_allgather_shm, recv,
+                          recvcnts[(jnext - root + comm_size) % comm_size],
+                          MPI_BYTE);
+            MPIC_Irecv((char *)tmp_buf +
+                           displs[(jnext - root + comm_size) % comm_size],
+                       recvcnts[(jnext - root + comm_size) % comm_size],
+                       MPI_BYTE, left, MPIR_BCAST_TAG, leader_commptr,
+                       &request[0]);
 
-            MPIR_PVAR_INC(bcast, scatter_ring_allgather_shm, send, 
-                recvcnts[(j - root + comm_size) % comm_size], MPI_BYTE);
-            MPIC_Isend((char *) tmp_buf +
-                        displs[(j - root + comm_size) % comm_size],
-                        recvcnts[(j - root + comm_size) % comm_size],
-                        MPI_BYTE, right, MPIR_BCAST_TAG,
-                        leader_commptr, &request[1], errflag);
+            MPIR_PVAR_INC(bcast, scatter_ring_allgather_shm, send,
+                          recvcnts[(j - root + comm_size) % comm_size],
+                          MPI_BYTE);
+            MPIC_Isend(
+                (char *)tmp_buf + displs[(j - root + comm_size) % comm_size],
+                recvcnts[(j - root + comm_size) % comm_size], MPI_BYTE, right,
+                MPIR_BCAST_TAG, leader_commptr, &request[1], errflag);
 
+            shmem_offset = displs[(j - root + comm_size) % comm_size];
+            shmem_nbytes = recvcnts[(j - root + comm_size) % comm_size];
 
-            shmem_offset =  displs[(j - root + comm_size) % comm_size];
-            shmem_nbytes =  recvcnts[(j - root + comm_size) % comm_size];
-
-
-            mpi_errno = MPIR_Shmem_Bcast_MV2(tmp_buf + shmem_offset, 
-                                             shmem_nbytes, MPI_BYTE,
-                                             INTRA_NODE_ROOT, shmem_commptr, 
-                                             errflag);
+            mpi_errno = MPIR_Shmem_Bcast_MVP(
+                tmp_buf + shmem_offset, shmem_nbytes, MPI_BYTE, INTRA_NODE_ROOT,
+                shmem_commptr, errflag);
 
             mpi_errno = MPIC_Waitall(2, request, status, errflag);
 
             MPIR_ERR_CHECK(mpi_errno);
             if (mpi_errno) {
-                /* for communication errors, 
+                /* for communication errors,
                  * just record the error but continue */
                 *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
                 MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
@@ -805,24 +776,22 @@ int MPIR_Bcast_scatter_ring_allgather_shm_MV2(void *buffer,
             jnext = (comm_size + jnext - 1) % comm_size;
         }
 
-        shmem_offset =  displs[(j - root + comm_size) % comm_size];
-        shmem_nbytes =  recvcnts[(j - root + comm_size) % comm_size];
+        shmem_offset = displs[(j - root + comm_size) % comm_size];
+        shmem_nbytes = recvcnts[(j - root + comm_size) % comm_size];
     }
 
-
-    if(local_rank!=0) {
-        MPIR_Bcast_MV2(&para_packet, sizeof(bcast_ring_allgather_shm_packet),
+    if (local_rank != 0) {
+        MPIR_Bcast_MVP(&para_packet, sizeof(bcast_ring_allgather_shm_packet),
                        MPI_BYTE, 0, shmem_commptr, errflag);
-        j=para_packet.j;
-        jnext=para_packet.jnext;
-        root=para_packet.root;
-        nbytes=para_packet.nbytes;
-        scatter_size=para_packet.scatter_size;
-        MPIR_CHKLMEM_MALLOC(recvcnts, intptr_t *, comm_size * sizeof (intptr_t),
+        j = para_packet.j;
+        jnext = para_packet.jnext;
+        root = para_packet.root;
+        nbytes = para_packet.nbytes;
+        scatter_size = para_packet.scatter_size;
+        MPIR_CHKLMEM_MALLOC(recvcnts, intptr_t *, comm_size * sizeof(intptr_t),
                             mpi_errno, "recvcnts", MPL_MEM_COLL);
-        MPIR_CHKLMEM_MALLOC(displs, intptr_t *, comm_size * sizeof (intptr_t),
+        MPIR_CHKLMEM_MALLOC(displs, intptr_t *, comm_size * sizeof(intptr_t),
                             mpi_errno, "displs", MPL_MEM_COLL);
-
 
         for (i = 0; i < comm_size; i++) {
             recvcnts[i] = nbytes - i * scatter_size;
@@ -839,60 +808,56 @@ int MPIR_Bcast_scatter_ring_allgather_shm_MV2(void *buffer,
             displs[i] = displs[i - 1] + recvcnts[i - 1];
         }
 
-        /* Each node-leader has one chunk already in the right place, 
+        /* Each node-leader has one chunk already in the right place,
          * this chunk doesn't
-         * require inter-node communication, 
+         * require inter-node communication,
          * we broadcast this chunk to non-leaders in
          * the node
          */
         /* Non-leaders compute offset and count */
-        shmem_offset =  displs[(j - root + comm_size) % comm_size];
-        shmem_nbytes =  recvcnts[(j - root + comm_size) % comm_size];
+        shmem_offset = displs[(j - root + comm_size) % comm_size];
+        shmem_nbytes = recvcnts[(j - root + comm_size) % comm_size];
 
-        mpi_errno = MPIR_Shmem_Bcast_MV2(tmp_buf + shmem_offset, shmem_nbytes, MPI_BYTE,
-                                        INTRA_NODE_ROOT, shmem_commptr, errflag);
+        mpi_errno =
+            MPIR_Shmem_Bcast_MVP(tmp_buf + shmem_offset, shmem_nbytes, MPI_BYTE,
+                                 INTRA_NODE_ROOT, shmem_commptr, errflag);
 
         j = jnext;
         jnext = (comm_size + jnext - 1) % comm_size;
 
-        /* Leaders receive other chunks via allgather ring. 
+        /* Leaders receive other chunks via allgather ring.
          * When a leader is getting
-         * ith chunk from another leader, 
+         * ith chunk from another leader,
          * it broadcast (i-1)th chunk to non-leaders
          * inside the node
          */
         for (i = 2; i < comm_size; i++) {
-
             /* Non-leaders compute offset and count */
-            shmem_offset =  displs[(j - root + comm_size) % comm_size];
-            shmem_nbytes =  recvcnts[(j - root + comm_size) % comm_size];
+            shmem_offset = displs[(j - root + comm_size) % comm_size];
+            shmem_nbytes = recvcnts[(j - root + comm_size) % comm_size];
 
-            mpi_errno = MPIR_Shmem_Bcast_MV2(tmp_buf + shmem_offset, 
-                                            shmem_nbytes, MPI_BYTE,
-                                            INTRA_NODE_ROOT, shmem_commptr, 
-                                            errflag);
-
+            mpi_errno = MPIR_Shmem_Bcast_MVP(
+                tmp_buf + shmem_offset, shmem_nbytes, MPI_BYTE, INTRA_NODE_ROOT,
+                shmem_commptr, errflag);
 
             j = jnext;
             jnext = (comm_size + jnext - 1) % comm_size;
         }
 
         /* Non-leaders compute offset and count */
-        shmem_offset =  displs[(j - root + comm_size) % comm_size];
-        shmem_nbytes =  recvcnts[(j - root + comm_size) % comm_size];
-
+        shmem_offset = displs[(j - root + comm_size) % comm_size];
+        shmem_nbytes = recvcnts[(j - root + comm_size) % comm_size];
     }
 
-    mpi_errno = MPIR_Shmem_Bcast_MV2(tmp_buf + shmem_offset, shmem_nbytes, 
-                                    MPI_BYTE, INTRA_NODE_ROOT, 
-                                    shmem_commptr, errflag);
-
+    mpi_errno =
+        MPIR_Shmem_Bcast_MVP(tmp_buf + shmem_offset, shmem_nbytes, MPI_BYTE,
+                             INTRA_NODE_ROOT, shmem_commptr, errflag);
 
     /* indicate that we have finished shared-memory bcast */
     comm_ptr->dev.ch.intra_node_done = 1;
-    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_num_shmem_coll_calls, 1);
+    MPIR_T_PVAR_COUNTER_INC(MVP, mvp_num_shmem_coll_calls, 1);
 
-  fn_exit:
+fn_exit:
     MPIR_CHKLMEM_FREEALL();
     if (mpi_errno_ret) {
         mpi_errno = mpi_errno_ret;
@@ -901,7 +866,6 @@ int MPIR_Bcast_scatter_ring_allgather_shm_MV2(void *buffer,
     }
     MPIR_TIMER_END(coll, bcast, scatter_ring_allgather_shm);
     return mpi_errno;
-  fn_fail:
+fn_fail:
     goto fn_exit;
-
 }

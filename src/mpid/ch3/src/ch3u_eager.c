@@ -1,13 +1,13 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  */
 /*
  * Copyright (C) by Argonne National Laboratory
@@ -64,7 +64,7 @@ int MPIDI_CH3_SendNoncontig_iov( MPIDI_VC_t *vc, MPIR_Request *sreq,
 
     mpi_errno = MPIDI_CH3U_Request_load_send_iov(sreq, &iov[iovcnt], &iov_n);
 #if defined(_ENABLE_CUDA_)
-    if (mv2_enable_device && sreq->dev.OnDataAvail ==
+    if (mvp_enable_device && sreq->dev.OnDataAvail ==
                         MPIDI_CH3_ReqHandler_pack_device) {
         int complete ATTRIBUTE((unused));
         MPIDI_CH3_ReqHandler_pack_device_stream(vc, sreq, &complete, NULL);
@@ -156,9 +156,9 @@ int MPIDI_CH3_EagerNoncontigSend( MPIR_Request **sreq_p,
 
 #if defined(_ENABLE_CUDA_) && defined(HAVE_CUDA_IPC)
     eager_pkt->in_device_region = 0;
-    if (mv2_enable_device && mv2_device_use_smp_eager_ipc &&
+    if (mvp_enable_device && mvp_device_use_smp_eager_ipc &&
             SMP_INIT && vc->smp.local_nodes >= 0 &&
-            vc->smp.can_access_peer == MV2_DEVICE_IPC_ENABLED && is_device_buffer((void *)buf)) {
+            vc->smp.can_access_peer == MVP_DEVICE_IPC_ENABLED && is_device_buffer((void *)buf)) {
         eager_pkt->in_device_region = 1;
     }
 #endif
@@ -237,9 +237,9 @@ int MPIDI_CH3_EagerContigSend( MPIR_Request **sreq_p,
 
 #if defined(_ENABLE_CUDA_) && defined(HAVE_CUDA_IPC)
     eager_pkt->in_device_region = 0;
-    if (mv2_enable_device && mv2_device_use_smp_eager_ipc &&
+    if (mvp_enable_device && mvp_device_use_smp_eager_ipc &&
             SMP_INIT && vc->smp.local_nodes >= 0 &&
-            vc->smp.can_access_peer == MV2_DEVICE_IPC_ENABLED && is_device_buffer((void *)buf)) {
+            vc->smp.can_access_peer == MVP_DEVICE_IPC_ENABLED && is_device_buffer((void *)buf)) {
         eager_pkt->in_device_region = 1;
     }
 #endif
@@ -300,7 +300,7 @@ int MPIDI_CH3_EagerContigShortSend( MPIR_Request **sreq_p,
     {
         MPIDI_Comm_get_vc_set_active(comm, rank, &vc);
     
-        mpi_errno = mv2_eager_fast_wrapper(vc, buf, data_sz, rank, tag, comm, context_offset, sreq_p);
+        mpi_errno = mvp_eager_fast_wrapper(vc, buf, data_sz, rank, tag, comm, context_offset, sreq_p);
         if (sreq) {
             MPIR_Object_set_ref(sreq, 1);
             MPIR_cc_set(&sreq->cc, 0);
@@ -394,7 +394,7 @@ int MPIDI_CH3_PktHandler_EagerShortSend( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, v
     rreq = MPIDI_CH3U_Recvq_FDP_or_AEU(&eagershort_pkt->match, &found);
 #if defined(CHANNEL_MRAIL)
     if (!found && SMP_INIT && vc->smp.local_nodes >= 0) {
-        MV2_INC_NUM_POSTED_RECV();
+        MVP_INC_NUM_POSTED_RECV();
     }
 #endif
     MPIR_ERR_CHKANDJUMP1(!rreq, mpi_errno,MPI_ERR_OTHER, "**nomemreq", "**nomemuereq %d", MPIDI_CH3U_Recvq_count_unexp());
@@ -639,9 +639,9 @@ int MPIDI_CH3_EagerContigIsend( MPIR_Request **sreq_p,
 
 #if defined(_ENABLE_CUDA_) && defined(HAVE_CUDA_IPC)
     eager_pkt->in_device_region = 0;
-    if (mv2_enable_device && mv2_device_use_smp_eager_ipc &&
+    if (mvp_enable_device && mvp_device_use_smp_eager_ipc &&
             SMP_INIT && vc->smp.local_nodes >= 0 &&
-            vc->smp.can_access_peer == MV2_DEVICE_IPC_ENABLED && is_device_buffer((void *)buf)) {
+            vc->smp.can_access_peer == MVP_DEVICE_IPC_ENABLED && is_device_buffer((void *)buf)) {
         eager_pkt->in_device_region = 1;
     }
 #endif
@@ -716,7 +716,7 @@ int MPIDI_CH3_PktHandler_EagerSend_Contig( MPIDI_VC_t *vc,
     rreq = MPIDI_CH3U_Recvq_FDP_or_AEU(&eager_pkt->match, &found);
 #if defined(CHANNEL_MRAIL)
     if (!found && SMP_INIT && vc->smp.local_nodes >= 0) {
-        MV2_INC_NUM_POSTED_RECV();
+        MVP_INC_NUM_POSTED_RECV();
     }
 #endif
     MPIR_ERR_CHKANDJUMP1(!rreq, mpi_errno,MPI_ERR_OTHER, "**nomemreq", "**nomemuereq %d", MPIDI_CH3U_Recvq_count_unexp());
@@ -731,15 +731,15 @@ int MPIDI_CH3_PktHandler_EagerSend_Contig( MPIDI_VC_t *vc,
     if (vc->smp.local_nodes != -1
             && eager_pkt->in_device_region == 1
             && rreq->dev.recv_data_sz > 0
-            && mv2_enable_device
-            && mv2_device_use_smp_eager_ipc
-            && vc->smp.can_access_peer == MV2_DEVICE_IPC_ENABLED) {
+            && mvp_enable_device
+            && mvp_device_use_smp_eager_ipc
+            && vc->smp.can_access_peer == MVP_DEVICE_IPC_ENABLED) {
 
         *buflen = eager_pkt->data_sz;
         data_len = ((*buflen >= rreq->dev.recv_data_sz)
                 ? rreq->dev.recv_data_sz : *buflen );
 
-        MV2_MPIDI_Device_StreamWaitEvent(0, sr_event_local[vc->pg_rank], 0);
+        MVP_MPIDI_Device_StreamWaitEvent(0, sr_event_local[vc->pg_rank], 0);
         MPIDI_PG_Get_vc(MPIDI_Process.my_pg, MPIDI_Process.my_pg_rank, &my_vc);
         my_rank = my_vc->smp.local_nodes;
         rem_base = g_smpi_shmem->cu_attrbs[vc->smp.local_nodes];
@@ -753,7 +753,7 @@ int MPIDI_CH3_PktHandler_EagerSend_Contig( MPIDI_VC_t *vc,
         }
         else {
             data_buf = smp_device_region_recv[vc->smp.local_nodes];
-            MV2_MPIDI_Device_EventRecord(loop_event[vc->pg_rank], 0);
+            MVP_MPIDI_Device_EventRecord(loop_event[vc->pg_rank], 0);
             cur_t = 0;
         }
     } else 
@@ -793,9 +793,9 @@ int MPIDI_CH3_PktHandler_EagerSend_Contig( MPIDI_VC_t *vc,
         /* return the number of bytes processed in this function */
 
 #if defined(_ENABLE_CUDA_) && defined(HAVE_CUDA_IPC)
-        if (mv2_enable_device && mv2_device_use_smp_eager_ipc 
+        if (mvp_enable_device && mvp_device_use_smp_eager_ipc 
                  && eager_pkt->in_device_region == 1
-                 && vc->smp.can_access_peer == MV2_DEVICE_IPC_ENABLED) {
+                 && vc->smp.can_access_peer == MVP_DEVICE_IPC_ENABLED) {
             if (0 == cur_t) {
                 ((smpi_device_ipc_attr *)rem_base + my_rank)->device_tail = data_len;
             } else {
@@ -814,7 +814,7 @@ int MPIDI_CH3_PktHandler_EagerSend_Contig( MPIDI_VC_t *vc,
         if (complete) 
         {
 #if defined(_ENABLE_CUDA_)
-            if (mv2_enable_device &&
+            if (mvp_enable_device &&
                     rreq->dev.OnDataAvail == MPIDI_CH3_ReqHandler_unpack_device) {
                 mpi_errno = MPIDI_CH3U_Handle_recv_req(vc, rreq, &complete);
                 if (mpi_errno != MPI_SUCCESS) {
@@ -872,7 +872,7 @@ int MPIDI_CH3_PktHandler_EagerSend( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, void *
     rreq = MPIDI_CH3U_Recvq_FDP_or_AEU(&eager_pkt->match, &found);
 #if defined(CHANNEL_MRAIL)
     if (!found && SMP_INIT && vc->smp.local_nodes >= 0) {
-        MV2_INC_NUM_POSTED_RECV();
+        MVP_INC_NUM_POSTED_RECV();
     }
 #endif
     MPIR_ERR_CHKANDJUMP1(!rreq, mpi_errno,MPI_ERR_OTHER, "**nomemreq", "**nomemuereq %d", MPIDI_CH3U_Recvq_count_unexp());
@@ -897,13 +897,13 @@ int MPIDI_CH3_PktHandler_EagerSend( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, void *
 
 #if defined(_ENABLE_CUDA_) && defined(HAVE_CUDA_IPC)
     if (vc->smp.local_nodes != -1 && eager_pkt->in_device_region == 1 &&
-            rreq->dev.recv_data_sz > 0 && mv2_enable_device && mv2_device_use_smp_eager_ipc
-            && vc->smp.can_access_peer == MV2_DEVICE_IPC_ENABLED) {
+            rreq->dev.recv_data_sz > 0 && mvp_enable_device && mvp_device_use_smp_eager_ipc
+            && vc->smp.can_access_peer == MVP_DEVICE_IPC_ENABLED) {
 
         *buflen += eager_pkt->data_sz;
         data_len = ((*buflen - sizeof(MPIDI_CH3_Pkt_t) >= rreq->dev.recv_data_sz)
                 ? rreq->dev.recv_data_sz : *buflen - sizeof(MPIDI_CH3_Pkt_t));
-        MV2_MPIDI_Device_StreamWaitEvent(0, sr_event_local[vc->pg_rank], 0);
+        MVP_MPIDI_Device_StreamWaitEvent(0, sr_event_local[vc->pg_rank], 0);
         MPIDI_PG_Get_vc(MPIDI_Process.my_pg, MPIDI_Process.my_pg_rank, &my_vc);
         my_rank = my_vc->smp.local_nodes;
         rem_base = g_smpi_shmem->cu_attrbs[vc->smp.local_nodes];
@@ -915,7 +915,7 @@ int MPIDI_CH3_PktHandler_EagerSend( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, void *
         }
         else {
             data = smp_device_region_recv[vc->smp.local_nodes];
-            MV2_MPIDI_Device_EventRecord(loop_event[vc->pg_rank], 0);
+            MVP_MPIDI_Device_EventRecord(loop_event[vc->pg_rank], 0);
             cur_t = 0;
         }
     } else
@@ -937,7 +937,7 @@ int MPIDI_CH3_PktHandler_EagerSend( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, void *
                     &data_len, &complete );
         } else {
 #if defined(CHANNEL_MRAIL)
-            if (!IS_VC_SMP(vc) && mv2_use_opt_eager_recv == 1) {
+            if (!IS_VC_SMP(vc) && mvp_use_opt_eager_recv == 1) {
                  rreq->mrail.is_eager_vbuf_queued = 1; 
             }
 #endif            
@@ -951,8 +951,8 @@ int MPIDI_CH3_PktHandler_EagerSend( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, void *
 
         /* return the number of bytes processed in this function */
 #if defined(_ENABLE_CUDA_) && defined(HAVE_CUDA_IPC)
-        if (mv2_enable_device && mv2_device_use_smp_eager_ipc && eager_pkt->in_device_region == 1
-                && vc->smp.can_access_peer == MV2_DEVICE_IPC_ENABLED) {
+        if (mvp_enable_device && mvp_device_use_smp_eager_ipc && eager_pkt->in_device_region == 1
+                && vc->smp.can_access_peer == MVP_DEVICE_IPC_ENABLED) {
             if (0 == cur_t) {
                 ((smpi_device_ipc_attr *)rem_base + my_rank)->device_tail = data_len;
             } else {
@@ -966,7 +966,7 @@ int MPIDI_CH3_PktHandler_EagerSend( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, void *
 
         if (complete) {
 #if defined(_ENABLE_CUDA_)
-            if (mv2_enable_device &&
+            if (mvp_enable_device &&
                     rreq->dev.OnDataAvail == MPIDI_CH3_ReqHandler_unpack_device) {
                 mpi_errno = MPIDI_CH3U_Handle_recv_req(vc, rreq, &complete);
                 if (mpi_errno != MPI_SUCCESS) {
@@ -1015,7 +1015,7 @@ int MPIDI_CH3_PktHandler_ReadySend( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, void *
     rreq = MPIDI_CH3U_Recvq_FDP_or_AEU(&ready_pkt->match, &found);
 #if defined(CHANNEL_MRAIL)
     if (!found && SMP_INIT && vc->smp.local_nodes >= 0) {
-        MV2_INC_NUM_POSTED_RECV();
+        MVP_INC_NUM_POSTED_RECV();
     }
 #endif
     MPIR_ERR_CHKANDJUMP1(!rreq, mpi_errno,MPI_ERR_OTHER, "**nomemreq", "**nomemuereq %d", MPIDI_CH3U_Recvq_count_unexp());

@@ -3,22 +3,22 @@
  *     See COPYRIGHT in top-level directory
  */
 
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
 #include "mpidimpl.h"
 #include "mpicomm.h"
 
-#include "mv2_coll_shmem.h"
+#include "mvp_coll_shmem.h"
 
 /*
 === BEGIN_MPI_T_CVAR_INFO_BLOCK ===
@@ -1157,7 +1157,8 @@ int MPIR_Comm_split_impl(MPIR_Comm *comm_ptr, int color, int key, MPIR_Comm **ne
     } else {
         /* TODO: for small input comms, better to call allgather/qsort vs bitonic */
         int ranks = comm_ptr->local_size;
-        if (mv2_use_bitonic_comm_split && (ranks > mv2_bitonic_comm_split_threshold)) {
+        if (MVP_USE_BITONIC_COMM_SPLIT &&
+            (ranks > MVP_BITONIC_COMM_SPLIT_THRESHOLD)) {
             rc = MPIR_Comm_split_intra_bitonic(comm_ptr, color, key, newcomm_ptr);
         } else {
             rc = MPIR_Comm_split_allgather(comm_ptr, color, key, newcomm_ptr);
@@ -1165,7 +1166,7 @@ int MPIR_Comm_split_impl(MPIR_Comm *comm_ptr, int color, int key, MPIR_Comm **ne
     }
 #else
     rc = MPIR_Comm_split_allgather(comm_ptr, color, key, newcomm_ptr);
-#endif /* defined(CHANNEL_MRAIL) || defined(_MV2_CH4_OVERRIDE_) || defined(CHANNEL_NEMESIS_IB) */
+#endif /* defined(CHANNEL_MRAIL) || defined(_MVP_CH4_OVERRIDE_) || defined(CHANNEL_NEMESIS_IB) */
     return rc;
 }
 

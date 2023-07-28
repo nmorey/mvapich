@@ -2,15 +2,15 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -63,10 +63,10 @@ int MPIDI_CH3_Pkt_size_index[] = {
 #if defined(CHANNEL_MRAIL)
     sizeof(MPIDI_CH3_Pkt_eager_send_contig_t),
 #endif /* defined(CHANNEL_MRAIL) */
-#ifndef MV2_DISABLE_HEADER_CACHING 
+#ifndef MVP_DISABLE_HEADER_CACHING 
     sizeof(MPIDI_CH3I_MRAILI_Pkt_fast_eager),
     sizeof(MPIDI_CH3I_MRAILI_Pkt_fast_eager_with_req),
-#endif /* !MV2_DISABLE_HEADER_CACHING */
+#endif /* !MVP_DISABLE_HEADER_CACHING */
     sizeof(MPIDI_CH3_Pkt_rput_finish_t),
     sizeof(MPIDI_CH3_Pkt_rget_finish_t),
     sizeof(MPIDI_CH3_Pkt_zcopy_finish_t),
@@ -160,7 +160,7 @@ int MPIDI_CH3U_Handle_recv_rndv_pkt(MPIDI_VC_t * vc, MPIDI_CH3_Pkt_t * pkt,
     {
 #if defined(CHANNEL_MRAIL)
     if (SMP_INIT && vc->smp.local_nodes >= 0) {
-        MV2_INC_NUM_POSTED_RECV();
+        MVP_INC_NUM_POSTED_RECV();
     }
 #endif
     MPL_DBG_MSG(MPIDI_CH3_DBG_OTHER,VERBOSE,"unexpected request allocated");
@@ -298,16 +298,16 @@ int MPIDI_CH3U_Receive_data_found(MPIR_Request *rreq, void *buf, intptr_t *bufle
             /* copy data out of the receive buffer */
 
 #if defined(_ENABLE_CUDA_)
-            if (mv2_enable_device) {
+            if (mvp_enable_device) {
                 userbuf_isdev = is_device_buffer((void *) rreq->dev.user_buf);
             }
             if (userbuf_isdev) {
-                MV2_MPIDI_Memcpy_Device((void *) ((char*)(rreq->dev.user_buf) + dt_true_lb),
+                MVP_MPIDI_Memcpy_Device((void *) ((char*)(rreq->dev.user_buf) + dt_true_lb),
                                     buf, data_sz, deviceMemcpyDefault);
             }
             else if (!is_device_buffer(rreq->dev.user_buf)
                     && is_device_buffer(buf)) {
-                MV2_MPIDI_Memcpy_Device((void *) ((char*)(rreq->dev.user_buf) + dt_true_lb),
+                MVP_MPIDI_Memcpy_Device((void *) ((char*)(rreq->dev.user_buf) + dt_true_lb),
                                     buf, data_sz, deviceMemcpyDeviceToHost);
             }
             else
@@ -345,14 +345,14 @@ int MPIDI_CH3U_Receive_data_found(MPIR_Request *rreq, void *buf, intptr_t *bufle
         if (data_sz == rreq->dev.recv_data_sz && *buflen >= data_sz)
         {
 #if defined(_ENABLE_CUDA_)
-            if (mv2_enable_device &&
+            if (mvp_enable_device &&
                     rreq->mrail.device_transfer_mode == DEVICE_TO_DEVICE) {
                 mpi_errno = MPIDI_CH3U_Request_load_recv_iov(rreq);
                 if (mpi_errno != MPI_SUCCESS) {
                     MPIR_ERR_SETFATALANDJUMP(mpi_errno,MPI_ERR_OTHER,
                             "**ch3|loadrecviov");
                 }
-                MV2_MPIDI_Memcpy_Device((char*)(rreq->dev.iov[0].iov_base),
+                MVP_MPIDI_Memcpy_Device((char*)(rreq->dev.iov[0].iov_base),
                         buf, data_sz, deviceMemcpyDefault);
 
                 *buflen = data_sz;
@@ -415,17 +415,17 @@ int MPIDI_CH3U_Receive_data_unexpected(MPIR_Request * rreq, void *buf, intptr_t 
 
 #if defined(_ENABLE_CUDA_) && defined(HAVE_CUDA_IPC)  
     int buf_isdev = 0;
-    if (mv2_enable_device) {
+    if (mvp_enable_device) {
         buf_isdev = is_device_buffer((void *) buf);
     }   
-    if (buf_isdev && mv2_device_use_smp_eager_ipc) {
-        MV2_MPIDI_Malloc_Device(rreq->dev.tmpbuf, rreq->dev.recv_data_sz);
+    if (buf_isdev && mvp_device_use_smp_eager_ipc) {
+        MVP_MPIDI_Malloc_Device(rreq->dev.tmpbuf, rreq->dev.recv_data_sz);
         
         rreq->dev.tmpbuf_sz = rreq->dev.recv_data_sz;
 
         if (rreq->dev.recv_data_sz <= *buflen)
         {
-            MV2_MPIDI_Memcpy_Device((void *) rreq->dev.tmpbuf, (void *) buf,
+            MVP_MPIDI_Memcpy_Device((void *) rreq->dev.tmpbuf, (void *) buf,
                     rreq->dev.recv_data_sz, deviceMemcpyDefault);
             *buflen = rreq->dev.recv_data_sz;
             rreq->dev.recv_pending_count = 1;

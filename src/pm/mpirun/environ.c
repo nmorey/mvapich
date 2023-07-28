@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  */
 
 #include <mpirun_util.h>
@@ -16,8 +16,7 @@ extern char **environ;
 static int enabled = 0;
 static int force = 0;
 
-static size_t
-get_num_of_environ_strings (void)
+static size_t get_num_of_environ_strings(void)
 {
     char **ptr = environ;
     size_t num = 0;
@@ -30,8 +29,7 @@ get_num_of_environ_strings (void)
     return num;
 }
 
-static int
-read_and_set_env (int s, size_t len)
+static int read_and_set_env(int s, size_t len)
 {
     char envbuf[len];
     char *name = (char *)&envbuf, *value = (char *)&envbuf;
@@ -39,23 +37,21 @@ read_and_set_env (int s, size_t len)
     if (read_socket(s, envbuf, len)) {
         return -1;
     }
-    
+
     name = strsep(&value, "=");
     return setenv(name, value, force);
 }
 
-void
-enable_send_environ (int overwrite)
+void enable_send_environ(int overwrite)
 {
     enabled = 1;
     force = overwrite;
 }
 
-int
-send_environ (int s)
+int send_environ(int s)
 {
     size_t i, count = 0;
-   
+
     if (enabled) {
         count = get_num_of_environ_strings();
     }
@@ -85,8 +81,7 @@ send_environ (int s)
     return 0;
 }
 
-int
-recv_environ (int s)
+int recv_environ(int s)
 {
     size_t count;
 
@@ -109,11 +104,10 @@ recv_environ (int s)
             return -1;
         }
 
-        if (read_and_set_env (s, len)) {
+        if (read_and_set_env(s, len)) {
             return -1;
         }
     }
 
     return 0;
 }
-

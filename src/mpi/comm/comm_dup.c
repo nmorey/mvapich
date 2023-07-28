@@ -3,23 +3,23 @@
  *     See COPYRIGHT in top-level directory
  */
 
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
 #include "mpiimpl.h"
 #include "mpicomm.h"
-#if defined(CHANNEL_MRAIL) || defined(_MV2_CH4_OVERRIDE_)
-#include "mv2_coll_shmem.h"
-#endif /* defined(CHANNEL_MRAIL) || defined(_MV2_CH4_OVERRIDE_) */
+#if defined(CHANNEL_MRAIL) || defined(_MVP_CH4_OVERRIDE_)
+#include "mvp_coll_shmem.h"
+#endif /* defined(CHANNEL_MRAIL) || defined(_MVP_CH4_OVERRIDE_) */
 
 
 /* -- Begin Profiling Symbol Block for routine MPI_Comm_dup */

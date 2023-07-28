@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -70,7 +70,7 @@ typedef enum {
     CONN_VERIFY_FAILURE
 } CONN_STATUS;
 
-#if 0                           // unused (will be remove later)
+#if 0 // unused (will be remove later)
 static CONN_STATUS conn2parent(size_t parent, int *p_socket)
 {
     size_t p_id;
@@ -134,13 +134,15 @@ static CONN_STATUS conn2children(size_t const n, size_t const children[], int c_
 }
 #endif
 
-static family_size find_family(size_t const root, size_t const degree, size_t const node_count, size_t * parent, size_t children[])
+static family_size find_family(size_t const root, size_t const degree,
+                               size_t const node_count, size_t *parent,
+                               size_t children[])
 {
     size_t offset = node_count - root;
     size_t position = (id + offset) % node_count;
     size_t c_start = degree * position + 1;
     size_t i;
-    family_size fs = { 0, 0 };
+    family_size fs = {0, 0};
 
     /*
      * Can't build a tree when nodes have a degree of 0
@@ -174,7 +176,8 @@ static family_size find_family(size_t const root, size_t const degree, size_t co
     return fs;
 }
 
-extern int *mpispawn_tree_init(size_t me, const size_t degree, const size_t node_count, int req_socket)
+extern int *mpispawn_tree_init(size_t me, const size_t degree,
+                               const size_t node_count, int req_socket)
 {
     size_t parent, child[degree];
     size_t i;
@@ -191,14 +194,15 @@ extern int *mpispawn_tree_init(size_t me, const size_t degree, const size_t node
     MPISPAWN_NCHILD = fs.num_children;
     MPISPAWN_HAS_PARENT = fs.num_parents;
 
-    socket_array = (int *) calloc(fs.num_parents + fs.num_children, sizeof(int));
+    socket_array = (int *)calloc(fs.num_parents + fs.num_children, sizeof(int));
 
     if (!socket_array) {
         perror("calloc");
         return NULL;
     }
 
-    memset(socket_array, 0xff, (fs.num_parents + fs.num_children) * sizeof(int));
+    memset(socket_array, 0xff,
+           (fs.num_parents + fs.num_children) * sizeof(int));
 
     /*
      * Connect to parent
@@ -227,50 +231,55 @@ extern int *mpispawn_tree_init(size_t me, const size_t degree, const size_t node
         }
     }
 
-    while ((p_socket = socket_array[0] = accept(l_socket, (struct sockaddr *) NULL, NULL)) < 0) {
+    while ((p_socket = socket_array[0] =
+                accept(l_socket, (struct sockaddr *)NULL, NULL)) < 0) {
         switch (errno) {
-        case EINTR:
-        case EAGAIN:
-            continue;
-        default:
-            perror("mpispawn_tree_init");
-            goto free_socket_array;
+            case EINTR:
+            case EAGAIN:
+                continue;
+            default:
+                perror("mpispawn_tree_init");
+                goto free_socket_array;
         }
     }
 
     debug("[id: %d] connected to parent\n", id);
 
-    mpispawn_info = (mpispawn_info_t *) calloc(sizeof(mpispawn_info_t),
-            node_count);
+    mpispawn_info =
+        (mpispawn_info_t *)calloc(sizeof(mpispawn_info_t), node_count);
     if (!mpispawn_info) {
         perror("mpispawn_tree_init");
         goto close_p_socket;
     }
 
-    if (read_socket(p_socket, mpispawn_info, sizeof(mpispawn_info_t) * node_count)) {
+    if (read_socket(p_socket, mpispawn_info,
+                    sizeof(mpispawn_info_t) * node_count)) {
         perror("mpispawn_tree_init");
         goto free_mpispawn_info;
     }
 #if defined(CKPT) && defined(CR_FTB)
-    spawninfo = (struct spawn_info_s *) calloc(sizeof(struct spawn_info_s), node_count);
+    spawninfo =
+        (struct spawn_info_s *)calloc(sizeof(struct spawn_info_s), node_count);
     if (!spawninfo) {
         perror("[CR_MIG] calloc(spawninfo)");
         goto free_mpispawn_info;
     }
 
-    if (read_socket(p_socket, spawninfo, sizeof(struct spawn_info_s) * node_count)) {
+    if (read_socket(p_socket, spawninfo,
+                    sizeof(struct spawn_info_s) * node_count)) {
         perror("[CR_MIG] read_socket(spawninfo)");
         goto free_spawninfo;
     }
 
     for (i = 0; i < node_count; i++) {
-        debug("***** %s:%d[mpispawn:spawninfo:%d] %s - %d\n", __FILE__, __LINE__, i, spawninfo[i].spawnhost, spawninfo[i].sparenode);
+        debug("***** %s:%d[mpispawn:spawninfo:%d] %s - %d\n", __FILE__,
+              __LINE__, i, spawninfo[i].spawnhost, spawninfo[i].sparenode);
     }
 #endif
 
     for (i = 0; i < fs.num_children; ++i) {
         int c_socket = connect_socket(mpispawn_info[child[i]].node,
-                mpispawn_info[child[i]].serv);
+                                      mpispawn_info[child[i]].serv);
 
         if (0 == c_socket) {
             goto free_spawninfo;
@@ -278,7 +287,8 @@ extern int *mpispawn_tree_init(size_t me, const size_t degree, const size_t node
 
         socket_array[fs.num_parents + i] = c_socket;
 
-        if (write_socket(c_socket, mpispawn_info, sizeof(mpispawn_info_t) * node_count)) {
+        if (write_socket(c_socket, mpispawn_info,
+                         sizeof(mpispawn_info_t) * node_count)) {
             do {
                 close(socket_array[fs.num_parents + i]);
             } while (i--);
@@ -286,7 +296,8 @@ extern int *mpispawn_tree_init(size_t me, const size_t degree, const size_t node
             goto free_spawninfo;
         }
 #if defined(CKPT) && defined(CR_FTB)
-        if (write_socket(c_socket, spawninfo, sizeof(struct spawn_info_s) * node_count)) {
+        if (write_socket(c_socket, spawninfo,
+                         sizeof(struct spawn_info_s) * node_count)) {
             do {
                 close(socket_array[fs.num_parents + i]);
             } while (i--);
@@ -306,14 +317,17 @@ extern int *mpispawn_tree_init(size_t me, const size_t degree, const size_t node
     int index_spawninfo = 0;
     static char my_host_name[MAX_HOST_LEN];
     gethostname(my_host_name, MAX_HOST_LEN);
-    debug("===== id= %d -- num_parents %d -- NUMCHILDREN %d %s \n", id, fs.num_parents, fs.num_children, my_host_name);
+    debug("===== id= %d -- num_parents %d -- NUMCHILDREN %d %s \n", id,
+          fs.num_parents, fs.num_children, my_host_name);
     debug("id= %d -- MPISPAWN_HAS_PARENT %d\n", id, MPISPAWN_HAS_PARENT);
     debug("id= %d -- PARENT %d\n", id, parent);
     debug("id= %d -- DEGREE %d\n", id, degree);
     debug("id= %d -- NUMCHILDREN %d\n", id, fs.num_children);
     for (i = 0; i < fs.num_children; i++) {
         index_spawninfo = (((MPISPAWN_HAS_PARENT) ? id : 0) * degree) + i;
-        debug("%s:%d[mpispawn_tree_connect:%d] %d Child(%d) =%d\n", __FILE__, __LINE__, ((MPISPAWN_HAS_PARENT) ? parent : 0), id, i, index_spawninfo);
+        debug("%s:%d[mpispawn_tree_connect:%d] %d Child(%d) =%d\n", __FILE__,
+              __LINE__, ((MPISPAWN_HAS_PARENT) ? parent : 0), id, i,
+              index_spawninfo);
 
         if (spawninfo[index_spawninfo + 1].sparenode) {
             ++exclude_spare;
@@ -321,24 +335,25 @@ extern int *mpispawn_tree_init(size_t me, const size_t degree, const size_t node
     }
 
     debug("[%d on %s] exclude_spare::%d\n", id, my_host_name, exclude_spare);
-    debug("%s:%d:mpispawn_id::%d exclude_spare::%d\n", __FILE__, __LINE__, id, exclude_spare);
+    debug("%s:%d:mpispawn_id::%d exclude_spare::%d\n", __FILE__, __LINE__, id,
+          exclude_spare);
 #endif
 
     debug("leaving mpispawn_tree_init [id: %d]\n", me);
     return socket_array;
 
-  free_spawninfo:
+free_spawninfo:
 #if defined(CKPT) && defined(CR_FTB)
     free(spawninfo);
 #endif
 
-  free_mpispawn_info:
+free_mpispawn_info:
     free(mpispawn_info);
 
-  close_p_socket:
+close_p_socket:
     close(p_socket);
 
-  free_socket_array:
+free_socket_array:
     free(socket_array);
 
     return NULL;

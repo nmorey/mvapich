@@ -6,12 +6,12 @@
 /* Copyright (c) 2001-2021, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  */
 
 #include "mpiimpl.h"
@@ -54,8 +54,8 @@ static MPIR_Comm *progress_comm_ptr;
 static MPID_Thread_id_t progress_thread_id;
 
 #if defined(CHANNEL_MRAIL)
-extern int mv2_my_async_cpu_id;
-extern int mv2_enable_progress_affinity;
+extern int mvp_my_async_cpu_id;
+extern int mvp_enable_progress_affinity;
 extern int smpi_set_progress_thread_affinity();
 #endif /* defined(CHANNEL_MRAIL) */
 
@@ -76,13 +76,13 @@ static void progress_fn(void *data)
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
 
 #if defined(_ENABLE_CUDA_)
-    if (mv2_enable_device &&
-        mv2_device_initialized) {
+    if (mvp_enable_device &&
+        mvp_device_initialized) {
         device_init_thread_context();
     }
 #endif /* defined(_ENABLE_CUDA_) */
 #if defined(CHANNEL_MRAIL)
-    if (mv2_enable_progress_affinity && mv2_my_async_cpu_id >= 0) {
+    if (mvp_enable_progress_affinity && mvp_my_async_cpu_id >= 0) {
         smpi_set_progress_thread_affinity();
     }
 #endif /* defined(CHANNEL_MRAIL) */

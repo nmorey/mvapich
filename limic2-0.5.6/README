@@ -46,8 +46,8 @@ provides the interface to the kernel module functions for the MPI library.
 Currently only LiMIC2 is supported and distributed from SSLab homepage,
 http://sslab.konkuk.ac.kr, under BSD license.
 
-LiMIC2 has been adopted into MVAPICH/MVAPICH2 developed by Network-Based 
-Computing Laboratory (NBCL) of the Ohio State University. MVAPICH/MVAPICH2 
+LiMIC2 has been adopted into MVAPICH/MVAPICH developed by Network-Based 
+Computing Laboratory (NBCL) of the Ohio State University. MVAPICH/MVAPICH 
 is the open-source implementation of MPI/MPI2 library for InfiniBand and 
 iWARP clusters. This software is being used by more than 800 organizations 
 world-wide. You can download the software at the MVAPICH website (http://
@@ -79,7 +79,7 @@ of CAC 2005, April 2005.
 
 3.1 Software Download
 	http://sslab.konkuk.ac.kr for LiMIC2 only
-	http://mvapich.cse.ohio-state.edu for MVAPICH2+LiMIC2 package
+	http://mvapich.cse.ohio-state.edu for MVAPICH+LiMIC2 package
 
 3.2 Compiling LiMIC2 Library + Kernel Module
 	./configure --enable-module --prefix=/usr --sysconfdir=/etc

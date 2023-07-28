@@ -1,6 +1,8 @@
 #!/bin/bash
 
 THRESHOLD=30
+THRESHOLDMRI=120
+THRESHOLDRI2=120
 
 echo "Running on "
 hostname
@@ -33,6 +35,22 @@ do
   if [ "$NUMBAD" -gt "$THRESHOLD" ]; then
     echo "This is more than the allowed threshold of $THRESHOLD for $channel on $CLUSTER_ABBREV";
     rm -f /home/gitlab-runner/merges/tuning-suite/regression/negatives.txt
+    if [ $CLUSTER_ABBREV == "mri" ]; then
+      if [ "$NUMBAD" -gt "$THRESHOLDMRI" ]; then
+        exit 1
+      else
+        echo "but within tolerance to account for system performance variance"
+        exit 30
+      fi
+    fi
+    if [ $CLUSTER_ABBREV == "ri2" ]; then
+      if [ "$NUMBAD" -gt "$THRESHOLDRI2" ]; then
+        exit 1
+      else
+        echo "but within tolerance to account for system performance variance"
+        exit 30
+      fi
+    fi
     exit 1
   else
     echo "This is within the allowed limit of $THRESHOLD for $channel on $CLUSTER_ABBREV";

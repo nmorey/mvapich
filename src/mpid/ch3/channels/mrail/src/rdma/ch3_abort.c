@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -23,8 +23,9 @@ int MPIDI_CH3_Abort(int exit_code, const char *error_msg)
     MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPIDI_CH3_ABORT);
 
     /* print backtrace */
-    if (show_backtrace) print_backtrace();
-    
+    if (show_backtrace)
+        print_backtrace();
+
 #if !defined(HAVE_PBS_PRO)
     UPMI_ABORT(exit_code, error_msg);
 #endif /* #if !defined(HAVE_PBS_PRO) */

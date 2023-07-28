@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -21,12 +21,12 @@
 #include <dirent.h>
 
 extern int ib_socket_bind;
-extern unsigned int mv2_enable_affinity;
-#define MV2_MAX_NUM_SOCKETS_PER_NODE    (16)
+extern unsigned int mvp_enable_affinity;
+#define MVP_MAX_NUM_SOCKETS_PER_NODE (16)
 
 typedef struct {
     int num_hca;
-    int closest[MV2_MAX_NUM_SOCKETS_PER_NODE];
+    int closest[MVP_MAX_NUM_SOCKETS_PER_NODE];
 } tab_socket_t;
 
 typedef enum {
@@ -56,17 +56,17 @@ typedef struct {
 
 struct MPIDI_PG;
 
-extern policy_type_t mv2_binding_policy;
-extern level_type_t mv2_binding_level;
-extern int mv2_user_defined_mapping;
-extern unsigned int mv2_enable_affinity;
-extern unsigned int mv2_enable_leastload;
+extern policy_type_t mvp_binding_policy;
+extern level_type_t mvp_binding_level;
+extern int mvp_user_defined_mapping;
+extern unsigned int mvp_enable_affinity;
+extern unsigned int mvp_enable_leastload;
 
 extern int s_cpu_mapping_line_max;
 extern char *s_cpu_mapping;
 
-void map_scatter_load(obj_attribute_type * tree);
-void map_bunch_load(obj_attribute_type * tree);
+void map_scatter_load(obj_attribute_type *tree);
+void map_bunch_load(obj_attribute_type *tree);
 void map_scatter_core(int num_cpus);
 void map_scatter_socket(int num_sockets, hwloc_obj_type_t binding_level);
 void map_bunch_core(int num_cpus);
@@ -74,11 +74,11 @@ void map_bunch_socket(int num_sockets, hwloc_obj_type_t binding_level);
 int get_cpu_mapping_hwloc(long N_CPUs_online, hwloc_topology_t topology);
 int get_cpu_mapping(long N_CPUs_online);
 #if defined(CHANNEL_MRAIL)
-int get_ib_socket(struct ibv_device * ibdev);
-int get_ib_numa(struct ibv_device * ibdev);
+int get_ib_socket(struct ibv_device *ibdev);
+int get_ib_numa(struct ibv_device *ibdev);
 #endif /* defined(CHANNEL_MRAIL) */
 int smpi_setaffinity(int my_local_id);
-int MPIDI_CH3I_set_affinity(struct MPIDI_PG * pg, int pg_rank);
+int MPIDI_CH3I_set_affinity(struct MPIDI_PG *pg, int pg_rank);
 
 #if defined(CHANNEL_MRAIL) || defined(CHANNEL_PSM)
 extern hwloc_topology_t topology;
@@ -97,7 +97,8 @@ static inline int smpi_load_hwloc_topology(void)
     if (!topology) {
         hwloc_topology_init(&topology);
 #ifdef _USE_HWLOC_V1_
-        hwloc_topology_set_flags(topology_whole, HWLOC_TOPOLOGY_FLAG_IO_DEVICES);
+        hwloc_topology_set_flags(topology_whole,
+                                 HWLOC_TOPOLOGY_FLAG_IO_DEVICES);
 #endif /* _USE_HWLOC_V1_ */
         hwloc_topology_set_flags(topology, HWLOC_TOPOLOGY_FLAG_WHOLE_SYSTEM);
         hwloc_topology_load(topology);
@@ -108,18 +109,20 @@ static inline int smpi_load_hwloc_topology_whole(void)
     if (!topology_whole) {
         hwloc_topology_init(&topology_whole);
 #ifdef _USE_HWLOC_V1_
-        hwloc_topology_set_flags(topology_whole, HWLOC_TOPOLOGY_FLAG_IO_DEVICES);
+        hwloc_topology_set_flags(topology_whole,
+                                 HWLOC_TOPOLOGY_FLAG_IO_DEVICES);
 #endif /* _USE_HWLOC_V1_ */
-        hwloc_topology_set_flags(topology_whole, HWLOC_TOPOLOGY_FLAG_WHOLE_SYSTEM);
+        hwloc_topology_set_flags(topology_whole,
+                                 HWLOC_TOPOLOGY_FLAG_WHOLE_SYSTEM);
         hwloc_topology_load(topology_whole);
-    }    
+    }
 }
 static inline int smpi_destroy_hwloc_topology(void)
 {
     if (topology) {
         hwloc_topology_destroy(topology);
     }
-    
+
     if (topology_whole) {
         hwloc_topology_destroy(topology_whole);
     }

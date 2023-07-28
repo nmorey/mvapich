@@ -8,9 +8,9 @@
 
 #include "mpiimpl.h"
 
-/* MV2 datatype variables */
-extern int mv2_datatype_names_initialized;
-extern int mv2_datatype_builtin_fillin_is_init;
+/* MVP datatype variables */
+extern int mvp_datatype_names_initialized;
+extern int mvp_datatype_builtin_fillin_is_init;
 
 /* Definitions private to the datatype code */
 int MPIR_Datatype_builtintype_alignment(MPI_Datatype type);

@@ -1,26 +1,22 @@
 #include "allgatherv_tuning.h"
 
 #undef FUNCNAME
-#define FUNCNAME MPIR_Allgatherv_Rec_Doubling_MV2
+#define FUNCNAME MPIR_Allgatherv_Rec_Doubling_MVP
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIR_Allgatherv_Rec_Doubling_MV2(const void *sendbuf,
-                                     int sendcount,
-                                     MPI_Datatype sendtype,
-                                     void *recvbuf,
-                                     const int *recvcounts,
-                                     const int *displs,
-                                     MPI_Datatype recvtype,
-                                     MPIR_Comm * comm_ptr,
+int MPIR_Allgatherv_Rec_Doubling_MVP(const void *sendbuf, int sendcount,
+                                     MPI_Datatype sendtype, void *recvbuf,
+                                     const int *recvcounts, const int *displs,
+                                     MPI_Datatype recvtype, MPIR_Comm *comm_ptr,
                                      MPIR_Errflag_t *errflag)
 {
-    MPIR_TIMER_START(coll,allgatherv,rec_doubling);
+    MPIR_TIMER_START(coll, allgatherv, rec_doubling);
     int comm_size, rank, j, i;
     int mpi_errno = MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
     MPI_Status status;
     MPI_Aint recvtype_extent, recvtype_true_extent, recvtype_true_lb,
-             last_recv_cnt = 0;
+        last_recv_cnt = 0;
     int curr_cnt, dst, total_count;
     void *tmp_buf;
     int mask, dst_tree_root, my_tree_root, is_homogeneous, position,
@@ -32,7 +28,7 @@ int MPIR_Allgatherv_Rec_Doubling_MV2(const void *sendbuf,
 #endif
     MPIR_CHKLMEM_DECL(1);
 
-    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_allgatherv_rec_doubling, 1);
+    MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_allgatherv_rec_doubling, 1);
 
     comm_size = comm_ptr->local_size;
     rank = comm_ptr->rank;
@@ -59,33 +55,31 @@ int MPIR_Allgatherv_Rec_Doubling_MV2(const void *sendbuf,
         MPIR_Type_get_true_extent_impl(recvtype, &recvtype_true_lb,
                                        &recvtype_true_extent);
 
-        MPIR_CHKLMEM_MALLOC(tmp_buf, void *,
-                            total_count *
-                            (MPL_MAX
-                             (recvtype_true_extent, recvtype_extent)),
-                            mpi_errno, "tmp_buf", MPL_MEM_COLL);
+        MPIR_CHKLMEM_MALLOC(
+            tmp_buf, void *,
+            total_count *(MPL_MAX(recvtype_true_extent, recvtype_extent)),
+            mpi_errno, "tmp_buf", MPL_MEM_COLL);
 
         /* adjust for potential negative lower bound in datatype */
-        tmp_buf = (void *) ((char *) tmp_buf - recvtype_true_lb);
+        tmp_buf = (void *)((char *)tmp_buf - recvtype_true_lb);
 
         /* copy local data into right location in tmp_buf */
         position = 0;
         for (i = 0; i < rank; i++)
             position += recvcounts[i];
         if (sendbuf != MPI_IN_PLACE) {
-            mpi_errno = MPIR_Localcopy(sendbuf, sendcount, sendtype,
-                                       ((char *) tmp_buf + position *
-                                        recvtype_extent), recvcounts[rank],
-                                       recvtype);
+            mpi_errno =
+                MPIR_Localcopy(sendbuf, sendcount, sendtype,
+                               ((char *)tmp_buf + position * recvtype_extent),
+                               recvcounts[rank], recvtype);
             MPIR_ERR_CHECK(mpi_errno);
         } else {
             /* if in_place specified, local data is found in recvbuf */
-            mpi_errno = MPIR_Localcopy(((char *) recvbuf +
-                                        displs[rank] * recvtype_extent),
-                                       recvcounts[rank], recvtype,
-                                       ((char *) tmp_buf + position *
-                                        recvtype_extent), recvcounts[rank],
-                                       recvtype);
+            mpi_errno = MPIR_Localcopy(
+                ((char *)recvbuf + displs[rank] * recvtype_extent),
+                recvcounts[rank], recvtype,
+                ((char *)tmp_buf + position * recvtype_extent),
+                recvcounts[rank], recvtype);
             MPIR_ERR_CHECK(mpi_errno);
         }
 
@@ -116,22 +110,18 @@ int MPIR_Allgatherv_Rec_Doubling_MV2(const void *sendbuf,
                 for (j = 0; j < dst_tree_root; j++)
                     recv_offset += recvcounts[j];
 
-                MPIR_PVAR_INC(allgatherv, rec_doubling, send, 
-                    curr_cnt, recvtype);
-                MPIR_PVAR_INC(allgatherv, rec_doubling, recv, 
-                    total_count - recv_offset, recvtype);
-                mpi_errno =
-                    MPIC_Sendrecv(((char *) tmp_buf +
-                                      send_offset * recvtype_extent),
-                                     curr_cnt, recvtype, dst,
-                                     MPIR_ALLGATHERV_TAG,
-                                     ((char *) tmp_buf +
-                                      recv_offset * recvtype_extent),
-                                     total_count - recv_offset, recvtype,
-                                     dst, MPIR_ALLGATHERV_TAG, comm_ptr,
-                                     &status, errflag);
+                MPIR_PVAR_INC(allgatherv, rec_doubling, send, curr_cnt,
+                              recvtype);
+                MPIR_PVAR_INC(allgatherv, rec_doubling, recv,
+                              total_count - recv_offset, recvtype);
+                mpi_errno = MPIC_Sendrecv(
+                    ((char *)tmp_buf + send_offset * recvtype_extent), curr_cnt,
+                    recvtype, dst, MPIR_ALLGATHERV_TAG,
+                    ((char *)tmp_buf + recv_offset * recvtype_extent),
+                    total_count - recv_offset, recvtype, dst,
+                    MPIR_ALLGATHERV_TAG, comm_ptr, &status, errflag);
                 if (mpi_errno) {
-                    /* for communication errors, 
+                    /* for communication errors,
                      * just record the error but continue */
                     *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
                     MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
@@ -187,23 +177,20 @@ int MPIR_Allgatherv_Rec_Doubling_MV2(const void *sendbuf,
                     /* send only if this proc has data and destination
                        doesn't have data. at any step, multiple processes
                        can send if they have the data */
-                    if ((dst > rank)
-                        && (rank < tree_root + nprocs_completed)
-                        && (dst >= tree_root + nprocs_completed)) {
-
+                    if ((dst > rank) && (rank < tree_root + nprocs_completed) &&
+                        (dst >= tree_root + nprocs_completed)) {
                         offset = 0;
                         for (j = 0; j < (my_tree_root + mask); j++)
                             offset += recvcounts[j];
                         offset *= recvtype_extent;
 
-                        MPIR_PVAR_INC(allgatherv, rec_doubling, send, 
-                            last_recv_cnt, recvtype);
-                        mpi_errno =
-                            MPIC_Send(((char *) tmp_buf + offset),
-                                         last_recv_cnt, recvtype, dst,
-                                         MPIR_ALLGATHERV_TAG, comm_ptr, errflag);
+                        MPIR_PVAR_INC(allgatherv, rec_doubling, send,
+                                      last_recv_cnt, recvtype);
+                        mpi_errno = MPIC_Send(
+                            ((char *)tmp_buf + offset), last_recv_cnt, recvtype,
+                            dst, MPIR_ALLGATHERV_TAG, comm_ptr, errflag);
                         if (mpi_errno) {
-                            /* for communication errors, 
+                            /* for communication errors,
                              * just record the error but continue */
                             *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
                             MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
@@ -218,21 +205,18 @@ int MPIR_Allgatherv_Rec_Doubling_MV2(const void *sendbuf,
                     else if ((dst < rank) &&
                              (dst < tree_root + nprocs_completed) &&
                              (rank >= tree_root + nprocs_completed)) {
-
                         offset = 0;
                         for (j = 0; j < (my_tree_root + mask); j++)
                             offset += recvcounts[j];
 
-                        MPIR_PVAR_INC(allgatherv, rec_doubling, recv, 
-                            total_count - offset, recvtype);
-                        mpi_errno =
-                            MPIC_Recv(((char *) tmp_buf +
-                                          offset * recvtype_extent),
-                                         total_count - offset, recvtype,
-                                         dst, MPIR_ALLGATHERV_TAG, comm_ptr,
-                                         &status, errflag);
+                        MPIR_PVAR_INC(allgatherv, rec_doubling, recv,
+                                      total_count - offset, recvtype);
+                        mpi_errno = MPIC_Recv(
+                            ((char *)tmp_buf + offset * recvtype_extent),
+                            total_count - offset, recvtype, dst,
+                            MPIR_ALLGATHERV_TAG, comm_ptr, &status, errflag);
                         if (mpi_errno) {
-                            /* for communication errors, 
+                            /* for communication errors,
                              * just record the error but continue */
                             *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
                             MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
@@ -261,13 +245,11 @@ int MPIR_Allgatherv_Rec_Doubling_MV2(const void *sendbuf,
             if ((sendbuf != MPI_IN_PLACE) || (j != rank)) {
                 /* not necessary to copy if in_place and
                    j==rank. otherwise copy. */
-                mpi_errno =
-                    MPIR_Localcopy(((char *) tmp_buf +
-                                    position * recvtype_extent),
-                                   recvcounts[j], recvtype,
-                                   ((char *) recvbuf +
-                                    displs[j] * recvtype_extent),
-                                   recvcounts[j], recvtype);
+                mpi_errno = MPIR_Localcopy(
+                    ((char *)tmp_buf + position * recvtype_extent),
+                    recvcounts[j], recvtype,
+                    ((char *)recvbuf + displs[j] * recvtype_extent),
+                    recvcounts[j], recvtype);
                 MPIR_ERR_CHECK(mpi_errno);
             }
             position += recvcounts[j];
@@ -277,8 +259,8 @@ int MPIR_Allgatherv_Rec_Doubling_MV2(const void *sendbuf,
     else {
         /* heterogeneous. need to use temp. buffer. */
         MPIR_Pack_size_impl(total_count, recvtype, &tmp_buf_size);
-        MPIR_CHKLMEM_MALLOC(tmp_buf, void *, tmp_buf_size, mpi_errno,
-                            "tmp_buf", MPL_MEM_COLL);
+        MPIR_CHKLMEM_MALLOC(tmp_buf, void *, tmp_buf_size, mpi_errno, "tmp_buf",
+                            MPL_MEM_COLL);
 
         /* calculate the value of nbytes, the number of bytes in packed
            representation corresponding to a single recvtype. Since
@@ -287,9 +269,8 @@ int MPIR_Allgatherv_Rec_Doubling_MV2(const void *sendbuf,
            into tmp_buf and see by how much 'position' is incremented. */
 
         position = 0;
-        mpi_errno =
-            MPIR_Typerep_pack(recvbuf, 1, recvtype, position, tmp_buf,
-                            tmp_buf_size, &position);
+        mpi_errno = MPIR_Typerep_pack(recvbuf, 1, recvtype, position, tmp_buf,
+                                      tmp_buf_size, &position);
         MPIR_ERR_CHECK(mpi_errno);
         nbytes = position;
 
@@ -302,15 +283,14 @@ int MPIR_Allgatherv_Rec_Doubling_MV2(const void *sendbuf,
         if (sendbuf != MPI_IN_PLACE) {
             mpi_errno =
                 MPIR_Typerep_pack(sendbuf, sendcount, sendtype, position,
-                                tmp_buf, tmp_buf_size, &position);
+                                  tmp_buf, tmp_buf_size, &position);
             MPIR_ERR_CHECK(mpi_errno);
         } else {
             /* if in_place specified, local data is found in recvbuf */
-            mpi_errno =
-                MPIR_Typerep_pack(((char *) recvbuf +
-                                displs[rank] * recvtype_extent),
-                               recvcounts[rank], recvtype, position, tmp_buf,
-                               tmp_buf_size, &position);
+            mpi_errno = MPIR_Typerep_pack(
+                ((char *)recvbuf + displs[rank] * recvtype_extent),
+                recvcounts[rank], recvtype, position, tmp_buf, tmp_buf_size,
+                &position);
             MPIR_ERR_CHECK(mpi_errno);
         }
 
@@ -343,20 +323,17 @@ int MPIR_Allgatherv_Rec_Doubling_MV2(const void *sendbuf,
             recv_offset *= nbytes;
 
             if (dst < comm_size) {
-                MPIR_PVAR_INC(allgatherv, rec_doubling, send, 
-                    curr_cnt, MPI_BYTE);
-                MPIR_PVAR_INC(allgatherv, rec_doubling, recv, 
-                    tmp_buf_size - recv_offset, MPI_BYTE);
-                mpi_errno =
-                    MPIC_Sendrecv(((char *) tmp_buf + send_offset),
-                                     curr_cnt, MPI_BYTE, dst,
-                                     MPIR_ALLGATHERV_TAG,
-                                     ((char *) tmp_buf + recv_offset),
-                                     tmp_buf_size - recv_offset, MPI_BYTE,
-                                     dst, MPIR_ALLGATHERV_TAG, comm_ptr,
-                                     &status, errflag);
+                MPIR_PVAR_INC(allgatherv, rec_doubling, send, curr_cnt,
+                              MPI_BYTE);
+                MPIR_PVAR_INC(allgatherv, rec_doubling, recv,
+                              tmp_buf_size - recv_offset, MPI_BYTE);
+                mpi_errno = MPIC_Sendrecv(
+                    ((char *)tmp_buf + send_offset), curr_cnt, MPI_BYTE, dst,
+                    MPIR_ALLGATHERV_TAG, ((char *)tmp_buf + recv_offset),
+                    tmp_buf_size - recv_offset, MPI_BYTE, dst,
+                    MPIR_ALLGATHERV_TAG, comm_ptr, &status, errflag);
                 if (mpi_errno) {
-                    /* for communication errors, 
+                    /* for communication errors,
                      * just record the error but continue */
                     *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
                     MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
@@ -408,19 +385,15 @@ int MPIR_Allgatherv_Rec_Doubling_MV2(const void *sendbuf,
                     /* send only if this proc has data and destination
                        doesn't have data. at any step, multiple processes
                        can send if they have the data */
-                    if ((dst > rank)
-                        && (rank < tree_root + nprocs_completed)
-                        && (dst >= tree_root + nprocs_completed)) {
-
-                        MPIR_PVAR_INC(allgatherv, rec_doubling, send, 
-                            last_recv_cnt, MPI_BYTE);
-                        mpi_errno =
-                            MPIC_Send(((char *) tmp_buf + offset),
-                                         last_recv_cnt, MPI_BYTE, dst,
-                                         MPIR_ALLGATHERV_TAG, 
-                                         comm_ptr, errflag);
+                    if ((dst > rank) && (rank < tree_root + nprocs_completed) &&
+                        (dst >= tree_root + nprocs_completed)) {
+                        MPIR_PVAR_INC(allgatherv, rec_doubling, send,
+                                      last_recv_cnt, MPI_BYTE);
+                        mpi_errno = MPIC_Send(
+                            ((char *)tmp_buf + offset), last_recv_cnt, MPI_BYTE,
+                            dst, MPIR_ALLGATHERV_TAG, comm_ptr, errflag);
                         if (mpi_errno) {
-                            /* for communication errors, 
+                            /* for communication errors,
                              * just record the error but continue */
                             *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
                             MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
@@ -435,22 +408,21 @@ int MPIR_Allgatherv_Rec_Doubling_MV2(const void *sendbuf,
                     else if ((dst < rank) &&
                              (dst < tree_root + nprocs_completed) &&
                              (rank >= tree_root + nprocs_completed)) {
-                        MPIR_PVAR_INC(allgatherv, rec_doubling, recv, 
-                                        tmp_buf_size - offset, MPI_BYTE);
-                        mpi_errno =
-                            MPIC_Recv(((char *) tmp_buf + offset),
-                                         tmp_buf_size - offset, MPI_BYTE,
-                                         dst, MPIR_ALLGATHERV_TAG, comm_ptr,
-                                         &status, errflag);
+                        MPIR_PVAR_INC(allgatherv, rec_doubling, recv,
+                                      tmp_buf_size - offset, MPI_BYTE);
+                        mpi_errno = MPIC_Recv(((char *)tmp_buf + offset),
+                                              tmp_buf_size - offset, MPI_BYTE,
+                                              dst, MPIR_ALLGATHERV_TAG,
+                                              comm_ptr, &status, errflag);
                         if (mpi_errno) {
-                            /* for communication errors, 
+                            /* for communication errors,
                              * just record the error but continue */
                             *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
                             MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
                             MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
                             last_recv_cnt = 0;
                         } else
-                            /* for convenience, 
+                            /* for convenience,
                              * recv is posted for a bigger amount
                                than will be sent */
                             MPIR_Get_count_impl(&status, MPI_BYTE,
@@ -470,26 +442,24 @@ int MPIR_Allgatherv_Rec_Doubling_MV2(const void *sendbuf,
             if ((sendbuf != MPI_IN_PLACE) || (j != rank)) {
                 /* not necessary to unpack if in_place and
                    j==rank. otherwise unpack. */
-                mpi_errno =
-                    MPIR_Typerep_unpack(tmp_buf, tmp_buf_size,
-                                         ((char *) recvbuf +
-                                          displs[j] * recvtype_extent),
-                                         recvcounts[j], recvtype, position,
-                                         &position);
+                mpi_errno = MPIR_Typerep_unpack(
+                    tmp_buf, tmp_buf_size,
+                    ((char *)recvbuf + displs[j] * recvtype_extent),
+                    recvcounts[j], recvtype, position, &position);
                 MPIR_ERR_CHECK(mpi_errno);
             }
         }
     }
-#endif                          /* MPID_HAS_HETERO */
-  fn_exit:
+#endif /* MPID_HAS_HETERO */
+fn_exit:
     MPIR_CHKLMEM_FREEALL();
     if (mpi_errno_ret)
         mpi_errno = mpi_errno_ret;
     else if (*errflag)
         MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**coll_fail");
 
-    MPIR_TIMER_END(coll,allgatherv,rec_doubling);
+    MPIR_TIMER_END(coll, allgatherv, rec_doubling);
     return mpi_errno;
-  fn_fail:
+fn_fail:
     goto fn_exit;
 }

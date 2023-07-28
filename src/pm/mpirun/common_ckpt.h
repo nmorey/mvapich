@@ -1,18 +1,17 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
 #ifndef _COMMON_CKPT_H
 #define _COMMON_CKPT_H
-
 
 #include "mpichconf.h"
 
@@ -25,10 +24,9 @@
 #define CRU_MAX_VAL_LEN 64
 
 #define DEFAULT_CHECKPOINT_FILENAME "/tmp/ckpt"
-#define CR_SESSION_MAX  16
+#define CR_SESSION_MAX              16
 
 #define CR_MAX_FILENAME 256
-
 
 // Defined in mpirun_util.c
 extern char *CR_MPDU_getval(const char *, char *, int);
@@ -38,8 +36,7 @@ extern int CR_MPDU_writeline(int, char *);
 
 #ifdef CR_FTB
 
+#endif /* CR_FTB */
+#endif /* CKPT */
 
-#endif                          /* CR_FTB */
-#endif                          /* CKPT */
-
-#endif                          /* _COMMON_CKPT_H */
+#endif /* _COMMON_CKPT_H */

@@ -4,15 +4,15 @@
  *      See COPYRIGHT in top-level directory.
  */
 
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -64,13 +64,15 @@ int MPIDI_nem_ib_flush()
         }
 
         for (rail = 0; rail < rdma_num_rails; rail++) {
-            while (0 != VC_FIELD(vc, connection)->srp.credits[rail].backlog.len) {
+            while (0 !=
+                   VC_FIELD(vc, connection)->srp.credits[rail].backlog.len) {
                 if ((mpi_errno = MPID_Progress_test()) != MPI_SUCCESS) {
                     MPIR_ERR_POP(mpi_errno);
                 }
             }
 
-            while (NULL != VC_FIELD(vc, connection)->rails[rail].ext_sendq_head) {
+            while (NULL !=
+                   VC_FIELD(vc, connection)->rails[rail].ext_sendq_head) {
                 if ((mpi_errno = MPID_Progress_test()) != MPI_SUCCESS) {
                     MPIR_ERR_POP(mpi_errno);
                 }
@@ -80,18 +82,17 @@ int MPIDI_nem_ib_flush()
 
     MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_NEM_IB_FLUSH);
 
-  fn_exit:
+fn_exit:
     return mpi_errno;
-  fn_fail:
+fn_fail:
     goto fn_exit;
-
 }
 
 #undef FUNCNAME
 #define FUNCNAME MPIDI_NEM_IB_FREE_VC
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDI_nem_ib_free_vc(MPIDI_VC_t * vc)
+int MPIDI_nem_ib_free_vc(MPIDI_VC_t *vc)
 {
     int mpi_errno = MPI_SUCCESS;
     int rail;
@@ -117,17 +118,14 @@ int MPIDI_nem_ib_free_vc(MPIDI_VC_t * vc)
                 MPIR_ERR_POP(mpi_errno);
             }
         }
-
     }
-
 
     MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_NEM_IB_FREE_VC);
 
-  fn_exit:
+fn_exit:
     return mpi_errno;
-  fn_fail:
+fn_fail:
     goto fn_exit;
-
 }
 
 #undef FUNCNAME
@@ -138,7 +136,6 @@ int MPID_nem_ib_finalize(void)
 {
     MPIDI_STATE_DECL(MPID_STATE_MPIDI_NEM_IB_FINALIZE);
     MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_NEM_IB_FINALIZE);
-
 
     /* No rdma functions will be called after this function */
     int error ATTRIBUTE((unused));
@@ -161,17 +158,17 @@ int MPID_nem_ib_finalize(void)
     pg_size = MPIDI_PG_Get_size(pg);
 
     if (!use_iboeth && (rdma_3dtorus_support || rdma_path_sl_query)) {
-        mv2_release_3d_torus_resources();
+        mvp_release_3d_torus_resources();
     }
 
     /* make sure everything has been sent */
     MPIDI_nem_ib_flush();
 
 #ifndef DISABLE_PTMALLOC
-    mvapich2_mfin();
+    mvapich_mfin();
 #endif
 
-    if ((value = getenv("MV2_RUN_THROUGH_STABILIZATION")) != NULL) {
+    if ((value = getenv("MVP_RUN_THROUGH_STABILIZATION")) != NULL) {
         run_through_stb = atoi(value);
     }
 
@@ -182,8 +179,8 @@ int MPID_nem_ib_finalize(void)
         UPMI_BARRIER();
     }
 
-	/* Deallocate PMI Key Value Pair */
-	mv2_free_pmi_keyval();
+    /* Deallocate PMI Key Value Pair */
+    mvp_free_pmi_keyval();
 
     for (i = 0; i < pg_size; i++) {
         if (i == pg_rank) {
@@ -197,16 +194,14 @@ int MPID_nem_ib_finalize(void)
 
         for (hca_index = 0; hca_index < ib_hca_num_hcas; hca_index++) {
             if (VC_FIELD(vc, connection)->rfp.RDMA_send_buf_mr[hca_index]) {
-                err =
-                    ibv_dereg_mr(VC_FIELD(vc, connection)->
-                                 rfp.RDMA_send_buf_mr[hca_index]);
+                err = ibv_dereg_mr(
+                    VC_FIELD(vc, connection)->rfp.RDMA_send_buf_mr[hca_index]);
                 if (err)
                     MPL_error_printf("Failed to deregister mr (%d)\n", err);
             }
             if (VC_FIELD(vc, connection)->rfp.RDMA_recv_buf_mr[hca_index]) {
-                err =
-                    ibv_dereg_mr(VC_FIELD(vc, connection)->
-                                 rfp.RDMA_recv_buf_mr[hca_index]);
+                err = ibv_dereg_mr(
+                    VC_FIELD(vc, connection)->rfp.RDMA_recv_buf_mr[hca_index]);
                 if (err)
                     MPL_error_printf("Failed to deregister mr (%d)\n", err);
             }
@@ -221,7 +216,7 @@ int MPID_nem_ib_finalize(void)
         if (VC_FIELD(vc, connection)->rfp.RDMA_recv_buf)
             MPL_free(VC_FIELD(vc, connection)->rfp.RDMA_recv_buf);
 
-#ifndef MV2_DISABLE_HEADER_CACHING
+#ifndef MVP_DISABLE_HEADER_CACHING
         if (NULL != VC_FIELD(vc, connection)) {
             MPL_free(VC_FIELD(vc, connection)->rfp.cached_incoming);
             MPL_free(VC_FIELD(vc, connection)->rfp.cached_outgoing);
@@ -229,9 +224,7 @@ int MPID_nem_ib_finalize(void)
             MPL_free(VC_FIELD(vc, connection)->rfp.cached_outgoing_iheader);
         }
 #endif
-
     }
-
 
     /* STEP 2: destroy all the qps, tears down all connections */
     for (i = 0; i < pg_size; i++) {
@@ -239,11 +232,9 @@ int MPID_nem_ib_finalize(void)
             continue;
         }
 
-
         for (rail_index = 0; rail_index < rdma_num_rails; rail_index++) {
-            err =
-                ibv_destroy_qp(conn_info.connections[i].
-                               rails[rail_index].qp_hndl);
+            err = ibv_destroy_qp(
+                conn_info.connections[i].rails[rail_index].qp_hndl);
             if (err)
                 MPL_error_printf("Failed to destroy QP (%d)\n", err);
         }
@@ -252,7 +243,6 @@ int MPID_nem_ib_finalize(void)
         MPL_free(cmanagers[i].msg_channels);
         MPL_free(conn_info.connections[i].srp.credits);
     }
-
 
     /* STEP 3: release all the cq resource,
      * release all the unpinned buffers,
@@ -276,7 +266,6 @@ int MPID_nem_ib_finalize(void)
                 MPL_error_printf("Failed to destroy SRQ (%d)\n", err);
         }
 
-
         err = ibv_destroy_cq(hca_list[i].cq_hndl);
         if (err)
             MPL_error_printf("[%d] Failed to destroy CQ (%d)\n", pg_rank, err);
@@ -285,7 +274,7 @@ int MPID_nem_ib_finalize(void)
             err = ibv_destroy_cq(hca_list[i].send_cq_hndl);
             if (err) {
                 MPL_error_printf("[%d] Failed to destroy send CQ (%d)\n",
-                                  pg_rank, err);
+                                 pg_rank, err);
             }
         }
 
@@ -293,7 +282,7 @@ int MPID_nem_ib_finalize(void)
             err = ibv_destroy_cq(hca_list[i].recv_cq_hndl);
             if (err) {
                 MPL_error_printf("[%d] Failed to destroy recv CQ (%d)\n",
-                                  pg_rank, err);
+                                 pg_rank, err);
             }
         }
 
@@ -301,7 +290,7 @@ int MPID_nem_ib_finalize(void)
             err = ibv_destroy_comp_channel(hca_list[i].comp_channel);
             if (err)
                 MPL_error_printf("[%d] Failed to destroy CQ channel (%d)\n",
-                                  pg_rank, err);
+                                 pg_rank, err);
         }
 
         deallocate_vbufs(i);
@@ -313,17 +302,16 @@ int MPID_nem_ib_finalize(void)
         err = ibv_dealloc_pd(hca_list[i].ptag);
 
         if (err) {
-            MPL_error_printf("[%d] Failed to dealloc pd (%s)\n",
-                              pg_rank, strerror(errno));
+            MPL_error_printf("[%d] Failed to dealloc pd (%s)\n", pg_rank,
+                             strerror(errno));
         }
 
         err = ibv_close_device(hca_list[i].nic_context);
 
         if (err) {
-            MPL_error_printf("[%d] Failed to close ib device (%s)\n",
-                              pg_rank, strerror(errno));
+            MPL_error_printf("[%d] Failed to close ib device (%s)\n", pg_rank,
+                             strerror(errno));
         }
-
     }
 
     if (process_info.polling_set != NULL) {
@@ -334,7 +322,6 @@ int MPID_nem_ib_finalize(void)
     if (cmanagers != NULL) {
         MPL_free(cmanagers);
     }
-
 
     if (conn_info.connections != NULL) {
         MPL_free(conn_info.connections);

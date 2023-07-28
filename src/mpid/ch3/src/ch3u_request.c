@@ -2,15 +2,15 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -30,7 +30,6 @@
  * details.
  */
 
-extern int mv2_iov_density_min;
 /* Routines and data structures for request allocation and deallocation */
 
 /* Max depth of recursive calls of MPID_Request_complete */
@@ -89,20 +88,20 @@ void MPID_Request_create_hook(MPIR_Request *req)
 }
 
 #ifdef CHANNEL_MRAIL
-MPIR_Request *mv2_dummy_request = NULL;
+MPIR_Request *mvp_dummy_request = NULL;
 
-int mv2_create_dummy_request()
+int mvp_create_dummy_request()
 {
     /* use the MPICH builtin type instead */
-    mv2_dummy_request = MPIR_Request_create_complete(MPIR_REQUEST_KIND__SEND);
-    mv2_dummy_request->ch.reqtype = REQUEST_LIGHT;
+    mvp_dummy_request = MPIR_Request_create_complete(MPIR_REQUEST_KIND__SEND);
+    mvp_dummy_request->ch.reqtype = REQUEST_LIGHT;
 
     return MPI_SUCCESS;
 }
 
-int mv2_free_dummy_request()
+int mvp_free_dummy_request()
 {
-    MPIR_Request_free(mv2_dummy_request);
+    MPIR_Request_free(mvp_dummy_request);
 
     return MPI_SUCCESS;
 }
@@ -142,10 +141,10 @@ int MPIDI_CH3U_Request_load_send_iov(MPIR_Request * const sreq,
     MPIR_Assert(last > 0);
     MPIR_Assert(*iov_n > 0 && *iov_n <= MPL_IOV_LIMIT);
 #if defined(_ENABLE_CUDA_)
-    if (mv2_enable_device && is_device_buffer(iov[0].iov_base)) {
+    if (mvp_enable_device && is_device_buffer(iov[0].iov_base)) {
         MPIDI_CH3U_CUDA_SRBuf_alloc(sreq, sreq->dev.msgsize);
         if (sreq->dev.tmpbuf == NULL) {
-            MV2_MPIDI_Malloc_Device(sreq->dev.tmpbuf, sreq->dev.msgsize);
+            MVP_MPIDI_Malloc_Device(sreq->dev.tmpbuf, sreq->dev.msgsize);
         }
         sreq->dev.is_device_tmpbuf = 1;
         sreq->dev.OnDataAvail = MPIDI_CH3_ReqHandler_pack_device;
@@ -370,10 +369,10 @@ int MPIDI_CH3U_Request_load_recv_iov(MPIR_Request * const rreq)
             MPIR_Assert(rreq->dev.iov_offset < rreq->dev.iov_count);
         }
 #ifdef _ENABLE_CUDA_ 
-        if (mv2_enable_device && is_device_buffer(rreq->dev.iov[0].iov_base)) {
+        if (mvp_enable_device && is_device_buffer(rreq->dev.iov[0].iov_base)) {
             MPIDI_CH3U_CUDA_SRBuf_alloc(rreq, rreq->dev.segment_size);
             if (rreq->dev.tmpbuf == NULL) {
-                MV2_MPIDI_Malloc_Device(rreq->dev.tmpbuf, rreq->dev.segment_size);
+                MVP_MPIDI_Malloc_Device(rreq->dev.tmpbuf, rreq->dev.segment_size);
             }
             rreq->dev.tmpbuf_off = 0;
             rreq->dev.is_device_tmpbuf = 1;
@@ -634,9 +633,9 @@ int MPIDI_CH3U_Request_unpack_uebuf(MPIR_Request * rreq)
 #endif             
             {
 #ifdef _ENABLE_CUDA_
-                if (mv2_enable_device && (rreq->mrail.device_transfer_mode != NONE
+                if (mvp_enable_device && (rreq->mrail.device_transfer_mode != NONE
                             || is_device_buffer((void *)rreq->dev.tmpbuf))) {
-                    MV2_MPIDI_Memcpy_Device((char *)rreq->dev.user_buf + dt_true_lb,
+                    MVP_MPIDI_Memcpy_Device((char *)rreq->dev.user_buf + dt_true_lb,
                             rreq->dev.tmpbuf, unpack_sz, deviceMemcpyDefault);
                 } else
 #endif
@@ -670,7 +669,7 @@ int MPIDI_CH3U_Request_unpack_uebuf(MPIR_Request * rreq)
             {
                 actual_unpack_bytes = unpack_sz;
 #if defined(_ENABLE_CUDA_)
-                if (mv2_enable_device && rreq->mrail.device_transfer_mode != NONE) {
+                if (mvp_enable_device && rreq->mrail.device_transfer_mode != NONE) {
                     MPIR_Typerep_unpack_device(rreq->dev.tmpbuf, unpack_sz,
                              rreq->dev.user_buf, rreq->dev.user_count,
                              rreq->dev.datatype, 0, &actual_unpack_bytes);

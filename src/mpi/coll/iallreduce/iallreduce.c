@@ -4,13 +4,12 @@
  */
 
 #include "mpiimpl.h"
-#include "mv2_coll_shmem.h"
+#include "mvp_coll_shmem.h"
 
 #if defined (_SHARP_SUPPORT_)
 #include "api/sharp_coll.h"
-#include "ibv_sharp.h"
+#include "mvp_sharp.h"
 #include "iallreduce_tuning.h"
-extern int mv2_sharp_tuned_msg_size;
 #endif
 
 /*

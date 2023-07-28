@@ -8,7 +8,7 @@ AM_CPPFLAGS += -I$(top_srcdir)/src/util
 mpi_core_sources +=   \
     src/util/mpir_assert.c     \
     src/util/mpir_cvars.c      \
-    src/util/mv2_cvars.c       \
+    src/util/mvp_cvars.c       \
     src/util/mpir_pmi.c        \
     src/util/mpir_handlemem.c  \
     src/util/mpir_strerror.c   \
@@ -25,9 +25,9 @@ noinst_HEADERS +=   \
 
 if BUILD_OSU_MVAPICH
 mpi_core_sources +=  						\
-				src/util/mv2_mem_mpit.c 	\
+				src/util/mvp_mem_mpit.c 	\
 				src/util/realfree.c 		\
-				src/util/mv2_handlemem.c
+				src/util/mvp_handlemem.c
 endif
 
 if MAINTAINER_MODE

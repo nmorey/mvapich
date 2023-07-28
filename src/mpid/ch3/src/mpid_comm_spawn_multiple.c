@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 /*
@@ -55,7 +55,7 @@ int MPID_Comm_spawn_multiple(int count, char *array_of_commands[],
     }
 
     /* We allow an empty implementation of this function to 
-       simplify building MVAPICH2 on systems that have difficulty
+       simplify building MVAPICH on systems that have difficulty
        supporing process creation */
 #   ifndef MPIDI_CH3_HAS_NO_DYNAMIC_PROCESS
     mpi_errno = MPIDI_Comm_spawn_multiple(count, array_of_commands, 

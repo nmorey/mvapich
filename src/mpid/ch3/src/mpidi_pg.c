@@ -2,15 +2,15 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -1075,8 +1075,8 @@ int MPIDI_PG_Close_VCs( void )
             }
 #endif
 
-#ifdef _ENABLE_UD_ 
-            if (rdma_enable_hybrid) {
+#ifdef _ENABLE_UD_
+            if (MVP_USE_UD_HYBRID) {
                 MPICM_lock();
                 /* This process is trying to switch between UD to RC.
                  * Don't allow this switch in finalize to prevent hangs

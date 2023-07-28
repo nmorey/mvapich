@@ -1,27 +1,22 @@
 #include "alltoall_tuning.h"
 
-int MPIR_Alltoall_pairwise_MV2(const void *sendbuf,
-                               int sendcount,
-                               MPI_Datatype sendtype,
-                               void *recvbuf,
-                               int recvcount,
-                               MPI_Datatype recvtype,
-                               MPIR_Comm *comm_ptr,
-                               MPIR_Errflag_t *errflag )
+int MPIR_Alltoall_pairwise_MVP(const void *sendbuf, int sendcount,
+                               MPI_Datatype sendtype, void *recvbuf,
+                               int recvcount, MPI_Datatype recvtype,
+                               MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag)
 {
-    MPIR_TIMER_START(coll,alltoall,pw);
-    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_alltoall_pw, 1);
-    int          comm_size, i, pof2;
-    MPI_Aint     sendtype_extent, recvtype_extent;
-    int mpi_errno=MPI_SUCCESS;
+    MPIR_TIMER_START(coll, alltoall, pw);
+    MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_alltoall_pw, 1);
+    int comm_size, i, pof2;
+    MPI_Aint sendtype_extent, recvtype_extent;
+    int mpi_errno = MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
     int src, dst, rank;
     MPI_Status status;
 
-    if (recvcount == 0)
-    {
-      MPIR_TIMER_END(coll,alltoall,pw);
-      return MPI_SUCCESS;
+    if (recvcount == 0) {
+        MPIR_TIMER_END(coll, alltoall, pw);
+        return MPI_SUCCESS;
     }
 
     comm_size = comm_ptr->local_size;
@@ -36,28 +31,25 @@ int MPIR_Alltoall_pairwise_MV2(const void *sendbuf,
      rank+i, receive from rank-i. */
 
     /* Make local copy first */
-    mpi_errno = MPIR_Localcopy(((char *)sendbuf +
-                                        rank*sendcount*sendtype_extent),
-                                        sendcount, sendtype,
-                                        ((char *)recvbuf +
-                                        rank*recvcount*recvtype_extent),
-                                        recvcount, recvtype);
-        MPIR_ERR_CHECK(mpi_errno );
+    mpi_errno = MPIR_Localcopy(
+        ((char *)sendbuf + rank * sendcount * sendtype_extent), sendcount,
+        sendtype, ((char *)recvbuf + rank * recvcount * recvtype_extent),
+        recvcount, recvtype);
+    MPIR_ERR_CHECK(mpi_errno);
 
     /* Is comm_size a power-of-two? */
     i = 1;
-    while (i < comm_size)
-    {
+    while (i < comm_size) {
         i *= 2;
     }
-        if (i == comm_size && mv2_use_xor_alltoall == 1) {
+    if (i == comm_size && MVP_USE_XOR_ALLTOALL) {
         pof2 = 1;
-    } else  {
+    } else {
         pof2 = 0;
     }
 
     /* Do the pairwise exchanges */
-    for (i=1; i<comm_size; i++) {
+    for (i = 1; i < comm_size; i++) {
         if (pof2 == 1) {
             /* use exclusive-or algorithm */
             src = dst = rank ^ i;
@@ -67,15 +59,11 @@ int MPIR_Alltoall_pairwise_MV2(const void *sendbuf,
         }
         MPIR_PVAR_INC(alltoall, pw, send, sendcount, sendtype);
         MPIR_PVAR_INC(alltoall, pw, recv, recvcount, recvtype);
-        mpi_errno = MPIC_Sendrecv(((char *)sendbuf +
-                                     dst*sendcount*sendtype_extent),
-                                     sendcount, sendtype, dst,
-                                     MPIR_ALLTOALL_TAG,
-                                     ((char *)recvbuf +
-                                     src*recvcount*recvtype_extent),
-                                     recvcount, recvtype, src,
-                                     MPIR_ALLTOALL_TAG, comm_ptr, &status,
-                                     errflag);
+        mpi_errno = MPIC_Sendrecv(
+            ((char *)sendbuf + dst * sendcount * sendtype_extent), sendcount,
+            sendtype, dst, MPIR_ALLTOALL_TAG,
+            ((char *)recvbuf + src * recvcount * recvtype_extent), recvcount,
+            recvtype, src, MPIR_ALLTOALL_TAG, comm_ptr, &status, errflag);
 
         if (mpi_errno) {
             /* for communication errors, just record the error but continue */
@@ -85,37 +73,29 @@ int MPIR_Alltoall_pairwise_MV2(const void *sendbuf,
         }
     }
 
-
-
 fn_fail:
-    MPIR_TIMER_END(coll,alltoall,pw);
+    MPIR_TIMER_END(coll, alltoall, pw);
     return (mpi_errno);
-
 }
 
 /* Inplace alltoall using pairwise */
-int MPIR_Alltoall_inplace_MV2(const void *sendbuf,
-                              int sendcount,
-                              MPI_Datatype sendtype,
-                              void *recvbuf,
-                              int recvcount,
-                              MPI_Datatype recvtype,
-                              MPIR_Comm *comm_ptr,
-                              MPIR_Errflag_t *errflag )
+int MPIR_Alltoall_inplace_MVP(const void *sendbuf, int sendcount,
+                              MPI_Datatype sendtype, void *recvbuf,
+                              int recvcount, MPI_Datatype recvtype,
+                              MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag)
 {
-    MPIR_TIMER_START(coll,alltoall,inplace);
-    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_alltoall_inplace, 1);
-    int          comm_size, i, j;
-    MPI_Aint     recvtype_extent;
-    int mpi_errno=MPI_SUCCESS;
+    MPIR_TIMER_START(coll, alltoall, inplace);
+    MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_alltoall_inplace, 1);
+    int comm_size, i, j;
+    MPI_Aint recvtype_extent;
+    int mpi_errno = MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
     int rank;
     MPI_Status status;
 
-    if (recvcount == 0)
-    {
-      MPIR_TIMER_END(coll,alltoall,inplace);
-      return MPI_SUCCESS;
+    if (recvcount == 0) {
+        MPIR_TIMER_END(coll, alltoall, inplace);
+        return MPI_SUCCESS;
     }
 
     comm_size = comm_ptr->local_size;
@@ -124,14 +104,13 @@ int MPIR_Alltoall_inplace_MV2(const void *sendbuf,
     /* Get extent of recv type */
     MPIR_Datatype_get_extent_macro(recvtype, recvtype_extent);
 
-    if(sendbuf != MPI_IN_PLACE) {
-       mpi_errno = MPIR_Localcopy((char *)sendbuf,
-                                  recvcount * comm_size, recvtype,
-                                  (char *)recvbuf,
-                                  recvcount * comm_size, recvtype);
+    if (sendbuf != MPI_IN_PLACE) {
+        mpi_errno =
+            MPIR_Localcopy((char *)sendbuf, recvcount * comm_size, recvtype,
+                           (char *)recvbuf, recvcount * comm_size, recvtype);
     }
 
-     /* We use pair-wise sendrecv_replace in order to conserve memory usage,
+    /* We use pair-wise sendrecv_replace in order to conserve memory usage,
      * which is keeping with the spirit of the MPI-2.2 Standard.  But
      * because of this approach all processes must agree on the global
      * schedule of sendrecv_replace operations to avoid deadlock.
@@ -147,33 +126,28 @@ int MPIR_Alltoall_inplace_MV2(const void *sendbuf,
                 /* also covers the (rank == i && rank == j) case */
                 MPIR_PVAR_INC(alltoall, inplace, send, recvcount, recvtype);
                 MPIR_PVAR_INC(alltoall, inplace, recv, recvcount, recvtype);
-                mpi_errno = MPIC_Sendrecv_replace(((char *)recvbuf +
-                                                  j*recvcount*recvtype_extent),
-                                                  recvcount, recvtype,
-                                                  j, MPIR_ALLTOALL_TAG,
-                                                  j, MPIR_ALLTOALL_TAG,
-                                                  comm_ptr, &status, errflag);
+                mpi_errno = MPIC_Sendrecv_replace(
+                    ((char *)recvbuf + j * recvcount * recvtype_extent),
+                    recvcount, recvtype, j, MPIR_ALLTOALL_TAG, j,
+                    MPIR_ALLTOALL_TAG, comm_ptr, &status, errflag);
 
                 if (mpi_errno) {
-                    /* for communication errors, 
+                    /* for communication errors,
                      * just record the error but continue */
                     *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
                     MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
                     MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
                 }
-            }
-            else if (rank == j) {
+            } else if (rank == j) {
                 /* same as above with i/j args reversed */
                 MPIR_PVAR_INC(alltoall, inplace, send, recvcount, recvtype);
                 MPIR_PVAR_INC(alltoall, inplace, recv, recvcount, recvtype);
-                mpi_errno = MPIC_Sendrecv_replace(((char *)recvbuf +
-                                                  i*recvcount*recvtype_extent),
-                                                  recvcount, recvtype,
-                                                  i, MPIR_ALLTOALL_TAG,
-                                                  i, MPIR_ALLTOALL_TAG,
-                                                  comm_ptr, &status, errflag);
+                mpi_errno = MPIC_Sendrecv_replace(
+                    ((char *)recvbuf + i * recvcount * recvtype_extent),
+                    recvcount, recvtype, i, MPIR_ALLTOALL_TAG, i,
+                    MPIR_ALLTOALL_TAG, comm_ptr, &status, errflag);
                 if (mpi_errno) {
-                    /* for communication errors, 
+                    /* for communication errors,
                      * just record the error but continue */
                     *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
                     MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
@@ -182,7 +156,6 @@ int MPIR_Alltoall_inplace_MV2(const void *sendbuf,
             }
         }
     }
-    MPIR_TIMER_END(coll,alltoall,inplace);
+    MPIR_TIMER_END(coll, alltoall, inplace);
     return (mpi_errno);
 }
-

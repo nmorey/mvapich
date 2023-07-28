@@ -9,7 +9,7 @@
 #include "mpl.h"
 
 #ifdef _OSU_MVAPICH_
-#include "mv2_nodemap.h"
+#include "mvp_nodemap.h"
 #endif
 
 /*
@@ -348,9 +348,9 @@ static inline int MPIR_NODEMAP_build_nodemap_fallback(int sz, int myrank, int *o
     char *node_name_buf = MPL_malloc(sz * key_max_sz, MPL_MEM_OTHER);
     char strerrbuf[MPIR_STRERROR_BUF_SIZE];
 
-    /* use MV2 nodemap here for mpirun_rsh compatability */
+    /* use MVP nodemap here for mpirun_rsh compatability */
 #ifdef _OSU_MVAPICH_
-    mpi_errno = MPIR_NODEMAP_MV2_build_nodemap(sz, out_nodemap, out_max_node_id,
+    mpi_errno = MPIR_NODEMAP_MVP_build_nodemap(sz, out_nodemap, out_max_node_id,
                                                myrank);
     MPIR_ERR_CHECK(mpi_errno);
     goto fn_exit;

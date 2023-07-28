@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  */
 
 #include <process.h>
@@ -20,12 +20,12 @@
 #include <stdio.h>
 
 extern int dpm;
-extern int slurm_init_nodelist (char const * const, size_t, char [][256]);
-extern int slurm_init_tasklist (char const * const , size_t, size_t (*)[]);
+extern int slurm_init_nodelist(char const *const, size_t, char[][256]);
+extern int slurm_init_tasklist(char const *const, size_t, size_t (*)[]);
 
-static char const * slurm_get_nodelist()
+static char const *slurm_get_nodelist()
 {
-    char const * env = getenv("SLURM_JOB_NODELIST");
+    char const *env = getenv("SLURM_JOB_NODELIST");
 
     return env ? env : getenv("SLURM_NODELIST");
 }
@@ -37,13 +37,13 @@ static int slurm_get_num_nodes()
     return nnodes ? nnodes : env2int("SLURM_NNODES");
 }
 
-static char const * slurm_get_tasks_per_node()
+static char const *slurm_get_tasks_per_node()
 {
     return getenv("SLURM_TASKS_PER_NODE");
 }
 
 static int slurm_fill_plist(int const nprocs, int const nnodes,
-                            char const * nodelist, char const * tasks_per_node)
+                            char const *nodelist, char const *tasks_per_node)
 {
     char hostname[nnodes][256];
     size_t ntasks[nnodes];
@@ -54,7 +54,7 @@ static int slurm_fill_plist(int const nprocs, int const nnodes,
         return -1;
     }
 
-    if (slurm_init_tasklist(tasks_per_node, nnodes, (size_t (*)[])ntasks)) {
+    if (slurm_init_tasklist(tasks_per_node, nnodes, (size_t(*)[])ntasks)) {
         return -1;
     }
 
@@ -85,15 +85,15 @@ static int slurm_fill_plist(int const nprocs, int const nnodes,
     return 0;
 }
 
-int slurm_startup (int nprocs, int nprocs_per_node)
+int slurm_startup(int nprocs, int nprocs_per_node)
 {
-    char const * const nodelist = slurm_get_nodelist();
+    char const *const nodelist = slurm_get_nodelist();
     int const nnodes = slurm_get_num_nodes();
-    char const * const tasks_per_node = 
+    char const *const tasks_per_node =
         nprocs_per_node ? mkstr("%d(x%d)", nprocs_per_node, nnodes) :
-        slurm_get_tasks_per_node();
+                          slurm_get_tasks_per_node();
 
-    if (!(nodelist && nnodes && tasks_per_node )) {
+    if (!(nodelist && nnodes && tasks_per_node)) {
         /*
          * SLURM JOB ID found but missing supporting variable(s)
          */
@@ -104,8 +104,7 @@ int slurm_startup (int nprocs, int nprocs_per_node)
     return slurm_fill_plist(nprocs, nnodes, nodelist, tasks_per_node);
 }
 
-int
-slurm_nprocs (void)
+int slurm_nprocs(void)
 {
     int nprocs = env2int("SLURM_NPROCS");
 
@@ -114,10 +113,8 @@ slurm_nprocs (void)
 
 int check_for_slurm()
 {
-    char * job_id = getenv("SLURM_JOB_ID");
-    char * jobid = getenv("SLURM_JOBID");
+    char *job_id = getenv("SLURM_JOB_ID");
+    char *jobid = getenv("SLURM_JOBID");
 
     return (job_id != NULL || jobid != NULL);
 }
-
-

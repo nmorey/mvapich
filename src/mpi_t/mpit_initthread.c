@@ -2,19 +2,19 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  */
 
 #include "mpiimpl.h"
-#include "mv2_mpit.h"
+#include "mvp_mpit.h"
 
 /* -- Begin Profiling Symbol Block for routine MPI_T_init_thread */
 #if defined(HAVE_PRAGMA_WEAK)
@@ -34,10 +34,6 @@ int MPI_T_init_thread(int required, int *provided)
 #ifndef MPICH_MPI_FROM_PMPI
 #undef MPI_T_init_thread
 #define MPI_T_init_thread PMPI_T_init_thread
-
-#ifdef ENABLE_PVAR_MEM
-int mv2_enable_pvar_mem = 0;
-#endif
 
 /* any non-MPI functions go here, especially non-static ones */
 static inline void MPIR_T_enum_env_init(void)
@@ -74,13 +70,6 @@ static inline void MPIR_T_pvar_env_init(void)
     for (i = 0; i < MPIR_T_PVAR_CLASS_NUMBER; i++) {
         pvar_hashs[i] = NULL;
     }
-
-#ifdef ENABLE_PVAR_MEM
-    const char* value;
-    if((value = getenv("MV2_ENABLE_PVAR_MEM"))!=NULL) {
-        mv2_enable_pvar_mem = !!atoi(value);
-    }
-#endif
 }
 
 int MPIR_T_env_init(void)
@@ -96,11 +85,11 @@ int MPIR_T_env_init(void)
         MPIR_T_pvar_env_init();
 #ifdef _OSU_MVAPICH_
 #if ENABLE_PVAR_MEM
-        if (mv2_enable_pvar_mem) {
+        if (MVP_ENABLE_PVAR_MEM) {
             MPIT_MEM_REGISTER_PVARS();
         }
 #endif /* ENABLE_PVAR_MEM */
-        MPIT_REGISTER_MV2_VARIABLES();
+        MPIT_REGISTER_MVP_VARIABLES();
 #endif
     }
     return mpi_errno;

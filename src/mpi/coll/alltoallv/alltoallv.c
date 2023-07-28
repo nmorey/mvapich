@@ -6,17 +6,17 @@
 /* Copyright (c) 2001-2021, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
 #include "mpiimpl.h"
-#include "mv2_coll_shmem.h"
+#include "mvp_coll_shmem.h"
 
 
 /*
@@ -158,14 +158,14 @@ int MPIR_Alltoallv_impl(const void *sendbuf, const int *sendcounts, const int *s
 {
     int mpi_errno = MPI_SUCCESS;
     
-    /* TODO-merge: can we move this somewher MV2 specific? */
+    /* TODO-merge: can we move this somewher MVP specific? */
 #if defined(_ENABLE_CUDA_)
     int i, rank, comm_size;
     int sendbuf_on_device = 0, recvbuf_on_device = 0;
     MPI_Aint recvtype_extent = 0, total_count = 0;
     MPI_Aint total_size = 0, total_msgs = 0, avg_size = 0;
 
-    if (mv2_enable_device) {
+    if (mvp_enable_device) {
         rank = comm_ptr->rank;
         if (comm_ptr->comm_kind == MPIR_COMM_KIND__INTRACOMM) {
             comm_size = comm_ptr->local_size;
@@ -195,8 +195,8 @@ int MPIR_Alltoallv_impl(const void *sendbuf, const int *sendcounts, const int *s
         avg_size = total_size / total_msgs;
 
         if ((sendbuf_on_device || recvbuf_on_device) &&
-             mv2_device_coll_use_stage &&
-             avg_size <= mv2_device_alltoallv_stage_limit) {
+             mvp_device_coll_use_stage &&
+             avg_size <= mvp_device_alltoallv_stage_limit) {
 
             mpi_errno = device_stage_alloc_v ((void **) &sendbuf, (int *)sendcounts, sendtype,
                      (int **)&sdispls, comm_size,
@@ -263,10 +263,10 @@ int MPIR_Alltoallv_impl(const void *sendbuf, const int *sendcounts, const int *s
     MPIR_ERR_CHECK(mpi_errno);
 
 #if defined(_ENABLE_CUDA_)
-    if (mv2_enable_device) {
+    if (mvp_enable_device) {
         if ((sendbuf_on_device || recvbuf_on_device) &&
-             mv2_device_coll_use_stage &&
-             avg_size <= mv2_device_alltoallv_stage_limit) {
+             mvp_device_coll_use_stage &&
+             avg_size <= mvp_device_alltoallv_stage_limit) {
 
             device_stage_free_v ((void **)&sendbuf, (int *)sendcounts, sendtype,
                (int **)&sdispls, comm_size,

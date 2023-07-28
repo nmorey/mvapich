@@ -3,15 +3,15 @@
  *     See COPYRIGHT in top-level directory
  */
 
- /* Copyright (c) 2001-2022, The Ohio State University. All rights
+ /* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -22,9 +22,9 @@
 #include "utlist.h"
 #include "uthash.h"
 
-#if defined(CHANNEL_MRAIL) || defined(_MV2_CH4_OVERRIDE_)
-#include "mv2_coll_shmem.h"
-#endif /* #if defined(CHANNEL_MRAIL) || defined(_MV2_CH4_OVERRIDE_) */ 
+#if defined(CHANNEL_MRAIL) || defined(_MVP_CH4_OVERRIDE_)
+#include "mvp_coll_shmem.h"
+#endif /* #if defined(CHANNEL_MRAIL) || defined(_MVP_CH4_OVERRIDE_) */ 
 
 
 /* This is the utility file for comm that contains the basic comm items
@@ -287,7 +287,7 @@ int MPII_Comm_init(MPIR_Comm * comm_p)
     comm_p->dev.ch.intra_sock_leader_comm=MPI_COMM_NULL;
     comm_p->dev.ch.global_sock_leader_comm=MPI_COMM_NULL;
 
-#if ENABLE_PVAR_MV2
+#if ENABLE_PVAR_MVP
     comm_p->sub_comm_counters = NULL;
     comm_p->sub_comm_timers = NULL;
 #endif
@@ -757,7 +757,7 @@ int MPIR_Comm_commit(MPIR_Comm * comm)
 
     MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPIR_COMM_COMMIT);
 
-#if ENABLE_PVAR_MV2
+#if ENABLE_PVAR_MVP
     extern int sub_comm_counter_idx;
     extern int sub_comm_timer_idx;
     comm->sub_comm_counters = (unsigned long long *)MPL_malloc(sub_comm_counter_idx * sizeof(unsigned long long));
@@ -1120,7 +1120,7 @@ int MPIR_Comm_delete_internal(MPIR_Comm * comm_ptr)
             MPIR_Group_release(comm_ptr->remote_group);
  
         /* Free sub-communicator counters */
-        #if ENABLE_PVAR_MV2
+        #if ENABLE_PVAR_MVP
         if(comm_ptr->sub_comm_counters)
         {
            MPL_free(comm_ptr->sub_comm_counters);
@@ -1132,7 +1132,7 @@ int MPIR_Comm_delete_internal(MPIR_Comm * comm_ptr)
         #endif
  
         /* free the intra/inter-node communicators, if they exist */
-#if defined(CHANNEL_MRAIL) || defined(_MV2_CH4_OVERRIDE_)
+#if defined(CHANNEL_MRAIL) || defined(_MVP_CH4_OVERRIDE_)
         if( comm_ptr->dev.ch.shmem_coll_ok == 1) { 
              free_2level_comm(comm_ptr); 
         } 

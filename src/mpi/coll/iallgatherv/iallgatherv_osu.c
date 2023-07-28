@@ -1,12 +1,12 @@
- /* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -14,25 +14,27 @@
 
 #include "iallgatherv_tuning.h"
 
-#if defined(CHANNEL_MRAIL) || defined(_MV2_CH4_OVERRIDE_)
+#if defined(CHANNEL_MRAIL) || defined(_MVP_CH4_OVERRIDE_)
 
-int (*MV2_Iallgatherv_function) (const void *sendbuf, int sendcount, MPI_Datatype sendtype,
-                                 void *recvbuf, const int recvcounts[], const int displs[],
-                                 MPI_Datatype recvtype, MPIR_Comm *comm_ptr, MPIR_Sched_t s) = NULL;
+int (*MVP_Iallgatherv_function)(const void *sendbuf, int sendcount,
+                                MPI_Datatype sendtype, void *recvbuf,
+                                const int recvcounts[], const int displs[],
+                                MPI_Datatype recvtype, MPIR_Comm *comm_ptr,
+                                MPIR_Sched_t s) = NULL;
 
-int (*MV2_Iallgatherv_intra_node_function) (const void *sendbuf, int sendcount, MPI_Datatype sendtype,
-                                            void *recvbuf, const int recvcounts[], const int displs[],
-                                            MPI_Datatype recvtype, MPIR_Comm *comm_ptr, MPIR_Sched_t s) = NULL;
-
-
+int (*MVP_Iallgatherv_intra_node_function)(
+    const void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf,
+    const int recvcounts[], const int displs[], MPI_Datatype recvtype,
+    MPIR_Comm *comm_ptr, MPIR_Sched_t s) = NULL;
 
 #undef FUNCNAME
-#define FUNCNAME MPIR_Iallgatherv_tune_helper_MV2
+#define FUNCNAME MPIR_Iallgatherv_tune_helper_MVP
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-static int MPIR_Iallgatherv_tune_helper_MV2(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
-                                            void *recvbuf, const int recvcounts[], const int displs[],
-                                            MPI_Datatype recvtype, MPIR_Comm *comm_ptr, MPIR_Sched_t s)
+static int MPIR_Iallgatherv_tune_helper_MVP(
+    const void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf,
+    const int recvcounts[], const int displs[], MPI_Datatype recvtype,
+    MPIR_Comm *comm_ptr, MPIR_Sched_t s)
 {
     int mpi_errno = MPI_SUCCESS;
     int is_homogeneous ATTRIBUTE((unused));
@@ -48,38 +50,40 @@ static int MPIR_Iallgatherv_tune_helper_MV2(const void *sendbuf, int sendcount, 
     MPIR_Assert(is_homogeneous);
 
     comm_size = comm_ptr->local_size;
-    if ((comm_size & (comm_size - 1)) && 
-         MV2_Iallgatherv_function == 
-                MPIR_Iallgatherv_intra_sched_recursive_doubling) {
-        mpi_errno = MPIR_Iallgatherv_intra_sched_ring(sendbuf, sendcount,
-                                      sendtype, recvbuf, recvcounts, displs,
-                                      recvtype, comm_ptr, s);
-    }
-    else {
-        mpi_errno = MV2_Iallgatherv_function(sendbuf, sendcount, sendtype, recvbuf,
-                                             recvcounts, displs, recvtype, comm_ptr, s);
+    if ((comm_size & (comm_size - 1)) &&
+        MVP_Iallgatherv_function ==
+            MPIR_Iallgatherv_intra_sched_recursive_doubling) {
+        mpi_errno = MPIR_Iallgatherv_intra_sched_ring(
+            sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs, recvtype,
+            comm_ptr, s);
+    } else {
+        mpi_errno =
+            MVP_Iallgatherv_function(sendbuf, sendcount, sendtype, recvbuf,
+                                     recvcounts, displs, recvtype, comm_ptr, s);
     }
     MPIR_ERR_CHECK(mpi_errno);
-    
-  fn_exit:
+
+fn_exit:
     return mpi_errno;
-  fn_fail:
+fn_fail:
     goto fn_exit;
 }
 
 #undef FUNCNAME
-#define FUNCNAME MPIR_Iallgatherv_intra_MV2
+#define FUNCNAME MPIR_Iallgatherv_intra_MVP
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIR_Iallgatherv_intra_MV2(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
-                               void *recvbuf, const int recvcounts[], const int displs[],
-                               MPI_Datatype recvtype, MPIR_Comm *comm_ptr, MPIR_Sched_t s)
+int MPIR_Iallgatherv_intra_MVP(const void *sendbuf, int sendcount,
+                               MPI_Datatype sendtype, void *recvbuf,
+                               const int recvcounts[], const int displs[],
+                               MPI_Datatype recvtype, MPIR_Comm *comm_ptr,
+                               MPIR_Sched_t s)
 {
     int mpi_errno = MPI_SUCCESS;
     int comm_size, is_homogeneous ATTRIBUTE((unused));
     int i;
     MPI_Aint recvtype_size, nbytes;
-    
+
     int two_level_iallgatherv = 1;
     int range = 0;
     int range_threshold = 0;
@@ -103,80 +107,88 @@ int MPIR_Iallgatherv_intra_MV2(const void *sendbuf, int sendcount, MPI_Datatype 
 
     // Search for some parameters regardless of whether subsequent selected
     // algorithm is 2-level or not
-    
+
     // Search for the corresponding system size inside the tuning table
-    while ((range < (mv2_size_iallgatherv_tuning_table - 1)) &&
-           (comm_size > mv2_iallgatherv_thresholds_table[range].numproc)) {
+    while ((range < (mvp_size_iallgatherv_tuning_table - 1)) &&
+           (comm_size > mvp_iallgatherv_thresholds_table[range].numproc)) {
         range++;
     }
-    
+
     // Search for corresponding inter-leader function
-    while ((range_threshold < (mv2_iallgatherv_thresholds_table[range].size_inter_table - 1))
-           && (nbytes >
-               mv2_iallgatherv_thresholds_table[range].inter_leader[range_threshold].max)
-           && (mv2_iallgatherv_thresholds_table[range].inter_leader[range_threshold].max != -1)) {
+    while ((range_threshold <
+            (mvp_iallgatherv_thresholds_table[range].size_inter_table - 1)) &&
+           (nbytes > mvp_iallgatherv_thresholds_table[range]
+                         .inter_leader[range_threshold]
+                         .max) &&
+           (mvp_iallgatherv_thresholds_table[range]
+                .inter_leader[range_threshold]
+                .max != -1)) {
         range_threshold++;
     }
 
     // Search for corresponding intra-node function
-    
+
     // Commenting this for the time being as none of
     // the algorithms are 2-level
     /*
     while ((range_threshold_intra <
-            (mv2_iallgatherv_thresholds_table[range].size_intra_table - 1))
+            (mvp_iallgatherv_thresholds_table[range].size_intra_table - 1))
            && (nbytes >
-               mv2_iallgatherv_thresholds_table[range].intra_node[range_threshold_intra].max)
-           && (mv2_iallgatherv_thresholds_table[range].intra_node[range_threshold_intra].max !=
-               -1)) {
-        range_threshold_intra++;
+               mvp_iallgatherv_thresholds_table[range].intra_node[range_threshold_intra].max)
+           &&
+    (mvp_iallgatherv_thresholds_table[range].intra_node[range_threshold_intra].max
+    != -1)) { range_threshold_intra++;
     }
     */
 
-    MV2_Iallgatherv_function =
-        mv2_iallgatherv_thresholds_table[range].inter_leader[range_threshold].
-        MV2_pt_Iallgatherv_function;
+    MVP_Iallgatherv_function = mvp_iallgatherv_thresholds_table[range]
+                                   .inter_leader[range_threshold]
+                                   .MVP_pt_Iallgatherv_function;
 
-    MV2_Iallgatherv_intra_node_function =
-        mv2_iallgatherv_thresholds_table[range].
-        intra_node[range_threshold_intra].MV2_pt_Iallgatherv_function;
+    MVP_Iallgatherv_intra_node_function =
+        mvp_iallgatherv_thresholds_table[range]
+            .intra_node[range_threshold_intra]
+            .MVP_pt_Iallgatherv_function;
 
     /* There are currently no two-level nb-allgatherv functions hence
        setting to 0 by default */
-    two_level_iallgatherv = 
-        mv2_iallgatherv_thresholds_table[range].is_two_level_iallgatherv[range_threshold]; 
+    two_level_iallgatherv = mvp_iallgatherv_thresholds_table[range]
+                                .is_two_level_iallgatherv[range_threshold];
     if (1 != two_level_iallgatherv) {
-        mpi_errno = MPIR_Iallgatherv_tune_helper_MV2(sendbuf, sendcount, sendtype, recvbuf,
-                                                     recvcounts, displs, recvtype, comm_ptr, s);
-    }
-    else {
+        mpi_errno = MPIR_Iallgatherv_tune_helper_MVP(
+            sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs, recvtype,
+            comm_ptr, s);
+    } else {
         /* Code path should not enter this with the current algorithms*/
     }
 
     return mpi_errno;
 }
-#endif                          /*#if defined(CHANNEL_MRAIL) || defined(_MV2_CH4_OVERRIDE_) */
+#endif /*#if defined(CHANNEL_MRAIL) || defined(_MVP_CH4_OVERRIDE_) */
 
 #undef FUNCNAME
-#define FUNCNAME MPIR_Iallgatherv_MV2
+#define FUNCNAME MPIR_Iallgatherv_MVP
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIR_Iallgatherv_MV2(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
-                         void *recvbuf, const int recvcounts[], const int displs[],
-                         MPI_Datatype recvtype, MPIR_Comm *comm_ptr, MPIR_Sched_t s)
+int MPIR_Iallgatherv_MVP(const void *sendbuf, int sendcount,
+                         MPI_Datatype sendtype, void *recvbuf,
+                         const int recvcounts[], const int displs[],
+                         MPI_Datatype recvtype, MPIR_Comm *comm_ptr,
+                         MPIR_Sched_t s)
 {
     int mpi_errno = MPI_SUCCESS;
 
     if (comm_ptr->comm_kind == MPIR_COMM_KIND__INTRACOMM) {
-#if defined(CHANNEL_MRAIL) || defined(_MV2_CH4_OVERRIDE_)
-      mpi_errno = MPIR_Iallgatherv_intra_MV2(sendbuf, sendcount, sendtype, recvbuf,
-					     recvcounts, displs, recvtype, comm_ptr, s);
+#if defined(CHANNEL_MRAIL) || defined(_MVP_CH4_OVERRIDE_)
+        mpi_errno = MPIR_Iallgatherv_intra_MVP(sendbuf, sendcount, sendtype,
+                                               recvbuf, recvcounts, displs,
+                                               recvtype, comm_ptr, s);
 #else
-      mpi_errno = MPIR_Iallgatherv_intra(sendbuf, sendcount, sendtype, recvbuf,
-					 recvcounts, displs, recvtype, comm_ptr, s);
-#endif                          /*#if defined(CHANNEL_MRAIL) || defined(_MV2_CH4_OVERRIDE_) */
-    }
-    else {
+        mpi_errno =
+            MPIR_Iallgatherv_intra(sendbuf, sendcount, sendtype, recvbuf,
+                                   recvcounts, displs, recvtype, comm_ptr, s);
+#endif /*#if defined(CHANNEL_MRAIL) || defined(_MVP_CH4_OVERRIDE_) */
+    } else {
         /* this path is not supported */
         return MPI_ERR_INTERN;
     }

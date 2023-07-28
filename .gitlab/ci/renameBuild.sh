@@ -38,6 +38,7 @@ do
     rm -rf /home/runbot/mvapich2/merges/$BRANCH/$TYPE${CLUSTER_ABBREV}_${channel}_$BUILDER_SUFFIX/$CI_COMMIT_SHA
   fi
 
+  echo "Creating copy to /home/runbot/mvapich2/merges/$BRANCH/$TYPE${CLUSTER_ABBREV}_${channel}_$BUILDER_SUFFIX/$CI_COMMIT_SHA"
   mkdir /home/runbot/mvapich2/merges/$BRANCH/$TYPE${CLUSTER_ABBREV}_${channel}_$BUILDER_SUFFIX/$CI_COMMIT_SHA
 
   cp -r /home/runbot/mvapich2/merges/$BRANCH/$TYPE${CLUSTER_ABBREV}_${channel}_$BUILDER_SUFFIX/LATEST/* /home/runbot/mvapich2/merges/$BRANCH/$TYPE${CLUSTER_ABBREV}_${channel}_$BUILDER_SUFFIX/$CI_COMMIT_SHA/
@@ -49,11 +50,6 @@ do
   SHA_3=`echo "$1" | sed -E -n 's|^3:(.*)|\1|p' /home/runbot/mvapich2/merges/$BRANCH/$TYPE${CLUSTER_ABBREV}_${channel}_$BUILDER_SUFFIX/prevbuilds`
   SHA_4=`echo "$1" | sed -E -n 's|^4:(.*)|\1|p' /home/runbot/mvapich2/merges/$BRANCH/$TYPE${CLUSTER_ABBREV}_${channel}_$BUILDER_SUFFIX/prevbuilds`
   SHA_5=`echo "$1" | sed -E -n 's|^5:(.*)|\1|p' /home/runbot/mvapich2/merges/$BRANCH/$TYPE${CLUSTER_ABBREV}_${channel}_$BUILDER_SUFFIX/prevbuilds`
-
-  #Remove the 5th oldest build folder from LATEST_ and the corresponding REG_ build
-  rm -rf /home/runbot/mvapich2/merges/$BRANCH/$TYPE${CLUSTER_ABBREV}_${channel}_$BUILDER_SUFFIX/$SHA_5
-
-  rm -rf /home/runbot/mvapich2/merges/$BRANCH/REG_${CLUSTER_ABBREV}_${channel}_$BUILDER_SUFFIX/$SHA_5
 
   #Update list of latest 5 builds
   sed -E -i "s|^Current:(.*)|Current:$CI_COMMIT_SHA|" /home/runbot/mvapich2/merges/$BRANCH/$TYPE${CLUSTER_ABBREV}_${channel}_$BUILDER_SUFFIX/prevbuilds

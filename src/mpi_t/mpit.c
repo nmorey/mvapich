@@ -4,7 +4,7 @@
  */
 
 #include "mpiimpl.h"
-#include "mv2_debug_utils.h"
+#include "mvp_debug_utils.h"
 
 int MPIR_T_init_balance = 0;
 
@@ -409,7 +409,7 @@ void MPIR_T_PVAR_REGISTER_impl(MPIR_T_pvar_class_t varclass, MPI_Datatype dtype,
         hash_entry->idx = pvar_idx;
         HASH_ADD_KEYPTR(hh, pvar_hashs[seq], hash_entry->name,
                         strlen(hash_entry->name), hash_entry, MPL_MEM_MPIT);
-        /* Divide MV2 comm pvars between timer and counters */
+        /* Divide MVP comm pvars between timer and counters */
         if(pvar->bind == MPI_T_BIND_MPI_COMM)
         {      
                 switch(pvar->varclass)

@@ -1,5 +1,6 @@
-/* 
- * $Header: /home/tv/src/debugger/src/datadisp/tv_data_display.h,v 1.5 2010/10/04 04:02:19 anb Exp $
+/*
+ * $Header: /home/tv/src/debugger/src/datadisp/tv_data_display.h,v 1.5
+ 2010/10/04 04:02:19 anb Exp $
  * $Locker:  $
 
    Copyright (c) 2010, Rogue Wave Software, Inc.
@@ -41,48 +42,45 @@ extern "C" {
 #endif
 
 /* TV_ttf_display_type should return one of these values  */
-enum TV_ttf_format_result
-  {
+enum TV_ttf_format_result {
     TV_ttf_format_ok,       /* Type is known, and successfully converted */
     TV_ttf_format_ok_elide, /* as TV_ttf_format_ok, but elide type       */
     TV_ttf_format_failed,   /* Type is known, but could not convert it */
     TV_ttf_format_raw,      /* Just display it as a regular type for now */
-    TV_ttf_format_never     /* Don't know about this type, and please don't ask again */
-  };
+    TV_ttf_format_never     /* Don't know about this type, and please don't ask
+                               again */
+};
 typedef enum TV_ttf_format_result TV_ttf_format_result;
 
 /* TV_ttf_add_row returns one of these values */
-enum TV_ttf_error_codes
-  {
-    TV_ttf_ec_ok  = 0,          /* operation succeeded                 */
+enum TV_ttf_error_codes {
+    TV_ttf_ec_ok = 0, /* operation succeeded                 */
     TV_ttf_ec_not_active,
     TV_ttf_ec_invalid_characters,
     TV_ttf_ec_buffer_exhausted
-  };
+};
 typedef enum TV_ttf_error_codes TV_ttf_error_codes;
 
 #define TV_ttf_type_ascii_string "$string"
-#define TV_ttf_type_int "$int"
+#define TV_ttf_type_int          "$int"
 #if 0
-#define TV_elide_row ""     /* field_name to use when row elision is desired */
+#define TV_elide_row "" /* field_name to use when row elision is desired */
 #endif
 
 /* returns logical true (non-zero) if the TV_ttf_format_result fr represents
    a format result that indicates success
 */
-extern int TV_ttf_is_format_result_ok ( TV_ttf_format_result fr );
+extern int TV_ttf_is_format_result_ok(TV_ttf_format_result fr);
 
-/* 
+/*
                   TV_ttf_ec_ok: Success
           TV_ttf_ec_not_active: Called with no active callback to
-	                        TV_ttf_display_type
+                            TV_ttf_display_type
   TV_ttf_ec_invalid_characters: field_name or type_name has illegal characters
     TV_ttf_ec_buffer_exhausted: No more room left for display data
 */
-extern int TV_ttf_add_row(const char *field_name,
-                          const char *type_name,
+extern int TV_ttf_add_row(const char *field_name, const char *type_name,
                           const void *value);
-
 
 #ifdef __cplusplus
 }

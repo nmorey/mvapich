@@ -21,8 +21,7 @@ static void read_file(const char *name, void *buf, MPI_Datatype dt)
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     /* open file */
-    rc = MPI_File_open(MPI_COMM_WORLD, (char *) name,
-	    amode, MPI_INFO_NULL, &fh);
+    rc = MPI_File_open(MPI_COMM_WORLD, (char *)name, amode, MPI_INFO_NULL, &fh);
     if (rc != MPI_SUCCESS) {
         printf("Rank %d: Failed to open file %s\n", rank, name);
         fflush(stdout);
@@ -58,7 +57,7 @@ static void write_file(const char *name, void *buf, MPI_Datatype dt)
 
     /* open file */
     amode = MPI_MODE_WRONLY | MPI_MODE_CREATE;
-    MPI_File_open(MPI_COMM_WORLD, (char *) name, amode, MPI_INFO_NULL, &fh);
+    MPI_File_open(MPI_COMM_WORLD, (char *)name, amode, MPI_INFO_NULL, &fh);
 
     /* truncate file to 0 bytes */
     MPI_File_set_size(fh, 0);
@@ -80,11 +79,10 @@ static void write_file(const char *name, void *buf, MPI_Datatype dt)
  * in rank order */
 int main(int argc, char *argv[])
 {
-
     char buf[2] = "a";
     MPI_Datatype dt;
-    int blocks[2] = { 1, 1 };
-    int disps[2] = { 0, 1 };
+    int blocks[2] = {1, 1};
+    int disps[2] = {0, 1};
 
     MPI_Init(&argc, &argv);
     MPI_Type_indexed(2, blocks, disps, MPI_CHAR, &dt);

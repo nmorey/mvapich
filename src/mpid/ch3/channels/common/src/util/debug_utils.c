@@ -1,33 +1,31 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "mv2_debug_utils.h"
+#include "mvp_debug_utils.h"
 
 // Prefix to distinguish output from different processes
 #define OUTPUT_PREFIX_LENGTH 256
 char output_prefix[OUTPUT_PREFIX_LENGTH] = "";
 
-void set_output_prefix( char* prefix ) {
-    strncpy( output_prefix, prefix, OUTPUT_PREFIX_LENGTH );
-    output_prefix[OUTPUT_PREFIX_LENGTH-1]= '\0';
+void set_output_prefix(char *prefix)
+{
+    strncpy(output_prefix, prefix, OUTPUT_PREFIX_LENGTH);
+    output_prefix[OUTPUT_PREFIX_LENGTH - 1] = '\0';
 }
 
-const char *get_output_prefix() {
-    return output_prefix;
-}
-
+const char *get_output_prefix() { return output_prefix; }
 
 // Verbosity level for sharp  operations in collectives
 int DEBUG_Sharp_verbose = 0;
@@ -95,50 +93,50 @@ int DEBUG_VBUF_verbose;
 // Verbosity level for P2P send
 int DEBUG_SEND_verbose;
 
-static inline int env2int (char *name)
+static inline int env2int(char *name)
 {
-    char* env_str = getenv( name );
-    if ( env_str == NULL ) {
+    char *env_str = getenv(name);
+    if (env_str == NULL) {
         return 0;
     } else {
-        return atoi( env_str );
+        return atoi(env_str);
     }
 }
 
-
 // Initialize the verbosity level of the above variables
-int initialize_debug_variables() {
-    DEBUG_Sharp_verbose = env2int( "MV2_DEBUG_SHARP_VERBOSE" );
-    DEBUG_Fork_verbose = env2int( "MV2_DEBUG_FORK_VERBOSE" );
-    DEBUG_FT_verbose = env2int( "MV2_DEBUG_FT_VERBOSE" );
-    DEBUG_CR_verbose = env2int( "MV2_DEBUG_CR_VERBOSE" );
-    DEBUG_MIG_verbose = env2int( "MV2_DEBUG_MIG_VERBOSE" );
-    DEBUG_UD_verbose = env2int( "MV2_DEBUG_UD_VERBOSE" );
-    DEBUG_ZCY_verbose = env2int( "MV2_DEBUG_ZCOPY_VERBOSE" );
-    DEBUG_CM_verbose = env2int( "MV2_DEBUG_CM_VERBOSE" );
-    DEBUG_XRC_verbose = env2int( "MV2_DEBUG_XRC_VERBOSE" );
-    DEBUG_UDSTAT_verbose = env2int( "MV2_DEBUG_UDSTAT_VERBOSE" );
-    DEBUG_MEM_verbose = env2int( "MV2_DEBUG_MEM_USAGE_VERBOSE" );
-    DEBUG_CUDA_verbose = env2int( "MV2_DEBUG_CUDA_VERBOSE" );
-    DEBUG_MCST_verbose = env2int( "MV2_DEBUG_MCST_VERBOSE" );
-    DEBUG_SHM_verbose = env2int( "MV2_DEBUG_SHM_VERBOSE" );
-    DEBUG_CHM_verbose = env2int( "MV2_DEBUG_CHM_VERBOSE" );
-    DEBUG_RNDV_verbose = env2int( "MV2_DEBUG_RNDV_VERBOSE" );
-    DEBUG_INIT_verbose = env2int( "MV2_DEBUG_INIT_VERBOSE" );
-    DEBUG_RDMACM_verbose = env2int( "MV2_DEBUG_RDMACM_VERBOSE" );
-    DEBUG_1SC_verbose = env2int( "MV2_DEBUG_1SC_VERBOSE" );
-    DEBUG_DREG_verbose = env2int( "MV2_DEBUG_DREG_VERBOSE" );
-    DEBUG_VBUF_verbose = env2int( "MV2_DEBUG_VBUF_VERBOSE" );
-    DEBUG_SEND_verbose = env2int( "MV2_DEBUG_SEND_VERBOSE" );
+int initialize_debug_variables()
+{
+    DEBUG_Sharp_verbose = env2int("MVP_DEBUG_SHARP_VERBOSE");
+    DEBUG_Fork_verbose = env2int("MVP_DEBUG_FORK_VERBOSE");
+    DEBUG_FT_verbose = env2int("MVP_DEBUG_FT_VERBOSE");
+    DEBUG_CR_verbose = env2int("MVP_DEBUG_CR_VERBOSE");
+    DEBUG_MIG_verbose = env2int("MVP_DEBUG_MIG_VERBOSE");
+    DEBUG_UD_verbose = env2int("MVP_DEBUG_UD_VERBOSE");
+    DEBUG_ZCY_verbose = env2int("MVP_DEBUG_ZCOPY_VERBOSE");
+    DEBUG_CM_verbose = env2int("MVP_DEBUG_CM_VERBOSE");
+    DEBUG_XRC_verbose = env2int("MVP_DEBUG_XRC_VERBOSE");
+    DEBUG_UDSTAT_verbose = env2int("MVP_DEBUG_UDSTAT_VERBOSE");
+    DEBUG_MEM_verbose = env2int("MVP_DEBUG_MEM_USAGE_VERBOSE");
+    DEBUG_CUDA_verbose = env2int("MVP_DEBUG_CUDA_VERBOSE");
+    DEBUG_MCST_verbose = env2int("MVP_DEBUG_MCST_VERBOSE");
+    DEBUG_SHM_verbose = env2int("MVP_DEBUG_SHM_VERBOSE");
+    DEBUG_CHM_verbose = env2int("MVP_DEBUG_CHM_VERBOSE");
+    DEBUG_RNDV_verbose = env2int("MVP_DEBUG_RNDV_VERBOSE");
+    DEBUG_INIT_verbose = env2int("MVP_DEBUG_INIT_VERBOSE");
+    DEBUG_RDMACM_verbose = env2int("MVP_DEBUG_RDMACM_VERBOSE");
+    DEBUG_1SC_verbose = env2int("MVP_DEBUG_1SC_VERBOSE");
+    DEBUG_DREG_verbose = env2int("MVP_DEBUG_DREG_VERBOSE");
+    DEBUG_VBUF_verbose = env2int("MVP_DEBUG_VBUF_VERBOSE");
+    DEBUG_SEND_verbose = env2int("MVP_DEBUG_SEND_VERBOSE");
     return 0;
 }
 
-void mv2_print_mem_usage()
+void mvp_print_mem_usage()
 {
-    FILE *file = fopen ("/proc/self/status", "r");
+    FILE *file = fopen("/proc/self/status", "r");
     char vmpeak[100], vmhwm[100];
 
-    if ( file != NULL ) {
+    if (file != NULL) {
         char line[100];
         while (fgets(line, 100, file) != NULL) {
             if (strstr(line, "VmPeak") != NULL) {
@@ -160,37 +158,124 @@ void mv2_print_mem_usage()
 #ifdef _OSU_MVAPICH_
 inline void dump_device_cap(struct ibv_device_attr dev_attr)
 {
-    PRINT_DEBUG(DEBUG_INIT_verbose>0, "Maximum number of supported QPs                                                               : %6d\n", dev_attr.max_qp);
-    PRINT_DEBUG(DEBUG_INIT_verbose>0, "Maximum number of outstanding WR on any work queue                                            : %6d\n", dev_attr.max_qp_wr);
-    PRINT_DEBUG(DEBUG_INIT_verbose>0, "Maximum number of s/g per WR for non-RD QPs                                                   : %6d\n", dev_attr.max_sge);
-    PRINT_DEBUG(DEBUG_INIT_verbose>1, "Maximum number of s/g per WR for RD QPs                                                       : %6d\n", dev_attr.max_sge_rd);
-    PRINT_DEBUG(DEBUG_INIT_verbose>0, "Maximum number of supported CQs                                                               : %6d\n", dev_attr.max_cq);
-    PRINT_DEBUG(DEBUG_INIT_verbose>0, "Maximum number of CQE capacity per CQ                                                         : %6d\n", dev_attr.max_cqe);
-    PRINT_DEBUG(DEBUG_INIT_verbose>1, "Maximum number of supported MRs                                                               : %6d\n", dev_attr.max_mr);
-    PRINT_DEBUG(DEBUG_INIT_verbose>0, "Maximum number of supported PDs                                                               : %6d\n", dev_attr.max_pd);
-    PRINT_DEBUG(DEBUG_INIT_verbose>0, "Maximum number of RDMA Read & Atomic operations that can be outstanding per QP                : %6d\n", dev_attr.max_qp_rd_atom);
-    PRINT_DEBUG(DEBUG_INIT_verbose>0, "Maximum number of RDMA Read & Atomic operations that can be outstanding per EEC               : %6d\n", dev_attr.max_ee_rd_atom);
-    PRINT_DEBUG(DEBUG_INIT_verbose>0, "Maximum number of resources used for RDMA Read & Atomic operations by this HCA as the Target  : %6d\n", dev_attr.max_res_rd_atom);
-    PRINT_DEBUG(DEBUG_INIT_verbose>0, "Maximum depth per QP for initiation of RDMA Read & Atomic operations                          : %6d\n", dev_attr.max_qp_init_rd_atom);
-    PRINT_DEBUG(DEBUG_INIT_verbose>0, "Maximum depth per EEC for initiation of RDMA Read & Atomic operations                         : %6d\n", dev_attr.max_ee_init_rd_atom);
-    PRINT_DEBUG(DEBUG_INIT_verbose>0, "Atomic operations support level                                                               : %s\n",
-                (dev_attr.atomic_cap == IBV_ATOMIC_NONE)?"No Support":
-                (dev_attr.atomic_cap == IBV_ATOMIC_HCA)?"HCA Level":
-                (dev_attr.atomic_cap == IBV_ATOMIC_GLOB)?"Node Level":"Un-known");
-    PRINT_DEBUG(DEBUG_INIT_verbose>1, "Maximum number of supported EE contexts                                                       : %6d\n", dev_attr.max_ee);
-    PRINT_DEBUG(DEBUG_INIT_verbose>1, "Maximum number of supported RD domains                                                        : %6d\n", dev_attr.max_rdd);
-    PRINT_DEBUG(DEBUG_INIT_verbose>1, "Maximum number of supported MWs                                                               : %6d\n", dev_attr.max_mw);
-    PRINT_DEBUG(DEBUG_INIT_verbose>1, "Maximum number of supported raw IPv6 datagram QPs                                             : %6d\n", dev_attr.max_raw_ipv6_qp);
-    PRINT_DEBUG(DEBUG_INIT_verbose>1, "Maximum number of supported Ethertype datagram QPs                                            : %6d\n", dev_attr.max_raw_ethy_qp);
-    PRINT_DEBUG(DEBUG_INIT_verbose>0, "Maximum number of supported multicast groups                                                  : %6d\n", dev_attr.max_mcast_grp);
-    PRINT_DEBUG(DEBUG_INIT_verbose>0, "Maximum number of QPs per multicast group which can be attached                               : %6d\n", dev_attr.max_mcast_qp_attach);
-    PRINT_DEBUG(DEBUG_INIT_verbose>0, "Maximum number of supported address handles                                                   : %6d\n", dev_attr.max_ah);
-    PRINT_DEBUG(DEBUG_INIT_verbose>1, "Maximum number of supported FMRs                                                              : %6d\n", dev_attr.max_fmr);
-    PRINT_DEBUG(DEBUG_INIT_verbose>1, "Maximum number of (re)maps per FMR before an unmap operation in required                      : %6d\n", dev_attr.max_map_per_fmr);
-    PRINT_DEBUG(DEBUG_INIT_verbose>0, "Maximum number of supported SRQs                                                              : %6d\n", dev_attr.max_srq);
-    PRINT_DEBUG(DEBUG_INIT_verbose>0, "Maximum number of WRs per SRQ                                                                 : %6d\n", dev_attr.max_srq_wr);
-    PRINT_DEBUG(DEBUG_INIT_verbose>0, "Maximum number of s/g per SRQ                                                                 : %6d\n", dev_attr.max_srq_sge);
-    PRINT_DEBUG(DEBUG_INIT_verbose>1, "Maximum number of partitions                                                                  : %6d\n", dev_attr.max_pkeys);
-    PRINT_DEBUG(DEBUG_INIT_verbose>0, "Maximum number of QPs which can be attached to multicast groups                               : %6d\n", dev_attr.max_total_mcast_qp_attach);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 0,
+                "Maximum number of supported QPs                               "
+                "                                : %6d\n",
+                dev_attr.max_qp);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 0,
+                "Maximum number of outstanding WR on any work queue            "
+                "                                : %6d\n",
+                dev_attr.max_qp_wr);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 0,
+                "Maximum number of s/g per WR for non-RD QPs                   "
+                "                                : %6d\n",
+                dev_attr.max_sge);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 1,
+                "Maximum number of s/g per WR for RD QPs                       "
+                "                                : %6d\n",
+                dev_attr.max_sge_rd);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 0,
+                "Maximum number of supported CQs                               "
+                "                                : %6d\n",
+                dev_attr.max_cq);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 0,
+                "Maximum number of CQE capacity per CQ                         "
+                "                                : %6d\n",
+                dev_attr.max_cqe);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 1,
+                "Maximum number of supported MRs                               "
+                "                                : %6d\n",
+                dev_attr.max_mr);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 0,
+                "Maximum number of supported PDs                               "
+                "                                : %6d\n",
+                dev_attr.max_pd);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 0,
+                "Maximum number of RDMA Read & Atomic operations that can be "
+                "outstanding per QP                : %6d\n",
+                dev_attr.max_qp_rd_atom);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 0,
+                "Maximum number of RDMA Read & Atomic operations that can be "
+                "outstanding per EEC               : %6d\n",
+                dev_attr.max_ee_rd_atom);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 0,
+                "Maximum number of resources used for RDMA Read & Atomic "
+                "operations by this HCA as the Target  : %6d\n",
+                dev_attr.max_res_rd_atom);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 0,
+                "Maximum depth per QP for initiation of RDMA Read & Atomic "
+                "operations                          : %6d\n",
+                dev_attr.max_qp_init_rd_atom);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 0,
+                "Maximum depth per EEC for initiation of RDMA Read & Atomic "
+                "operations                         : %6d\n",
+                dev_attr.max_ee_init_rd_atom);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 0,
+                "Atomic operations support level                               "
+                "                                : %s\n",
+                (dev_attr.atomic_cap == IBV_ATOMIC_NONE) ? "No Support" :
+                (dev_attr.atomic_cap == IBV_ATOMIC_HCA)  ? "HCA Level" :
+                (dev_attr.atomic_cap == IBV_ATOMIC_GLOB) ? "Node Level" :
+                                                           "Un-known");
+    PRINT_DEBUG(DEBUG_INIT_verbose > 1,
+                "Maximum number of supported EE contexts                       "
+                "                                : %6d\n",
+                dev_attr.max_ee);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 1,
+                "Maximum number of supported RD domains                        "
+                "                                : %6d\n",
+                dev_attr.max_rdd);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 1,
+                "Maximum number of supported MWs                               "
+                "                                : %6d\n",
+                dev_attr.max_mw);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 1,
+                "Maximum number of supported raw IPv6 datagram QPs             "
+                "                                : %6d\n",
+                dev_attr.max_raw_ipv6_qp);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 1,
+                "Maximum number of supported Ethertype datagram QPs            "
+                "                                : %6d\n",
+                dev_attr.max_raw_ethy_qp);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 0,
+                "Maximum number of supported multicast groups                  "
+                "                                : %6d\n",
+                dev_attr.max_mcast_grp);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 0,
+                "Maximum number of QPs per multicast group which can be "
+                "attached                               : %6d\n",
+                dev_attr.max_mcast_qp_attach);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 0,
+                "Maximum number of supported address handles                   "
+                "                                : %6d\n",
+                dev_attr.max_ah);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 1,
+                "Maximum number of supported FMRs                              "
+                "                                : %6d\n",
+                dev_attr.max_fmr);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 1,
+                "Maximum number of (re)maps per FMR before an unmap operation "
+                "in required                      : %6d\n",
+                dev_attr.max_map_per_fmr);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 0,
+                "Maximum number of supported SRQs                              "
+                "                                : %6d\n",
+                dev_attr.max_srq);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 0,
+                "Maximum number of WRs per SRQ                                 "
+                "                                : %6d\n",
+                dev_attr.max_srq_wr);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 0,
+                "Maximum number of s/g per SRQ                                 "
+                "                                : %6d\n",
+                dev_attr.max_srq_sge);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 1,
+                "Maximum number of partitions                                  "
+                "                                : %6d\n",
+                dev_attr.max_pkeys);
+    PRINT_DEBUG(DEBUG_INIT_verbose > 0,
+                "Maximum number of QPs which can be attached to multicast "
+                "groups                               : %6d\n",
+                dev_attr.max_total_mcast_qp_attach);
 }
 #endif

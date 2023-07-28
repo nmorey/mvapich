@@ -1,13 +1,13 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  */
 /*
  *
@@ -17,23 +17,18 @@
 
 #include "mpiimpl.h"
 #include <unistd.h>
-#include "mv2_coll_shmem.h"
+#include "mvp_coll_shmem.h"
 #include <unistd.h>
 
-extern unsigned long long PVAR_COUNTER_mv2_coll_exscan_algo;
+extern unsigned long long PVAR_COUNTER_mvp_coll_exscan_algo;
 
-int MPIR_Exscan_MV2( 
-    const void *sendbuf,
-    void *recvbuf,
-    int count,
-    MPI_Datatype datatype,
-    MPI_Op op,
-    MPIR_Comm *comm_ptr,
-    MPIR_Errflag_t *errflag )
+int MPIR_Exscan_MVP(const void *sendbuf, void *recvbuf, int count,
+                    MPI_Datatype datatype, MPI_Op op, MPIR_Comm *comm_ptr,
+                    MPIR_Errflag_t *errflag)
 {
     int mpi_errno = MPI_SUCCESS;
 
-    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_exscan_algo, 1);
+    MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_exscan_algo, 1);
 
 #ifdef _ENABLE_CUDA_
     int recv_mem_type = 0;
@@ -48,60 +43,55 @@ int MPIR_Exscan_MV2(
     MPIR_Datatype_get_extent_macro(datatype, extent);
     stride = count * MPL_MAX(extent, true_extent);
 
-    if (mv2_enable_device) {
-       recv_mem_type = is_device_buffer(recvbuf);
-       if ( sendbuf != MPI_IN_PLACE ){
-           send_mem_type = is_device_buffer(sendbuf);
-       }
+    if (mvp_enable_device) {
+        recv_mem_type = is_device_buffer(recvbuf);
+        if (sendbuf != MPI_IN_PLACE) {
+            send_mem_type = is_device_buffer(sendbuf);
+        }
     }
 
-    if(mv2_enable_device && send_mem_type){
-        send_host_buf = (char*) MPL_malloc(stride);
-        MV2_MPID_Memcpy_Device((void *)send_host_buf,
-                            (void *)sendbuf, 
-                            stride, 
-                            deviceMemcpyDeviceToHost);
+    if (mvp_enable_device && send_mem_type) {
+        send_host_buf = (char *)MPL_malloc(stride);
+        MVP_MPID_Memcpy_Device((void *)send_host_buf, (void *)sendbuf, stride,
+                               deviceMemcpyDeviceToHost);
         sendbuf = send_host_buf;
     }
 
-    if(mv2_enable_device && recv_mem_type){
-        recv_host_buf = (char*) MPL_malloc(stride);
-        MV2_MPID_Memcpy_Device((void *)recv_host_buf,
-                            (void *)recvbuf, 
-                            stride, 
-                            deviceMemcpyDeviceToHost);
+    if (mvp_enable_device && recv_mem_type) {
+        recv_host_buf = (char *)MPL_malloc(stride);
+        MVP_MPID_Memcpy_Device((void *)recv_host_buf, (void *)recvbuf, stride,
+                               deviceMemcpyDeviceToHost);
         recvbuf = recv_host_buf;
     }
 #endif
-    
-    mpi_errno = MPIR_Exscan(sendbuf, recvbuf, count, datatype, op, comm_ptr, errflag);
+
+    mpi_errno =
+        MPIR_Exscan(sendbuf, recvbuf, count, datatype, op, comm_ptr, errflag);
     MPIR_ERR_CHECK(mpi_errno);
 #ifdef _ENABLE_CUDA_
-    if(mv2_enable_device && recv_mem_type){
+    if (mvp_enable_device && recv_mem_type) {
         recvbuf = temp_recvbuf;
-        MV2_MPID_Memcpy_Device((void *)recvbuf,
-                            (void *)recv_host_buf, 
-                            stride, 
-                            deviceMemcpyHostToDevice);
+        MVP_MPID_Memcpy_Device((void *)recvbuf, (void *)recv_host_buf, stride,
+                               deviceMemcpyHostToDevice);
     }
-    if(mv2_enable_device && recv_mem_type){
-        if(recv_host_buf){
+    if (mvp_enable_device && recv_mem_type) {
+        if (recv_host_buf) {
             MPL_free(recv_host_buf);
             recv_host_buf = NULL;
         }
     }
-    if(mv2_enable_device && send_mem_type){
+    if (mvp_enable_device && send_mem_type) {
         sendbuf = temp_sendbuf;
-        if(send_host_buf){
+        if (send_host_buf) {
             MPL_free(send_host_buf);
             send_host_buf = NULL;
         }
     }
 #endif
     MPIR_ERR_CHECK(mpi_errno);
-    
-  fn_exit:
+
+fn_exit:
     return mpi_errno;
-  fn_fail:
+fn_fail:
     goto fn_exit;
 }

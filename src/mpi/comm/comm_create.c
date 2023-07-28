@@ -3,22 +3,22 @@
  *     See COPYRIGHT in top-level directory
  */
 
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
 #include "mpiimpl.h"
 #include "mpicomm.h"
 
-#include "mv2_coll_shmem.h"
+#include "mvp_coll_shmem.h"
 
 /* -- Begin Profiling Symbol Block for routine MPI_Comm_create */
 #if defined(HAVE_PRAGMA_WEAK)
@@ -452,9 +452,9 @@ Output Parameters:
 .seealso: MPI_Comm_free
 @*/
 
-#if defined(CHANNEL_MRAIL) || defined(_MV2_CH4_OVERRIDE_)
+#if defined(CHANNEL_MRAIL) || defined(_MVP_CH4_OVERRIDE_)
 int split_comm = 1;
-#endif /* defined(CHANNEL_MRAIL) || defined(_MV2_CH4_OVERRIDE_) */
+#endif /* defined(CHANNEL_MRAIL) || defined(_MVP_CH4_OVERRIDE_) */
 
 int MPI_Comm_create(MPI_Comm comm, MPI_Group group, MPI_Comm * newcomm)
 {

@@ -4,15 +4,15 @@
  *      See COPYRIGHT in top-level directory.
  */
 
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -27,41 +27,39 @@
 #endif
 
 #undef DEBUG_PRINT
-#define DEBUG_PRINT(args...)                                  \
-do {                                                          \
-    int rank;                                                 \
-    UPMI_GET_RANK(&rank);                                      \
-    fprintf(stderr, "[%d][%s:%d] ", rank, __FILE__, __LINE__);\
-    fprintf(stderr, args);                                    \
-} while (0)
+#define DEBUG_PRINT(args...)                                                   \
+    do {                                                                       \
+        int rank;                                                              \
+        UPMI_GET_RANK(&rank);                                                  \
+        fprintf(stderr, "[%d][%s:%d] ", rank, __FILE__, __LINE__);             \
+        fprintf(stderr, args);                                                 \
+    } while (0)
 
 #ifndef DEBUG
 #undef DEBUG_PRINT
 #define DEBUG_PRINT(args...)
 #endif
 
-MPIR_Request * create_request(void * hdr, intptr_t hdr_sz,
-					    size_t nb)
+MPIR_Request *create_request(void *hdr, intptr_t hdr_sz, size_t nb)
 {
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_CREATE_REQUEST);
 
-    MPIR_Request* sreq = MPIR_Request_create(MPIR_REQUEST_KIND__SEND);
+    MPIR_Request *sreq = MPIR_Request_create(MPIR_REQUEST_KIND__SEND);
     /* --BEGIN ERROR HANDLING-- */
-    if (sreq == NULL)
-    {
+    if (sreq == NULL) {
         MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_CREATE_REQUEST);
         return NULL;
     }
     /* --END ERROR HANDLING-- */
     MPIR_Object_set_ref(sreq, 2);
-    MV2_INC_NUM_POSTED_SEND();
+    MVP_INC_NUM_POSTED_SEND();
 #ifdef _ENABLE_CUDA_
     sreq->dev.pending_pkt = MPL_malloc(hdr_sz - nb);
     MPIR_Memcpy(sreq->dev.pending_pkt, (char *)hdr + nb, hdr_sz - nb);
     sreq->dev.iov[0].iov_base = (void *)((char *)sreq->dev.pending_pkt);
 #else
     MPIR_Memcpy(&sreq->dev.pending_pkt, hdr, sizeof(MPIDI_CH3_Pkt_t));
-    sreq->dev.iov[0].iov_base = (void *)((char *) &sreq->dev.pending_pkt + nb);
+    sreq->dev.iov[0].iov_base = (void *)((char *)&sreq->dev.pending_pkt + nb);
 #endif
     sreq->ch.reqtype = REQUEST_NORMAL;
     sreq->dev.iov[0].iov_len = hdr_sz - nb;
@@ -72,9 +70,8 @@ MPIR_Request * create_request(void * hdr, intptr_t hdr_sz,
     return sreq;
 }
 
-int MPIDI_CH3_SMP_iStartMsg(MPIDI_VC_t * vc, void *pkt,
-                                          intptr_t pkt_sz,
-                                          MPIR_Request ** sreq_ptr);
+int MPIDI_CH3_SMP_iStartMsg(MPIDI_VC_t *vc, void *pkt, intptr_t pkt_sz,
+                            MPIR_Request **sreq_ptr);
 /*
  * MPIDI_CH3_iStartMsg() attempts to send the message immediately.  If the
  * entire message is successfully sent, then NULL is returned.  Otherwise a
@@ -83,8 +80,8 @@ int MPIDI_CH3_SMP_iStartMsg(MPIDI_VC_t * vc, void *pkt,
  * allocated and the error being returned in the status field of the
  * request.
  */
-int MPIDI_CH3_iStartMsg(MPIDI_VC_t * vc, void *pkt, intptr_t pkt_sz,
-                        MPIR_Request ** sreq_ptr)
+int MPIDI_CH3_iStartMsg(MPIDI_VC_t *vc, void *pkt, intptr_t pkt_sz,
+                        MPIR_Request **sreq_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *sreq = NULL;
@@ -92,31 +89,31 @@ int MPIDI_CH3_iStartMsg(MPIDI_VC_t * vc, void *pkt, intptr_t pkt_sz,
 
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3_ISTARTMSG);
 
-    MPL_DBG_MSG_S(MPIDI_CH3_DBG_CHANNEL,VERBOSE,"entering %s", __func__);
+    MPL_DBG_MSG_S(MPIDI_CH3_DBG_CHANNEL, VERBOSE, "entering %s", __func__);
 
 #if defined(CKPT)
-	MPIDI_CH3I_CR_lock();
+    MPIDI_CH3I_CR_lock();
 #endif
 
     /* If send queue is empty attempt to send
        data, queuing any unsent data. */
     if (SMP_INIT && vc->smp.local_nodes >= 0 &&
         vc->smp.local_nodes != g_smpi.my_local_id) {
-        mpi_errno = MPIDI_CH3_SMP_iStartMsg(vc, pkt, pkt_sz,sreq_ptr);
-        MPL_DBG_MSG_S(MPIDI_CH3_DBG_CHANNEL,VERBOSE,"exiting %s", __func__);
+        mpi_errno = MPIDI_CH3_SMP_iStartMsg(vc, pkt, pkt_sz, sreq_ptr);
+        MPL_DBG_MSG_S(MPIDI_CH3_DBG_CHANNEL, VERBOSE, "exiting %s", __func__);
         MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3_ISTARTMSG);
 #ifdef CKPT
-	MPIDI_CH3I_CR_unlock();
+        MPIDI_CH3I_CR_unlock();
 #endif
-        return(mpi_errno);
+        return (mpi_errno);
     }
 
 #ifdef CKPT
     /*Detect whether the packet is CTS*/
     MPIDI_CH3_Pkt_t *upkt = (MPIDI_CH3_Pkt_t *)pkt;
     if (upkt->type == MPIDI_CH3_PKT_RNDV_CLR_TO_SEND) {
-        MPIDI_CH3_Pkt_rndv_clr_to_send_t * cts_pkt = &(upkt->rndv_clr_to_send);
-        if (cts_pkt->rndv.protocol == MV2_RNDV_PROTOCOL_RPUT) {
+        MPIDI_CH3_Pkt_rndv_clr_to_send_t *cts_pkt = &(upkt->rndv_clr_to_send);
+        if (cts_pkt->rndv.protocol == MVP_RNDV_PROTOCOL_RPUT) {
             /*If using rput protocol, keep track of the request*/
             MPIR_Request *rreq;
             MPIR_Request_get_ptr(cts_pkt->receiver_req_id, rreq);
@@ -126,22 +123,24 @@ int MPIDI_CH3_iStartMsg(MPIDI_VC_t * vc, void *pkt, intptr_t pkt_sz,
 #endif
 
     /*CM code*/
-    if ((vc->ch.state != MPIDI_CH3I_VC_STATE_IDLE 
+    if ((vc->ch.state != MPIDI_CH3I_VC_STATE_IDLE
 #ifdef _ENABLE_XRC_
-            || (USE_XRC && VC_XST_ISUNSET (vc, XF_SEND_IDLE))
+         || (USE_XRC && VC_XST_ISUNSET(vc, XF_SEND_IDLE))
 #endif
-            ) || !MPIDI_CH3I_CM_SendQ_empty(vc)) {
+             ) ||
+        !MPIDI_CH3I_CM_SendQ_empty(vc)) {
         /*Request need to be queued*/
-        MPL_DBG_MSG(MPIDI_CH3_DBG_CHANNEL,VERBOSE,"not connected, enqueueing");
+        MPL_DBG_MSG(MPIDI_CH3_DBG_CHANNEL, VERBOSE,
+                    "not connected, enqueueing");
         sreq = create_request(pkt, pkt_sz, 0);
         MPIDI_CH3I_CM_SendQ_enqueue(vc, sreq);
-        if (vc->ch.state == MPIDI_CH3I_VC_STATE_UNCONNECTED)  {
+        if (vc->ch.state == MPIDI_CH3I_VC_STATE_UNCONNECTED) {
             MPIDI_CH3I_CM_Connect(vc);
         }
         goto fn_exit;
     }
 
-    if (MPIDI_CH3I_SendQ_empty(vc)) {   /* MT */
+    if (MPIDI_CH3I_SendQ_empty(vc)) { /* MT */
         int nb;
         int pkt_len;
         vbuf *buf;
@@ -165,50 +164,52 @@ int MPIDI_CH3_iStartMsg(MPIDI_VC_t * vc, void *pkt, intptr_t pkt_sz,
         } else if (MPI_MRAIL_MSG_QUEUED == mpi_errno) {
             /* fast rdma ok but cannot send: there is no send wqe available */
             /* sreq = create_request(pkt, pkt_sz, 0);
-            buf->sreq = (void *) sreq;   */ 
+            buf->sreq = (void *) sreq;   */
             mpi_errno = MPI_SUCCESS;
             goto fn_exit;
         } else {
             sreq = MPIR_Request_create(MPIR_REQUEST_KIND__SEND);
             if (sreq == NULL) {
                 mpi_errno =
-                    MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_FATAL,
-                                         __func__, __LINE__,
-                                         MPI_ERR_OTHER, "**nomem", 0);
+                    MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_FATAL, __func__,
+                                         __LINE__, MPI_ERR_OTHER, "**nomem", 0);
                 goto fn_exit;
             }
-            MV2_INC_NUM_POSTED_SEND();
+            MVP_INC_NUM_POSTED_SEND();
             MPIR_cc_set(&sreq->cc, 0);
-            /* TODO: Create an appropriate error message based on the value of errno
+            /* TODO: Create an appropriate error message based on the value of
+             * errno
              * */
             sreq->status.MPI_ERROR = MPI_ERR_INTERN;
-            PRINT_DEBUG(DEBUG_SHM_verbose>1,
-                    "Enqueue send to rank: %d, sreq: %p, type: %d, ch.reqtype: %d\n",
-                    vc->pg_rank, sreq, MPIDI_Request_get_type(sreq), sreq->ch.reqtype);
+            PRINT_DEBUG(DEBUG_SHM_verbose > 1,
+                        "Enqueue send to rank: %d, sreq: %p, type: %d, "
+                        "ch.reqtype: %d\n",
+                        vc->pg_rank, sreq, MPIDI_Request_get_type(sreq),
+                        sreq->ch.reqtype);
         }
     } else {
         sreq = create_request(pkt, pkt_sz, 0);
         MPIDI_CH3I_SendQ_enqueue(vc, sreq);
-        PRINT_DEBUG(DEBUG_SHM_verbose>1,
-                "Eqnueue send to rank: %d, sreq: %p, type: %d, ch.reqtype: %d\n",
-                vc->pg_rank, sreq, MPIDI_Request_get_type(sreq), sreq->ch.reqtype);
+        PRINT_DEBUG(
+            DEBUG_SHM_verbose > 1,
+            "Eqnueue send to rank: %d, sreq: %p, type: %d, ch.reqtype: %d\n",
+            vc->pg_rank, sreq, MPIDI_Request_get_type(sreq), sreq->ch.reqtype);
     }
 
-  fn_exit:
+fn_exit:
     *sreq_ptr = sreq;
 #ifdef CKPT
     MPIDI_CH3I_CR_unlock();
 #endif
 
     DEBUG_PRINT("Exiting istartmsg\n");
-    MPL_DBG_MSG_S(MPIDI_CH3_DBG_CHANNEL,VERBOSE,"exiting %s",__func__);
+    MPL_DBG_MSG_S(MPIDI_CH3_DBG_CHANNEL, VERBOSE, "exiting %s", __func__);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3_ISTARTMSG);
     return mpi_errno;
 }
 
-int MPIDI_CH3_SMP_iStartMsg(MPIDI_VC_t * vc, void *pkt,
-                                          intptr_t pkt_sz,
-                                          MPIR_Request ** sreq_ptr)
+int MPIDI_CH3_SMP_iStartMsg(MPIDI_VC_t *vc, void *pkt, intptr_t pkt_sz,
+                            MPIR_Request **sreq_ptr)
 {
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3_SMP_ISTARTMSG);
     int mpi_errno = MPI_SUCCESS;
@@ -222,7 +223,7 @@ int MPIDI_CH3_SMP_iStartMsg(MPIDI_VC_t * vc, void *pkt,
 
     /* If send queue is empty attempt to send
        data, queuing any unsent data. */
-    if (MPIDI_CH3I_SMP_SendQ_empty(vc)) {       /* MT */
+    if (MPIDI_CH3I_SMP_SendQ_empty(vc)) { /* MT */
         int nb;
 
         /* MT - need some signalling to lock down our right to use the
@@ -232,28 +233,25 @@ int MPIDI_CH3_SMP_iStartMsg(MPIDI_VC_t * vc, void *pkt,
         iov[0].iov_base = pkt;
         iov[0].iov_len = pkt_sz;
 
-        if (pkt_header->type == MPIDI_CH3_PKT_RNDV_R3_DATA)
-        {
+        if (pkt_header->type == MPIDI_CH3_PKT_RNDV_R3_DATA) {
             MPIDI_CH3I_SMP_writev_rndv_header(vc, iov, 1, &nb);
-        }
-        else
-        {
+        } else {
             MPIDI_CH3I_SMP_writev(vc, iov, 1, &nb);
         }
 #ifdef CKPT
-		MPIDI_CH3I_MRAILI_Pkt_comm_header* p = (MPIDI_CH3I_MRAILI_Pkt_comm_header*)pkt;
-		if( p->type >= MPIDI_CH3_PKT_CM_SUSPEND && 
-			p->type<= MPIDI_CH3_PKT_CR_REMOTE_UPDATE ) {
-			DEBUG_PRINT("%s [%d => %d]: imm-write pkt %s(%d), ret nb=%d,pkt-size=%d\n", __func__, 
-			MPIDI_Process.my_pg_rank, vc->pg_rank,  MPIDI_CH3_Pkt_type_to_string[p->type],
-			p->type, nb, pkt_sz );
-		}
-#endif  // CKPT
-        if (nb != pkt_sz) 
-        {
+        MPIDI_CH3I_MRAILI_Pkt_comm_header *p =
+            (MPIDI_CH3I_MRAILI_Pkt_comm_header *)pkt;
+        if (p->type >= MPIDI_CH3_PKT_CM_SUSPEND &&
+            p->type <= MPIDI_CH3_PKT_CR_REMOTE_UPDATE) {
+            DEBUG_PRINT(
+                "%s [%d => %d]: imm-write pkt %s(%d), ret nb=%d,pkt-size=%d\n",
+                __func__, MPIDI_Process.my_pg_rank, vc->pg_rank,
+                MPIDI_CH3_Pkt_type_to_string[p->type], p->type, nb, pkt_sz);
+        }
+#endif // CKPT
+        if (nb != pkt_sz) {
             sreq = create_request(pkt, pkt_sz, nb);
-            if(pkt_header->type == MPIDI_CH3_PKT_RNDV_R3_DATA)
-            { 
+            if (pkt_header->type == MPIDI_CH3_PKT_RNDV_R3_DATA) {
                 sreq->ch.reqtype = REQUEST_RNDV_R3_HEADER;
             }
 
@@ -261,36 +259,39 @@ int MPIDI_CH3_SMP_iStartMsg(MPIDI_VC_t * vc, void *pkt,
             MPIDI_CH3I_SMP_SendQ_enqueue_head(vc, sreq);
             vc->smp.send_active = sreq;
 
-            PRINT_DEBUG(DEBUG_SHM_verbose>1,
-                    "send to %d delayed, request enqueued: %p, type: %d, pkt_sz: %ld, ch.reqtype: %d\n",
-                    vc->pg_rank, sreq, MPIDI_Request_get_type(sreq), pkt_sz, sreq->ch.reqtype);
+            PRINT_DEBUG(DEBUG_SHM_verbose > 1,
+                        "send to %d delayed, request enqueued: %p, type: %d, "
+                        "pkt_sz: %ld, ch.reqtype: %d\n",
+                        vc->pg_rank, sreq, MPIDI_Request_get_type(sreq), pkt_sz,
+                        sreq->ch.reqtype);
         }
 #if defined(DEBUG)
-        else
-        {
+        else {
             DEBUG_PRINT("data sent immediately.\n");
         }
 #endif /* defined(DEBUG) */
     } else {
         sreq = create_request(pkt, pkt_sz, 0);
-        if(pkt_header->type == MPIDI_CH3_PKT_RNDV_R3_DATA) {
+        if (pkt_header->type == MPIDI_CH3_PKT_RNDV_R3_DATA) {
             sreq->ch.reqtype = REQUEST_RNDV_R3_HEADER;
         }
 
         MPIDI_CH3I_SMP_SendQ_enqueue(vc, sreq);
-        PRINT_DEBUG(DEBUG_SHM_verbose>1,
-                "send to %d delayed, request enqueued: %p, type: %d, pkt_sz: %ld, ch.reqtype: %d\n",
-                vc->pg_rank, sreq, MPIDI_Request_get_type(sreq), pkt_sz, sreq->ch.reqtype);
-#ifdef CKPT  
-		MPIDI_CH3I_MRAILI_Pkt_comm_header* p = (MPIDI_CH3I_MRAILI_Pkt_comm_header*)pkt;
-		if( p->type >= MPIDI_CH3_PKT_CM_SUSPEND && 
-			p->type<= MPIDI_CH3_PKT_CR_REMOTE_UPDATE ) 
-		{
-			DEBUG_PRINT("%s [%d => %d]: Enqueue:  pkt %s(%d), pkt-size=%d\n", __func__, 
-				MPIDI_Process.my_pg_rank, vc->pg_rank,  MPIDI_CH3_Pkt_type_to_string[p->type],
-				p->type, pkt_sz );
-		} 
-#endif   // end of CKPT
+        PRINT_DEBUG(DEBUG_SHM_verbose > 1,
+                    "send to %d delayed, request enqueued: %p, type: %d, "
+                    "pkt_sz: %ld, ch.reqtype: %d\n",
+                    vc->pg_rank, sreq, MPIDI_Request_get_type(sreq), pkt_sz,
+                    sreq->ch.reqtype);
+#ifdef CKPT
+        MPIDI_CH3I_MRAILI_Pkt_comm_header *p =
+            (MPIDI_CH3I_MRAILI_Pkt_comm_header *)pkt;
+        if (p->type >= MPIDI_CH3_PKT_CM_SUSPEND &&
+            p->type <= MPIDI_CH3_PKT_CR_REMOTE_UPDATE) {
+            DEBUG_PRINT("%s [%d => %d]: Enqueue:  pkt %s(%d), pkt-size=%d\n",
+                        __func__, MPIDI_Process.my_pg_rank, vc->pg_rank,
+                        MPIDI_CH3_Pkt_type_to_string[p->type], p->type, pkt_sz);
+        }
+#endif // end of CKPT
     }
 
 fn_exit:
@@ -303,4 +304,3 @@ fn_fail:
 #endif
     goto fn_exit;
 }
-

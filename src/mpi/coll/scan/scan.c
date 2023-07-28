@@ -4,7 +4,7 @@
  */
 
 #include "mpiimpl.h"
-#include "mv2_coll_shmem.h"
+#include "mvp_coll_shmem.h"
 
 /*
 === BEGIN_MPI_T_CVAR_INFO_BLOCK ===

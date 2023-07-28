@@ -1,18 +1,18 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
 #include "mpichconf.h"
 #include "mpirun_util.h"
-#include "mv2_debug_utils.h"
+#include "mvp_debug_utils.h"
 #include "string.h"
 #include "stdio.h"
 #include <errno.h>
@@ -37,8 +37,7 @@ char *vedit_str(char *const ptr, const char *format, va_list args)
         PRINT_ERROR("vsnprintf() returned %d\n", size);
         return NULL;
     }
-    
-    
+
     size++; // Add space for the null char
     str = realloc(ptr, sizeof(char) * size);
 
@@ -91,7 +90,6 @@ char *mkstr(char const *const format, ...)
  */
 char *append_str(char *ptr, char const *const suffix)
 {
-
     ptr = realloc(ptr, sizeof(char) * (strlen(ptr) + strlen(suffix) + 1));
 
     if (!ptr) {
@@ -112,12 +110,12 @@ int read_socket(int socket, void *buffer, size_t bytes)
     while (bytes != 0) {
         if ((rv = read(socket, data, bytes)) == -1) {
             switch (errno) {
-            case EINTR:
-            case EAGAIN:
-                continue;
-            default:
-                perror("read");
-                return -1;
+                case EINTR:
+                case EAGAIN:
+                    continue;
+                default:
+                    perror("read");
+                    return -1;
             }
         }
 
@@ -136,12 +134,12 @@ int write_socket(int socket, void *buffer, size_t bytes)
     while (bytes != 0) {
         if ((rv = write(socket, data, bytes)) == -1) {
             switch (errno) {
-            case EINTR:
-            case EAGAIN:
-                continue;
-            default:
-                PRINT_ERROR_ERRNO("write() failed", errno);
-                return -1;
+                case EINTR:
+                case EAGAIN:
+                    continue;
+                default:
+                    PRINT_ERROR_ERRNO("write() failed", errno);
+                    return -1;
             }
         }
 
@@ -152,7 +150,7 @@ int write_socket(int socket, void *buffer, size_t bytes)
     return 0;
 }
 
-int connect_socket(char * hostname, char * port)
+int connect_socket(char *hostname, char *port)
 {
     struct addrinfo hints;
     struct addrinfo *result, *rp;
@@ -168,15 +166,17 @@ int connect_socket(char * hostname, char * port)
 
     if (s) {
         PRINT_ERROR("getaddrinfo [%s:%s]: %s\n", hostname, port,
-                gai_strerror(s));
+                    gai_strerror(s));
         return 0;
     }
 
     for (rp = result; rp != NULL; rp = rp->ai_next) {
         sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-        if (sfd == -1) continue;
-        if (connect(sfd, rp->ai_addr, rp->ai_addrlen) != -1) break;
-        close (sfd);
+        if (sfd == -1)
+            continue;
+        if (connect(sfd, rp->ai_addr, rp->ai_addrlen) != -1)
+            break;
+        close(sfd);
     }
 
     if (rp == NULL) {
@@ -197,7 +197,7 @@ struct CRU_keyval_pairs {
     char value[CRU_MAX_VAL_LEN];
 };
 
-static struct CRU_keyval_pairs CRU_keyval_tab[64] = { {{0}} };
+static struct CRU_keyval_pairs CRU_keyval_tab[64] = {{{0}}};
 
 static int CRU_keyval_tab_idx = 0;
 
@@ -225,7 +225,7 @@ int CR_MPDU_readline(int fd, char *buf, int maxlen)
     char c, *ptr;
 
     for (ptr = buf; n < maxlen; ++n) {
-      again:
+    again:
         rc = read(fd, &c, 1);
         if (rc == 1) {
             *ptr++ = c;
@@ -266,7 +266,7 @@ int CR_MPDU_parse_keyvals(char *st)
             return (-2);
         }
         if ((*p == '\n') || (*p == '\0'))
-            return (0);         /* normal exit */
+            return (0); /* normal exit */
 
         keystart = p;
         while ((*p != ' ') && (*p != '=') && (*p != '\n') && (*p != '\0')) {
@@ -275,21 +275,25 @@ int CR_MPDU_parse_keyvals(char *st)
         if ((*p == ' ') || (*p == '\n') || (*p == '\0')) {
             return (-3);
         }
-        strncpy(CRU_keyval_tab[CRU_keyval_tab_idx].key, keystart, CRU_MAX_KEY_LEN);
-        CRU_keyval_tab[CRU_keyval_tab_idx].key[p - keystart] = '\0';    /* store key */
+        strncpy(CRU_keyval_tab[CRU_keyval_tab_idx].key, keystart,
+                CRU_MAX_KEY_LEN);
+        CRU_keyval_tab[CRU_keyval_tab_idx].key[p - keystart] =
+            '\0'; /* store key */
 
         valstart = ++p;
         while ((*p != ' ') && (*p != '\n') && (*p != '\0')) {
             ++p;
         }
-        strncpy(CRU_keyval_tab[CRU_keyval_tab_idx].value, valstart, CRU_MAX_VAL_LEN);
-        CRU_keyval_tab[CRU_keyval_tab_idx].value[p - valstart] = '\0';  /* store value */
+        strncpy(CRU_keyval_tab[CRU_keyval_tab_idx].value, valstart,
+                CRU_MAX_VAL_LEN);
+        CRU_keyval_tab[CRU_keyval_tab_idx].value[p - valstart] =
+            '\0'; /* store value */
         ++CRU_keyval_tab_idx;
         if (*p == ' ') {
             continue;
         }
         if (*p == '\n' || *p == '\0') {
-            return (0);         /* value has been set to empty */
+            return (0); /* value has been set to empty */
         }
     }
 
@@ -311,6 +315,6 @@ char *CR_MPDU_getval(const char *keystr, char *valstr, int vallen)
     return (NULL);
 }
 
-#endif                          /* CKPT */
+#endif /* CKPT */
 
 /* vi:set sw=4 sts=4 tw=80 */

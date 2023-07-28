@@ -1,13 +1,13 @@
 /*!\file */
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -17,7 +17,7 @@
 #include <infiniband/verbs.h>
 
 #include "ib_param.h"
-#include <mv2_arch_hca_detect.h>
+#include <mvp_arch_hca_detect.h>
 
 /* --------------------------------------------- *
  * Constants and limits
@@ -26,17 +26,17 @@
 /**
  * Max number of devices.
  */
-#define MAX_NUM_HCAS                    (4)
+#define MAX_NUM_HCAS (4)
 
 /**
  * Max number of ports.
  */
-#define MAX_NUM_PORTS                   (2)
+#define MAX_NUM_PORTS (2)
 
 /**
  * Max number queues per port.
  */
-#define MAX_NUM_QP_PER_PORT             (4)
+#define MAX_NUM_QP_PER_PORT (4)
 
 /* --------------------------------------------- *
  * Configuration parameters (ex. from environment
@@ -47,7 +47,7 @@
 
 /**
  *  Number of HCSs. The user can set this value with the environment
- *  variable MV2_NUM_HCAS.
+ *  variable MVP_NUM_HCAS.
  *  (Was rdma_num_hcas).
  */
 extern int ib_hca_num_hcas;
@@ -57,9 +57,6 @@ extern int ib_hca_num_hcas;
  *  (Was rdma_num_ports).
  */
 extern int ib_hca_num_ports;
-
-
-
 
 /* --------------------------------------------- *
  * Public data structures
@@ -81,19 +78,18 @@ FROM priv.h
  * Information about one HCA.
  */
 typedef struct {
-    mv2_hca_type hca_type;
+    mvp_hca_type hca_type;
 
-    struct ibv_context          *nic_context;
-    struct ibv_device           *ib_dev;
+    struct ibv_context *nic_context;
+    struct ibv_device *ib_dev;
 
     /** Infiniband protection tag */
-    struct ibv_pd               *ptag;
+    struct ibv_pd *ptag;
 
-    struct ibv_cq               *cq_hndl;
-    struct ibv_cq               *send_cq_hndl;
-    struct ibv_cq               *recv_cq_hndl;
-    struct ibv_comp_channel     *comp_channel;
-
+    struct ibv_cq *cq_hndl;
+    struct ibv_cq *send_cq_hndl;
+    struct ibv_cq *recv_cq_hndl;
+    struct ibv_comp_channel *comp_channel;
 
     /** Record lid and port information for connection establish later. */
     int ports[MAX_NUM_PORTS];
@@ -124,7 +120,6 @@ typedef struct {
  */
 extern MPID_nem_ib_nem_hca hca_list[MAX_NUM_HCAS];
 
-
 /* --------------------------------------------- *
  * Function declarations.
  * --------------------------------------------- */
@@ -139,7 +134,5 @@ int MPID_nem_ib_init_hca();
  * open hca, create ptags  and create cqs
  */
 int MPID_nem_ib_open_ports();
-
-
 
 #endif /* IB_PRIV_H */

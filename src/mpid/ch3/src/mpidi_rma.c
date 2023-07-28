@@ -216,7 +216,7 @@ int MPID_Win_free(MPIR_Win ** win_ptr)
     MPIR_Handle_obj_free(&MPIR_Win_mem, *win_ptr);
 
   fn_exit:
-    MV2_DEC_NUM_UNEXP_RECV();
+    MVP_DEC_NUM_UNEXP_RECV();
     MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPID_WIN_FREE);
     return mpi_errno;
 

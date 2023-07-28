@@ -1649,7 +1649,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_iscatterv(const void *sendbuf, const i
 #endif
 #endif /* NETMOD_INLINE           */
 
-/* BEGIN MVAPICH2 Overrides */
-#include "../mv2/netmod_override.h"
+/* BEGIN MVAPICH Overrides */
+#include "../mvp/netmod_override.h"
 
 #endif /* NETMOD_IMPL_H_INCLUDED */

@@ -4,40 +4,31 @@
  *      See COPYRIGHT in top-level directory.
  */
 
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
-
 
 #include "mpidi_ch3_impl.h"
 #include "rdma_impl.h"
 #include "mem_hooks.h"
-#include "mv2_debug_utils.h"
+#include "mvp_debug_utils.h"
 #include "upmi.h"
-#include "mv2_ch3_shmem.h"
+#include "mvp_ch3_shmem.h"
 #include "hwloc_bind.h"
 #include "cm.h"
 
-#if ENABLE_PVAR_MV2
-#include "mv2_mpit_cvars.h"
-extern void free_cvar_handles();
-#endif
-
-void mv2_free_hca_handle();
-void mv2_free_arch_handle();
-
-int MPIDI_CH3_Flush() 
+int MPIDI_CH3_Flush()
 {
-  MPIR_FUNC_VERBOSE_STATE_DECL(MPIDI_CH3_FLUSH);
-  MPIR_FUNC_VERBOSE_ENTER(MPIDI_CH3_FLUSH);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPIDI_CH3_FLUSH);
+    MPIR_FUNC_VERBOSE_ENTER(MPIDI_CH3_FLUSH);
 #ifdef MPIDI_CH3I_MRAILI_FLUSH
     MPIDI_CH3I_MRAILI_Flush();
 #endif
@@ -51,20 +42,14 @@ int MPIDI_CH3_Finalize()
     MPIR_FUNC_VERBOSE_STATE_DECL(MPIDI_CH3_FINALIZE);
     MPIR_FUNC_VERBOSE_ENTER(MPIDI_CH3_FINALIZE);
 
-    mv2_is_in_finalize = 1;
+    mvp_is_in_finalize = 1;
 
-    MPL_DBG_MSG_S(MPIDI_CH3_DBG_CHANNEL,VERBOSE,"entering %s", __func__);
+    MPL_DBG_MSG_S(MPIDI_CH3_DBG_CHANNEL, VERBOSE, "entering %s", __func__);
 
-#if ENABLE_PVAR_MV2
-    mv2_free_cvar_handles();
-    mv2_free_hca_handle();
-    mv2_free_arch_handle();
-#endif
-
-    MPIR_T_MV2_cvar_finalize();
+    MPIR_T_MVP_cvar_finalize();
 
 #ifdef _ENABLE_CUDA_
-    if (mv2_enable_device) {
+    if (mvp_enable_device) {
         device_cleanup();
     }
 #endif
@@ -72,20 +57,18 @@ int MPIDI_CH3_Finalize()
 #ifdef _ENABLE_XRC_
     xrc_rdmafp_init = 0;
     if (USE_XRC) {
-        mpi_errno = UPMI_BARRIER ();
-        if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+        mpi_errno = UPMI_BARRIER();
+        if (mpi_errno)
+            MPIR_ERR_POP(mpi_errno);
     }
 #endif
 
     /* Let the lower layer flush out. */
     MPIDI_CH3_Flush();
 
-
-    if (!SMP_ONLY) 
-    {
-
+    if (!SMP_ONLY) {
 #ifndef DISABLE_PTMALLOC
-        mvapich2_mfin();
+        mvapich_mfin();
 #endif
         /* allocate rmda memory and set up the queues */
         if (MPIDI_CH3I_Process.cm_type == MPIDI_CH3I_CM_ON_DEMAND) {
@@ -116,7 +99,8 @@ int MPIDI_CH3_Finalize()
 
 #ifdef CKPT
     mpi_errno = MPIDI_CH3I_CR_Finalize();
-    if(mpi_errno) MPIR_ERR_POP(mpi_errno);
+    if (mpi_errno)
+        MPIR_ERR_POP(mpi_errno);
 #endif
 
 #ifdef _ENABLE_CUDA_
@@ -125,16 +109,18 @@ int MPIDI_CH3_Finalize()
 
     /* Shutdown the progress engine */
     mpi_errno = MPIDI_CH3I_Progress_finalize();
-    if(mpi_errno) MPIR_ERR_POP(mpi_errno);
+    if (mpi_errno)
+        MPIR_ERR_POP(mpi_errno);
 
-    MV2_collectives_arch_finalize();
+    MVP_collectives_arch_finalize();
 
     if (SMP_INIT) {
         mpi_errno = MPIDI_CH3I_SMP_finalize();
-        if(mpi_errno) MPIR_ERR_POP(mpi_errno);
+        if (mpi_errno)
+            MPIR_ERR_POP(mpi_errno);
     }
 
-    if (mv2_enable_shmem_collectives) {
+    if (mvp_enable_shmem_collectives) {
         mpi_errno = MPIDI_CH3I_SMP_COLL_finalize();
         if (mpi_errno) {
             MPIR_ERR_POP(mpi_errno);
@@ -142,10 +128,10 @@ int MPIDI_CH3_Finalize()
     }
 
     /* Deallocate PMI Key Value Pair */
-    mv2_free_pmi_keyval();
+    mvp_free_pmi_keyval();
 
     /* Clear functions used for OFED abstraction */
-    mv2_dlopen_finalize();
+    mvp_dlopen_finalize();
 
     /* Deallocate hwloc topology and remove corresponding files */
     smpi_destroy_hwloc_topology();
@@ -157,7 +143,7 @@ int MPIDI_CH3_Finalize()
         p = MPIDI_CH3U_COLL_SRBuf_pool;
         while (p) {
             pNext = p->next;
-            MV2_MPIDI_Free_Device_Pinned_Host(p->buf);
+            MVP_MPIDI_Free_Device_Pinned_Host(p->buf);
             MPL_free(p);
             p = pNext;
         }
@@ -172,7 +158,7 @@ int MPIDI_CH3_Finalize()
         p = MPIDI_CH3U_CUDA_SRBuf_pool;
         while (p) {
             pNext = p->next;
-            MV2_MPIDI_Free_Device(p->buf);
+            MVP_MPIDI_Free_Device(p->buf);
             MPL_free(p);
             p = pNext;
         }
@@ -180,7 +166,7 @@ int MPIDI_CH3_Finalize()
 #endif
 
 fn_exit:
-    MPL_DBG_MSG_S(MPIDI_CH3_DBG_CHANNEL,VERBOSE,"exiting %s", __func__);
+    MPL_DBG_MSG_S(MPIDI_CH3_DBG_CHANNEL, VERBOSE, "exiting %s", __func__);
     MPIR_FUNC_VERBOSE_EXIT(MPIDI_CH3_FINALIZE);
     return mpi_errno;
 

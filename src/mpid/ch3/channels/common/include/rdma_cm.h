@@ -1,17 +1,17 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
-#ifndef MVAPICH2_GEN2_RDMA_CM_H
-#define MVAPICH2_GEN2_RDMA_CM_H
+#ifndef MVAPICH_GEN2_RDMA_CM_H
+#define MVAPICH_GEN2_RDMA_CM_H
 
 #include "mpichconf.h"
 
@@ -47,12 +47,12 @@ int rdma_cm_connect_to_server(MPIDI_VC_t *vc, int ipnum, int rail_index);
 int rdma_cm_get_hostnames(int pg_rank, MPIDI_PG_t *pg);
 
 /* Initialize rdma_cm resources + cm_ids + bind port + connection thrd */
-int ib_init_rdma_cm(struct mv2_MPIDI_CH3I_RDMA_Process_t *proc,
-		     int pg_rank, int pg_size);
+int ib_init_rdma_cm(struct mvp_MPIDI_CH3I_RDMA_Process_t *proc, int pg_rank,
+                    int pg_size);
 
 /* Finalize rdma_cm specific resources */
 void ib_finalize_rdma_cm(int pg_rank, MPIDI_PG_t *pg);
 
 #endif /* defined(RDMA_CM) */
 
-#endif  /* MVAPICH2_GEN2_CM_H */
+#endif /* MVAPICH_GEN2_CM_H */

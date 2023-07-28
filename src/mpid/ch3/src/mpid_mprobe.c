@@ -15,7 +15,7 @@ int MPID_Mprobe(int source, int tag, MPIR_Comm *comm, int context_offset,
 
     *message = NULL;
 
-    MV2_INC_NUM_UNEXP_RECV();
+    MVP_INC_NUM_UNEXP_RECV();
 
     /* Check to make sure the communicator hasn't already been revoked */
     if (comm->revoked) {
@@ -100,7 +100,7 @@ int MPID_Mprobe(int source, int tag, MPIR_Comm *comm, int context_offset,
     }
 
 fn_exit:
-    MV2_DEC_NUM_UNEXP_RECV();
+    MVP_DEC_NUM_UNEXP_RECV();
     return mpi_errno;
 fn_fail:
     goto fn_exit;

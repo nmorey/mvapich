@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-int mv2_take_timestamp_mpirun (const char * label);
-int mv2_print_timestamps (FILE * fd);
+int mvp_take_timestamp_mpirun(const char *label);
+int mvp_print_timestamps(FILE *fd);
 
 #endif

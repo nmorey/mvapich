@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -16,26 +16,27 @@
  * Array of mpirun parameters that should be forwarded
  */
 static char const *const parameters[] = {
-    "MV2_CKPT_FILE",
-    "MV2_CKPT_INTERVAL",
-    "MV2_CKPT_MAX_SAVE_CKPTS",
-    "MV2_CKPT_USE_AGGREGATION",
-    "MV2_FASTSSH_THRESHOLD",
-    "MV2_NPROCS_THRESHOLD",
-    "MV2_MPIRUN_TIMEOUT",
-    "MV2_MT_DEGREE",
+    "MVP_CKPT_FILE",
+    "MVP_CKPT_INTERVAL",
+    "MVP_CKPT_MAX_SAVE_CKPTS",
+    "MVP_CKPT_USE_AGGREGATION",
+    "MVP_FASTSSH_THRESHOLD",
+    "MVP_NPROCS_THRESHOLD",
+    "MVP_MPIRUN_TIMEOUT",
+    "MVP_MT_DEGREE",
     "MPIEXEC_TIMEOUT",
-    "MV2_CKPT_AGGREGATION_BUFPOOL_SIZE",
-    "MV2_CKPT_AGGREGATION_CHUNK_SIZE",
-    "MV2_CKPT_MAX_CKPTS",
-    "MV2_IGNORE_SYSTEM_CONFIG",
-    "MV2_IGNORE_USER_CONFIG",
-    "MV2_USER_CONFIG",
-    "MV2_DEBUG_CORESIZE",
-    "MV2_DEBUG_SHOW_BACKTRACE",
+    "MVP_CKPT_AGGREGATION_BUFPOOL_SIZE",
+    "MVP_CKPT_AGGREGATION_CHUNK_SIZE",
+    "MVP_CKPT_MAX_CKPTS",
+    "MVP_IGNORE_SYSTEM_CONFIG",
+    "MVP_IGNORE_USER_CONFIG",
+    "MVP_USER_CONFIG",
+    "MVP_DEBUG_CORESIZE",
+    "MVP_DEBUG_SHOW_BACKTRACE",
 };
 
-static size_t const num_parameters = sizeof(parameters) / sizeof(char const *const);
+static size_t const num_parameters =
+    sizeof(parameters) / sizeof(char const *const);
 
 /*
  * str must be dynamically allocated

@@ -1,12 +1,12 @@
 /* Copyright (c) 2001-2021, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 /*
@@ -28,7 +28,7 @@ int MPID_Improbe(int source, int tag, MPIR_Comm *comm, int context_offset,
 
     *message = NULL;
 
-    MV2_INC_NUM_UNEXP_RECV();
+    MVP_INC_NUM_UNEXP_RECV();
 
     /* Check to make sure the communicator hasn't already been revoked */
     if (comm->revoked) {
@@ -104,7 +104,7 @@ int MPID_Improbe(int source, int tag, MPIR_Comm *comm, int context_offset,
     }
 
 fn_exit:
-    MV2_DEC_NUM_UNEXP_RECV();
+    MVP_DEC_NUM_UNEXP_RECV();
     return mpi_errno;
 fn_fail:
     goto fn_exit;

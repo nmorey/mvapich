@@ -1,55 +1,57 @@
 #include "allgather_tuning.h"
 
-extern int use_2lvl_allgather;
+extern MPIR_T_pvar_timer_t PVAR_TIMER_mvp_coll_timer_allgather_2lvl;
+extern MPIR_T_pvar_timer_t PVAR_TIMER_mvp_coll_timer_allgather_2lvl_nonblocked;
+extern MPIR_T_pvar_timer_t
+    PVAR_TIMER_mvp_coll_timer_allgather_2lvl_ring_nonblocked;
+extern MPIR_T_pvar_timer_t PVAR_TIMER_mvp_coll_timer_allgather_2lvl_direct;
+extern MPIR_T_pvar_timer_t PVAR_TIMER_mvp_coll_timer_allgather_2lvl_ring;
 
-extern MPIR_T_pvar_timer_t PVAR_TIMER_mv2_coll_timer_allgather_2lvl;
-extern MPIR_T_pvar_timer_t PVAR_TIMER_mv2_coll_timer_allgather_2lvl_nonblocked;
-extern MPIR_T_pvar_timer_t 
-    PVAR_TIMER_mv2_coll_timer_allgather_2lvl_ring_nonblocked;
-extern MPIR_T_pvar_timer_t PVAR_TIMER_mv2_coll_timer_allgather_2lvl_direct;
-extern MPIR_T_pvar_timer_t PVAR_TIMER_mv2_coll_timer_allgather_2lvl_ring;
+extern unsigned long long PVAR_COUNTER_mvp_coll_allgather_2lvl;
+extern unsigned long long PVAR_COUNTER_mvp_coll_allgather_2lvl_nonblocked;
+extern unsigned long long PVAR_COUNTER_mvp_coll_allgather_2lvl_ring_nonblocked;
+extern unsigned long long PVAR_COUNTER_mvp_coll_allgather_2lvl_direct;
+extern unsigned long long PVAR_COUNTER_mvp_coll_allgather_2lvl_ring;
 
-extern unsigned long long PVAR_COUNTER_mv2_coll_allgather_2lvl;
-extern unsigned long long PVAR_COUNTER_mv2_coll_allgather_2lvl_nonblocked;
-extern unsigned long long PVAR_COUNTER_mv2_coll_allgather_2lvl_ring_nonblocked;
-extern unsigned long long PVAR_COUNTER_mv2_coll_allgather_2lvl_direct;
-extern unsigned long long PVAR_COUNTER_mv2_coll_allgather_2lvl_ring;
+extern unsigned long long
+    PVAR_COUNTER_mvp_coll_allgather_2lvl_ring_nonblocked_bytes_send;
+extern unsigned long long
+    PVAR_COUNTER_mvp_coll_allgather_2lvl_direct_bytes_send;
+extern unsigned long long PVAR_COUNTER_mvp_coll_allgather_2lvl_ring_bytes_send;
+extern unsigned long long
+    PVAR_COUNTER_mvp_coll_allgather_2lvl_ring_nonblocked_bytes_recv;
+extern unsigned long long
+    PVAR_COUNTER_mvp_coll_allgather_2lvl_direct_bytes_recv;
+extern unsigned long long PVAR_COUNTER_mvp_coll_allgather_2lvl_ring_bytes_recv;
+extern unsigned long long
+    PVAR_COUNTER_mvp_coll_allgather_2lvl_ring_nonblocked_count_send;
+extern unsigned long long
+    PVAR_COUNTER_mvp_coll_allgather_2lvl_direct_count_send;
+extern unsigned long long PVAR_COUNTER_mvp_coll_allgather_2lvl_ring_count_send;
+extern unsigned long long
+    PVAR_COUNTER_mvp_coll_allgather_2lvl_ring_nonblocked_count_recv;
+extern unsigned long long
+    PVAR_COUNTER_mvp_coll_allgather_2lvl_direct_count_recv;
+extern unsigned long long PVAR_COUNTER_mvp_coll_allgather_2lvl_ring_count_recv;
 
-extern unsigned long long 
-    PVAR_COUNTER_mv2_coll_allgather_2lvl_ring_nonblocked_bytes_send;
-extern unsigned long long PVAR_COUNTER_mv2_coll_allgather_2lvl_direct_bytes_send;
-extern unsigned long long PVAR_COUNTER_mv2_coll_allgather_2lvl_ring_bytes_send;
-extern unsigned long long 
-    PVAR_COUNTER_mv2_coll_allgather_2lvl_ring_nonblocked_bytes_recv;
-extern unsigned long long PVAR_COUNTER_mv2_coll_allgather_2lvl_direct_bytes_recv;
-extern unsigned long long PVAR_COUNTER_mv2_coll_allgather_2lvl_ring_bytes_recv;
-extern unsigned long long 
-    PVAR_COUNTER_mv2_coll_allgather_2lvl_ring_nonblocked_count_send;
-extern unsigned long long PVAR_COUNTER_mv2_coll_allgather_2lvl_direct_count_send;
-extern unsigned long long PVAR_COUNTER_mv2_coll_allgather_2lvl_ring_count_send;
-extern unsigned long long 
-    PVAR_COUNTER_mv2_coll_allgather_2lvl_ring_nonblocked_count_recv;
-extern unsigned long long PVAR_COUNTER_mv2_coll_allgather_2lvl_direct_count_recv;
-extern unsigned long long PVAR_COUNTER_mv2_coll_allgather_2lvl_ring_count_recv;
-
-int MPIR_2lvl_Allgather_MV2(const void *sendbuf,int sendcnt, 
-                MPI_Datatype sendtype, void *recvbuf, int recvcnt,
-                MPI_Datatype recvtype, MPIR_Comm * comm_ptr, 
-                MPIR_Errflag_t *errflag)
+int MPIR_2lvl_Allgather_MVP(const void *sendbuf, int sendcnt,
+                            MPI_Datatype sendtype, void *recvbuf, int recvcnt,
+                            MPI_Datatype recvtype, MPIR_Comm *comm_ptr,
+                            MPIR_Errflag_t *errflag)
 {
     int rank, size;
     int local_rank, local_size;
     int leader_comm_size = 0;
     int mpi_errno = MPI_SUCCESS;
-    MPI_Aint recvtype_extent = 0;  /* Datatype extent */
+    MPI_Aint recvtype_extent = 0; /* Datatype extent */
     MPI_Comm shmem_comm, leader_comm;
-    MPIR_Comm *shmem_commptr=NULL, *leader_commptr = NULL;
+    MPIR_Comm *shmem_commptr = NULL, *leader_commptr = NULL;
 
     if (recvcnt == 0) {
         return MPI_SUCCESS;
     }
-    MPIR_TIMER_START(coll,allgather,2lvl);
-    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_allgather_2lvl, 1);
+    MPIR_TIMER_START(coll, allgather, 2lvl);
+    MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_allgather_2lvl, 1);
 
     rank = comm_ptr->rank;
     size = comm_ptr->local_size;
@@ -73,25 +75,23 @@ int MPIR_2lvl_Allgather_MV2(const void *sendbuf,int sendcnt,
 
     /*If there is just one node, after gather itself,
      * root has all the data and it can do bcast*/
-    if(local_rank == 0) {
-        mpi_errno = MPIR_Gather_impl(sendbuf, sendcnt,sendtype,
-                                    (void*)((char*)recvbuf 
-                                        + (rank * recvcnt * recvtype_extent)),
-                                     recvcnt, recvtype,
-                                     0, shmem_commptr, errflag);
+    if (local_rank == 0) {
+        mpi_errno = MPIR_Gather_impl(
+            sendbuf, sendcnt, sendtype,
+            (void *)((char *)recvbuf + (rank * recvcnt * recvtype_extent)),
+            recvcnt, recvtype, 0, shmem_commptr, errflag);
     } else {
         /*Since in allgather all the processes could have
          * its own data in place*/
-        if(sendbuf == MPI_IN_PLACE) {
-            mpi_errno = MPIR_Gather_impl((void*)((char*)recvbuf 
-                                            + (rank * recvcnt * recvtype_extent)),
-                                         recvcnt , recvtype,
-                                         recvbuf, recvcnt, recvtype,
-                                         0, shmem_commptr, errflag);
+        if (sendbuf == MPI_IN_PLACE) {
+            mpi_errno = MPIR_Gather_impl(
+                (void *)((char *)recvbuf + (rank * recvcnt * recvtype_extent)),
+                recvcnt, recvtype, recvbuf, recvcnt, recvtype, 0, shmem_commptr,
+                errflag);
         } else {
-            mpi_errno = MPIR_Gather_impl(sendbuf, sendcnt,sendtype,
-                                         recvbuf, recvcnt, recvtype,
-                                         0, shmem_commptr, errflag);
+            mpi_errno =
+                MPIR_Gather_impl(sendbuf, sendcnt, sendtype, recvbuf, recvcnt,
+                                 recvtype, 0, shmem_commptr, errflag);
         }
     }
 
@@ -101,7 +101,6 @@ int MPIR_2lvl_Allgather_MV2(const void *sendbuf,int sendcnt,
     if (local_rank == 0 && (leader_comm_size > 1)) {
         /*When data in each socket is different*/
         if (comm_ptr->dev.ch.is_uniform != 1) {
-
             int *displs = NULL;
             int *recvcnts = NULL;
             int *node_sizes;
@@ -109,14 +108,12 @@ int MPIR_2lvl_Allgather_MV2(const void *sendbuf,int sendcnt,
 
             node_sizes = comm_ptr->dev.ch.node_sizes;
 
-            displs = MPL_malloc(sizeof (int) * leader_comm_size, MPL_MEM_COLL);
-            recvcnts = MPL_malloc(sizeof (int) * leader_comm_size, MPL_MEM_COLL);
+            displs = MPL_malloc(sizeof(int) * leader_comm_size, MPL_MEM_COLL);
+            recvcnts = MPL_malloc(sizeof(int) * leader_comm_size, MPL_MEM_COLL);
             if (!displs || !recvcnts) {
-                mpi_errno = MPIR_Err_create_code(MPI_SUCCESS,
-                        MPIR_ERR_RECOVERABLE,
-                        __func__, __LINE__,
-                        MPI_ERR_OTHER,
-                        "**nomem", 0);
+                mpi_errno = MPIR_Err_create_code(
+                    MPI_SUCCESS, MPIR_ERR_RECOVERABLE, __func__, __LINE__,
+                    MPI_ERR_OTHER, "**nomem", 0);
                 goto fn_fail;
             }
             recvcnts[0] = node_sizes[0] * recvcnt;
@@ -127,36 +124,30 @@ int MPIR_2lvl_Allgather_MV2(const void *sendbuf,int sendcnt,
                 recvcnts[i] = node_sizes[i] * recvcnt;
             }
 
-
-            mpi_errno = MPIR_Allgatherv(MPI_IN_PLACE,
-                                       (recvcnt*local_size),
-                                       recvtype,
-                                       recvbuf, recvcnts,
-                                       displs, recvtype,
-                                       leader_commptr, errflag);
+            mpi_errno = MPIR_Allgatherv(MPI_IN_PLACE, (recvcnt * local_size),
+                                        recvtype, recvbuf, recvcnts, displs,
+                                        recvtype, leader_commptr, errflag);
             MPL_free(displs);
             MPL_free(recvcnts);
         } else {
-            mpi_errno = MV2_Allgather_function(MPI_IN_PLACE,
-                                               (recvcnt*local_size),
-                                               recvtype,
-                                               recvbuf, (recvcnt*local_size), 
-                                               recvtype, leader_commptr, errflag);
+            mpi_errno = MVP_Allgather_function(
+                MPI_IN_PLACE, (recvcnt * local_size), recvtype, recvbuf,
+                (recvcnt * local_size), recvtype, leader_commptr, errflag);
         }
 
         MPIR_ERR_CHECK(mpi_errno);
     }
 
     /*Bcast the entire data from node leaders to all other cores*/
-    mpi_errno = MPIR_Bcast_impl (recvbuf, recvcnt * size, recvtype, 
-        0, shmem_commptr, errflag);
+    mpi_errno = MPIR_Bcast_impl(recvbuf, recvcnt * size, recvtype, 0,
+                                shmem_commptr, errflag);
     MPIR_ERR_CHECK(mpi_errno);
 
-  fn_exit:
+fn_exit:
     MPIR_TIMER_END(coll, allgather, 2lvl);
     return (mpi_errno);
 
-  fn_fail:
+fn_fail:
     goto fn_exit;
 }
 /* end:nested */
@@ -169,16 +160,17 @@ int MPIR_2lvl_Allgather_MV2(const void *sendbuf,int sendcnt,
  * In this version, ranks do not need to be ordered, because the
  * leader will unpack data from a temporary buffer to the receive
  * buffer in the correct order before the broadcast. */
-int MPIR_2lvl_Allgather_nonblocked_MV2(
-    const void *sendbuf, int sendcnt, MPI_Datatype sendtype,
-          void *recvbuf, int recvcnt, MPI_Datatype recvtype,
-    MPIR_Comm * comm_ptr, MPIR_Errflag_t *errflag)
+int MPIR_2lvl_Allgather_nonblocked_MVP(const void *sendbuf, int sendcnt,
+                                       MPI_Datatype sendtype, void *recvbuf,
+                                       int recvcnt, MPI_Datatype recvtype,
+                                       MPIR_Comm *comm_ptr,
+                                       MPIR_Errflag_t *errflag)
 {
-    MPIR_TIMER_START(coll,allgather,2lvl_nonblocked);
+    MPIR_TIMER_START(coll, allgather, 2lvl_nonblocked);
     int i;
     int mpi_errno = MPI_SUCCESS;
 
-    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_allgather_2lvl_nonblocked, 1);
+    MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_allgather_2lvl_nonblocked, 1);
 
     if (recvcnt == 0) {
         return MPI_SUCCESS;
@@ -187,7 +179,7 @@ int MPIR_2lvl_Allgather_nonblocked_MV2(
     /* get our rank and the size of this communicator */
     int rank = comm_ptr->rank;
     int size = comm_ptr->local_size;
-    int* node_sizes = comm_ptr->dev.ch.node_sizes;
+    int *node_sizes = comm_ptr->dev.ch.node_sizes;
 
     /* get extent of receive type */
     MPI_Aint recvtype_extent;
@@ -195,11 +187,11 @@ int MPIR_2lvl_Allgather_nonblocked_MV2(
 
     /* get true extent of recvtype */
     MPI_Aint recvtype_true_lb, recvtype_true_extent;
-    MPIR_Type_get_true_extent_impl(recvtype, &recvtype_true_lb, 
-        &recvtype_true_extent);
+    MPIR_Type_get_true_extent_impl(recvtype, &recvtype_true_lb,
+                                   &recvtype_true_extent);
 
     /* get info about communicator for ranks on the same node */
-    MPIR_Comm* shmem_commptr;
+    MPIR_Comm *shmem_commptr;
     MPI_Comm shmem_comm = comm_ptr->dev.ch.shmem_comm;
     MPIR_Comm_get_ptr(shmem_comm, shmem_commptr);
     int local_rank = shmem_commptr->rank;
@@ -209,10 +201,10 @@ int MPIR_2lvl_Allgather_nonblocked_MV2(
     int need_temp = 1;
 
     /* get info about communicator across node leaders, allocate temp buffer */
-    MPIR_Comm* leader_commptr = NULL;
+    MPIR_Comm *leader_commptr = NULL;
     int leader_rank = -1;
     int leader_size = 0;
-    void* tmpbuf = recvbuf;
+    void *tmpbuf = recvbuf;
     if (local_rank == 0) {
         /* Node leader. Extract the rank, size information for the leader
          * communicator */
@@ -225,14 +217,14 @@ int MPIR_2lvl_Allgather_nonblocked_MV2(
         if (need_temp) {
             tmpbuf = MPL_malloc(size * recvcnt * recvtype_extent, MPL_MEM_COLL);
             if (!tmpbuf) {
-                mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, 
-                    MPIR_ERR_RECOVERABLE, __func__, __LINE__, MPI_ERR_OTHER,
-                    "**nomem", 0);
+                mpi_errno = MPIR_Err_create_code(
+                    MPI_SUCCESS, MPIR_ERR_RECOVERABLE, __func__, __LINE__,
+                    MPI_ERR_OTHER, "**nomem", 0);
                 return mpi_errno;
             }
 
             /* adjust for potential negative lower bound in datatype */
-            tmpbuf = (void*)((char*) tmpbuf - recvtype_true_lb);
+            tmpbuf = (void *)((char *)tmpbuf - recvtype_true_lb);
         }
     }
 
@@ -244,39 +236,38 @@ int MPIR_2lvl_Allgather_nonblocked_MV2(
     if (local_rank == 0) {
         /* compute number of items to receive ahead of our spot in the buffer */
         MPI_Aint preceding_count = 0;
-        for (i=0; i < leader_rank; i++) {
+        for (i = 0; i < leader_rank; i++) {
             preceding_count += node_sizes[i] * recvcnt;
         }
 
         /* compute location to receive data from procs on our node */
-        void* rbuf = (void*)((char*)tmpbuf + (preceding_count * recvtype_extent));
+        void *rbuf =
+            (void *)((char *)tmpbuf + (preceding_count * recvtype_extent));
 
         /* gather data from procs on our node */
         if (sendbuf == MPI_IN_PLACE) {
             /* data is in our receive buffer indexed by our rank */
-            void* sbuf = (void*)((char*)recvbuf 
-                + (rank * recvcnt * recvtype_extent));
-            mpi_errno = MPIR_Gather_impl(sbuf, recvcnt, recvtype,
-                                         rbuf, recvcnt, recvtype,
-                                         0, shmem_commptr, errflag);
+            void *sbuf =
+                (void *)((char *)recvbuf + (rank * recvcnt * recvtype_extent));
+            mpi_errno = MPIR_Gather_impl(sbuf, recvcnt, recvtype, rbuf, recvcnt,
+                                         recvtype, 0, shmem_commptr, errflag);
         } else {
-            mpi_errno = MPIR_Gather_impl(sendbuf, sendcnt, sendtype,
-                                            rbuf, recvcnt, recvtype,
-                                         0, shmem_commptr, errflag);
+            mpi_errno =
+                MPIR_Gather_impl(sendbuf, sendcnt, sendtype, rbuf, recvcnt,
+                                 recvtype, 0, shmem_commptr, errflag);
         }
     } else {
         /* send data to leader on our node */
         if (sendbuf == MPI_IN_PLACE) {
             /* data is in our receive buffer indexed by our rank */
-            void* sbuf = (void*)((char*)recvbuf 
-                + (rank * recvcnt * recvtype_extent));
-            mpi_errno = MPIR_Gather_impl(sbuf, recvcnt, recvtype,
-                                         NULL, recvcnt, recvtype,
-                                         0, shmem_commptr, errflag);
+            void *sbuf =
+                (void *)((char *)recvbuf + (rank * recvcnt * recvtype_extent));
+            mpi_errno = MPIR_Gather_impl(sbuf, recvcnt, recvtype, NULL, recvcnt,
+                                         recvtype, 0, shmem_commptr, errflag);
         } else {
-            mpi_errno = MPIR_Gather_impl(sendbuf, sendcnt, sendtype,
-                                         NULL,    recvcnt, recvtype,
-                                         0, shmem_commptr, errflag);
+            mpi_errno =
+                MPIR_Gather_impl(sendbuf, sendcnt, sendtype, NULL, recvcnt,
+                                 recvtype, 0, shmem_commptr, errflag);
         }
     }
 
@@ -294,14 +285,12 @@ int MPIR_2lvl_Allgather_nonblocked_MV2(
         /* When data in each socket is different */
         if (comm_ptr->dev.ch.is_uniform != 1) {
             /* allocate memory for counts and displacements arrays */
-            int* displs = MPL_malloc(sizeof (int) * leader_size, MPL_MEM_COLL);
-            int* counts = MPL_malloc(sizeof (int) * leader_size, MPL_MEM_COLL);
+            int *displs = MPL_malloc(sizeof(int) * leader_size, MPL_MEM_COLL);
+            int *counts = MPL_malloc(sizeof(int) * leader_size, MPL_MEM_COLL);
             if (!displs || !counts) {
-                mpi_errno = MPIR_Err_create_code(MPI_SUCCESS,
-                        MPIR_ERR_RECOVERABLE,
-                        __func__, __LINE__,
-                        MPI_ERR_OTHER,
-                        "**nomem", 0);
+                mpi_errno = MPIR_Err_create_code(
+                    MPI_SUCCESS, MPIR_ERR_RECOVERABLE, __func__, __LINE__,
+                    MPI_ERR_OTHER, "**nomem", 0);
                 return mpi_errno;
             }
 
@@ -314,21 +303,18 @@ int MPIR_2lvl_Allgather_nonblocked_MV2(
             }
 
             /* execute allgatherv across leader ranks */
-            mpi_errno = MPIR_Allgatherv_impl(MPI_IN_PLACE, 
-                (recvcnt*local_size), recvtype,
-                tmpbuf, counts, displs, recvtype,
-                leader_commptr, errflag);
+            mpi_errno = MPIR_Allgatherv_impl(
+                MPI_IN_PLACE, (recvcnt * local_size), recvtype, tmpbuf, counts,
+                displs, recvtype, leader_commptr, errflag);
 
             /* free counts and displacements arrays */
             MPL_free(displs);
             MPL_free(counts);
         } else {
             /* execute allgather across leader ranks */
-            mpi_errno = MPIR_Allgather_impl(MPI_IN_PLACE, 
-                            (recvcnt*local_size), recvtype,
-                            tmpbuf, (recvcnt*local_size), recvtype,
-                            leader_commptr, errflag);
-
+            mpi_errno = MPIR_Allgather_impl(
+                MPI_IN_PLACE, (recvcnt * local_size), recvtype, tmpbuf,
+                (recvcnt * local_size), recvtype, leader_commptr, errflag);
         }
 
         MPIR_ERR_CHECK(mpi_errno);
@@ -348,7 +334,7 @@ int MPIR_2lvl_Allgather_nonblocked_MV2(
     /* leaders copy data from temp buffer to receive buffer in correct order */
     if (local_rank == 0 && need_temp) {
         /* point to start of temp buffer */
-        char* sbuf = (char*)tmpbuf;
+        char *sbuf = (char *)tmpbuf;
 
         /* copy data for each rank from temp buffer to receive buffer */
         for (i = 0; i < size; i++) {
@@ -356,12 +342,12 @@ int MPIR_2lvl_Allgather_nonblocked_MV2(
             int dstrank = comm_ptr->dev.ch.rank_list[i];
 
             /* compute position in receive buffer for this rank */
-            void* rbuf = (void*)((char*)recvbuf 
-                + dstrank * recvcnt * recvtype_extent);
+            void *rbuf =
+                (void *)((char *)recvbuf + dstrank * recvcnt * recvtype_extent);
 
             /* copy data to its correct place */
-            mpi_errno = MPIR_Localcopy(sbuf, recvcnt, recvtype,
-                                       rbuf, recvcnt, recvtype);
+            mpi_errno = MPIR_Localcopy(sbuf, recvcnt, recvtype, rbuf, recvcnt,
+                                       recvtype);
             MPIR_ERR_CHECK(mpi_errno);
 
             /* update pointer to next spot in temp buffer */
@@ -369,7 +355,7 @@ int MPIR_2lvl_Allgather_nonblocked_MV2(
         }
 
         /* free the temporary buffer if we allocated one */
-        tmpbuf = (void*)((char*)tmpbuf + recvtype_true_lb);
+        tmpbuf = (void *)((char *)tmpbuf + recvtype_true_lb);
         MPL_free(tmpbuf);
     }
 
@@ -378,12 +364,12 @@ int MPIR_2lvl_Allgather_nonblocked_MV2(
      * ---------------------------------------------- */
 
     /* Bcast the entire data from node leaders to other ranks on node */
-    mpi_errno = MPIR_Bcast_impl(recvbuf, recvcnt * size, 
-        recvtype, 0, shmem_commptr, errflag);
+    mpi_errno = MPIR_Bcast_impl(recvbuf, recvcnt * size, recvtype, 0,
+                                shmem_commptr, errflag);
     MPIR_ERR_CHECK(mpi_errno);
 
-  fn_fail:
-    MPIR_TIMER_END(coll,allgather,2lvl_nonblocked);
+fn_fail:
+    MPIR_TIMER_END(coll, allgather, 2lvl_nonblocked);
     return (mpi_errno);
 }
 
@@ -391,12 +377,14 @@ int MPIR_2lvl_Allgather_nonblocked_MV2(
  * processes.  This implementation uses the two-level data
  * structures to account for how procs are assigned to nodes
  * to ensure data is only sent into and out of each node once. */
-int MPIR_2lvl_Allgather_Ring_nonblocked_MV2(
-    const void *sendbuf, int sendcount, MPI_Datatype sendtype,
-          void *recvbuf, int recvcount, MPI_Datatype recvtype,
-    MPIR_Comm * comm_ptr, MPIR_Errflag_t *errflag)
+int MPIR_2lvl_Allgather_Ring_nonblocked_MVP(const void *sendbuf, int sendcount,
+                                            MPI_Datatype sendtype,
+                                            void *recvbuf, int recvcount,
+                                            MPI_Datatype recvtype,
+                                            MPIR_Comm *comm_ptr,
+                                            MPIR_Errflag_t *errflag)
 {
-    MPIR_TIMER_START(coll,allgather,2lvl_ring_nonblocked);
+    MPIR_TIMER_START(coll, allgather, 2lvl_ring_nonblocked);
     int mpi_errno = MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
     int i;
@@ -409,19 +397,17 @@ int MPIR_2lvl_Allgather_Ring_nonblocked_MV2(
     MPI_Aint recvtype_extent;
     MPIR_Datatype_get_extent_macro(recvtype, recvtype_extent);
 
-    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_allgather_2lvl_ring_nonblocked, 1);
+    MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_allgather_2lvl_ring_nonblocked, 1);
 
     /* First, load the "local" version in the recvbuf. */
     if (sendbuf != MPI_IN_PLACE) {
         /* compute location in receive buffer for our data */
-        void* rbuf = (void*)((char*) recvbuf 
-            + rank * recvcount * recvtype_extent);
+        void *rbuf =
+            (void *)((char *)recvbuf + rank * recvcount * recvtype_extent);
 
         /* copy data from send buffer to receive buffer */
-        mpi_errno = MPIR_Localcopy(
-            sendbuf, sendcount, sendtype,
-            rbuf,    recvcount, recvtype
-        );
+        mpi_errno = MPIR_Localcopy(sendbuf, sendcount, sendtype, rbuf,
+                                   recvcount, recvtype);
         MPIR_ERR_CHECK(mpi_errno);
     }
 
@@ -431,9 +417,9 @@ int MPIR_2lvl_Allgather_Ring_nonblocked_MV2(
     int rank_index = comm_ptr->dev.ch.rank_list_index;
 
     /* compute the left and right neighbor ranks in the rank_list */
-    int left_index  = (size + rank_index - 1) % size;
+    int left_index = (size + rank_index - 1) % size;
     int right_index = (size + rank_index + 1) % size;
-    int left  = comm_ptr->dev.ch.rank_list[left_index];
+    int left = comm_ptr->dev.ch.rank_list[left_index];
     int right = comm_ptr->dev.ch.rank_list[right_index];
 
     /* execute ring exchange, start by sending our own data to the right
@@ -446,19 +432,20 @@ int MPIR_2lvl_Allgather_Ring_nonblocked_MV2(
         int recv_rank = comm_ptr->dev.ch.rank_list[recv_index];
 
         /* compute position within buffer to send from and receive into */
-        void* sbuf = (void*)((char*) recvbuf 
-            + send_rank * recvcount * recvtype_extent);
-        void* rbuf = (void*)((char*) recvbuf 
-            + recv_rank * recvcount * recvtype_extent);
+        void *sbuf =
+            (void *)((char *)recvbuf + send_rank * recvcount * recvtype_extent);
+        void *rbuf =
+            (void *)((char *)recvbuf + recv_rank * recvcount * recvtype_extent);
 
         /* exchange data with our neighbors in the ring */
-        MPIR_PVAR_INC(allgather, 2lvl_ring_nonblocked, send, recvcount, recvtype);
-        MPIR_PVAR_INC(allgather, 2lvl_ring_nonblocked, recv, recvcount, recvtype);
-        mpi_errno = MPIC_Sendrecv(
-           sbuf, recvcount, recvtype, right, MPIR_ALLGATHER_TAG,
-           rbuf, recvcount, recvtype, left,  MPIR_ALLGATHER_TAG,
-           comm_ptr, MPI_STATUS_IGNORE, errflag
-        );
+        MPIR_PVAR_INC(allgather, 2lvl_ring_nonblocked, send, recvcount,
+                      recvtype);
+        MPIR_PVAR_INC(allgather, 2lvl_ring_nonblocked, recv, recvcount,
+                      recvtype);
+        mpi_errno =
+            MPIC_Sendrecv(sbuf, recvcount, recvtype, right, MPIR_ALLGATHER_TAG,
+                          rbuf, recvcount, recvtype, left, MPIR_ALLGATHER_TAG,
+                          comm_ptr, MPI_STATUS_IGNORE, errflag);
         if (mpi_errno) {
             /* for communication errors, just record the error but continue */
             *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
@@ -471,8 +458,8 @@ int MPIR_2lvl_Allgather_Ring_nonblocked_MV2(
         recv_index = (size + recv_index - 1) % size;
     }
 
-  fn_fail:
-    MPIR_TIMER_END(coll,allgather,2lvl_ring_nonblocked);
+fn_fail:
+    MPIR_TIMER_END(coll, allgather, 2lvl_ring_nonblocked);
     return (mpi_errno);
 }
 
@@ -482,17 +469,17 @@ int MPIR_2lvl_Allgather_Ring_nonblocked_MV2(
  * The leaders then execute an "allgather" by directly sending each
  * of these messages. Finally, we broadcast the final receive buffer
  * to the procs on the node. */
-int MPIR_2lvl_Allgather_Direct_MV2(
-    const void *sendbuf, int sendcnt, MPI_Datatype sendtype,
-          void *recvbuf, int recvcnt, MPI_Datatype recvtype,
-    MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag)
+int MPIR_2lvl_Allgather_Direct_MVP(const void *sendbuf, int sendcnt,
+                                   MPI_Datatype sendtype, void *recvbuf,
+                                   int recvcnt, MPI_Datatype recvtype,
+                                   MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag)
 {
-    MPIR_TIMER_START(coll,allgather,2lvl_direct);
+    MPIR_TIMER_START(coll, allgather, 2lvl_direct);
     int i, j;
     int mpi_errno = MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
 
-    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_allgather_2lvl_direct, 1);
+    MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_allgather_2lvl_direct, 1);
 
     if (recvcnt == 0) {
         return MPI_SUCCESS;
@@ -509,14 +496,14 @@ int MPIR_2lvl_Allgather_Direct_MV2(
     MPIR_Datatype_get_extent_macro(recvtype, recvtype_extent);
 
     /* get info about communicator for ranks on the same node */
-    MPIR_Comm* shmem_commptr;
+    MPIR_Comm *shmem_commptr;
     MPI_Comm shmem_comm = comm_ptr->dev.ch.shmem_comm;
     MPIR_Comm_get_ptr(shmem_comm, shmem_commptr);
     int local_rank = shmem_commptr->rank;
     int local_size = shmem_commptr->local_size;
 
     /* get info about communicator across node leaders, allocate temp buffer */
-    MPIR_Comm* leader_commptr = NULL;
+    MPIR_Comm *leader_commptr = NULL;
     int leader_rank = -1;
     int leader_size = 0;
     if (local_rank == 0) {
@@ -528,13 +515,13 @@ int MPIR_2lvl_Allgather_Direct_MV2(
         leader_size = leader_commptr->local_size;
     }
 
-    int gather_msgs    = 0;
+    int gather_msgs = 0;
     int allgather_msgs = 0;
 
     /* request/status object allocation is different for
      * leader vs. non-leader */
     if (local_rank == 0) {
-        gather_msgs    = local_size - 1;
+        gather_msgs = local_size - 1;
         allgather_msgs = (local_size * (leader_size - 1)) + (size - local_size);
     } else {
         /* if non-leader only send one msg in gather step */
@@ -550,15 +537,12 @@ int MPIR_2lvl_Allgather_Direct_MV2(
 
     /* allocate memory for request objects */
     MPIR_Request **reqarray = NULL;
-    MPIR_CHKLMEM_MALLOC(reqarray, MPIR_Request **,
-                        max * sizeof (MPIR_Request*),
+    MPIR_CHKLMEM_MALLOC(reqarray, MPIR_Request **, max * sizeof(MPIR_Request *),
                         mpi_errno, "reqarray", MPL_MEM_COLL);
-
 
     /* allocate memory for status objects */
     MPI_Status *starray = NULL;
-    MPIR_CHKLMEM_MALLOC(starray, MPI_Status *,
-                        max * sizeof (MPI_Status),
+    MPIR_CHKLMEM_MALLOC(starray, MPI_Status *, max * sizeof(MPI_Status),
                         mpi_errno, "starray", MPL_MEM_COLL);
 
     /****************************
@@ -576,60 +560,58 @@ int MPIR_2lvl_Allgather_Direct_MV2(
             /* get global rank of incoming data */
             int dstrank = comm_ptr->dev.ch.rank_list[rank_index + i];
 
-            /* compute pointer in receive buffer 
+            /* compute pointer in receive buffer
              * for incoming data from this rank */
-            void* rbuf = (void*)((char*) recvbuf 
-                + dstrank * recvcnt * recvtype_extent);
+            void *rbuf =
+                (void *)((char *)recvbuf + dstrank * recvcnt * recvtype_extent);
 
             /* post receive for data from this rank */
             MPIR_PVAR_INC(allgather, 2lvl_direct, recv, recvcnt, recvtype);
-            mpi_errno = MPIC_Irecv(rbuf, recvcnt, recvtype,
-                i, MPIR_ALLGATHER_TAG, shmem_commptr, &reqarray[reqs++]
-            );
+            mpi_errno =
+                MPIC_Irecv(rbuf, recvcnt, recvtype, i, MPIR_ALLGATHER_TAG,
+                           shmem_commptr, &reqarray[reqs++]);
 
             if (mpi_errno) {
-                /* for communication errors, just record the error but continue */
+                /* for communication errors, just record the error but continue
+                 */
                 *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
                 MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
                 MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
             }
-       }
+        }
 
-       /* copy our data to our receive buffer if needed */
+        /* copy our data to our receive buffer if needed */
         if (sendbuf != MPI_IN_PLACE) {
-           /* compute location in receive buffer for our data */
-            void* rbuf = (void*)((char*) recvbuf 
-                + rank * recvcnt * recvtype_extent);
-           mpi_errno = MPIR_Localcopy(
-               sendbuf, sendcnt, sendtype,
-               rbuf, recvcnt, recvtype
-           );
-           MPIR_ERR_CHECK(mpi_errno);
+            /* compute location in receive buffer for our data */
+            void *rbuf =
+                (void *)((char *)recvbuf + rank * recvcnt * recvtype_extent);
+            mpi_errno = MPIR_Localcopy(sendbuf, sendcnt, sendtype, rbuf,
+                                       recvcnt, recvtype);
+            MPIR_ERR_CHECK(mpi_errno);
         }
     } else {
         /* get parameters for sending data */
-        const void* sbuf   = sendbuf;
-        int scnt           = sendcnt;
+        const void *sbuf = sendbuf;
+        int scnt = sendcnt;
         MPI_Datatype stype = sendtype;
         if (sendbuf == MPI_IN_PLACE) {
             /* use receive params if IN_PLACE */
-            sbuf   = (void*)((char*) recvbuf + rank * recvcnt * recvtype_extent);
-            scnt   = recvcnt;
-            stype  = recvtype;
+            sbuf = (void *)((char *)recvbuf + rank * recvcnt * recvtype_extent);
+            scnt = recvcnt;
+            stype = recvtype;
         }
 
         /* send data to the leader process */
         MPIR_PVAR_INC(allgather, 2lvl_direct, send, scnt, stype);
-        mpi_errno = MPIC_Isend(sbuf, scnt, stype,
-           0, MPIR_ALLGATHER_TAG, shmem_commptr, &reqarray[reqs++], errflag
-        );
+        mpi_errno = MPIC_Isend(sbuf, scnt, stype, 0, MPIR_ALLGATHER_TAG,
+                               shmem_commptr, &reqarray[reqs++], errflag);
         if (mpi_errno) {
             /* for communication errors, just record the error but continue */
             *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
             MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
             MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
         }
-   }
+    }
 
     /* wait for all outstanding requests to complete */
     mpi_errno = MPIC_Waitall(reqs, reqarray, starray, errflag);
@@ -641,7 +623,7 @@ int MPIR_2lvl_Allgather_Direct_MV2(
             if (starray[i].MPI_ERROR != MPI_SUCCESS) {
                 mpi_errno = starray[i].MPI_ERROR;
                 if (mpi_errno) {
-                    /* for communication errors, 
+                    /* for communication errors,
                      * just record the error but continue */
                     *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
                     MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
@@ -679,16 +661,16 @@ int MPIR_2lvl_Allgather_Direct_MV2(
                 int srcrank = comm_ptr->dev.ch.rank_list[recv_displ + j];
 
                 /* get pointer to receive buffer for this rank */
-                void* rbuf = (void*)((char*) recvbuf 
-                    + srcrank * recvcnt * recvtype_extent);
+                void *rbuf = (void *)((char *)recvbuf +
+                                      srcrank * recvcnt * recvtype_extent);
 
                 /* post receive */
                 MPIR_PVAR_INC(allgather, 2lvl_direct, recv, recvcnt, recvtype);
-                mpi_errno = MPIC_Irecv(rbuf, recvcnt, recvtype,
-                    src, MPIR_ALLGATHER_TAG, leader_commptr, &reqarray[reqs++]
-                );
+                mpi_errno =
+                    MPIC_Irecv(rbuf, recvcnt, recvtype, src, MPIR_ALLGATHER_TAG,
+                               leader_commptr, &reqarray[reqs++]);
                 if (mpi_errno) {
-                    /* for communication errors, 
+                    /* for communication errors,
                      * just record the error but continue */
                     *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
                     MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
@@ -712,17 +694,17 @@ int MPIR_2lvl_Allgather_Direct_MV2(
                 int dstrank = comm_ptr->dev.ch.rank_list[rank_index + j];
 
                 /* get pointer into buffer for this rank */
-                void* sbuf = (void*)((char*) recvbuf 
-                    + dstrank * recvcnt * recvtype_extent);
+                void *sbuf = (void *)((char *)recvbuf +
+                                      dstrank * recvcnt * recvtype_extent);
 
                 /* post send to this destination rank */
                 MPIR_PVAR_INC(allgather, 2lvl_direct, send, sendcnt, sendtype);
-                mpi_errno = MPIC_Isend(sbuf, sendcnt, sendtype,
-                    dst, MPIR_ALLGATHER_TAG, leader_commptr, 
-                    &reqarray[reqs++], errflag);
+                mpi_errno =
+                    MPIC_Isend(sbuf, sendcnt, sendtype, dst, MPIR_ALLGATHER_TAG,
+                               leader_commptr, &reqarray[reqs++], errflag);
 
                 if (mpi_errno) {
-                    /* for communication errors, 
+                    /* for communication errors,
                      * just record the error but continue */
                     *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
                     MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
@@ -741,7 +723,7 @@ int MPIR_2lvl_Allgather_Direct_MV2(
                 if (starray[i].MPI_ERROR != MPI_SUCCESS) {
                     mpi_errno = starray[i].MPI_ERROR;
                     if (mpi_errno) {
-                        /* for communication errors, 
+                        /* for communication errors,
                          * just record the error but continue */
                         *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
                         MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
@@ -757,8 +739,8 @@ int MPIR_2lvl_Allgather_Direct_MV2(
      ****************************/
 
     /* Bcast the entire data from node leaders to other ranks on node */
-    mpi_errno = MPIR_Bcast_impl(recvbuf, recvcnt * size, 
-        recvtype, 0, shmem_commptr, errflag);
+    mpi_errno = MPIR_Bcast_impl(recvbuf, recvcnt * size, recvtype, 0,
+                                shmem_commptr, errflag);
     MPIR_ERR_CHECK(mpi_errno);
 
 fn_exit:
@@ -766,7 +748,7 @@ fn_exit:
     return (mpi_errno);
 
 fn_fail:
-    MPIR_TIMER_END(coll,allgather,2lvl_direct);
+    MPIR_TIMER_END(coll, allgather, 2lvl_direct);
     goto fn_exit;
 }
 
@@ -777,17 +759,17 @@ fn_fail:
  * of these messages.  We use a ring algorithm to forward data through
  * leaders.  Finally, we broadcast the final receive buffer to the
  * procs on the node. */
-int MPIR_2lvl_Allgather_Ring_MV2(
-    const void *sendbuf, int sendcnt, MPI_Datatype sendtype,
-          void *recvbuf, int recvcnt, MPI_Datatype recvtype,
-    MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag)
+int MPIR_2lvl_Allgather_Ring_MVP(const void *sendbuf, int sendcnt,
+                                 MPI_Datatype sendtype, void *recvbuf,
+                                 int recvcnt, MPI_Datatype recvtype,
+                                 MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag)
 {
-    MPIR_TIMER_START(coll,allgather,2lvl_ring);
+    MPIR_TIMER_START(coll, allgather, 2lvl_ring);
     int i, j;
     int mpi_errno = MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
 
-    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_allgather_2lvl_ring, 1);
+    MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_allgather_2lvl_ring, 1);
 
     if (recvcnt == 0) {
         return MPI_SUCCESS;
@@ -804,14 +786,14 @@ int MPIR_2lvl_Allgather_Ring_MV2(
     MPIR_Datatype_get_extent_macro(recvtype, recvtype_extent);
 
     /* get info about communicator for ranks on the same node */
-    MPIR_Comm* shmem_commptr;
+    MPIR_Comm *shmem_commptr;
     MPI_Comm shmem_comm = comm_ptr->dev.ch.shmem_comm;
     MPIR_Comm_get_ptr(shmem_comm, shmem_commptr);
     int local_rank = shmem_commptr->rank;
     int local_size = shmem_commptr->local_size;
 
     /* get info about communicator across node leaders */
-    MPIR_Comm* leader_commptr = NULL;
+    MPIR_Comm *leader_commptr = NULL;
     int leader_rank = -1;
     int leader_size = 0;
     if (local_rank == 0) {
@@ -823,10 +805,10 @@ int MPIR_2lvl_Allgather_Ring_MV2(
         leader_size = leader_commptr->local_size;
     }
 
-    int gather_msgs    = 0;
+    int gather_msgs = 0;
     int allgather_msgs = 0;
     int max_local_size = 0;
-    int *node_sizes    = comm_ptr->dev.ch.node_sizes;
+    int *node_sizes = comm_ptr->dev.ch.node_sizes;
 
     /* request/status object allocation is different for
      * leader vs. non-leader */
@@ -852,14 +834,12 @@ int MPIR_2lvl_Allgather_Ring_MV2(
 
     /* allocate array of request objects */
     MPIR_Request **reqarray = NULL;
-    MPIR_CHKLMEM_MALLOC(reqarray, MPIR_Request **,
-                        max * sizeof (MPIR_Request*),
+    MPIR_CHKLMEM_MALLOC(reqarray, MPIR_Request **, max * sizeof(MPIR_Request *),
                         mpi_errno, "reqarray", MPL_MEM_COLL);
 
     /* allocate array of status objects */
     MPI_Status *starray = NULL;
-    MPIR_CHKLMEM_MALLOC(starray, MPI_Status *,
-                        max * sizeof (MPI_Status),
+    MPIR_CHKLMEM_MALLOC(starray, MPI_Status *, max * sizeof(MPI_Status),
                         mpi_errno, "starray", MPL_MEM_COLL);
 
     /****************************
@@ -876,79 +856,77 @@ int MPIR_2lvl_Allgather_Ring_MV2(
             /* get global rank of this process */
             int srcrank = comm_ptr->dev.ch.rank_list[rank_index + i];
 
-            /* compute pointer in receive buffer 
+            /* compute pointer in receive buffer
              * for incoming data from this rank */
-            void* rbuf = (void*)((char*) recvbuf 
-                + srcrank * recvcnt * recvtype_extent);
+            void *rbuf =
+                (void *)((char *)recvbuf + srcrank * recvcnt * recvtype_extent);
 
             /* post receive for data from this rank on shared mem comm */
             MPIR_PVAR_INC(allgather, 2lvl_ring, recv, recvcnt, recvtype);
-            mpi_errno = MPIC_Irecv(rbuf, recvcnt, recvtype,
-                i, MPIR_ALLGATHER_TAG, shmem_commptr, &reqarray[reqs++]
-            );
+            mpi_errno =
+                MPIC_Irecv(rbuf, recvcnt, recvtype, i, MPIR_ALLGATHER_TAG,
+                           shmem_commptr, &reqarray[reqs++]);
             if (mpi_errno) {
-                /* for communication errors, just record the error but continue */
+                /* for communication errors, just record the error but continue
+                 */
                 *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
                 MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
                 MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
             }
-       }
+        }
 
-       /* copy our data to our receive buffer if needed */
-       if (sendbuf != MPI_IN_PLACE) {
-           /* compute location in receive buffer for our data */
-            void* rbuf = (void*)((char*) recvbuf 
-                + rank * recvcnt * recvtype_extent);
-            mpi_errno = MPIR_Localcopy(
-               sendbuf, sendcnt, sendtype,
-               rbuf, recvcnt, recvtype
-            );
-           MPIR_ERR_CHECK(mpi_errno);
-       }
+        /* copy our data to our receive buffer if needed */
+        if (sendbuf != MPI_IN_PLACE) {
+            /* compute location in receive buffer for our data */
+            void *rbuf =
+                (void *)((char *)recvbuf + rank * recvcnt * recvtype_extent);
+            mpi_errno = MPIR_Localcopy(sendbuf, sendcnt, sendtype, rbuf,
+                                       recvcnt, recvtype);
+            MPIR_ERR_CHECK(mpi_errno);
+        }
     } else {
         /* get parameters for sending data */
-        const void* sbuf   = sendbuf;
-        int scnt           = sendcnt;
+        const void *sbuf = sendbuf;
+        int scnt = sendcnt;
         MPI_Datatype stype = sendtype;
         if (sendbuf == MPI_IN_PLACE) {
             /* use receive params if IN_PLACE */
-            sbuf   = (void*)((char*) recvbuf + rank * recvcnt * recvtype_extent);
-            scnt   = recvcnt;
-            stype  = recvtype;
+            sbuf = (void *)((char *)recvbuf + rank * recvcnt * recvtype_extent);
+            scnt = recvcnt;
+            stype = recvtype;
         }
 
         /* send data to leader of our node */
         MPIR_PVAR_INC(allgather, 2lvl_ring, send, scnt, stype);
-        mpi_errno = MPIC_Isend(sbuf, scnt, stype,
-           0, MPIR_ALLGATHER_TAG, shmem_commptr, &reqarray[reqs++], errflag
-        );
+        mpi_errno = MPIC_Isend(sbuf, scnt, stype, 0, MPIR_ALLGATHER_TAG,
+                               shmem_commptr, &reqarray[reqs++], errflag);
         if (mpi_errno) {
             /* for communication errors, just record the error but continue */
             *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
             MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
             MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
         }
-   }
+    }
 
-   /* wait for all outstanding requests to complete */
-   mpi_errno = MPIC_Waitall(reqs, reqarray, starray, errflag);
-   MPIR_ERR_CHECK(mpi_errno);
+    /* wait for all outstanding requests to complete */
+    mpi_errno = MPIC_Waitall(reqs, reqarray, starray, errflag);
+    MPIR_ERR_CHECK(mpi_errno);
 
-   /* --BEGIN ERROR HANDLING-- */
-   if (mpi_errno == MPI_ERR_IN_STATUS) {
-       for (i = 0; i < reqs; i++) {
-           if (starray[i].MPI_ERROR != MPI_SUCCESS) {
-               mpi_errno = starray[i].MPI_ERROR;
-               if (mpi_errno) {
-                   /* for communication errors, 
-                    * just record the error but continue */
-                   *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
-                   MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
-                   MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-               }
-           }
-       }
-   }
+    /* --BEGIN ERROR HANDLING-- */
+    if (mpi_errno == MPI_ERR_IN_STATUS) {
+        for (i = 0; i < reqs; i++) {
+            if (starray[i].MPI_ERROR != MPI_SUCCESS) {
+                mpi_errno = starray[i].MPI_ERROR;
+                if (mpi_errno) {
+                    /* for communication errors,
+                     * just record the error but continue */
+                    *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
+                    MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
+                    MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
+                }
+            }
+        }
+    }
 
     MPIR_ERR_CHECK(mpi_errno);
 
@@ -959,7 +937,7 @@ int MPIR_2lvl_Allgather_Ring_MV2(
     /* Exchange the data between the node leaders */
     if (local_rank == 0 && leader_size > 1) {
         /* get our left and right ranks in our leader comm */
-        int left  = (leader_size + leader_rank - 1) % leader_size;
+        int left = (leader_size + leader_rank - 1) % leader_size;
         int right = (leader_size + leader_rank + 1) % leader_size;
 
         /* start by sending our own data and receiving data
@@ -977,18 +955,18 @@ int MPIR_2lvl_Allgather_Ring_MV2(
                 /* get source rank for this message */
                 int srcrank = comm_ptr->dev.ch.rank_list[recv_displ + j];
 
-                /* compute pointer in receive buffer 
+                /* compute pointer in receive buffer
                  * for incoming data from this rank */
-                void* rbuf = (void*)((char*) recvbuf 
-                    + srcrank * recvcnt * recvtype_extent);
+                void *rbuf = (void *)((char *)recvbuf +
+                                      srcrank * recvcnt * recvtype_extent);
 
                 /* post receive for data from this rank */
                 MPIR_PVAR_INC(allgather, 2lvl_ring, recv, recvcnt, recvtype);
-                mpi_errno = MPIC_Irecv(rbuf, recvcnt, recvtype,
-                    left, MPIR_ALLGATHER_TAG, leader_commptr, &reqarray[reqs++]
-                );
+                mpi_errno = MPIC_Irecv(rbuf, recvcnt, recvtype, left,
+                                       MPIR_ALLGATHER_TAG, leader_commptr,
+                                       &reqarray[reqs++]);
                 if (mpi_errno) {
-                    /* for communication errors, 
+                    /* for communication errors,
                      * just record the error but continue */
                     *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
                     MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
@@ -997,8 +975,9 @@ int MPIR_2lvl_Allgather_Ring_MV2(
             }
 
             /* TODO: consider placing a barrier here to ensure
-             * receives are posted before sends, especially for large messages */
-            //MPIR_Barrier_impl(comm_ptr);
+             * receives are posted before sends, especially for large messages
+             */
+            // MPIR_Barrier_impl(comm_ptr);
 
             /* post sends for data we're sending to the right */
             int send_count = comm_ptr->dev.ch.node_sizes[send_index];
@@ -1007,19 +986,18 @@ int MPIR_2lvl_Allgather_Ring_MV2(
                 /* get source rank for this message */
                 int dstrank = comm_ptr->dev.ch.rank_list[send_displ + j];
 
-                /* compute pointer in receive buffer 
+                /* compute pointer in receive buffer
                  * for outgoing data from this rank */
-                void* sbuf = (void*)((char*) recvbuf 
-                    + dstrank * recvcnt * recvtype_extent);
+                void *sbuf = (void *)((char *)recvbuf +
+                                      dstrank * recvcnt * recvtype_extent);
 
                 /* post send for data from this rank */
                 MPIR_PVAR_INC(allgather, 2lvl_ring, send, recvcnt, recvtype);
-                mpi_errno = MPIC_Isend(sbuf, recvcnt, recvtype,
-                    right, MPIR_ALLGATHER_TAG, 
-                    leader_commptr, &reqarray[reqs++], errflag
-                );
+                mpi_errno = MPIC_Isend(sbuf, recvcnt, recvtype, right,
+                                       MPIR_ALLGATHER_TAG, leader_commptr,
+                                       &reqarray[reqs++], errflag);
                 if (mpi_errno) {
-                    /* for communication errors, 
+                    /* for communication errors,
                      * just record the error but continue */
                     *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
                     MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
@@ -1037,7 +1015,7 @@ int MPIR_2lvl_Allgather_Ring_MV2(
                     if (starray[i].MPI_ERROR != MPI_SUCCESS) {
                         mpi_errno = starray[i].MPI_ERROR;
                         if (mpi_errno) {
-                            /* for communication errors, 
+                            /* for communication errors,
                              * just record the error but continue */
                             *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
                             MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
@@ -1059,8 +1037,8 @@ int MPIR_2lvl_Allgather_Ring_MV2(
      ****************************/
 
     /* Bcast the entire data from node leaders to other ranks on node */
-    mpi_errno = MPIR_Bcast_impl(recvbuf, recvcnt * size, 
-        recvtype, 0, shmem_commptr, errflag);
+    mpi_errno = MPIR_Bcast_impl(recvbuf, recvcnt * size, recvtype, 0,
+                                shmem_commptr, errflag);
     MPIR_ERR_CHECK(mpi_errno);
 
 fn_exit:
@@ -1068,6 +1046,6 @@ fn_exit:
     return (mpi_errno);
 
 fn_fail:
-    MPIR_TIMER_END(coll,allgather,2lvl_ring);
+    MPIR_TIMER_END(coll, allgather, 2lvl_ring);
     goto fn_exit;
 }

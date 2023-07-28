@@ -249,7 +249,7 @@ Return values:
 
 Notes:
 This function is a collective call across all processes in the process group
-the local process belongs to. This functionality is added by MVAPICH2.
+the local process belongs to. This functionality is added by MVAPICH.
 @*/
     int PMI_Ibarrier(void);
 
@@ -263,7 +263,7 @@ Return values:
 Notes:
 This function is a collective call across all processes in the process group
 the local process belongs to. It is used in conjunction with PMI_Ibarrier.
-This functionality is added by MVAPICH2. 
+This functionality is added by MVAPICH. 
 @*/
     int PMI_Wait(void);
 

@@ -18,6 +18,12 @@ MPL_STATIC_INLINE_PREFIX void MPID_Request_create_hook(MPIR_Request * req)
 #ifndef MPIDI_CH4_DIRECT_NETMOD
     MPIDI_REQUEST_ANYSOURCE_PARTNER(req) = NULL;
 #endif
+#ifdef _MVP_CH4_OVERRIDE_ /* MVAPICH addition to the netmod layer */
+    MPIDI_MVP_REQUEST_FROM_MPICH(req) = NULL;
+#if defined(_SHARP_SUPPORT_)
+    MPIDI_MVP_SHARP_REQUEST_FROM_MPICH(req) = NULL;
+#endif
+#endif /* _MVP_CH4_OVERRIDE_ */
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_REQUEST_CREATE_HOOK);
 }
@@ -35,6 +41,10 @@ MPL_STATIC_INLINE_PREFIX void MPID_Request_free_hook(MPIR_Request * req)
     if (req->kind == MPIR_REQUEST_KIND__PREQUEST_RECV &&
         NULL != MPIDI_REQUEST_ANYSOURCE_PARTNER(req))
         MPIR_Request_free(MPIDI_REQUEST_ANYSOURCE_PARTNER(req));
+
+#ifdef _MVP_CH4_OVERRIDE_
+    MPIDI_MVP_smp_request_free(req);
+#endif /* _MVP_CH4_OVERRIDE_ */
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_REQUEST_FREE_HOOK);
     return;

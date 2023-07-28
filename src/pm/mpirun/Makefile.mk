@@ -2,12 +2,12 @@
 ## Copyright (c) 2001-2022, The Ohio State University. All rights
 ## reserved.
 ##
-## This file is part of the MVAPICH2 software package developed by the
+## This file is part of the MVAPICH software package developed by the
 ## team members of The Ohio State University's Network-Based Computing
 ## Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
 ##
 ## For detailed copyright and licensing information, please refer to the
-## copyright file COPYRIGHT in the top level MVAPICH2 directory.
+## copyright file COPYRIGHT in the top level MVAPICH directory.
 ##
 
 if BUILD_PM_MPIRUN
@@ -29,8 +29,8 @@ endif
 endif
 
 if WANT_CKPT_RUNTIME
-bin_PROGRAMS += src/pm/mpirun/mv2_trigger
-bin_SCRIPTS += src/pm/mpirun/mv2_checkpoint
+bin_PROGRAMS += src/pm/mpirun/mvp_trigger
+bin_SCRIPTS += src/pm/mpirun/mvp_checkpoint
 endif
 
 src_pm_mpirun_mpirun_rsh_SOURCES =  \
@@ -49,7 +49,7 @@ src_pm_mpirun_mpirun_rsh_SOURCES =  \
 	src/pm/mpirun/environ.c
 
 src_pm_mpirun_mpirun_rsh_LDADD = -lm -lpthread \
-	src/mpid/ch3/channels/common/src/util/mv2_config.o    \
+	src/mpid/ch3/channels/common/src/util/mvp_config.o    \
 	src/mpid/ch3/channels/common/src/util/crc32h.o        \
 	src/mpid/ch3/channels/common/src/util/error_handling.o \
 	src/mpid/ch3/channels/common/src/util/debug_utils.o   \
@@ -76,7 +76,7 @@ src_pm_mpirun_mpiexec_mpirun_rsh_SOURCES =     \
 	src/pm/mpirun/environ.c
 
 src_pm_mpirun_mpiexec_mpirun_rsh_LDADD = -lm -lpthread \
-	src/mpid/ch3/channels/common/src/util/mv2_config.o    \
+	src/mpid/ch3/channels/common/src/util/mvp_config.o    \
 	src/mpid/ch3/channels/common/src/util/crc32h.o        \
 	src/mpid/ch3/channels/common/src/util/error_handling.o \
 	src/mpid/ch3/channels/common/src/util/debug_utils.o   \
@@ -117,7 +117,7 @@ src_pm_mpirun_mpispawn_LDADD = -lm -lpthread 	\
 	src/mpid/ch3/channels/common/src/util/debug_utils.o 	\
 	src/pm/mpirun/src/db/libdb.a
 
-src_pm_mpirun_mv2_trigger_SOURCES = src/pm/mpirun/mv2_trigger.c
-src_pm_mpirun_mv2_trigger_LDADD = -lpthread
+src_pm_mpirun_mvp_trigger_SOURCES = src/pm/mpirun/mvp_trigger.c
+src_pm_mpirun_mvp_trigger_LDADD = -lpthread
 
 endif BUILD_PM_MPIRUN

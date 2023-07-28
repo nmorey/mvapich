@@ -2,15 +2,15 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -228,7 +228,7 @@ static int win_init(MPI_Aint size, int disp_unit, int create_flavor, int model, 
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_WIN_INIT);
 
     MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MV2_INC_NUM_UNEXP_RECV();
+    MVP_INC_NUM_UNEXP_RECV();
     if (initRMAoptions) {
 
         MPIDI_CH3_RMA_Init_sync_pvars();
@@ -302,8 +302,8 @@ static int win_init(MPI_Aint size, int disp_unit, int create_flavor, int model, 
 #endif /* defined(CHANNEL_MRAIL) */
 #ifdef _SMP_LIMIC_
     /* FIXME: disable LiMIC2 when one-sided operations could be involved; see issue #1444 */
-    g_smp_use_limic2 = 0;
-    mv2_MPIDI_CH3I_RDMA_Process.g_smp_can_fallback = 0;
+    MVP_SMP_USE_LIMIC2 = 0;
+    mvp_MPIDI_CH3I_RDMA_Process.g_smp_can_fallback = 0;
 #endif
     if ((*win_ptr)->create_flavor == MPI_WIN_FLAVOR_ALLOCATE ||
         (*win_ptr)->create_flavor == MPI_WIN_FLAVOR_SHARED) {

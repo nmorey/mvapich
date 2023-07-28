@@ -2,15 +2,15 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -18,7 +18,7 @@
 
 extern unsigned long long PVAR_COUNTER_unexpected_recvs_rendezvous;
 /* TODO: Replace or reimplement these bucket macros */
-/* MPIR_T_PVAR_ULONG2_COUNTER_BUCKET_DECL_EXTERN(MV2,mv2_pt2pt_mpid_irecv); */
+/* MPIR_T_PVAR_ULONG2_COUNTER_BUCKET_DECL_EXTERN(MVP,mvp_pt2pt_mpid_irecv); */
 
 int MPID_Irecv(void * buf, MPI_Aint count, MPI_Datatype datatype, int rank, int tag,
            MPIR_Comm * comm, int context_offset,
@@ -56,7 +56,7 @@ int MPID_Irecv(void * buf, MPI_Aint count, MPI_Datatype datatype, int rank, int 
 
 #ifdef _ENABLE_CUDA_
     int device_buf = 0;
-    if (mv2_enable_device) {
+    if (mvp_enable_device) {
         device_buf = is_device_buffer(buf);
     }
 #endif
@@ -65,7 +65,7 @@ int MPID_Irecv(void * buf, MPI_Aint count, MPI_Datatype datatype, int rank, int 
         MPIDI_VC_t * vc;
 
 #ifdef _ENABLE_CUDA_
-        if (mv2_enable_device) {
+        if (mvp_enable_device) {
             if (device_buf) {
                 /* buf is in the GPU device memory */
                 rreq->mrail.device_transfer_mode = DEVICE_TO_DEVICE;
@@ -114,7 +114,7 @@ int MPID_Irecv(void * buf, MPI_Aint count, MPI_Datatype datatype, int rank, int 
                 {
                     MPIDI_CH3U_Request_unpack_uebuf(rreq);
 #if defined(_ENABLE_CUDA_) && defined(HAVE_CUDA_IPC)
-                    if (mv2_enable_device && mv2_device_use_smp_eager_ipc
+                    if (mvp_enable_device && mvp_device_use_smp_eager_ipc
                             && is_device_buffer(rreq->dev.tmpbuf)) {
                        MPIL_Free_Device(rreq->dev.tmpbuf);
                     }
@@ -147,11 +147,11 @@ int MPID_Irecv(void * buf, MPI_Aint count, MPI_Datatype datatype, int rank, int 
         }
         else if (MPIDI_Request_get_msg_type(rreq) == MPIDI_REQUEST_RNDV_MSG)
         {
-             MPIR_T_PVAR_COUNTER_INC(MV2, unexpected_recvs_rendezvous, 1);   
+             MPIR_T_PVAR_COUNTER_INC(MVP, unexpected_recvs_rendezvous, 1);   
              MPIDI_Comm_get_vc_set_active(comm, rreq->dev.match.parts.rank, &vc);
 
 #ifdef _ENABLE_CUDA_
-            if (mv2_enable_device) {
+            if (mvp_enable_device) {
                 if (device_buf) {
                     /* buf is in the GPU device memory */
                     rreq->mrail.device_transfer_mode = DEVICE_TO_DEVICE;
@@ -207,7 +207,7 @@ int MPID_Irecv(void * buf, MPI_Aint count, MPI_Datatype datatype, int rank, int 
     }
 
 #ifdef _ENABLE_CUDA_
-    if(mv2_enable_device) {
+    if(mvp_enable_device) {
         if (device_buf) {
             /* buf is in the GPU device memory */
             rreq->mrail.device_transfer_mode = DEVICE_TO_DEVICE;

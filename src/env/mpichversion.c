@@ -29,7 +29,7 @@ extern const char MPII_Version_custom[];
  * version, device, and what patches have been applied.
  *
  * The reason that this program doesn't directly include the info is that it
- * can be compiled and then linked with the MVAPICH2 library to discover
+ * can be compiled and then linked with the MVAPICH library to discover
  * the information about the version of the library.  If built with shared
  * libraries, this will give the information about the currently installed
  * shared library.
@@ -41,18 +41,18 @@ typedef enum { Version_number = 0, Date = 1,
 } fields;
 
 /*D
-  mpich2version - Report on the MVAPICH2 version
+  mpich2version - Report on the MVAPICH version
 
   Command Line Arguments:
-+ -version - Show the version of MVAPICH2
++ -version - Show the version of MVAPICH
 . -date    - Show the release date of this version
 . -patches - Show the identifiers for any applied patches
-. -configure - Show the configure arguments used to build MVAPICH2
-- -device  - Show the device for which MVAPICH2 was configured
+. -configure - Show the configure arguments used to build MVAPICH
+- -device  - Show the device for which MVAPICH was configured
 
   Using this program:
   To use this program, link it against 'libmpi.a' (use 'mpicc' or
-  the whichever compiler command is used to create MVAPICH2 programs)
+  the whichever compiler command is used to create MVAPICH programs)
   D*/
 
 int main(int argc, char *argv[])
@@ -105,25 +105,25 @@ int main(int argc, char *argv[])
 
     /* Print out the information, one item per line */
     if (flags[Version_number]) {
-	    printf( "MVAPICH2 Version:     \t%s\n", MPII_Version_string );
+	    printf( "MVAPICH Version:     \t%s\n", MPII_Version_string );
     }
     if (flags[Date]) {
-	    printf( "MVAPICH2 Release date:\t%s\n", MPII_Version_date );
+	    printf( "MVAPICH Release date:\t%s\n", MPII_Version_date );
     }
     if (flags[Device]) {
-	    printf( "MVAPICH2 Device:      \t%s\n", MPII_Version_device );
+	    printf( "MVAPICH Device:      \t%s\n", MPII_Version_device );
     }
     if (flags[Configure_args]) {
-	    printf( "MVAPICH2 configure:   \t%s\n", MPII_Version_configure );
+	    printf( "MVAPICH configure:   \t%s\n", MPII_Version_configure );
     }
     if (flags[Compilers]) {
-	    printf( "MVAPICH2 CC:  \t%s\n", MPII_Version_CC );
-	    printf( "MVAPICH2 CXX: \t%s\n", MPII_Version_CXX );
-	    printf( "MVAPICH2 F77: \t%s\n", MPII_Version_F77 );
-	    printf( "MVAPICH2 FC:  \t%s\n", MPII_Version_FC );
+	    printf( "MVAPICH CC:  \t%s\n", MPII_Version_CC );
+	    printf( "MVAPICH CXX: \t%s\n", MPII_Version_CXX );
+	    printf( "MVAPICH F77: \t%s\n", MPII_Version_F77 );
+	    printf( "MVAPICH FC:  \t%s\n", MPII_Version_FC );
 	}
     if (flags[Custom]) {
-        printf("MVAPICH2 Custom Information: \t%s\n", MPII_Version_custom);
+        printf("MVAPICH Custom Information: \t%s\n", MPII_Version_custom);
     }
 
     return 0;

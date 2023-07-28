@@ -662,7 +662,7 @@ fi
 if test $FROM_MPICH = yes ; then
    dnl Made this a message instead of a warning because the warning is
    dnl likely to confuse users.
-   AC_MSG_RESULT([Overriding Array test for MVAPICH2])
+   AC_MSG_RESULT([Overriding Array test for MVAPICH])
    unset BUILD_MPI_ARRAY
    AC_DEFINE(HAVE_MPI_DARRAY_SUBARRAY,1,[Define if Darray is available])
    HAVE_MPI_DARRAY_SUBARRAY="#define HAVE_MPI_DARRAY_SUBARRAY"

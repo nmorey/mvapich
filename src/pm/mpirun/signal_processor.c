@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -31,15 +31,13 @@ struct sp_params {
     pthread_cond_t cond;
 };
 
-static void
-cleanup_sp_thread (void * arg)
+static void cleanup_sp_thread(void *arg)
 {
     extern int is_running;
     is_running = 0;
 }
 
-static void
-sp_thread (struct sp_params * params)
+static void sp_thread(struct sp_params *params)
 {
     sigset_t sigmask = params->sigmask;
     func_t processor = params->processor;
@@ -68,17 +66,14 @@ sp_thread (struct sp_params * params)
     pthread_cleanup_pop(0);
 }
 
-extern void
-start_sp_thread (sigset_t sigmask, void
-        (*processor)(int), int detach_thread)
+extern void start_sp_thread(sigset_t sigmask, void (*processor)(int),
+                            int detach_thread)
 {
     pthread_attr_t attr;
     int error;
-    struct sp_params params = {
-        .mutex = PTHREAD_MUTEX_INITIALIZER,
-        .cond = PTHREAD_COND_INITIALIZER,
-        .copied = 0
-    };
+    struct sp_params params = {.mutex = PTHREAD_MUTEX_INITIALIZER,
+                               .cond = PTHREAD_COND_INITIALIZER,
+                               .copied = 0};
 
     params.sigmask = sigmask;
     params.processor = processor;
@@ -107,8 +102,8 @@ start_sp_thread (sigset_t sigmask, void
         abort();
     }
 
-    error = pthread_create(&sp_tid, &attr, (void * (*)(void *))&sp_thread,
-            (void *)&params);
+    error = pthread_create(&sp_tid, &attr, (void *(*)(void *)) & sp_thread,
+                           (void *)&params);
     if (error) {
         PRINT_ERROR_ERRNO("pthread_create", error);
         abort();
@@ -119,7 +114,8 @@ start_sp_thread (sigset_t sigmask, void
      * over the signal mask and pointer to the signal_processor.
      */
     pthread_mutex_lock(&params.mutex);
-    while (!params.copied) pthread_cond_wait(&params.cond, &params.mutex);
+    while (!params.copied)
+        pthread_cond_wait(&params.cond, &params.mutex);
     pthread_mutex_unlock(&params.mutex);
 
     /*
@@ -137,16 +133,17 @@ start_sp_thread (sigset_t sigmask, void
     }
 }
 
-extern void
-stop_sp_thread (void)
+extern void stop_sp_thread(void)
 {
     extern pthread_t sp_tid;
     extern int is_joined;
     extern int is_running;
-    void * return_value;
+    void *return_value;
 
-    if (is_running) pthread_cancel(sp_tid);
-    if (!is_joined) pthread_join(sp_tid, &return_value);
+    if (is_running)
+        pthread_cancel(sp_tid);
+    if (!is_joined)
+        pthread_join(sp_tid, &return_value);
     is_joined = 1;
 }
 
@@ -155,8 +152,7 @@ stop_sp_thread (void)
  * to do this for any forked processes that we want to respond to signals
  * normally.
  */
-extern void
-clear_sigmask (void)
+extern void clear_sigmask(void)
 {
     sigset_t sigmask;
 

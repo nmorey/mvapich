@@ -85,7 +85,7 @@ int MPIR_T_pvar_handle_alloc_impl(MPI_T_pvar_session session, int pvar_index,
     else if (is_watermark)
         hnd->flags |= MPIR_T_PVAR_FLAG_WATERMARK;
 
-    #if ENABLE_PVAR_MV2
+    #if ENABLE_PVAR_MVP
     if(info->bind == MPI_T_BIND_MPI_COMM)
     {
         int is_mpi_initialized = 1;

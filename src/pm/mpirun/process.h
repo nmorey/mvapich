@@ -1,14 +1,14 @@
 #ifndef PROCESS_H
 #define PROCESS_H 1
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -27,14 +27,14 @@ typedef enum {
 } process_state;
 
 typedef struct {
-    char const * hostname;
-    char const * device;
+    char const *hostname;
+    char const *device;
     pid_t pid;
     pid_t remote_pid;
     int port;
     int control_socket;
     process_state state;
-    //These information are about the mpmd (multi process multiple data) option
+    // These information are about the mpmd (multi process multiple data) option
     char *executable_name;
     char *executable_args;
     int argc;
@@ -46,9 +46,9 @@ typedef struct {
     pid_t pid;
     int *plist_indices;
     size_t npids, npids_allocated;
-    spawn_info_t * si;
+    spawn_info_t *si;
     int block_size;
-    pid_t local_pid;            //the local forked() proc pid
+    pid_t local_pid; // the local forked() proc pid
 } process_group;
 
 typedef struct {
@@ -57,8 +57,8 @@ typedef struct {
     size_t npgs, npgs_allocated;
 } process_groups;
 
-extern process * plist;
-extern process_groups * pglist;
+extern process *plist;
+extern process_groups *pglist;
 
 /* vi:set sw=4 sts=4 tw=80: */
 #endif

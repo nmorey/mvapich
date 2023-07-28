@@ -249,7 +249,7 @@ static int issue_from_origin_buffer(MPIDI_RMA_Op_t * rma_op, MPIDI_VC_t * vc,
             MPIR_ERR_CHKANDJUMP(req == NULL, mpi_errno, MPI_ERR_OTHER, "**nomemreq");
 
             MPIR_Object_set_ref(req, 2);
-            MV2_INC_NUM_POSTED_SEND();
+            MVP_INC_NUM_POSTED_SEND();
             req->dev.iov_count = iovcnt;
 
             int i = 0;
@@ -274,9 +274,9 @@ static int issue_from_origin_buffer(MPIDI_RMA_Op_t * rma_op, MPIDI_VC_t * vc,
             /* When R3 is used, the target process will send a get_accum_resp packet
              * after data has been transferred. So, this request needs to be used  
              * twice. */
-            if ((pkt_rndv.type == MPIDI_CH3_PKT_GET_ACCUM_RNDV)
-                 && (req->mrail.protocol == MV2_RNDV_PROTOCOL_R3 || 
-                     req->mrail.protocol == MV2_RNDV_PROTOCOL_UD_ZCOPY)) {
+            if ((pkt_rndv.type == MPIDI_CH3_PKT_GET_ACCUM_RNDV) &&
+                (req->mrail.protocol == MRAILI_PROTOCOL_R3 ||
+                 req->mrail.protocol == MRAILI_PROTOCOL_UD_ZCOPY)) {
                 int tmp = 0;
                 MPIR_Request *sreq;
                 MPIDI_CH3_Pkt_get_accum_t *gacc_pkt = &rma_op->pkt.get_accum;
@@ -320,7 +320,7 @@ static int issue_from_origin_buffer(MPIDI_RMA_Op_t * rma_op, MPIDI_VC_t * vc,
 
     MPIR_Object_set_ref(req, 2);
 
-    MV2_INC_NUM_POSTED_SEND();
+    MVP_INC_NUM_POSTED_SEND();
 
     /* set extended packet header, it is freed when the request is freed.  */
     if (ext_hdr_sz > 0) {
@@ -441,9 +441,9 @@ static int issue_from_origin_buffer(MPIDI_RMA_Op_t * rma_op, MPIDI_VC_t * vc,
             /* When R3 is used, the target process will send a get_accum_resp packet
              * after data has been transferred. So, this request needs to be used  
              * twice. */
-            if ((pkt_rndv.type == MPIDI_CH3_PKT_GET_ACCUM_RNDV)
-                 && (req->mrail.protocol == MV2_RNDV_PROTOCOL_R3 ||
-                     req->mrail.protocol == MV2_RNDV_PROTOCOL_UD_ZCOPY)) {
+            if ((pkt_rndv.type == MPIDI_CH3_PKT_GET_ACCUM_RNDV) &&
+                (req->mrail.protocol == MRAILI_PROTOCOL_R3 ||
+                 req->mrail.protocol == MRAILI_PROTOCOL_UD_ZCOPY)) {
                 int tmp = 0;
                 MPIR_Request *sreq;
                 MPIDI_CH3_Pkt_get_accum_t *gacc_pkt = &rma_op->pkt.get_accum;
@@ -581,8 +581,8 @@ static int issue_from_origin_buffer(MPIDI_RMA_Op_t * rma_op, MPIDI_VC_t * vc,
             /* When R3 is used, the target process will send a get_accum_resp packet
              * after data has been transferred. So, this request needs to be used  
              * twice. */
-            if ((pkt_rndv.type == MPIDI_CH3_PKT_GET_ACCUM_RNDV)
-                && (req->mrail.protocol == MV2_RNDV_PROTOCOL_R3)) {
+            if ((pkt_rndv.type == MPIDI_CH3_PKT_GET_ACCUM_RNDV) &&
+                (req->mrail.protocol == MRAILI_PROTOCOL_R3)) {
                 int tmp = 0;
                 MPIR_Request *sreq;
                 MPIDI_CH3_Pkt_get_accum_t *gacc_pkt = &rma_op->pkt.get_accum;
@@ -1252,7 +1252,7 @@ static int issue_get_op(MPIDI_RMA_Op_t * rma_op, MPIR_Win * win_ptr,
         total_size = (intptr_t) origin_type_size * rma_op->origin_count +
             sizeof(MPIDI_CH3_Pkt_get_resp_t);
         if (total_size <= vc->eager_max_msg_sz) {
-            curr_req->mrail.protocol = MV2_RNDV_PROTOCOL_EAGER;
+            curr_req->mrail.protocol = MRAILI_PROTOCOL_EAGER;
             MPIDI_VC_FAI_send_seqnum(vc, seqnum);
             MPIDI_Pkt_set_seqnum(get_pkt, seqnum);
 #endif /* defined(CHANNEL_MRAIL) */
@@ -1310,7 +1310,7 @@ static int issue_get_op(MPIDI_RMA_Op_t * rma_op, MPIR_Win * win_ptr,
             /*When R3 is used, the target process will send a get_resp packet
              * after data has been transferred. So, this request needs to be used  
              * twice. */
-            if (curr_req->mrail.protocol == MV2_RNDV_PROTOCOL_R3) {
+            if (curr_req->mrail.protocol == MRAILI_PROTOCOL_R3) {
                 int tmp = 0;
                 MPIDI_CH3U_Request_increment_cc(curr_req, &tmp);
             }
@@ -1380,7 +1380,7 @@ static int issue_get_op(MPIDI_RMA_Op_t * rma_op, MPIR_Win * win_ptr,
 
         if (total_size <= vc->eager_max_msg_sz) {
             /* basic datatype on target. simply send the get_pkt. */
-            curr_req->mrail.protocol = MV2_RNDV_PROTOCOL_EAGER;
+            curr_req->mrail.protocol = MRAILI_PROTOCOL_EAGER;
             MPIDI_VC_FAI_send_seqnum(vc, seqnum);
             MPIDI_Pkt_set_seqnum(get_pkt, seqnum);
 #endif /* defined(CHANNEL_MRAIL) */	
@@ -1398,7 +1398,7 @@ static int issue_get_op(MPIDI_RMA_Op_t * rma_op, MPIR_Win * win_ptr,
             /*The packed type should be set again because the memcpy would have 
               have overwritten it*/
             get_rndv.type = MPIDI_CH3_PKT_GET_RNDV;
-            curr_req->mrail.protocol = MV2_RNDV_PROTOCOL_RPUT;
+            curr_req->mrail.protocol = MRAILI_PROTOCOL_RPUT;
             MPIDI_VC_FAI_send_seqnum(vc, seqnum);
             MPIDI_Pkt_set_seqnum(&get_rndv, seqnum);
             MPID_THREAD_CS_ENTER(POBJ, vc->pobj_mutex);
@@ -1407,7 +1407,7 @@ static int issue_get_op(MPIDI_RMA_Op_t * rma_op, MPIR_Win * win_ptr,
             /*When R3 is used, the target process will send a get_resp packet
              * after data has been transferred. So, this request needs to be used  
              * twice. */
-            if (curr_req->mrail.protocol == MV2_RNDV_PROTOCOL_R3) {
+            if (curr_req->mrail.protocol == MRAILI_PROTOCOL_R3) {
                 int tmp = 0;
                 MPIDI_CH3U_Request_increment_cc(curr_req, &tmp);
             }

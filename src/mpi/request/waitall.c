@@ -47,7 +47,7 @@ int MPIR_Waitall_state(int count, MPIR_Request * request_ptrs[], MPI_Status arra
             if (request_ptrs[i] == NULL) {
                 continue;
             }
-
+/* TODO: get back to this after progress engine is moved to CH4
 #if defined (_SHARP_SUPPORT_)
         if (request_ptrs[i]->sharp_req != NULL) {
             mpi_errno = MPID_SHARP_COLL_REQ_WAIT(request_ptrs[i]);
@@ -58,14 +58,16 @@ int MPIR_Waitall_state(int count, MPIR_Request * request_ptrs[], MPI_Status arra
                 MPIR_ERR_POP(mpi_errno);
             }
             MPIR_Request_free(request_ptrs[i]);
-            continue; 
+            continue;
         }
-#endif       
+#endif
+*/
 
             /* wait for ith request to complete */
             while (!MPIR_Request_is_complete(request_ptrs[i])) {
                 /* generalized requests should already be finished */
-                MPIR_Assert(request_ptrs[i]->kind != MPIR_REQUEST_KIND__GREQUEST);
+                MPIR_Assert(request_ptrs[i]->kind !=
+                            MPIR_REQUEST_KIND__GREQUEST);
 
                 mpi_errno = MPID_Progress_wait(state);
                 MPIR_ERR_CHECK(mpi_errno);
@@ -187,6 +189,7 @@ int MPIR_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of
              * additional branch inside the for-loop below. */
             for (i = ii; i < ii + icount; ++i) {
 
+/* TODO: get back to this after progress engine is moved to CH4
 #if defined (_SHARP_SUPPORT_)
             if (request_ptrs[i]->sharp_req != NULL) {
                 mpi_errno = MPID_SHARP_COLL_REQ_WAIT(request_ptrs[i]);
@@ -197,9 +200,10 @@ int MPIR_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of
                     MPIR_ERR_POP(mpi_errno);
                 }
                 MPIR_Request_free(request_ptrs[i]);
-                continue; 
+                continue;
             }
 #endif
+*/
 
                 rc = MPIR_Request_completion_processing_fastpath(&array_of_requests[i],
                                                                  request_ptrs[i]);

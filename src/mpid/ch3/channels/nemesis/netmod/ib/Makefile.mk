@@ -4,12 +4,12 @@
 ## Copyright (c) 2001-2022, The Ohio State University. All rights
 ## reserved.
 ##
-## This file is part of the MVAPICH2 software package developed by the
+## This file is part of the MVAPICH software package developed by the
 ## team members of The Ohio State University's Network-Based Computing
 ## Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
 ##
 ## For detailed copyright and licensing information, please refer to the
-## copyright file COPYRIGHT in the top level MVAPICH2 directory.
+## copyright file COPYRIGHT in the top level MVAPICH directory.
 ##
 
 
@@ -46,10 +46,10 @@ mpi_core_sources +=				\
     src/mpid/ch3/channels/common/src/reg_cache/avl.c            \
     src/mpid/ch3/channels/common/src/memory/mem_hooks.c			\
     src/mpid/ch3/channels/common/src/memory/ptmalloc2/mvapich_malloc.c \
-    src/mpid/ch3/channels/common/src/util/mv2_utils.c			\
+    src/mpid/ch3/channels/common/src/util/mvp_utils.c			\
     src/mpid/ch3/channels/common/src/qos/rdma_3dtorus.c			\
-    src/mpid/ch3/channels/common/src/detect/arch/mv2_arch_detect.c 	\
-    src/mpid/ch3/channels/common/src/detect/hca/mv2_hca_detect.c
+    src/mpid/ch3/channels/common/src/detect/arch/mvp_arch_detect.c 	\
+    src/mpid/ch3/channels/common/src/detect/hca/mvp_hca_detect.c
 
 noinst_HEADERS +=                                               \
     src/mpid/ch3/channels/nemesis/netmod/ib/ib_cell.h           \

@@ -501,7 +501,7 @@ static void ADIO_FileSysType_fncall(const char *filename, int *fstype, int *erro
 
 #endif /*ROMIO_HAVE_STRUCT_STATFS_WITH_F_TYPE */
 
-/* MV2 autodetection for IME */
+/* MVP autodetection for IME */
 #ifdef FUSE_SUPER_MAGIC
     if (fsbuf.f_type == FUSE_SUPER_MAGIC) {
         /* fuse does not allow to override FUSE_SUPER_MAGIC

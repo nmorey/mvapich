@@ -2,22 +2,22 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
 #include "mpidrma.h"
 #if defined(CHANNEL_MRAIL)  
 #include "rdma_impl.h"
-#include "mv2_ch3_shmem.h"
+#include "mvp_ch3_shmem.h"
 #endif
 
 extern MPIR_T_pvar_timer_t PVAR_TIMER_rma_rmaqueue_set ATTRIBUTE((unused));
@@ -1075,7 +1075,7 @@ int MPID_Compare_and_swap(const void *origin_addr, const void *compare_addr,
         if (win_ptr->fall_back != 1 && win_ptr->enable_fast_path == 1
             && win_ptr->use_rdma_path == 1
 #if defined(RDMA_CM)
-            && !mv2_MPIDI_CH3I_RDMA_Process.use_iwarp_mode
+            && !mvp_MPIDI_CH3I_RDMA_Process.use_iwarp_mode
 #endif
             && ((win_ptr->is_active && win_ptr->post_flag[target_rank] == 1)
             || (!win_ptr->is_active && win_ptr->using_lock == 0)))
@@ -1237,7 +1237,7 @@ int MPID_Fetch_and_op(const void *origin_addr, void *result_addr,
             && win_ptr->use_rdma_path == 1
             && op == MPI_SUM
 #if defined(RDMA_CM)
-            && !mv2_MPIDI_CH3I_RDMA_Process.use_iwarp_mode
+            && !mvp_MPIDI_CH3I_RDMA_Process.use_iwarp_mode
 #endif
             && datatype != MPI_DOUBLE
             && ((win_ptr->is_active && win_ptr->post_flag[target_rank] == 1)

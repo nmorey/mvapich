@@ -423,12 +423,12 @@ int MPIDI_CH3_PktHandler_Put(MPIDI_VC_t * vc, MPIDI_CH3_Pkt_t * pkt, void *data,
 
 #if defined(CHANNEL_MRAIL)
                 if (MPIDI_CH3_PKT_PUT_RNDV == pkt->type) {
-                    req->mrail.protocol = MV2_RNDV_PROTOCOL_RPUT;
+                    req->mrail.protocol = MRAILI_PROTOCOL_RPUT;
                     MPIDI_CH3_RNDV_SET_REQ_INFO(req,((MPIDI_CH3_Pkt_put_rndv_t * )(put_pkt)));
                     req->dev.sender_req_id = ((MPIDI_CH3_Pkt_put_rndv_t *)pkt)->sender_req_id;
                     req->dev.recv_data_sz = ((MPIDI_CH3_Pkt_put_rndv_t *)pkt)->data_sz;
                 } else {
-                    req->mrail.protocol = MV2_RNDV_PROTOCOL_EAGER;
+                    req->mrail.protocol = MRAILI_PROTOCOL_EAGER;
                 }
 #endif /* defined(CHANNEL_MRAIL) */
 
@@ -522,7 +522,7 @@ int MPIDI_CH3_PktHandler_Get(MPIDI_VC_t * vc, MPIDI_CH3_Pkt_t * pkt, void *data,
         req->dev.OnDataAvail = MPIDI_CH3_ReqHandler_GetSendComplete;
         req->dev.OnFinal = MPIDI_CH3_ReqHandler_GetSendComplete;
         req->kind = MPIR_REQUEST_KIND__SEND;
-        MV2_INC_NUM_POSTED_SEND();
+        MVP_INC_NUM_POSTED_SEND();
 #if defined(CHANNEL_MRAIL)
         /*for R3 protocol*/
         req->dev.resp_request_handle = get_pkt->request_handle;
@@ -567,7 +567,7 @@ int MPIDI_CH3_PktHandler_Get(MPIDI_VC_t * vc, MPIDI_CH3_Pkt_t * pkt, void *data,
             iovcnt = 1;
 
 #if defined(CHANNEL_MRAIL)
-            get_resp_pkt->protocol = MV2_RNDV_PROTOCOL_EAGER;
+            get_resp_pkt->protocol = MRAILI_PROTOCOL_EAGER;
             req->dev.recv_data_sz = iov[0].iov_len;
 #endif /* defined(CHANNEL_MRAIL) */ 
 
@@ -575,8 +575,8 @@ int MPIDI_CH3_PktHandler_Get(MPIDI_VC_t * vc, MPIDI_CH3_Pkt_t * pkt, void *data,
             mpi_errno = MPIDI_CH3_iSendv(vc, req, iov, iovcnt);
             MPID_THREAD_CS_EXIT(POBJ, vc->pobj_mutex);
 
-#if defined(CHANNEL_MRAIL)      
-            req->mrail.protocol = MV2_RNDV_PROTOCOL_EAGER;
+#if defined(CHANNEL_MRAIL)
+            req->mrail.protocol = MRAILI_PROTOCOL_EAGER;
 #endif /* defined(CHANNEL_MRAIL) */
 
             /* --BEGIN ERROR HANDLING-- */
@@ -596,7 +596,7 @@ int MPIDI_CH3_PktHandler_Get(MPIDI_VC_t * vc, MPIDI_CH3_Pkt_t * pkt, void *data,
 
 #if defined(CHANNEL_MRAIL)
             if (MPIDI_CH3_PKT_GET == pkt->type ) {
-                get_resp_pkt->protocol = MV2_RNDV_PROTOCOL_EAGER;
+                get_resp_pkt->protocol = MRAILI_PROTOCOL_EAGER;
                 req->dev.recv_data_sz = iov[1].iov_len;
 #endif /* defined(CHANNEL_MRAIL) */ 
 
@@ -604,8 +604,8 @@ int MPIDI_CH3_PktHandler_Get(MPIDI_VC_t * vc, MPIDI_CH3_Pkt_t * pkt, void *data,
                 mpi_errno = MPIDI_CH3_iSendv(vc, req, iov, iovcnt);
                 MPID_THREAD_CS_EXIT(POBJ, vc->pobj_mutex);
 
-#if defined(CHANNEL_MRAIL)      
-                req->mrail.protocol = MV2_RNDV_PROTOCOL_EAGER;
+#if defined(CHANNEL_MRAIL)
+                req->mrail.protocol = MRAILI_PROTOCOL_EAGER;
 #endif /* defined(CHANNEL_MRAIL) */
                 /* --BEGIN ERROR HANDLING-- */
                 if (mpi_errno != MPI_SUCCESS) {
@@ -697,7 +697,7 @@ int MPIDI_CH3_PktHandler_Get(MPIDI_VC_t * vc, MPIDI_CH3_Pkt_t * pkt, void *data,
             if (MPIDI_CH3_PKT_GET_RNDV == pkt->type) {
                 MPIDI_CH3I_MRAIL_SET_REQ_REMOTE_RNDV(req, (MPIDI_CH3_Pkt_get_rndv_t *)pkt);
             } else {
-                req->mrail.protocol = MV2_RNDV_PROTOCOL_EAGER;
+                req->mrail.protocol = MRAILI_PROTOCOL_EAGER;
             }
 #endif /* defined(CHANNEL_MRAIL) */
 
@@ -824,7 +824,7 @@ int MPIDI_CH3_PktHandler_Accumulate(MPIDI_VC_t * vc, MPIDI_CH3_Pkt_t * pkt, void
                         ((MPIDI_CH3_Pkt_accum_rndv_t *)pkt)->sender_req_id;
                     req->dev.recv_data_sz = ((MPIDI_CH3_Pkt_accum_rndv_t *)pkt)->data_sz;
                 } else {
-                    req->mrail.protocol = MV2_RNDV_PROTOCOL_EAGER;
+                    req->mrail.protocol = MRAILI_PROTOCOL_EAGER;
                 }
 #endif
 
@@ -990,14 +990,14 @@ int MPIDI_CH3_PktHandler_Accumulate(MPIDI_VC_t * vc, MPIDI_CH3_Pkt_t * pkt, void
 
 #if defined(CHANNEL_MRAIL)
                 if (MPIDI_CH3_PKT_ACCUMULATE_RNDV == pkt->type) {
-                    req->mrail.protocol = MV2_RNDV_PROTOCOL_RPUT;
+                    req->mrail.protocol = MRAILI_PROTOCOL_RPUT;
                     MPIDI_CH3_RNDV_SET_REQ_INFO(req,
                             ((MPIDI_CH3_Pkt_accum_rndv_t * )(accum_pkt)));
                     req->dev.sender_req_id =
                         ((MPIDI_CH3_Pkt_accum_rndv_t *)pkt)->sender_req_id;
                     req->dev.recv_data_sz = ((MPIDI_CH3_Pkt_accum_rndv_t *)pkt)->data_sz;
                 } else {
-                    req->mrail.protocol = MV2_RNDV_PROTOCOL_EAGER;
+                    req->mrail.protocol = MRAILI_PROTOCOL_EAGER;
                 }
 #endif /* defined(CHANNEL_MRAIL) */
             }
@@ -1077,7 +1077,7 @@ int MPIDI_CH3_PktHandler_GetAccumulate(MPIDI_VC_t * vc, MPIDI_CH3_Pkt_t * pkt, v
         resp_req->dev.OnDataAvail = MPIDI_CH3_ReqHandler_GaccumSendComplete;
         resp_req->dev.OnFinal = MPIDI_CH3_ReqHandler_GaccumSendComplete;
         resp_req->kind = MPIR_REQUEST_KIND__SEND;
-        MV2_INC_NUM_POSTED_SEND();
+        MVP_INC_NUM_POSTED_SEND();
 
         /* here we increment the Active Target counter to guarantee the GET-like
          * operation are completed when counter reaches zero. */
@@ -1190,7 +1190,7 @@ int MPIDI_CH3_PktHandler_GetAccumulate(MPIDI_VC_t * vc, MPIDI_CH3_Pkt_t * pkt, v
             if (req->dev.pkt_flags & MPIDI_CH3_PKT_FLAG_RMA_STREAM) {
 #if defined(CHANNEL_MRAIL)
                 if (MPIDI_CH3_PKT_GET_ACCUM_RNDV == pkt->type) {
-                    req->mrail.protocol = MV2_RNDV_PROTOCOL_RPUT;
+                    req->mrail.protocol = MRAILI_PROTOCOL_RPUT;
                     MPIDI_CH3_RNDV_SET_REQ_INFO(req,
                             ((MPIDI_CH3_Pkt_get_accum_rndv_t * )(get_accum_pkt)));
                     MPIDI_CH3I_MRAIL_SET_REQ_REMOTE_RNDV(req, 
@@ -1199,7 +1199,7 @@ int MPIDI_CH3_PktHandler_GetAccumulate(MPIDI_VC_t * vc, MPIDI_CH3_Pkt_t * pkt, v
                         ((MPIDI_CH3_Pkt_get_accum_rndv_t *)pkt)->sender_req_id;
                     req->dev.recv_data_sz = ((MPIDI_CH3_Pkt_get_accum_rndv_t *)pkt)->data_sz;
                 } else {
-                    req->mrail.protocol = MV2_RNDV_PROTOCOL_EAGER;
+                    req->mrail.protocol = MRAILI_PROTOCOL_EAGER;
                 }
 #endif
 
@@ -1383,12 +1383,12 @@ int MPIDI_CH3_PktHandler_GetAccumulate(MPIDI_VC_t * vc, MPIDI_CH3_Pkt_t * pkt, v
                 MPIDI_CH3U_Append_pkt_size();
 #if defined(CHANNEL_MRAIL)
                 if (MPIDI_CH3_PKT_GET_ACCUM_RNDV == pkt->type) {
-                    req->mrail.protocol = MV2_RNDV_PROTOCOL_RPUT;
+                    req->mrail.protocol = MRAILI_PROTOCOL_RPUT;
                     MPIDI_CH3I_MRAIL_SET_REQ_REMOTE_RNDV(req, ((MPIDI_CH3_Pkt_accum_rndv_t * )(get_accum_pkt)));
                     req->dev.sender_req_id = ((MPIDI_CH3_Pkt_accum_rndv_t *)pkt)->sender_req_id;
                     req->dev.recv_data_sz = ((MPIDI_CH3_Pkt_accum_rndv_t *)pkt)->data_sz;
                 } else {
-                    req->mrail.protocol = MV2_RNDV_PROTOCOL_EAGER;
+                    req->mrail.protocol = MRAILI_PROTOCOL_EAGER;
                 }
 #endif /* defined(CHANNEL_MRAIL) */
 
@@ -2093,12 +2093,11 @@ int MPIDI_CH3_PktHandler_GetResp(MPIDI_VC_t * vc ATTRIBUTE((unused)),
     else {
         MPIR_Assert(get_resp_pkt->type == MPIDI_CH3_PKT_GET_RESP);
 #if defined(CHANNEL_MRAIL)
-        if (MV2_RNDV_PROTOCOL_RPUT == req->mrail.protocol)
-        {
+        if (MRAILI_PROTOCOL_RPUT == req->mrail.protocol) {
             MPIDI_CH3_Get_rndv_recv(vc, req);
             vc->ch.recv_active = NULL;
             *rreqp = NULL;
-        } else 
+        } else
 #else /* defined(CHANNEL_MRAIL) */
         {
 
@@ -2113,7 +2112,7 @@ int MPIDI_CH3_PktHandler_GetResp(MPIDI_VC_t * vc ATTRIBUTE((unused)),
             *buflen = data_len;
             MPIDI_CH3U_Append_pkt_size();
 #if defined(CHANNEL_MRAIL)
-            if (MV2_RNDV_PROTOCOL_RENDEZVOUS_UNSPECIFIED == req->mrail.protocol)
+            if (MRAILI_PROTOCOL_RENDEZVOUS_UNSPECIFIED == req->mrail.protocol)
                 complete = 1;
 #endif
         }

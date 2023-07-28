@@ -1,14 +1,22 @@
-MVAPICH2 Changelog
+MVAPICH Changelog
 ------------------
-This file briefly describes the changes to the MVAPICH2 software
+This file briefly describes the changes to the MVAPICH software
 package.  The logs are arranged in the "most recent first" order.
 
-MVAPICH2 3.0a (08/15/2022)
+MVAPICH 3.0
+(3.0b released 05/10/2023)
+(3.0a released 08/15/2022)
 
 * Features and Enhancements (since 2.3.7):
+    - Name changed from MVAPICH2 to MVAPICH
     - Based on MPICH 3.4.3
     - Added support for the ch4:ucx and ch4:ofi devices
-        - Support for MVAPICH2 enhanced collectives over ofi and ucx
+        * Support for MVAPICH enhanced collectives over OFI and UCX
+    - Enhanced MVAPICH-based designs for intra-node communication operations
+        * Supports using shared-memory/kernel-based protocols for different
+          message sizes
+        * Supports using UCX/OFI for inter-node and MVAPICH-based shared-memory
+          for intra-node communication operations
     - Added support for the Cray Slingshot 11 interconnect over OFI
         - Supports Cray Slingshot 11 network adapters
     - Added support for the Cornelis OPX library over OFI
@@ -17,6 +25,7 @@ MVAPICH2 3.0a (08/15/2022)
         - Supports Intel Columbiaville network adapters
     - Added support for IB verbs over UCX
         - Supports IB and RoCE network adapters
+    - Unified MVAPICH environment variables with the MPICH CVAR interface
     - Disabled ch3:mrail device
     - Removed ch3:psm device
 

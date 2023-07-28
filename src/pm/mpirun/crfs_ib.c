@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -52,22 +52,22 @@
 
 /////////////////////////////////////////////////////////////////////////////////
 /////////////////////////// global vars, common to both cli & srv
-#define MAX_CONN_NUM    (32)
+#define MAX_CONN_NUM (32)
 int g_exit = 0;
 struct ib_HCA hca;
 
 int num_connection = 0;
 struct ib_connection conn_array[MAX_CONN_NUM];
 
-hash_table_t *g_ht_cfile;       // hash table for ckpt-files
+hash_table_t *g_ht_cfile; // hash table for ckpt-files
 
-struct thread_pool *iopool;     // pool of io-threads
+struct thread_pool *iopool; // pool of io-threads
 
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////       server side code
 
-static pthread_t ibthr;         // ib-main-thread, takes care of ib_server_loop
-static pthread_t listen_thr;    // istening on a port for connection rqst
+static pthread_t ibthr;      // ib-main-thread, takes care of ib_server_loop
+static pthread_t listen_thr; // istening on a port for connection rqst
 
 static sem_t test_sem;
 
@@ -97,19 +97,21 @@ int ibsrv_main_entry(void *p)
         goto err_out_1;
     }
     /// 2. create the IO-thread pool
-    //tp_init_thread_pool( &io_pool, g_iopool_size, ibsrv_ioprocess, "io_pool" );
+    // tp_init_thread_pool( &io_pool, g_iopool_size, ibsrv_ioprocess, "io_pool"
+    // );
     iopool = tp_create_thread_pool(g_iopool_size, ibsrv_ioprocess, "io_pool");
     if (!iopool) {
         error("Error!! fail to create io-thread-pool\n");
         goto err_out_2;
     }
     /// 3. start a ib-main-loop to wait for IB-pkts
-    if (pthread_create(&ibthr, NULL, ibsrv_main_loop, (void *) iopool) != 0) {
+    if (pthread_create(&ibthr, NULL, ibsrv_main_loop, (void *)iopool) != 0) {
         error("Error!! fail to create ib-thr\n");
         goto err_out_3;
     }
     //// 4. start tcp-srv loop
-    if (pthread_create(&listen_thr, NULL, ibsrv_listen_port, &g_srv_tcpport) != 0) {
+    if (pthread_create(&listen_thr, NULL, ibsrv_listen_port, &g_srv_tcpport) !=
+        0) {
         error("Error!! fail to create listen-thr\n");
         goto err_out_4;
     }
@@ -118,36 +120,36 @@ int ibsrv_main_entry(void *p)
         error("Fail to create hash-table...\n");
         goto err_out_5;
     }
-    pass_hash_table(g_ht_cfile);    /// tell ib_server: use this hash_table
+    pass_hash_table(g_ht_cfile); /// tell ib_server: use this hash_table
 
     init_all_connections(conn_array, MAX_CONN_NUM);
     /////// test ftb
-/*    if( ftb_init() != 0 ){
-        error("fail to connect ftb...\n");
-        goto err_out_6;
-    }
-    //ftb_publish_msg( MSG_TEST );   */
+    /*    if( ftb_init() != 0 ){
+            error("fail to connect ftb...\n");
+            goto err_out_6;
+        }
+        //ftb_publish_msg( MSG_TEST );   */
 
     return 0;
 
     /// release the hash table
     destroy_hash_table(g_ht_cfile);
 
-  err_out_5:
+err_out_5:
 
-  err_out_4:
-    g_exit = 1;                 //g_ibsrv_finish = 1;
+err_out_4:
+    g_exit = 1; // g_ibsrv_finish = 1;
     pthread_join(listen_thr, NULL);
 
-  err_out_3:                   // terminate the ib_main_loop
-    g_exit = 1;                 //g_ibsrv_finish = 1;
+err_out_3:      // terminate the ib_main_loop
+    g_exit = 1; // g_ibsrv_finish = 1;
     sem_post(&test_sem);
     pthread_join(ibthr, NULL);
 
-  err_out_2:                   // free the io-pool
+err_out_2: // free the io-pool
     tp_destroy_thread_pool(iopool);
 
-  err_out_1:                   /// release the HCA
+err_out_1: /// release the HCA
     ib_HCA_destroy(&hca);
 
     pthread_mutex_destroy(&g_mutex);
@@ -167,14 +169,14 @@ int ibsrv_main_exit()
     if (!g_exit) {
         //////////// Now exit.    Clear resources, then exit
         dbg("ib-server exit...\n");
-        //g_ibsrv_finish = 1;       
+        // g_ibsrv_finish = 1;
         g_exit = 1;
 
         /// release the hash table
         destroy_hash_table(g_ht_cfile);
 
         /////////// FTB
-        //ftb_terminate();
+        // ftb_terminate();
         /////////////////////////////
 
         // terminate the ib_main_loop
@@ -206,18 +208,18 @@ void *ibsrv_ioprocess(void *arg)
 {
     int i;
 
-    struct thread_pool *ownertp = (struct thread_pool *) arg;
+    struct thread_pool *ownertp = (struct thread_pool *)arg;
     sem_t sem;
     struct ib_connection *conn;
-    struct work_elem welem;     // a RDMA rqst 
+    struct work_elem welem; // a RDMA rqst
     struct ib_packet *rrpkt;
 
-    pthread_t mytid = pthread_self();   // my-thread id
+    pthread_t mytid = pthread_self(); // my-thread id
     int myid = -1;
 
     sem_init(&sem, 0, 0);
 
-    sleep(1);                   // wait for the complete io-pool to be created
+    sleep(1); // wait for the complete io-pool to be created
 
     /// find my id
     for (i = 0; i < ownertp->num_threads; i++) {
@@ -228,7 +230,7 @@ void *ibsrv_ioprocess(void *arg)
     }
 
     /////////
-    if (myid < 0) {             // Error!!
+    if (myid < 0) { // Error!!
         error("Error::  mytid = %lu, fail to find id\n", mytid);
         goto err_out_1;
     } else {
@@ -245,28 +247,31 @@ void *ibsrv_ioprocess(void *arg)
             printf(" iothread %d exit...\n", myid);
             break;
         }
-        //printf("::::  iothr %d::   \n", myid);
-        //dump_queue( ownertp->queue );
-        //dump_work_elem( &welem );
+        // printf("::::  iothr %d::   \n", myid);
+        // dump_queue( ownertp->queue );
+        // dump_work_elem( &welem );
 
-        //////  welem.data is the RR-rqst pkt,              
+        //////  welem.data is the RR-rqst pkt,
         ///  arg1 =  (qpidx | recvbuf-slot), arg2: ib_connection*
-        uint64_t t = welem.arg1;    // ownertp->arg1[myid];
-        int qpidx = (int) (t >> 32);
-        int slot = (int) (t & 0x0ffffffffUL);   // recv-buf slot: containing the RR info
+        uint64_t t = welem.arg1; // ownertp->arg1[myid];
+        int qpidx = (int)(t >> 32);
+        int slot =
+            (int)(t & 0x0ffffffffUL); // recv-buf slot: containing the RR info
         // this "slot" var is meaningless now... DON'T use it!!!
-        conn = (struct ib_connection *) welem.arg2;
-        ckpt_file_t *cfile = (ckpt_file_t *) welem.arg3;
+        conn = (struct ib_connection *)welem.arg2;
+        ckpt_file_t *cfile = (ckpt_file_t *)welem.arg3;
 
         struct ib_HCA *hca = conn->hca;
 
-        //printf("iop %d: arg1=0x%lx, arg2=0x%lx\n", myid, ownertp->arg1[myid], ownertp->arg2[myid] );  
+        // printf("iop %d: arg1=0x%lx, arg2=0x%lx\n", myid, ownertp->arg1[myid],
+        // ownertp->arg2[myid] );
 
         //////// 1.   start the RDMA-READ
-        rrpkt = (struct ib_packet *) welem.data;
-        rrpkt->RR.larg1 = (uint64_t) & sem;
+        rrpkt = (struct ib_packet *)welem.data;
+        rrpkt->RR.larg1 = (uint64_t)&sem;
         if (rrpkt->RR.size > 0) {
-            int lbuf_id __attribute__((__unused__)) = ib_connection_post_RR(conn, qpidx, rrpkt);
+            int lbuf_id __attribute__((__unused__)) =
+                ib_connection_post_RR(conn, qpidx, rrpkt);
 
             // Now, lbuf_id is local RDMA-buf id to store the RR data
             dbg("[iot_%d]: post RR using local-buf %d\n", myid, lbuf_id);
@@ -274,45 +279,51 @@ void *ibsrv_ioprocess(void *arg)
             ///// wait for the RR to complete
             sem_wait(&sem);
 
-            //printf("[iot_%d]: done RR: (%s) %d@%d,is-last=%d, lbuf %d, \n", myid, rrpkt->RR.filename,
-            //  rrpkt->RR.size, rrpkt->RR.offset, rrpkt->RR.is_last_chunk, rrpkt->RR.lbuf_id );
+            // printf("[iot_%d]: done RR: (%s) %d@%d,is-last=%d, lbuf %d, \n",
+            // myid, rrpkt->RR.filename,
+            //   rrpkt->RR.size, rrpkt->RR.offset, rrpkt->RR.is_last_chunk,
+            //   rrpkt->RR.lbuf_id );
         } else {
-            dbg("*** [iot_%d]: got an empty chk: (%s) %ld@%ld, is-last=%d\n", myid, rrpkt->RR.filename, rrpkt->RR.size, rrpkt->RR.offset, rrpkt->RR.is_last_chunk);
+            dbg("*** [iot_%d]: got an empty chk: (%s) %ld@%ld, is-last=%d\n",
+                myid, rrpkt->RR.filename, rrpkt->RR.size, rrpkt->RR.offset,
+                rrpkt->RR.is_last_chunk);
         }
 
-        /////// 2. now, the RR is complete. Attach the new chunk of data to cfile's chunk-list
+        /////// 2. now, the RR is complete. Attach the new chunk of data to
+        /// cfile's chunk-list
         add_chunk_to_ckpt_file(cfile, rrpkt);
-        //cfile->write_size += rrpkt->RR.size;
+        // cfile->write_size += rrpkt->RR.size;
 
         ///////  decrease the reference of ckpt-file in the hash-table
         hash_table_put_record(g_ht_cfile, cfile, 0);
 
-        ////// now the data has been RDMA-READ to local buf,                
-        {                       // Prepare a reply to remote peer, copy the RR-info-pkt
+        ////// now the data has been RDMA-READ to local buf,
+        { // Prepare a reply to remote peer, copy the RR-info-pkt
             struct ib_packet *spkt;
-            slot = get_buf_slot(hca->send_buf, (void *) &spkt, 0);
+            slot = get_buf_slot(hca->send_buf, (void *)&spkt, 0);
             memcpy(spkt, rrpkt, sizeof(*spkt)); // copy RR-infor to the send-buf
             spkt->command = reply_RR;
-            dbg("[iot_%d]: reply RR: (%s) %ld@%ld, is-last=%d\n", myid, rrpkt->RR.filename, rrpkt->RR.size, rrpkt->RR.offset, rrpkt->RR.is_last_chunk);
+            dbg("[iot_%d]: reply RR: (%s) %ld@%ld, is-last=%d\n", myid,
+                rrpkt->RR.filename, rrpkt->RR.size, rrpkt->RR.offset,
+                rrpkt->RR.is_last_chunk);
 
             ib_connection_post_send(conn, qpidx, slot, sizeof(*spkt));
         }
-
     }
     ///////
-    ///close(fd);
+    /// close(fd);
     //////////////////
 
-  err_out_1:
+err_out_1:
     sem_destroy(&sem);
-    //dbg("iothr %d exit...\n", myid);
+    // dbg("iothr %d exit...\n", myid);
     pthread_exit(NULL);
 }
 
 // this loop monitors the comp_channel & CQ, binding to a HCA
 void *ibsrv_main_loop(void *arg)
 {
-    struct thread_pool *iopool = (struct thread_pool *) arg;
+    struct thread_pool *iopool = (struct thread_pool *)arg;
 
     dbg(" ib-main-loop waiting to be waken up... \n");
 
@@ -322,7 +333,7 @@ void *ibsrv_main_loop(void *arg)
         printf("%s: sem ret %d...\n", __func__, ret);
         return NULL;
     }
-    if (g_exit) {               //g_ibsrv_finish ) { // g_finish ){  
+    if (g_exit) { // g_ibsrv_finish ) { // g_finish ){
         printf("%s:  sem interrupted\n", __func__);
         return NULL;
     }
@@ -330,18 +341,17 @@ void *ibsrv_main_loop(void *arg)
 
     ib_server_loop(conn_array, iopool);
 
-    //g_exit = 1;
+    // g_exit = 1;
 
     release_all_connections(conn_array, MAX_CONN_NUM);
     dbg(" ib-main-loop exit ... \n");
     pthread_exit(NULL);
-
 }
 
 /// runs in one thread
 void *ibsrv_listen_port(void *arg)
 {
-    int port = *((int *) (arg));
+    int port = *((int *)(arg));
     char msg[64];
     int srv_sock;
 
@@ -352,18 +362,19 @@ void *ibsrv_listen_port(void *arg)
     srv.sin_port = (port == 0) ? htons(g_srv_tcpport) : htons(port);
     srv.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    bind(srv_sock, (struct sockaddr *) &srv, sizeof(srv));
+    bind(srv_sock, (struct sockaddr *)&srv, sizeof(srv));
 
     socklen_t namelen = sizeof(struct sockaddr_in);
-    if (getsockname(srv_sock, (struct sockaddr *) &srv, &namelen) < 0) {
+    if (getsockname(srv_sock, (struct sockaddr *)&srv, &namelen) < 0) {
         perror("getting sock name");
         exit(3);
     }
-    //char* pn = inet_ntop(srv.sin_addr);
-    //char* pn = inet_ntop(AF_INET, (void*)&(srv.sin_addr), msg, INET_ADDRSTRLEN);
+    // char* pn = inet_ntop(srv.sin_addr);
+    // char* pn = inet_ntop(AF_INET, (void*)&(srv.sin_addr), msg,
+    // INET_ADDRSTRLEN);
     dbg("Server listening on port %d\n", ntohs(srv.sin_port));
 
-    /////////////////////////////////////// 
+    ///////////////////////////////////////
     struct sockaddr_in cli_addr;
     socklen_t addrlen = sizeof(struct sockaddr_in);
     int msgsock;
@@ -371,9 +382,9 @@ void *ibsrv_listen_port(void *arg)
     fd_set fds;
     struct timeval timeout;
 
-    listen(srv_sock, 8);        // srv listen on a port
+    listen(srv_sock, 8); // srv listen on a port
 
-    while (!g_exit)             //g_ibsrv_finish ) // g_finish )
+    while (!g_exit) // g_ibsrv_finish ) // g_finish )
     {
         FD_ZERO(&fds);
         FD_SET(srv_sock, &fds);
@@ -385,26 +396,26 @@ void *ibsrv_listen_port(void *arg)
         if (i < 0) {
             error("Error:: select() ret %d\n", i);
             continue;
-        } else if (i == 0) {    // timeout
+        } else if (i == 0) { // timeout
             if (g_exit)
                 break;
             continue;
         }
         /// has a incoming request // FD_ISSET( srv_sock, &fds );
-        msgsock = accept(srv_sock, (struct sockaddr *) (&cli_addr), &addrlen);
+        msgsock = accept(srv_sock, (struct sockaddr *)(&cli_addr), &addrlen);
         if (msgsock < 0) {
             dbg("will break\n");
         }
-        inet_ntop(AF_INET, (void *) &(cli_addr.sin_addr), msg, 64);
+        inet_ntop(AF_INET, (void *)&(cli_addr.sin_addr), msg, 64);
         dbg("\tSrv get con from %s: %d\n", msg, ntohs(cli_addr.sin_port));
 
         dbg("process connection %d...\n", num_connection);
 
-        uint64_t t = (((uint64_t) num_connection) << 32) | msgsock;
+        uint64_t t = (((uint64_t)num_connection) << 32) | msgsock;
 
-        ibsrv_connection_server((void *) t);    // setup a connection to this coming client
+        ibsrv_connection_server(
+            (void *)t); // setup a connection to this coming client
         num_connection++;
-
     }
 
     close(srv_sock);
@@ -416,7 +427,7 @@ void *ibsrv_listen_port(void *arg)
        //pthread_join( conn_thread[i], NULL );
        ib_connection_release( &conn_array[i] );
        }    */
-    /////////   
+    /////////
     return NULL;
 }
 
@@ -452,7 +463,7 @@ int release_all_connections(struct ib_connection *carray, int num)
 }
 
 /*
-When a client inits a connection to server, 
+When a client inits a connection to server,
 this function is called to setup one ib_connection to the client
 */
 void ibsrv_connection_server(void *arg)
@@ -462,11 +473,12 @@ void ibsrv_connection_server(void *arg)
     int newsock;
     int myid;
 
-    uint64_t t = (uint64_t) arg;
+    uint64_t t = (uint64_t)arg;
 
-    newsock = (int) t;
-    myid = (int) (t >> 32);
-    struct ib_connection *conn = conn_array + myid; // ib-connection for this ib-srv
+    newsock = (int)t;
+    myid = (int)(t >> 32);
+    struct ib_connection *conn =
+        conn_array + myid; // ib-connection for this ib-srv
 
     {
         dbg("build connection %d, using socket %d...\n", myid, newsock);
@@ -474,7 +486,8 @@ void ibsrv_connection_server(void *arg)
         // now newsock is used to commu with client
         /// 1. set up ib-conn step 1
         ib_connection_init_1(conn, g_num_qp, &hca); // g_rx_depth );
-        if (has_init == 0)      // myid == 0 ) // the first connection-rqst, set up the HCA
+        if (has_init ==
+            0) // myid == 0 ) // the first connection-rqst, set up the HCA
             ib_connection_fillup_srq(&hca);
 
         /// 2. from server-side: exchange info with client
@@ -486,38 +499,39 @@ void ibsrv_connection_server(void *arg)
 
         conn->status = connection_active;
 
-        // now IB port is ready. Wake up ib-main-loop to check the ib-channel           
-        //if( myid == 0 ) 
-        if (has_init == 0)      // 
+        // now IB port is ready. Wake up ib-main-loop to check the ib-channel
+        // if( myid == 0 )
+        if (has_init == 0) //
             sem_post(&test_sem);
 
         dbg("connection %d is ready...\n", myid);
-
     }
     has_init++;
 
-    //dbg("ib-conn-srv %d finished...\n", myid);
+    // dbg("ib-conn-srv %d finished...\n", myid);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////       client side code
 
-static int exchange_with_server(char *srvname, int srvport, struct ib_connection *conn);
+static int exchange_with_server(char *srvname, int srvport,
+                                struct ib_connection *conn);
 static void *ibcli_ioprocess(void *arg);
 
 int ibcli_main_entry(void *p)
 {
     sendslot_size = recvslot_size = sizeof(ib_packet_t);
 
-    /// 1. init the IB 
+    /// 1. init the IB
     if (ib_HCA_init(&hca, 1)) {
         printf("HCA-init error!!\n");
         goto err_out_1;
     }
-    //client_work( xxx );
+    // client_work( xxx );
 
     /// 2. create the IO-thread pool for client-IO
-    iopool = tp_create_thread_pool(g_iopool_size, ibcli_ioprocess, "cli_io_pool");
+    iopool =
+        tp_create_thread_pool(g_iopool_size, ibcli_ioprocess, "cli_io_pool");
     if (!iopool) {
         error("Error!! fail to create io-thread-pool\n");
         goto err_out_2;
@@ -534,14 +548,14 @@ int ibcli_main_entry(void *p)
     dbg("Has inited cli-main-entry...\n");
     return 0;
 
-  err_out_3:
+err_out_3:
     tp_destroy_thread_pool(iopool);
     iopool = NULL;
 
-  err_out_2:
+err_out_2:
     ib_HCA_destroy(&hca);
 
-  err_out_1:
+err_out_1:
     g_exit = 1;
     return -1;
 }
@@ -579,21 +593,19 @@ int exchange_with_server(char *srvname, int srvport, struct ib_connection *conn)
     char msg[128];
 
     struct sockaddr_in srv_addr;
-    struct hostent *hp;         // get srv's addr info
+    struct hostent *hp; // get srv's addr info
 
     int cli_sock = socket(AF_INET, SOCK_STREAM, 0);
 
     /* getaddrinfo hints struct */
-    struct addrinfo addr_hint = {
-        .ai_flags = AI_CANONNAME,
-        .ai_family = AF_INET,
-        .ai_socktype = 0,
-        .ai_protocol = 0,
-        .ai_addrlen = 0,
-        .ai_addr = NULL,
-        .ai_canonname = NULL,
-        .ai_next = NULL
-    };
+    struct addrinfo addr_hint = {.ai_flags = AI_CANONNAME,
+                                 .ai_family = AF_INET,
+                                 .ai_socktype = 0,
+                                 .ai_protocol = 0,
+                                 .ai_addrlen = 0,
+                                 .ai_addr = NULL,
+                                 .ai_canonname = NULL,
+                                 .ai_next = NULL};
     struct addrinfo *res;
     int err;
 
@@ -602,7 +614,7 @@ int exchange_with_server(char *srvname, int srvport, struct ib_connection *conn)
     srv_addr.sin_port = htons(srvport);
 
     err = getaddrinfo(srvname, NULL, &addr_hint, &res);
-    if (err) {                  // fail to get srv's addr
+    if (err) { // fail to get srv's addr
         error("fail at getaddrinfo: %s\n", srvname);
         return -1;
     }
@@ -613,9 +625,11 @@ int exchange_with_server(char *srvname, int srvport, struct ib_connection *conn)
         return -1;
     }
 
-    inet_ntop(AF_INET, &((struct sockaddr_in *)res->ai_addr)->sin_addr, msg, 64);
+    inet_ntop(AF_INET, &((struct sockaddr_in *)res->ai_addr)->sin_addr, msg,
+              64);
 
-    printf("cli connect to srv %s:: %s : %d\n", srvname, msg, ntohs(srv_addr.sin_port));
+    printf("cli connect to srv %s:: %s : %d\n", srvname, msg,
+           ntohs(srv_addr.sin_port));
 
     ////////////////////////////////////////
     //// now exchange info with server
@@ -625,25 +639,24 @@ int exchange_with_server(char *srvname, int srvport, struct ib_connection *conn)
     close(cli_sock);
 
     return 0;
-
 }
 
 /**
 
 **/
-void *ibcli_mig_src(void *arg)  // char* srv[], int numsrv, int port)
+void *ibcli_mig_src(void *arg) // char* srv[], int numsrv, int port)
 {
     int ret;
 
     struct ib_connection *conn;
 
-    mig_info_t *minfo = (mig_info_t *) arg;
+    mig_info_t *minfo = (mig_info_t *)arg;
 
     struct timeval tstart, tend;
 
-    //num_connection = 0;
+    // num_connection = 0;
     ////  establish one IB connections to each server
-    //for(i=0; i<numsrv; i++)
+    // for(i=0; i<numsrv; i++)
     minfo->fail_flag = 0;
     gettimeofday(&tstart, NULL);
     {
@@ -656,12 +669,12 @@ void *ibcli_mig_src(void *arg)  // char* srv[], int numsrv, int port)
             error("connection-init-1 fails ret %d\n", ret);
             return NULL;
         }
-        if (num_connection == 0)    // post WQE to srq of the hca
+        if (num_connection == 0) // post WQE to srq of the hca
             ib_connection_fillup_srq(&hca);
 
         /// 2. exchange info with server
         ret = exchange_with_server(minfo->tgt, minfo->port, conn);
-        if (ret != 0) {         // fail to connect to server
+        if (ret != 0) { // fail to connect to server
             goto err_out_1;
         }
         /// 3. finish ib-conn setup
@@ -673,9 +686,10 @@ void *ibcli_mig_src(void *arg)  // char* srv[], int numsrv, int port)
     gettimeofday(&tend, NULL);
     sem_post(&minfo->sem);
 
-//  long us = (tend.tv_sec - tstart.tv_sec)*1000000 + (tend.tv_usec-tstart.tv_usec);
-//  dbg(" Has connected: %s ==> %s, port %d, cost %ld us\n", 
-//      minfo->src, minfo->tgt, minfo->port, us );
+    //  long us = (tend.tv_sec - tstart.tv_sec)*1000000 +
+    //  (tend.tv_usec-tstart.tv_usec); dbg(" Has connected: %s ==> %s, port %d,
+    //  cost %ld us\n",
+    //      minfo->src, minfo->tgt, minfo->port, us );
 
     //////////// create a flag file to release other procs
     extern char crfs_sessionid[128];
@@ -686,7 +700,7 @@ void *ibcli_mig_src(void *arg)  // char* srv[], int numsrv, int port)
 
     //////////// start work
     gettimeofday(&tstart, NULL);
-    //usleep(1000);     
+    // usleep(1000);
 
     ///////  start working
     ib_client_loop(&conn_array[0]);
@@ -698,34 +712,35 @@ void *ibcli_mig_src(void *arg)  // char* srv[], int numsrv, int port)
     /*
        double sec = tv2sec(&tstart, &tend);
        double size = (1UL * rdmaslot_size) * numRR;
-       printf("Client: send data %f MB, time %f sec, bw= %.3f MB/s\n", size/(1024*1024), 
-       sec, size/(1024*1024) / sec );
+       printf("Client: send data %f MB, time %f sec, bw= %.3f MB/s\n",
+       size/(1024*1024), sec, size/(1024*1024) / sec );
      */
 
     pthread_exit(NULL);
 
-  err_out_1:
+err_out_1:
     minfo->fail_flag = 1;
     sem_post(&minfo->sem);
     pthread_exit(NULL);
 }
 
-static pthread_t thr_migsrc;    // thread to work at mig-source node
+static pthread_t thr_migsrc; // thread to work at mig-source node
 static mig_info_t *p_mig = NULL;
 /**
-This is the source-node of a mig, and user has requested to start a mig. 
+This is the source-node of a mig, and user has requested to start a mig.
 Start a new thread to connect to mig-target node,  loops over
 the IB-comm routine to take care of all ib-events
 **/
-int ibcli_start_mig(mig_info_t * minfo)
+int ibcli_start_mig(mig_info_t *minfo)
 {
     int ret;
 
     if (minfo->port == 0) {
         minfo->port = g_srv_tcpport;
     }
-    dbg("will start thr_migsrc:  src=%s, tgt=%s, port=%d...\n", minfo->src, minfo->tgt, minfo->port);
-    ret = pthread_create(&thr_migsrc, NULL, ibcli_mig_src, (void *) minfo);
+    dbg("will start thr_migsrc:  src=%s, tgt=%s, port=%d...\n", minfo->src,
+        minfo->tgt, minfo->port);
+    ret = pthread_create(&thr_migsrc, NULL, ibcli_mig_src, (void *)minfo);
 
     if (ret) {
         err("Fail to create mig-src-thread. errno=%d\n", errno);
@@ -734,7 +749,7 @@ int ibcli_start_mig(mig_info_t * minfo)
     } else {
         // have created the thread to do mig. wait for it to init
         p_mig = minfo;
-        sem_wait(&minfo->sem);  // wait for IB connection to be established
+        sem_wait(&minfo->sem); // wait for IB connection to be established
         if (minfo->fail_flag) {
             err("init migration failed...\n");
             return -1;
@@ -744,7 +759,7 @@ int ibcli_start_mig(mig_info_t * minfo)
     return 0;
 }
 
-void ibcli_end_mig(mig_info_t * minfo)
+void ibcli_end_mig(mig_info_t *minfo)
 {
     int i;
 
@@ -781,15 +796,15 @@ void *ibcli_ioprocess(void *arg)
 
     char iofname[128];
 
-    struct thread_pool *ownertp = (struct thread_pool *) arg;
+    struct thread_pool *ownertp = (struct thread_pool *)arg;
     sem_t sem;
-    //struct ib_packet* tmppkt;
-    struct work_elem welem;     // a RDMA rqst 
+    // struct ib_packet* tmppkt;
+    struct work_elem welem; // a RDMA rqst
 
     sem_init(&sem, 0, 0);
-    sleep(1);                   // wait for the complete io-pool to be created
+    sleep(1); // wait for the complete io-pool to be created
 
-    pthread_t mytid = pthread_self();   // my-thread id
+    pthread_t mytid = pthread_self(); // my-thread id
     int myid = -1;
 
     /// find my id
@@ -800,7 +815,7 @@ void *ibcli_ioprocess(void *arg)
         }
     }
     /////////
-    if (myid < 0) {             // Error!!
+    if (myid < 0) { // Error!!
         error("Error::  mytid = %lu, fail to find id\n", mytid);
         goto err_out_1;
     } else {
@@ -816,37 +831,41 @@ void *ibcli_ioprocess(void *arg)
         // wait to be waken up
         // get a RDMA rqst from the queue, copy this item to local-var
         workqueue_dequeue(ownertp->queue, &welem);
-        //dbg("after wait for welem...\n");
+        // dbg("after wait for welem...\n");
 
         // terminate?
         if (welem.arg1 == arg_invalid || welem.arg2 == arg_invalid) {
-            //printf(" iothread %d exit...\n", myid);
+            // printf(" iothread %d exit...\n", myid);
             break;
         }
-        /// now get a full-chunk    
-        ckpt_chunk_t *chunk = (ckpt_chunk_t *) welem.data;
+        /// now get a full-chunk
+        ckpt_chunk_t *chunk = (ckpt_chunk_t *)welem.data;
         ckpt_file_t *cfile = chunk->ckpt_file;
 
         strncpy(iofname, cfile->filename, 128);
         iofname[128 - 1] = 0;
 
-/* it turned out that, the perf bottleneck is at write-aggregation.
-fuse implementation is low perf in writing...: use a LOT of mem internally, low throughput,
-When tried 8 write processes 1GB each, and ignore the data chunks directly,
-the aggre-write bw is only ~200MB/s !!!!!!!!!!!     */
+        /* it turned out that, the perf bottleneck is at write-aggregation.
+        fuse implementation is low perf in writing...: use a LOT of mem
+        internally, low throughput, When tried 8 write processes 1GB each, and
+        ignore the data chunks directly, the aggre-write bw is only ~200MB/s
+        !!!!!!!!!!!     */
 
-        /**  printf("%s: [iot_%d]: aggre to buf %d, bypass...\n", __func__, myid, chunk->bufid);
-        if( chunk->bufid >= 0 && chunk->curr_pos>0)
+        /**  printf("%s: [iot_%d]: aggre to buf %d, bypass...\n", __func__,
+        myid, chunk->bufid); if( chunk->bufid >= 0 && chunk->curr_pos>0)
             ckpt_free_chunk( chunk );
         goto chunk_done; **/
 
         /// if this is src-node of a migration::
         if (mig_role == ROLE_MIG_SRC) { /// will perform RDMA to mig-tgt node
-            dbg("[iot_%d]: send RR rqst: (%s) (%d@%d), lbuf %d, is-last-chunk=%d\n", myid, cfile->filename, chunk->curr_pos, chunk->offset, chunk->bufid, chunk->is_last_chunk);
-            /// rqst server to RR this chunk    
+            dbg("[iot_%d]: send RR rqst: (%s) (%d@%d), lbuf %d, "
+                "is-last-chunk=%d\n",
+                myid, cfile->filename, chunk->curr_pos, chunk->offset,
+                chunk->bufid, chunk->is_last_chunk);
+            /// rqst server to RR this chunk
 
-            //// check the contents of the outgoing chunk...            
-            //check_chunk_content( cfile, chunk, chunk->curr_pos );
+            //// check the contents of the outgoing chunk...
+            // check_chunk_content( cfile, chunk, chunk->curr_pos );
 
             ib_connection_send_chunk_RR_rqst(p_mig->conn, cfile, chunk, &sem);
 
@@ -854,58 +873,78 @@ the aggre-write bw is only ~200MB/s !!!!!!!!!!!     */
             dbg("[iot_%d]: wait for sem...\n", myid);
             sem_wait(&sem);
 
-            if (atomic_dec_and_test(&p_mig->chunk_cnt)) // the count has reached 0
+            if (atomic_dec_and_test(
+                    &p_mig->chunk_cnt)) // the count has reached 0
             {
-                //if( chunk->is_last_chunk )
+                // if( chunk->is_last_chunk )
                 dbg("*****   will post chunk_comp_sem...\n");
-                sem_post(&p_mig->chunk_comp_sem);   // signify: all chunks have been RRed to server
+                sem_post(&p_mig->chunk_comp_sem); // signify: all chunks have
+                                                  // been RRed to server
             }
             // at this point, the ib-loop has freed the chunk->bufid
-            dbg("[iot_%d]: RR finished: (%s) (%d@%d), lbuf %d, is-last-chunk=%d\n", myid, cfile->filename, chunk->curr_pos, chunk->offset, chunk->bufid, chunk->is_last_chunk);
-            //ckpt_free_chunk( chunk ); // free the buf-chunk associated with this chunk
-        } else                  // in pure WA mode: only write to local file
+            dbg("[iot_%d]: RR finished: (%s) (%d@%d), lbuf %d, "
+                "is-last-chunk=%d\n",
+                myid, cfile->filename, chunk->curr_pos, chunk->offset,
+                chunk->bufid, chunk->is_last_chunk);
+            // ckpt_free_chunk( chunk ); // free the buf-chunk associated with
+            // this chunk
+        } else // in pure WA mode: only write to local file
         {
-            //dbg("iothr %d: get buf=%d, chunk (%d@%d) for cfile: %s...\n", myid, chunk->bufid,
-            //  chunk->curr_pos, chunk->offset, cfile->filename  );
-            //pthread_mutex_lock( &cfile->io_mtx );
+            // dbg("iothr %d: get buf=%d, chunk (%d@%d) for cfile: %s...\n",
+            // myid, chunk->bufid,
+            //   chunk->curr_pos, chunk->offset, cfile->filename  );
+            // pthread_mutex_lock( &cfile->io_mtx );
             if (chunk->curr_pos > 0)
-                //ret = 0;
-                ret = pwrite(cfile->fd, chunk->buf, chunk->curr_pos, chunk->offset);
+                // ret = 0;
+                ret = pwrite(cfile->fd, chunk->buf, chunk->curr_pos,
+                             chunk->offset);
             else
                 ret = 0;
-            //pthread_mutex_unlock( &cfile->io_mtx );
+            // pthread_mutex_unlock( &cfile->io_mtx );
             if (chunk->bufid >= 0 && chunk->curr_pos > 0)
-                ckpt_free_chunk(chunk); // free the buf-chunk associated with this chunk
+                ckpt_free_chunk(
+                    chunk); // free the buf-chunk associated with this chunk
 
-            dbg("[iot_%d]: write (%s) (%d@%d): ret=%d, lbuf=%d, is-last-chunk=%d\n", myid, cfile->filename, chunk->curr_pos, chunk->offset, ret, chunk->bufid, chunk->is_last_chunk);
+            dbg("[iot_%d]: write (%s) (%d@%d): ret=%d, lbuf=%d, "
+                "is-last-chunk=%d\n",
+                myid, cfile->filename, chunk->curr_pos, chunk->offset, ret,
+                chunk->bufid, chunk->is_last_chunk);
             if (ret < 0) {
-                printf("[iot_%d] write (%s) (%lu@%lu) ret=%d, lbuf=%d, is-last-chunk=%d\n", myid, cfile->filename, chunk->curr_pos, chunk->offset, ret, chunk->bufid, chunk->is_last_chunk);
+                printf("[iot_%d] write (%s) (%lu@%lu) ret=%d, lbuf=%d, "
+                       "is-last-chunk=%d\n",
+                       myid, cfile->filename, chunk->curr_pos, chunk->offset,
+                       ret, chunk->bufid, chunk->is_last_chunk);
                 perror("fail to pwrite  \n");
             }
-        }                       // end of else( In pure WA mode )
+        } // end of else( In pure WA mode )
 
-// chunk_done:  
-        if (cfile->can_release && !chunk->is_last_chunk && (chunk->offset + chunk->curr_pos == cfile->adv_size))    // this is the last chunk
+        // chunk_done:
+        if (cfile->can_release && !chunk->is_last_chunk &&
+            (chunk->offset + chunk->curr_pos ==
+             cfile->adv_size)) // this is the last chunk
         {
             chunk->is_last_chunk = 1;
         }
 
-        if (chunk->is_last_chunk)   // no more data for this file. can close it now.
+        if (chunk->is_last_chunk) // no more data for this file. can close it
+                                  // now.
         {
-            //dbg(" [iot_%d]: (%s) set has_last_chunk=1\n", myid,cfile->filename);
-            //strncpy(iofname, cfile->filename, 128);
-            //iofname[128-1] = 0;
-            //pthread_mutex_lock( &cfile->mutex );
+            // dbg(" [iot_%d]: (%s) set has_last_chunk=1\n",
+            // myid,cfile->filename); strncpy(iofname, cfile->filename, 128);
+            // iofname[128-1] = 0;
+            // pthread_mutex_lock( &cfile->mutex );
             cfile->has_last_chunk = 1;
-            //pthread_mutex_unlock( &cfile->mutex );
-            /// after setting "can_release", an iothr 
+            // pthread_mutex_unlock( &cfile->mutex );
+            /// after setting "can_release", an iothr
             /// may have cleaned the hash-tbl to remove this file
-            hash_bucket_t *bkt = htbl_find_lock_bucket(g_ht_cfile, iofname, strlen(iofname));
+            hash_bucket_t *bkt =
+                htbl_find_lock_bucket(g_ht_cfile, iofname, strlen(iofname));
             if (bkt) {
                 dbg(" [iot_%d]: will call: hash_table_put_record()...\n", myid);
                 ret = hash_table_put_record(g_ht_cfile, cfile, 1);
                 htbl_unlock_bucket(bkt);
-                //dbg(" [iot_%d]: release file %s ret %d...\n", myid, cfile->filename, ret);
+                // dbg(" [iot_%d]: release file %s ret %d...\n", myid,
+                // cfile->filename, ret);
             } else {
                 dbg(" other thr has del cfile-record for (%s)\n", iofname);
             }
@@ -913,7 +952,7 @@ the aggre-write bw is only ~200MB/s !!!!!!!!!!!     */
         ///} // end of else( In pure WA mode )
     }
 
-  err_out_1:
+err_out_1:
     sem_destroy(&sem);
     printf("ibcli-iothr %d exit...\n", myid);
     pthread_exit(NULL);

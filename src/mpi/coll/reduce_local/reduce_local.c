@@ -55,23 +55,23 @@ int MPIR_Reduce_local(const void *inbuf, void *inoutbuf, int count, MPI_Datatype
     char *temp_recvbuf = inoutbuf;
     const char *temp_sendbuf = inbuf;
 
-    if (mv2_enable_device) {
+    if (mvp_enable_device) {
         recv_mem_type = is_device_buffer(inoutbuf);
         if ( inbuf != MPI_IN_PLACE ){
             send_mem_type = is_device_buffer(inbuf);
         }
     }
-    if(mv2_enable_device && send_mem_type){
+    if(mvp_enable_device && send_mem_type){
         send_host_buf = (char*) MPL_malloc(stride);
-        MV2_MPID_Memcpy_Device((void *)send_host_buf,
+        MVP_MPID_Memcpy_Device((void *)send_host_buf,
                             (void *)inbuf, 
                             stride,
                             deviceMemcpyDeviceToHost);
         inbuf = send_host_buf;
     }
-    if(mv2_enable_device && recv_mem_type){
+    if(mvp_enable_device && recv_mem_type){
         recv_host_buf = (char*) MPL_malloc(stride);
-        MV2_MPID_Memcpy_Device((void *)recv_host_buf,
+        MVP_MPID_Memcpy_Device((void *)recv_host_buf,
                             (void *)inoutbuf, 
                             stride,
                             deviceMemcpyDeviceToHost);
@@ -131,21 +131,21 @@ int MPIR_Reduce_local(const void *inbuf, void *inoutbuf, int count, MPI_Datatype
     }
 
 #ifdef _ENABLE_CUDA_
-    if(mv2_enable_device && recv_mem_type){
+    if(mvp_enable_device && recv_mem_type){
         inoutbuf = temp_recvbuf;
         inbuf = temp_sendbuf;
-        MV2_MPID_Memcpy_Device((void *)inoutbuf,
+        MVP_MPID_Memcpy_Device((void *)inoutbuf,
                             (void *)recv_host_buf, 
                             stride, 
                             deviceMemcpyHostToDevice);
     }
-    if(mv2_enable_device && recv_mem_type){
+    if(mvp_enable_device && recv_mem_type){
         if(recv_host_buf){
             MPL_free(recv_host_buf);
             recv_host_buf = NULL;
         }
     }
-    if(mv2_enable_device && send_mem_type){
+    if(mvp_enable_device && send_mem_type){
         if(send_host_buf){
             MPL_free(send_host_buf);
             send_host_buf = NULL;

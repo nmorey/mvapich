@@ -1,13 +1,13 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  */
 /*
  *
@@ -16,29 +16,8 @@
  */
 
 #include "mpiimpl.h"
-#include "mv2_coll_shmem.h"
+#include "mvp_coll_shmem.h"
 #include "allgatherv_tuning.h"
-
-/*
-=== BEGIN_MPI_T_MV2_CVAR_INFO_BLOCK ===
-
-cvars:
-    - name        : MV2_ALLGATHERV_RD_THRESHOLD
-      category    : COLLECTIVE
-      type        : int
-      default     : -1
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        TODO-DESC
-
-        Defaults to 0 if not
-        specified. If specified then mv2_tune_parameter is set to 1
-        regardless of value.
-
-=== END_MPI_T_MV2_CVAR_INFO_BLOCK ===
-*/
 
 /* This is the default implementation of allgatherv. The algorithm is:
 
@@ -77,26 +56,24 @@ cvars:
    End Algorithm: MPI_Allgatherv
 */
 
-int (*MV2_Allgatherv_function)(const void *sendbuf,
-                               int sendcount,
-                               MPI_Datatype sendtype,
-                               void *recvbuf,
-                               const int *recvcounts,
-                               const int *displs,
-                               MPI_Datatype recvtype,
-                               MPIR_Comm * comm_ptr, MPIR_Errflag_t *errflag);
+int (*MVP_Allgatherv_function)(const void *sendbuf, int sendcount,
+                               MPI_Datatype sendtype, void *recvbuf,
+                               const int *recvcounts, const int *displs,
+                               MPI_Datatype recvtype, MPIR_Comm *comm_ptr,
+                               MPIR_Errflag_t *errflag);
 
 /* MPIR_Allgatherv performs an allgatherv using point-to-point
    messages.  This is intended to be used by device-specific
    implementations of allgatherv.  In all other cases
    MPIR_Allgatherv_impl should be used. */
 #undef FUNCNAME
-#define FUNCNAME MPIR_Allgatherv_MV2
+#define FUNCNAME MPIR_Allgatherv_MVP
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIR_Allgatherv_MV2(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
-                        void *recvbuf, const int *recvcounts, const int *displs,
-                        MPI_Datatype recvtype, MPIR_Comm * comm_ptr,
+int MPIR_Allgatherv_MVP(const void *sendbuf, int sendcount,
+                        MPI_Datatype sendtype, void *recvbuf,
+                        const int *recvcounts, const int *displs,
+                        MPI_Datatype recvtype, MPIR_Comm *comm_ptr,
                         MPIR_Errflag_t *errflag)
 {
     int mpi_errno = MPI_SUCCESS;
@@ -113,53 +90,49 @@ int MPIR_Allgatherv_MV2(const void *sendbuf, int sendcount, MPI_Datatype sendtyp
         goto fn_exit;
 
     MPIR_Datatype_get_size_macro(recvtype, recvtype_size);
-    nbytes = (MPI_Aint) total_count * recvtype_size;
+    nbytes = (MPI_Aint)total_count * recvtype_size;
 
     /* Search for the corresponding system size inside the tuning table */
-    while ((range < (mv2_size_allgatherv_tuning_table - 1)) &&
-           (comm_size > mv2_allgatherv_thresholds_table[range].numproc)) {
+    while ((range < (mvp_size_allgatherv_tuning_table - 1)) &&
+           (comm_size > mvp_allgatherv_thresholds_table[range].numproc)) {
         range++;
     }
     /* Search for corresponding inter-leader function */
-    while ((range_threshold < (mv2_allgatherv_thresholds_table[range].size_inter_table - 1))
-           && (nbytes >
-               comm_size * mv2_allgatherv_thresholds_table[range].inter_leader[range_threshold].max)
-           && (mv2_allgatherv_thresholds_table[range].inter_leader[range_threshold].max !=
-               -1)) {
+    while ((range_threshold <
+            (mvp_allgatherv_thresholds_table[range].size_inter_table - 1)) &&
+           (nbytes > comm_size * mvp_allgatherv_thresholds_table[range]
+                                     .inter_leader[range_threshold]
+                                     .max) &&
+           (mvp_allgatherv_thresholds_table[range]
+                .inter_leader[range_threshold]
+                .max != -1)) {
         range_threshold++;
     }
     /* Set inter-leader pt */
-    MV2_Allgatherv_function =
-                          mv2_allgatherv_thresholds_table[range].inter_leader[range_threshold].
-                          MV2_pt_Allgatherv_function;
+    MVP_Allgatherv_function = mvp_allgatherv_thresholds_table[range]
+                                  .inter_leader[range_threshold]
+                                  .MVP_pt_Allgatherv_function;
 
-    if (MV2_Allgatherv_function == &MPIR_Allgatherv_Rec_Doubling_MV2)
-    {
-        if(!(comm_size & (comm_size - 1)))
-        {
-            mpi_errno =
-                MPIR_Allgatherv_Rec_Doubling_MV2(sendbuf, sendcount,
-                                                 sendtype, recvbuf,
-                                                 recvcounts, displs,
-                                                 recvtype, comm_ptr, errflag);
+    if (MVP_Allgatherv_function == &MPIR_Allgatherv_Rec_Doubling_MVP) {
+        if (!(comm_size & (comm_size - 1))) {
+            mpi_errno = MPIR_Allgatherv_Rec_Doubling_MVP(
+                sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs,
+                recvtype, comm_ptr, errflag);
         } else {
-            mpi_errno =
-                MPIR_Allgatherv_Bruck_MV2(sendbuf, sendcount,
-                                          sendtype, recvbuf,
-                                          recvcounts, displs,
-                                          recvtype, comm_ptr, errflag);
+            mpi_errno = MPIR_Allgatherv_Bruck_MVP(sendbuf, sendcount, sendtype,
+                                                  recvbuf, recvcounts, displs,
+                                                  recvtype, comm_ptr, errflag);
         }
     } else {
-        mpi_errno =
-            MV2_Allgatherv_function(sendbuf, sendcount, sendtype,
-                                    recvbuf, recvcounts, displs,
-                                    recvtype, comm_ptr, errflag);
+        mpi_errno = MVP_Allgatherv_function(sendbuf, sendcount, sendtype,
+                                            recvbuf, recvcounts, displs,
+                                            recvtype, comm_ptr, errflag);
     }
 
     MPIR_ERR_CHECK(mpi_errno);
 
-  fn_exit:
+fn_exit:
     return mpi_errno;
-  fn_fail:
+fn_fail:
     goto fn_exit;
 }

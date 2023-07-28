@@ -1,13 +1,13 @@
 /*
- * Copyright (c) 2001-2022, The Ohio State University. All rights
+ * Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  */
 
 #include <suffixlist.h>
@@ -15,11 +15,11 @@
 #include <string.h>
 #include <ctype.h>
 
-typedef struct suffix_range_iterator_t * sr_iterator;
+typedef struct suffix_range_iterator_t *sr_iterator;
 
 typedef struct suffix_range_t {
-    char const * begin;
-    char const * end;
+    char const *begin;
+    char const *end;
 } suffix_range;
 
 typedef struct suffix_range_iterator_t {
@@ -29,22 +29,21 @@ typedef struct suffix_range_iterator_t {
 
 typedef struct suffix_node_t {
     sr_handle sr;
-    struct suffix_node_t * next;
+    struct suffix_node_t *next;
 } suffix_node;
 
 typedef struct suffix_list_t {
-    suffix_node * last;
+    suffix_node *last;
     suffix_node sentinel;
 } suffix_list;
 
 typedef struct suffix_list_iterator_t {
     suffix_list sl;
     sr_iterator sri;
-    suffix_node * sn;
+    suffix_node *sn;
 } suffix_list_iterator;
 
-static int
-increment_char (char * const c)
+static int increment_char(char *const c)
 {
     switch (*c) {
         case '9':
@@ -56,16 +55,16 @@ increment_char (char * const c)
     }
 }
 
-static void
-increment_suffix (char * const suffix, size_t const len)
+static void increment_suffix(char *const suffix, size_t const len)
 {
     char buffer[len + 2];
     size_t i = len;
-    
+
     buffer[0] = '0';
     strcpy(buffer + 1, suffix);
 
-    while (increment_char(&(buffer[i]))) i--;
+    while (increment_char(&(buffer[i])))
+        i--;
 
     if (i) {
         strcpy(suffix, buffer + 1);
@@ -76,10 +75,9 @@ increment_suffix (char * const suffix, size_t const len)
     }
 }
 
-static suffix_node *
-sn_create (sr_handle sr)
+static suffix_node *sn_create(sr_handle sr)
 {
-    suffix_node * node = malloc(sizeof (suffix_node));
+    suffix_node *node = malloc(sizeof(suffix_node));
 
     if (node) {
         node->sr = sr;
@@ -89,15 +87,13 @@ sn_create (sr_handle sr)
     return node;
 }
 
-static void
-sn_destroy (suffix_node * node)
+static void sn_destroy(suffix_node *node)
 {
     sr_destroy(node->sr);
     free(node);
 }
 
-static sr_iterator
-sri_create (sr_handle sr)
+static sr_iterator sri_create(sr_handle sr)
 {
     sr_iterator sri = (sr_iterator)sr;
 
@@ -106,8 +102,7 @@ sri_create (sr_handle sr)
     return sri;
 }
 
-static char const *
-sri_next (sr_iterator sri)
+static char const *sri_next(sr_iterator sri)
 {
     if ('\0' != sri->next[0]) {
         increment_suffix(sri->next, strlen(sri->next));
@@ -120,16 +115,14 @@ sri_next (sr_iterator sri)
     return sri->next;
 }
 
-static int
-sri_hasNext (sr_iterator sri)
+static int sri_hasNext(sr_iterator sri)
 {
     return strcmp(sri->next, sri->sr.end);
 }
 
-sr_handle
-sr_create (char const * const begin, char const * const end)
+sr_handle sr_create(char const *const begin, char const *const end)
 {
-    sr_handle sr = malloc(sizeof (suffix_range_iterator));
+    sr_handle sr = malloc(sizeof(suffix_range_iterator));
 
     if (sr) {
         sr->begin = begin;
@@ -139,16 +132,11 @@ sr_create (char const * const begin, char const * const end)
     return sr;
 }
 
-void
-sr_destroy (sr_handle sr)
-{
-    free(sr);
-}
+void sr_destroy(sr_handle sr) { free(sr); }
 
-sl_handle
-sl_create (sr_handle sr)
+sl_handle sl_create(sr_handle sr)
 {
-    sl_handle sl = malloc(sizeof (suffix_list_iterator));
+    sl_handle sl = malloc(sizeof(suffix_list_iterator));
 
     if (sl) {
         sl->sentinel.sr = NULL;
@@ -159,15 +147,14 @@ sl_create (sr_handle sr)
             sl = NULL;
         }
     }
-    
+
     return sl;
 }
 
-sl_handle
-sl_insert (sl_handle sl, sr_handle sr)
+sl_handle sl_insert(sl_handle sl, sr_handle sr)
 {
-    suffix_node * node = sn_create(sr);
-   
+    suffix_node *node = sn_create(sr);
+
     if (!node) {
         return NULL;
     }
@@ -178,10 +165,9 @@ sl_insert (sl_handle sl, sr_handle sr)
     return sl;
 }
 
-void
-sl_destroy (sl_handle sl)
+void sl_destroy(sl_handle sl)
 {
-    suffix_node * node, * next;
+    suffix_node *node, *next;
 
     for (node = sl->sentinel.next; node->sr; node = next) {
         next = node->next;
@@ -191,8 +177,7 @@ sl_destroy (sl_handle sl)
     free(sl);
 }
 
-sl_iterator
-sli_create (sl_handle sl)
+sl_iterator sli_create(sl_handle sl)
 {
     sl_iterator sli = (sl_iterator)sl;
 
@@ -202,8 +187,7 @@ sli_create (sl_handle sl)
     return sli;
 }
 
-char const *
-sli_next (sl_iterator sli)
+char const *sli_next(sl_iterator sli)
 {
     if (!sri_hasNext(sli->sri)) {
         sli->sn = sli->sn->next;
@@ -213,8 +197,7 @@ sli_next (sl_iterator sli)
     return sri_next(sli->sri);
 }
 
-int
-sli_hasNext (sl_iterator sli)
+int sli_hasNext(sl_iterator sli)
 {
     return sri_hasNext(sli->sri) || sli->sn->next->sr;
 }

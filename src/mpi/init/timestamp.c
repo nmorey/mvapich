@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 #include <time.h>
@@ -21,13 +21,13 @@
 #define MAX_TIMESTAMPS 200
 #endif
 
-int mv2_enable_startup_profiling = 0;
+int mvp_enable_startup_profiling = 0;
 
 /* structs to hold start/end times on one process */
 static struct delta_t {
     struct timespec begin;
     struct timespec end;
-    const char * label;
+    const char *label;
     int shift;
 } timestamp_deltas[MAX_TIMESTAMPS];
 
@@ -39,8 +39,8 @@ static size_t current_timestamp_shift = 0;
 /* timestamp measures */
 static struct timestamp_t {
     struct timespec ts;
-    const char * label;
-    void * data;
+    const char *label;
+    void *data;
 } timestamps[MAX_TIMESTAMPS];
 
 /* location in array */
@@ -58,30 +58,30 @@ static size_t delta_index[MAX_TIMESTAMPS];
 /* how deep into a function tree we are */
 static size_t delta_shift[MAX_TIMESTAMPS];
 
-/* 
+/*
  * delta operations - work for functions on single process only
- * for timing functions on multiple processes, use the timestamp functions below 
+ * for timing functions on multiple processes, use the timestamp functions below
  */
-int mv2_begin_delta (const char * label)
+int mvp_begin_delta(const char *label)
 {
     if (!(current_timestamp_delta < MAX_TIMESTAMPS)) {
         return -1;
     }
 
     clock_gettime(CLOCK_MONOTONIC_RAW,
-            &timestamp_deltas[current_timestamp_delta].begin);
+                  &timestamp_deltas[current_timestamp_delta].begin);
     timestamp_deltas[current_timestamp_delta].label = label;
     timestamp_deltas[current_timestamp_delta].shift = current_timestamp_shift++;
     return current_timestamp_delta++;
 }
 
-void mv2_end_delta (int delta_id)
+void mvp_end_delta(int delta_id)
 {
     clock_gettime(CLOCK_MONOTONIC_RAW, &timestamp_deltas[delta_id].end);
     current_timestamp_shift--;
 }
 
-void mv2_print_deltas (FILE * fd)
+void mvp_print_deltas(FILE *fd)
 {
     size_t counter;
 
@@ -91,43 +91,40 @@ void mv2_print_deltas (FILE * fd)
         struct timespec temp;
 
         temp.tv_nsec = timestamp_deltas[counter].end.tv_nsec -
-            timestamp_deltas[counter].begin.tv_nsec;
+                       timestamp_deltas[counter].begin.tv_nsec;
         temp.tv_sec = timestamp_deltas[counter].end.tv_sec -
-            timestamp_deltas[counter].begin.tv_sec;
+                      timestamp_deltas[counter].begin.tv_sec;
 
         if (0 > temp.tv_nsec) {
             temp.tv_nsec += 1e9;
             temp.tv_sec -= 1;
         }
 
-        fprintf(fd, "%*s%-*s %4lld.%.9lld\n",
-                timestamp_deltas[counter].shift,
-                "",
-                35 - timestamp_deltas[counter].shift,
-                timestamp_deltas[counter].label,
-                (long long)temp.tv_sec,
+        fprintf(fd, "%*s%-*s %4lld.%.9lld\n", timestamp_deltas[counter].shift,
+                "", 35 - timestamp_deltas[counter].shift,
+                timestamp_deltas[counter].label, (long long)temp.tv_sec,
                 (long long)temp.tv_nsec);
     }
 
     fprintf(fd, "\n");
 }
 
-/* 
+/*
  * takes a single timestamp with a string label
- * 
- * do not use inside of loops - it will rapidly overflow the small 
- * buffer used to store the timestamps, and only the first pair will 
- * be shown. 
+ *
+ * do not use inside of loops - it will rapidly overflow the small
+ * buffer used to store the timestamps, and only the first pair will
+ * be shown.
  */
-int mv2_take_timestamp (const char * label, void * data)
+int mvp_take_timestamp(const char *label, void *data)
 {
-    if (!mv2_enable_startup_profiling) {
+    if (!mvp_enable_startup_profiling) {
         return 0;
     }
 
     if (current_timestamp < MAX_TIMESTAMPS) {
         int clock_error = clock_gettime(CLOCK_MONOTONIC_RAW,
-                &timestamps[current_timestamp].ts);
+                                        &timestamps[current_timestamp].ts);
         timestamps[current_timestamp].label = label;
         /* add data field to take size of push operations */
         timestamps[current_timestamp].data = data;
@@ -140,17 +137,20 @@ int mv2_take_timestamp (const char * label, void * data)
     }
 
     else {
-        PRINT_ERROR("MAX_TIMESTAMPS (%d) exceeded. Please set CFLAGS=\"-DMAX_TIMESTAMPS <larger_value>\" to enable further profiling\n", MAX_TIMESTAMPS);
+        PRINT_ERROR("MAX_TIMESTAMPS (%d) exceeded. Please set "
+                    "CFLAGS=\"-DMAX_TIMESTAMPS <larger_value>\" to enable "
+                    "further profiling\n",
+                    MAX_TIMESTAMPS);
         return -2;
     }
 }
 
-/* 
- * basic mpi reduction 
+/*
+ * basic mpi reduction
  */
-static int reduce_timestamps (MPIR_Comm * comm_ptr, int pg_rank, int pg_size)
+static int reduce_timestamps(MPIR_Comm *comm_ptr, int pg_rank, int pg_size)
 {
-    if (!mv2_enable_startup_profiling) {
+    if (!mvp_enable_startup_profiling) {
         return 0;
     }
 
@@ -160,17 +160,17 @@ static int reduce_timestamps (MPIR_Comm * comm_ptr, int pg_rank, int pg_size)
         return current_timestamp;
     }
 
-    MPIR_Reduce((void *)delta, (void *)delta_avg, current_timestamp,
-            MPI_DOUBLE, MPI_SUM, 0, comm_ptr, &errflag);
+    MPIR_Reduce((void *)delta, (void *)delta_avg, current_timestamp, MPI_DOUBLE,
+                MPI_SUM, 0, comm_ptr, &errflag);
 
-    MPIR_Reduce((void *)delta, (void *)delta_min, current_timestamp,
-            MPI_DOUBLE, MPI_MIN, 0, comm_ptr, &errflag);
+    MPIR_Reduce((void *)delta, (void *)delta_min, current_timestamp, MPI_DOUBLE,
+                MPI_MIN, 0, comm_ptr, &errflag);
 
-    MPIR_Reduce((void *)delta, (void *)delta_max, current_timestamp,
-            MPI_DOUBLE, MPI_MAX, 0, comm_ptr, &errflag);
-    /* 
+    MPIR_Reduce((void *)delta, (void *)delta_max, current_timestamp, MPI_DOUBLE,
+                MPI_MAX, 0, comm_ptr, &errflag);
+    /*
      * TODO: currently data field just uses the value on rank 1
-     * to add support for other arbitrary data some kind of reduction will 
+     * to add support for other arbitrary data some kind of reduction will
      * be needed
      */
 
@@ -185,14 +185,14 @@ static int reduce_timestamps (MPIR_Comm * comm_ptr, int pg_rank, int pg_size)
     return (int)errflag;
 }
 
-/* 
+/*
  * creates hash search table of timestamps
  */
-static int process_timestamps (void)
+static int process_timestamps(void)
 {
     unsigned shift = 0;
-    unsigned long i; 
-    if (!mv2_enable_startup_profiling) {
+    unsigned long i;
+    if (!mvp_enable_startup_profiling) {
         return 0;
     }
 
@@ -201,7 +201,7 @@ static int process_timestamps (void)
     }
 
     for (i = 0; i < current_timestamp; i++) {
-        ENTRY e, * ep;
+        ENTRY e, *ep;
 
         /* hsearch uses strcmp on the key */
         e.key = (char *)timestamps[i].label;
@@ -211,7 +211,7 @@ static int process_timestamps (void)
         /*
          * find an existing hash table entry with the same key
          * ep will have the first timestamp with this key
-         * looks for a start time and marks e the corresponding end time 
+         * looks for a start time and marks e the corresponding end time
          */
         if (NULL != (ep = hsearch(e, FIND))) {
             if (delta_index[(unsigned long)ep->data]) {
@@ -229,10 +229,10 @@ static int process_timestamps (void)
             shift = delta_shift[(unsigned long)ep->data];
             /* set this entry as the end timestamp for ep */
             delta_index[(unsigned long)ep->data] = i;
-        }
-        else {
+        } else {
             /* first entry with this key - the start time */
-            /* shift is the tree level or number of spaces to shift the output */
+            /* shift is the tree level or number of spaces to shift the output
+             */
             delta_shift[i] = shift++;
             /* clear out the corresponding delta_index for an end time */
             delta_index[i] = 0;
@@ -247,16 +247,16 @@ static int process_timestamps (void)
     return 0;
 }
 
-/* 
+/*
  * hash and pair timesteps, reduce, and print
  */
-int mv2_print_timestamps (FILE * fd)
+int mvp_print_timestamps(FILE *fd)
 {
-    MPIR_Comm * comm_ptr = NULL;
+    MPIR_Comm *comm_ptr = NULL;
     size_t counter = 1;
     int pg_rank = 0;
 
-    if (!mv2_enable_startup_profiling) {
+    if (!mvp_enable_startup_profiling) {
         return 0;
     }
 
@@ -267,14 +267,14 @@ int mv2_print_timestamps (FILE * fd)
     if (process_timestamps()) {
         return -1;
     }
-    /* get deltas */    
+    /* get deltas */
     for (counter = 0; counter < current_timestamp; counter++) {
         struct timespec temp;
 
         temp.tv_nsec = timestamps[delta_index[counter]].ts.tv_nsec -
-            timestamps[counter].ts.tv_nsec;
+                       timestamps[counter].ts.tv_nsec;
         temp.tv_sec = timestamps[delta_index[counter]].ts.tv_sec -
-            timestamps[counter].ts.tv_sec;
+                      timestamps[counter].ts.tv_sec;
 
         if (0 > temp.tv_nsec) {
             temp.tv_nsec += 1e9;
@@ -291,21 +291,23 @@ int mv2_print_timestamps (FILE * fd)
     /* print timestamp deltas */
     if (0 == pg_rank) {
         /* adding support for data field */
-        fprintf(fd, "\nMPI Library Timing Info\n%45s%15s%15s%15s%15s\n",
-                "", "MIN", "AVG", "MAX", "Data");
+        fprintf(fd, "\nMPI Library Timing Info\n%45s%15s%15s%15s%15s\n", "",
+                "MIN", "AVG", "MAX", "Data");
 
         for (counter = 0; counter < current_timestamp; counter++) {
-            if (0 == delta_index[counter]) continue;
+            if (0 == delta_index[counter])
+                continue;
 
-            fprintf(fd, "%*s%-*s %4lld.%.9lld %4lld.%.9lld %4lld.%.9lld %14lld\n",
-                    (int)delta_shift[counter], "", 45 -
-                    (int)delta_shift[counter], timestamps[counter].label,
+            fprintf(fd,
+                    "%*s%-*s %4lld.%.9lld %4lld.%.9lld %4lld.%.9lld %14lld\n",
+                    (int)delta_shift[counter], "",
+                    45 - (int)delta_shift[counter], timestamps[counter].label,
                     ((long long)delta_min[counter]) / (long long)1e9,
                     ((long long)delta_min[counter]) % (long long)1e9,
                     ((long long)delta_avg[counter]) / (long long)1e9,
                     ((long long)delta_avg[counter]) % (long long)1e9,
                     ((long long)delta_max[counter]) / (long long)1e9,
-                    ((long long)delta_max[counter]) % (long long)1e9, 
+                    ((long long)delta_max[counter]) % (long long)1e9,
                     (long long)timestamps[counter].data);
         }
 

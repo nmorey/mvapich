@@ -21,7 +21,7 @@ noinst_HEADERS +=                      \
     src/mpid/ch3/include/mpidrma.h     \
     src/mpid/ch3/include/mpid_sched.h  \
     src/mpid/ch3/include/mpid_coll.h   \
-	src/mpid/ch3/include/mv2_ch3_shmem.h
+	src/mpid/ch3/include/mvp_ch3_shmem.h
 
 include $(top_srcdir)/src/mpid/ch3/src/Makefile.mk
 include $(top_srcdir)/src/mpid/ch3/util/Makefile.mk

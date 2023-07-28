@@ -7,7 +7,7 @@
  * This file is part of The Scalable Checkpoint / Restart (SCR) library.
  * For details, see https://sourceforge.net/projects/scalablecr/
  * Please also read this file: LICENSE.TXT.
-*/
+ */
 
 #ifndef SCR_ERR_H
 #define SCR_ERR_H

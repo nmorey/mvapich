@@ -3,15 +3,15 @@
  *     See COPYRIGHT in top-level directory
  */
 
-/* Copyright (c) 2001-2021, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
 * reserved.
 *
-* This file is part of the MVAPICH2 software package developed by the
+* This file is part of the MVAPICH software package developed by the
 * team members of The Ohio State University's Network-Based Computing
 * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
 *
 * For detailed copyright and licensing information, please refer to the
-* copyright file COPYRIGHT in the top level MVAPICH2 directory.
+* copyright file COPYRIGHT in the top level MVAPICH directory.
 */
 
 #include "mpiimpl.h"
@@ -84,19 +84,9 @@ int MPIR_Wait(MPI_Request * request, MPI_Status * status)
     MPIR_Request_get_ptr(*request, request_ptr);
     MPIR_Assert(request_ptr != NULL);
 
-#if defined (_SHARP_SUPPORT_)
-    if (request_ptr->sharp_req != NULL) {
-        mpi_errno = MPID_SHARP_COLL_REQ_WAIT(request_ptr);
-        if (mpi_errno != MPID_SHARP_COLL_SUCCESS) {
-            PRINT_ERROR("SHArP non-blocking collective failed \n ");
-            MPID_SHARP_COLL_REQ_FREE(request_ptr);
-            mpi_errno = MPI_ERR_INTERN;
-            MPIR_ERR_POP(mpi_errno);
-        }
-        MPIR_Request_free(request_ptr);
-        mpi_errno = MPI_SUCCESS;
-        goto fn_exit;
-    }
+#if defined(_OSU_MVAPICH_)
+    mpi_errno = MPIR_MVP_Wait(request_ptr, status);
+    MPIR_ERR_CHECK(mpi_errno);
 #endif
 
     if (!MPIR_Request_is_complete(request_ptr)) {

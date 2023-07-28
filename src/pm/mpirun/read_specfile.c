@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  */
 
 #include <src/pm/mpirun/mpirun_rsh.h>
@@ -14,14 +14,13 @@
 #include <mpirun_params.h>
 #include <string.h>
 
-extern char * spawnfile;
+extern char *spawnfile;
 extern spawn_info_t spinf;
 
-static void
-append_arg (arg_list * command, char const * arg)
+static void append_arg(arg_list *command, char const *arg)
 {
-    static arg_list * last = NULL;
-    static arg_list * cache = NULL;
+    static arg_list *last = NULL;
+    static arg_list *cache = NULL;
 
     if (cache != command) {
         cache = command;
@@ -38,8 +37,7 @@ append_arg (arg_list * command, char const * arg)
     last->next = NULL;
 }
 
-static void
-get_line (void * ptr, char * fill, int is_file)
+static void get_line(void *ptr, char *fill, int is_file)
 {
     int i = 0, ch;
     FILE *fp;
@@ -61,8 +59,7 @@ get_line (void * ptr, char * fill, int is_file)
     fill[i] = '\0';
 }
 
-static void
-store_info (spawn_info_t * si, char const * key, char const * val)
+static void store_info(spawn_info_t *si, char const *key, char const *val)
 {
     if (0 == (strcmp(key, "wdir"))) {
         si->wdir = val;
@@ -73,8 +70,7 @@ store_info (spawn_info_t * si, char const * key, char const * val)
     }
 }
 
-static void
-read_infn (spawn_info_t * si, FILE * fp, int num_pairs)
+static void read_infn(spawn_info_t *si, FILE *fp, int num_pairs)
 {
     while (num_pairs--) {
         char key[1024];
@@ -90,14 +86,12 @@ read_infn (spawn_info_t * si, FILE * fp, int num_pairs)
 /**
  * Read DPM specfile and return the number of spawn info list.
  */
-extern spawn_info_t *
-read_dpm_specfile (int n_spawns)
+extern spawn_info_t *read_dpm_specfile(int n_spawns)
 {
-    spawn_info_t * rv = NULL, * si = NULL;
-    FILE * fp = fopen(spawnfile, "r");
+    spawn_info_t *rv = NULL, *si = NULL;
+    FILE *fp = fopen(spawnfile, "r");
     int i;
     char buffer[1024];
-
 
     if (!fp) {
         fprintf(stderr, "spawn specification file not found\n");

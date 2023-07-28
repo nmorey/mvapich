@@ -3,15 +3,15 @@
  *     See COPYRIGHT in top-level directory
  */
 
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -77,15 +77,15 @@ int MPI_Get_library_version(char *version, int *resultlen)
     /* ... body of routine ...  */
 
     printed_len = MPL_snprintf(version, MPI_MAX_LIBRARY_VERSION_STRING,
-                               "MVAPICH2 Version        :\t%s\n"
-                               "MVAPICH2 Release date   :\t%s\n"
-                               "MVAPICH2 ABI            :\t%s\n"
-                               "MVAPICH2 Device         :\t%s\n"
-                               "MVAPICH2 configure      :\t%s\n"
-                               "MVAPICH2 CC             :\t%s\n"
-                               "MVAPICH2 CXX            :\t%s\n"
-                               "MVAPICH2 F77            :\t%s\n"
-                               "MVAPICH2 FC             :\t%s\n",
+                               "MVAPICH Version        :\t%s\n"
+                               "MVAPICH Release date   :\t%s\n"
+                               "MVAPICH ABI            :\t%s\n"
+                               "MVAPICH Device         :\t%s\n"
+                               "MVAPICH configure      :\t%s\n"
+                               "MVAPICH CC             :\t%s\n"
+                               "MVAPICH CXX            :\t%s\n"
+                               "MVAPICH F77            :\t%s\n"
+                               "MVAPICH FC             :\t%s\n",
                                MPII_Version_string, MPII_Version_date, MPII_Version_ABI,
                                MPII_Version_device, MPII_Version_configure, MPII_Version_CC,
                                MPII_Version_CXX, MPII_Version_F77, MPII_Version_FC);

@@ -1,6 +1,6 @@
 #ifndef MPIRUN_UTIL_H
 #define MPIRUN_UTIL_H
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
  * This file is part of the MVAPICH software package developed by the
@@ -8,7 +8,7 @@
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -33,8 +33,8 @@ typedef struct _process_info {
 } process_info_t;
 
 struct MPIR_PROCDESC {
-    char const * host_name;
-    char const * executable_name;
+    char const *host_name;
+    char const *executable_name;
     long pid;
 };
 
@@ -42,8 +42,8 @@ struct spawn_info_s {
     char spawnhost[32];
     int sparenode;
 };
-#define MPIR_PROCDESC_s (sizeof (struct MPIR_PROCDESC))
-#define process_info_s (sizeof (process_info_t))
+#define MPIR_PROCDESC_s (sizeof(struct MPIR_PROCDESC))
+#define process_info_s  (sizeof(process_info_t))
 
 static inline int env2int(char *env_ptr)
 {

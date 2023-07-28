@@ -38,48 +38,41 @@
 
 static unsigned long crc_table[256];
 
-
 /* Generate the table of CRC remainders for all possible bytes. */
 void gen_crc_table()
-{ 
+{
     register int i = 0;
     register int j;
     register unsigned long crc_accum;
 
     memset(&crc_table, 0, sizeof(unsigned long) * 256);
 
-    for (; i < 256; ++i)
-    { 
-        crc_accum = (unsigned long) i << 24;
+    for (; i < 256; ++i) {
+        crc_accum = (unsigned long)i << 24;
 
-        for (j = 0; j < 8;  ++j )
-        { 
-            if (crc_accum & 0x80000000L)
-            {
+        for (j = 0; j < 8; ++j) {
+            if (crc_accum & 0x80000000L) {
                 crc_accum = (crc_accum << 1) ^ POLYNOMIAL;
-            }
-            else
-            {
+            } else {
                 crc_accum = crc_accum << 1;
-            } 
+            }
         }
 
-        crc_table[i] = crc_accum; 
+        crc_table[i] = crc_accum;
     }
 
-    return; 
+    return;
 }
 
-
 /* Update the CRC on the data block one byte at a time. */
-unsigned long update_crc(unsigned long crc_accum, char* data_blk_ptr, int data_blk_size)
+unsigned long update_crc(unsigned long crc_accum, char *data_blk_ptr,
+                         int data_blk_size)
 {
     register int j = 0;
     register int i;
 
-    for (; j < data_blk_size; ++j)
-    {
-        i = ((int) (crc_accum >> 24) ^ *++data_blk_ptr) & 0xff;
+    for (; j < data_blk_size; ++j) {
+        i = ((int)(crc_accum >> 24) ^ *++data_blk_ptr) & 0xff;
         crc_accum = crc_accum << 8 ^ crc_table[i];
     }
 

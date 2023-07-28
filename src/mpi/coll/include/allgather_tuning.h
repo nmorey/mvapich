@@ -1,205 +1,141 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
 #ifndef _ALLGATHER_TUNING_
 #define _ALLGATHER_TUNING_
 
-#include "mv2_coll_shmem.h"
+#include "mvp_coll_shmem.h"
 
-#define NMATCH (3+1)
-
-/* Allgather tuning flags 
- * recursive doubling with allgather_comm: MV2_INTER_ALLGATHER_TUNING=1 
- * recursive doubling: MV2_INTER_ALLGATHER_TUNING=2
- * bruck: MV2_INTER_ALLGATHER_TUNING=3
- * ring: MV2_INTER_ALLGATHER_TUNING=4
- * 2-level recursive doubling:  MV2_INTER_ALLGATHER_TUNING=2 
- *                              MV2_INTER_ALLGATHER_TUNING_TWO_LEVEL=1
- * 2-level bruck: MV2_INTER_ALLGATHER_TUNING=3
- *                MV2_INTER_ALLGATHER_TUNING_TWO_LEVEL=1
- * 2-level ring:  MV2_INTER_ALLGATHER_TUNING=4
- *                MV2_INTER_ALLGATHER_TUNING_TWO_LEVEL=1
- */
+#define NMATCH (3 + 1)
 /* Indicates number of processes per node */
-extern int *mv2_allgather_table_ppn_conf;
+extern int *mvp_allgather_table_ppn_conf;
 /* Indicates total number of configurations */
-extern int mv2_allgather_num_ppn_conf;
+extern int mvp_allgather_num_ppn_conf;
+
+typedef int (*MVP_Allgather_fn_t)(const void *sendbuf, int sendcount,
+                                  MPI_Datatype sendtype, void *recvbuf,
+                                  int recvcount, MPI_Datatype recvtype,
+                                  MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag);
 
 typedef struct {
     int min;
     int max;
-    int (*MV2_pt_Allgather_function)(const void *sendbuf,
-                                 int sendcount,
-                                 MPI_Datatype sendtype,
-                                 void *recvbuf,
-                                 int recvcount,
-                                 MPI_Datatype recvtype, MPIR_Comm * comm_ptr,
-                                 MPIR_Errflag_t *errflag);
-} mv2_allgather_tuning_element;
+    MVP_Allgather_fn_t allgather_fn;
+} mvp_allgather_tuning_element;
 
 typedef struct {
-    int numproc; 
-    int two_level[MV2_MAX_NB_THRESHOLDS];
+    int numproc;
+    int two_level[MVP_MAX_NB_THRESHOLDS];
     int size_inter_table;
-    mv2_allgather_tuning_element inter_leader[MV2_MAX_NB_THRESHOLDS];
-} mv2_allgather_tuning_table;
+    mvp_allgather_tuning_element inter_leader[MVP_MAX_NB_THRESHOLDS];
+} mvp_allgather_tuning_table;
 
-extern int *mv2_size_allgather_tuning_table;
-extern mv2_allgather_tuning_table **mv2_allgather_thresholds_table;
-extern int mv2_use_old_allgather;
+extern int *mvp_size_allgather_tuning_table;
+extern mvp_allgather_tuning_table **mvp_allgather_thresholds_table;
 
 typedef struct {
     int msg_sz;
-    int (*MV2_pt_Allgather_function)(const void *sendbuf,
-                                 int sendcount,
-                                 MPI_Datatype sendtype,
-                                 void *recvbuf,
-                                 int recvcount,
-                                 MPI_Datatype recvtype, MPIR_Comm * comm_ptr,
-                                 MPIR_Errflag_t *errflag);
-} mv2_allgather_indexed_tuning_element;
+    MVP_Allgather_fn_t allgather_fn;
+} mvp_allgather_indexed_tuning_element;
 
 typedef struct {
-    int numproc; 
+    int numproc;
     int size_inter_table;
-    mv2_allgather_indexed_tuning_element inter_leader[MV2_MAX_NB_THRESHOLDS];
-} mv2_allgather_indexed_tuning_table;
+    mvp_allgather_indexed_tuning_element inter_leader[MVP_MAX_NB_THRESHOLDS];
+} mvp_allgather_indexed_tuning_table;
 
 /* Indicates number of processes per node */
-extern int *mv2_allgather_indexed_table_ppn_conf;
+extern int *mvp_allgather_indexed_table_ppn_conf;
 /* Indicates total number of configurations */
-extern int mv2_allgather_indexed_num_ppn_conf;
-extern int *mv2_size_allgather_indexed_tuning_table;
-extern mv2_allgather_indexed_tuning_table **mv2_allgather_indexed_thresholds_table;
+extern int mvp_allgather_indexed_num_ppn_conf;
+extern int *mvp_size_allgather_indexed_tuning_table;
+extern mvp_allgather_indexed_tuning_table *
+    *mvp_allgather_indexed_thresholds_table;
 
-extern int MPIR_Allgather_RD_Allgather_Comm_MV2(const void *sendbuf,
-            int sendcount,
-            MPI_Datatype sendtype,
-            void *recvbuf,
-            int recvcount,
-            MPI_Datatype recvtype, MPIR_Comm * comm_ptr,
-            MPIR_Errflag_t *errflag);
+extern int MPIR_Allgather_RD_Allgather_Comm_MVP(
+    const void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf,
+    int recvcount, MPI_Datatype recvtype, MPIR_Comm *comm_ptr,
+    MPIR_Errflag_t *errflag);
 
-extern int MPIR_Allgather_RD_MV2(const void *sendbuf,
-                                 int sendcount,
-                                 MPI_Datatype sendtype,
-                                 void *recvbuf,
-                                 int recvcount,
-                                 MPI_Datatype recvtype, MPIR_Comm * comm_ptr,
-                                 MPIR_Errflag_t *errflag);
+extern int MPIR_Allgather_RD_MVP(const void *sendbuf, int sendcount,
+                                 MPI_Datatype sendtype, void *recvbuf,
+                                 int recvcount, MPI_Datatype recvtype,
+                                 MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag);
 
-extern int MPIR_Allgather_Bruck_MV2(const void *sendbuf,
-                                    int sendcount,
-                                    MPI_Datatype sendtype,
-                                    void *recvbuf,
-                                    int recvcount,
-                                    MPI_Datatype recvtype, MPIR_Comm * comm_ptr,
-                                    MPIR_Errflag_t *errflag);
-
-extern int MPIR_Allgather_Ring_MV2(const void *sendbuf,
-                                   int sendcount,
-                                   MPI_Datatype sendtype,
-                                   void *recvbuf,
-                                   int recvcount,
-                                   MPI_Datatype recvtype, MPIR_Comm * comm_ptr,
-                                   MPIR_Errflag_t *errflag);
-
-extern int MPIR_2lvl_Allgather_MV2(const void *sendbuf,
-	     					       int sendcnt,
-	     					       MPI_Datatype sendtype,
-	     					       void *recvbuf,
-	     					       int recvcnt,
-	     					       MPI_Datatype recvtype,
-	     					       MPIR_Comm * comm_ptr,
-	     					       MPIR_Errflag_t *errflag);
-extern int (*MV2_Allgather_function)(const void *sendbuf,
-                             int sendcount,
-                             MPI_Datatype sendtype,
-                             void *recvbuf,
-                             int recvcount,
-                             MPI_Datatype recvtype, MPIR_Comm * comm_ptr,
-                             MPIR_Errflag_t *errflag);
-
-int MPIR_Allgather_Direct_MV2(const void *sendbuf,
-			  int sendcnt,
-			  MPI_Datatype sendtype,
-			  void *recvbuf,
-			  int recvcnt,
-			  MPI_Datatype recvtype,
-			  MPIR_Comm * comm_ptr,
-                          MPIR_Errflag_t *errflag);
-
-int MPIR_Allgather_DirectSpread_MV2(const void *sendbuf,
-                                    int sendcnt,
-                                    MPI_Datatype sendtype,
-                                    void *recvbuf,
-                                    int recvcnt,
-                                    MPI_Datatype recvtype,
-                                    MPIR_Comm * comm_ptr,
-                                    MPIR_Errflag_t *errflag);
-
-int MPIR_Allgather_gather_bcast_MV2(const void *sendbuf,
-                                    int sendcount,
-                                    MPI_Datatype sendtype,
-                                    void *recvbuf,
-                                    int recvcount,
-                                    MPI_Datatype recvtype,
-                                    MPIR_Comm * comm_ptr,
-                                    MPIR_Errflag_t *errflag);
-
-int MPIR_2lvl_Allgather_nonblocked_MV2(const void *sendbuf,
-                                        int sendcnt,
-                                        MPI_Datatype sendtype,
-                                        void *recvbuf,
-                                        int recvcnt,
-                                        MPI_Datatype recvtype,
-                                        MPIR_Comm * comm_ptr,
-                                        MPIR_Errflag_t *errflag);
-
-int MPIR_2lvl_Allgather_Ring_nonblocked_MV2(const void *sendbuf,
-                                            int sendcount,
-                                            MPI_Datatype sendtype,
-                                            void *recvbuf, int recvcount,
-                                            MPI_Datatype recvtype,
-                                            MPIR_Comm * comm_ptr,
-                                            MPIR_Errflag_t *errflag);
-
-int MPIR_2lvl_Allgather_Direct_MV2(const void *sendbuf,
-                                    int sendcnt,
-                                    MPI_Datatype sendtype,
-                                    void *recvbuf,
-                                    int recvcnt,
-                                    MPI_Datatype recvtype,
+extern int MPIR_Allgather_Bruck_MVP(const void *sendbuf, int sendcount,
+                                    MPI_Datatype sendtype, void *recvbuf,
+                                    int recvcount, MPI_Datatype recvtype,
                                     MPIR_Comm *comm_ptr,
                                     MPIR_Errflag_t *errflag);
 
+extern int MPIR_Allgather_Ring_MVP(const void *sendbuf, int sendcount,
+                                   MPI_Datatype sendtype, void *recvbuf,
+                                   int recvcount, MPI_Datatype recvtype,
+                                   MPIR_Comm *comm_ptr,
+                                   MPIR_Errflag_t *errflag);
 
-int MPIR_2lvl_Allgather_Ring_MV2(const void *sendbuf,
-                                    int sendcnt,
-                                    MPI_Datatype sendtype,
-                                    void *recvbuf,
+extern int MPIR_2lvl_Allgather_MVP(const void *sendbuf, int sendcnt,
+                                   MPI_Datatype sendtype, void *recvbuf,
+                                   int recvcnt, MPI_Datatype recvtype,
+                                   MPIR_Comm *comm_ptr,
+                                   MPIR_Errflag_t *errflag);
+
+extern MVP_Allgather_fn_t MVP_Allgather_function;
+
+int MPIR_Allgather_Direct_MVP(const void *sendbuf, int sendcnt,
+                              MPI_Datatype sendtype, void *recvbuf, int recvcnt,
+                              MPI_Datatype recvtype, MPIR_Comm *comm_ptr,
+                              MPIR_Errflag_t *errflag);
+
+int MPIR_Allgather_DirectSpread_MVP(const void *sendbuf, int sendcnt,
+                                    MPI_Datatype sendtype, void *recvbuf,
                                     int recvcnt, MPI_Datatype recvtype,
                                     MPIR_Comm *comm_ptr,
                                     MPIR_Errflag_t *errflag);
 
+int MPIR_Allgather_gather_bcast_MVP(const void *sendbuf, int sendcount,
+                                    MPI_Datatype sendtype, void *recvbuf,
+                                    int recvcount, MPI_Datatype recvtype,
+                                    MPIR_Comm *comm_ptr,
+                                    MPIR_Errflag_t *errflag);
+
+int MPIR_2lvl_Allgather_nonblocked_MVP(const void *sendbuf, int sendcnt,
+                                       MPI_Datatype sendtype, void *recvbuf,
+                                       int recvcnt, MPI_Datatype recvtype,
+                                       MPIR_Comm *comm_ptr,
+                                       MPIR_Errflag_t *errflag);
+
+int MPIR_2lvl_Allgather_Ring_nonblocked_MVP(const void *sendbuf, int sendcount,
+                                            MPI_Datatype sendtype,
+                                            void *recvbuf, int recvcount,
+                                            MPI_Datatype recvtype,
+                                            MPIR_Comm *comm_ptr,
+                                            MPIR_Errflag_t *errflag);
+
+int MPIR_2lvl_Allgather_Direct_MVP(const void *sendbuf, int sendcnt,
+                                   MPI_Datatype sendtype, void *recvbuf,
+                                   int recvcnt, MPI_Datatype recvtype,
+                                   MPIR_Comm *comm_ptr,
+                                   MPIR_Errflag_t *errflag);
+
+int MPIR_2lvl_Allgather_Ring_MVP(const void *sendbuf, int sendcnt,
+                                 MPI_Datatype sendtype, void *recvbuf,
+                                 int recvcnt, MPI_Datatype recvtype,
+                                 MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag);
+
 /* Architecture detection tuning */
-int MV2_set_allgather_tuning_table(int heterogeneity, struct coll_info *colls_arch_hca);
+int MVP_set_allgather_tuning_table(int heterogeneity,
+                                   struct coll_info *colls_arch_hca);
 
 /* Function to clean free memory allocated by allgather tuning table*/
-void MV2_cleanup_allgather_tuning_table();
-
-/* Function used inside ch3_shmem_coll.c to tune allgather thresholds */
-int MV2_internode_Allgather_is_define(char *mv2_user_allgather_inter);
-
+void MVP_cleanup_allgather_tuning_table();
 #endif
-
-

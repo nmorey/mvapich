@@ -7,7 +7,7 @@
  * This file is part of The Scalable Checkpoint / Restart (SCR) library.
  * For details, see https://sourceforge.net/projects/scalablecr/
  * Please also read this file: LICENSE.TXT.
-*/
+ */
 
 #ifndef SCR_ENV_H
 #define SCR_ENV_H
@@ -23,15 +23,15 @@ machine-dependent information.
 long int scr_env_seconds_remaining();
 
 /* allocate and return a string containing the current username */
-char* scr_env_username();
+char *scr_env_username();
 
 /* allocate and return a string containing the current job id */
-char* scr_env_jobid();
+char *scr_env_jobid();
 
 /* allocate and return a string containing the node name */
-char* scr_env_nodename();
+char *scr_env_nodename();
 
 /* read cluster name of current job */
-char* scr_env_cluster();
+char *scr_env_cluster();
 
 #endif

@@ -2,15 +2,15 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -95,10 +95,10 @@ typedef enum
     MPIDI_CH3_PKT_EAGER_SEND = 0,
 #if defined(CHANNEL_MRAIL)
     MPIDI_CH3_PKT_EAGER_SEND_CONTIG,
-#ifndef MV2_DISABLE_HEADER_CACHING 
+#ifndef MVP_DISABLE_HEADER_CACHING 
     MPIDI_CH3_PKT_FAST_EAGER_SEND,
     MPIDI_CH3_PKT_FAST_EAGER_SEND_WITH_REQ,
-#endif /* !MV2_DISABLE_HEADER_CACHING */
+#endif /* !MVP_DISABLE_HEADER_CACHING */
     MPIDI_CH3_PKT_RPUT_FINISH,
     MPIDI_CH3_PKT_RGET_FINISH,
     MPIDI_CH3_PKT_ZCOPY_FINISH,
@@ -263,7 +263,7 @@ typedef struct MPIDI_CH3_Pkt_eagershort_send
 #if defined(MPID_USE_SEQUENCE_NUMBERS) && !defined(CHANNEL_MRAIL)
     MPID_Seqnum_t seqnum;
 #endif
-    char data[MPIDI_EAGER_SHORT_SIZE];  /* MV2 support for RDMA FP */
+    char data[MPIDI_EAGER_SHORT_SIZE];  /* MVP support for RDMA FP */
 } MPIDI_CH3_Pkt_eagershort_send_t;
 #endif /* defined(USE_EAGER_SHORT) */
 
@@ -972,7 +972,7 @@ typedef struct MPIDI_CH3_Pkt_put
 } MPIDI_CH3_Pkt_put_t;
 
 /* 
- * MV2 rndv version 
+ * MVP rndv version 
  * It is important that these definitions remain beneath their base
  * MPICH versions or Git will get confused when merging 
  */
@@ -1033,7 +1033,7 @@ typedef struct MPIDI_CH3_Pkt_get
 } MPIDI_CH3_Pkt_get_t;
 
 /* 
- * MV2 rndv version
+ * MVP rndv version
  * It is important that these definitions remain beneath their base
  * MPICH versions or Git will get confused when merging 
  */
@@ -1128,7 +1128,7 @@ typedef struct MPIDI_CH3_Pkt_accum
 } MPIDI_CH3_Pkt_accum_t;
 
 /* 
- * MV2 rndv version
+ * MVP rndv version
  * It is important that these definitions remain beneath their base
  * MPICH versions or Git will get confused when merging 
  */
@@ -1196,7 +1196,7 @@ typedef struct MPIDI_CH3_Pkt_get_accum {
 } MPIDI_CH3_Pkt_get_accum_t;
 
 /* 
- * MV2 rndv version
+ * MVP rndv version
  * It is important that these definitions remain beneath their base
  * MPICH versions or Git will get confused when merging 
  */
@@ -1588,7 +1588,7 @@ typedef struct MPIDI_CH3_Pkt_send_container {
 } MPIDI_CH3_Pkt_send_container_t;
 #endif
 
-/* MV2 reference array for packet sizes */
+/* MVP reference array for packet sizes */
 #if defined(CHANNEL_MRAIL)
 extern int MPIDI_CH3_Pkt_size_index[];
 #endif /* defined(CHANNEL_MRAIL) */

@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 #ifndef _MPIRUN_CKPT_H
@@ -37,23 +37,21 @@ int CR_finalize();
 // Start CR thread
 // - it can be called again after CR_stop_thread() has been called
 // - it should be called after restart
-int CR_thread_start( unsigned int nspawns );
+int CR_thread_start(unsigned int nspawns);
 
 // Stop CR thread
 // - it can be called again after CR_start_thread() has been called
 // - it should be called when restarting
 // If blocking is set, it will wait for the CR thread to terminate
-int CR_thread_stop( int blocking );
-
+int CR_thread_stop(int blocking);
 
 char *create_mpispawn_vars(char *mpispawn_env);
 void save_ckpt_vars_env(void);
 void save_ckpt_vars(char *, char *);
 void set_ckpt_nprocs(int nprocs);
 
-#define CR_SESSION_MAX  16
+#define CR_SESSION_MAX 16
 extern char sessionid[CR_SESSION_MAX];
-
 
 // =====================================================
 // For Migration
@@ -73,7 +71,6 @@ extern int cr_ftb_callback(FTB_receive_event_t *, void *);
 
 // =====================================================
 
-#endif /* CKPT */ 
-
+#endif /* CKPT */
 
 #endif

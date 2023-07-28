@@ -7,7 +7,7 @@
  * This file is part of The Scalable Checkpoint / Restart (SCR) library.
  * For details, see https://sourceforge.net/projects/scalablecr/
  * Please also read this file: LICENSE.TXT.
-*/
+ */
 
 #ifndef SCR_PARAM_H
 #define SCR_PARAM_H
@@ -21,7 +21,7 @@
  *
  * It uses reference counting such that multiple callers may init and
  * finalize the parameters independently of one another.
-*/
+ */
 
 /* read config files and store contents */
 int scr_param_init();
@@ -31,10 +31,10 @@ int scr_param_finalize();
 
 /* searches for name and returns a character pointer to its value if set,
  * returns NULL if not found */
-char* scr_param_get(char* name);
+char *scr_param_get(char *name);
 
 /* searches for name and returns a newly allocated hash of its value if set,
  * returns NULL if not found */
-scr_hash* scr_param_get_hash(char* name);
+scr_hash *scr_param_get_hash(char *name);
 
 #endif

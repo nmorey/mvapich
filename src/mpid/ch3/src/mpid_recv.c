@@ -2,15 +2,15 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -19,14 +19,14 @@
 
 extern unsigned long long PVAR_COUNTER_unexpected_recvs_rendezvous;
 /* TODO: Replace or reimplement these bucket macros */
-/* MPIR_T_PVAR_ULONG2_COUNTER_BUCKET_DECL_EXTERN(MV2,mv2_pt2pt_mpid_recv);  */
+/* MPIR_T_PVAR_ULONG2_COUNTER_BUCKET_DECL_EXTERN(MVP,mvp_pt2pt_mpid_recv);  */
 
 int MPID_Recv(void * buf, MPI_Aint count, MPI_Datatype datatype, int rank, int tag,
           MPIR_Comm * comm, int context_offset,
           MPI_Status * status, MPIR_Request ** request)
 {
     /* TODO: Replace or reimplement these bucket macros */
-    /* MPIR_T_PVAR_COUNTER_BUCKET_INC(MV2,mv2_pt2pt_mpid_recv,count,datatype); */
+    /* MPIR_T_PVAR_COUNTER_BUCKET_INC(MVP,mvp_pt2pt_mpid_recv,count,datatype); */
 
     /* FIXME: in the common case, we want to simply complete the message
        and make as few updates as possible.
@@ -67,7 +67,7 @@ int MPID_Recv(void * buf, MPI_Aint count, MPI_Datatype datatype, int rank, int t
     MPIDI_Request_set_type(rreq, MPIDI_REQUEST_TYPE_RECV);
 
 #ifdef _ENABLE_CUDA_
-    if (mv2_enable_device) {
+    if (mvp_enable_device) {
         if (is_device_buffer(buf)) {
             /* buf is in the GPU device memory */
             rreq->mrail.device_transfer_mode = DEVICE_TO_DEVICE;
@@ -121,7 +121,7 @@ int MPID_Recv(void * buf, MPI_Aint count, MPI_Datatype datatype, int rank, int t
                         is_devbuf = is_device_buffer((void *)rreq->dev.tmpbuf);
                         if (is_devbuf)
                         {
-                            MV2_MPIDI_Free_Device(rreq->dev.tmpbuf);
+                            MVP_MPIDI_Free_Device(rreq->dev.tmpbuf);
                         }
                         else
 #endif
@@ -159,7 +159,7 @@ int MPID_Recv(void * buf, MPI_Aint count, MPI_Datatype datatype, int rank, int t
         }
         else if (MPIDI_Request_get_msg_type(rreq) == MPIDI_REQUEST_RNDV_MSG)
         {
-            MPIR_T_PVAR_COUNTER_INC(MV2, unexpected_recvs_rendezvous, 1);
+            MPIR_T_PVAR_COUNTER_INC(MVP, unexpected_recvs_rendezvous, 1);
 #if defined(CHANNEL_MRAIL)
             MPIDI_Comm_get_vc(comm, rreq->dev.match.parts.rank, &vc);
             mpi_errno = MPIDI_CH3_RecvRndv( vc, rreq );

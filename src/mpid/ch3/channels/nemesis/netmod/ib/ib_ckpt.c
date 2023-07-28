@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -18,18 +18,17 @@
 #undef DEBUG_PRINT
 #define DEBUG
 #ifdef DEBUG
-#define DEBUG_PRINT(args...)                                      \
-do {                                                              \
-    int __rank;                                                   \
-    UPMI_GET_RANK(&__rank);                                        \
-    fprintf(stderr, "[%d][%s:%d] ", __rank, __FILE__, __LINE__);  \
-    fprintf(stderr, args);                                        \
-    fflush(stderr);                                               \
-} while (0)
+#define DEBUG_PRINT(args...)                                                   \
+    do {                                                                       \
+        int __rank;                                                            \
+        UPMI_GET_RANK(&__rank);                                                \
+        fprintf(stderr, "[%d][%s:%d] ", __rank, __FILE__, __LINE__);           \
+        fprintf(stderr, args);                                                 \
+        fflush(stderr);                                                        \
+    } while (0)
 #else
 #define DEBUG_PRINT(args...)
 #endif
-
 
 #ifdef ENABLE_CHECKPOINTING
 
@@ -59,7 +58,8 @@ fn_fail:
 #define FUNCNAME MPID_nem_ib_pkt_unpause_handler
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPID_nem_ib_pkt_unpause_handler(MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, intptr_t *buflen, MPIR_Request **rreqp)
+int MPID_nem_ib_pkt_unpause_handler(MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt,
+                                    intptr_t *buflen, MPIR_Request **rreqp)
 {
     int mpi_errno = MPI_SUCCESS;
     MPID_nem_ib_vc_area *vc_ib = VC_IB(vc);
@@ -69,14 +69,19 @@ int MPID_nem_ib_pkt_unpause_handler(MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, intptr
 
     vc_ib->send_paused = FALSE;
 
-    /* There may be a unpause message in the send queue.  If so, just enqueue everything on the send queue. */
+    /* There may be a unpause message in the send queue.  If so, just enqueue
+     * everything on the send queue. */
     if (MPIDI_CH3I_Sendq_empty(vc_ib->send_queue))
-        mpi_errno = MPID_nem_ib_send_queued(vc, (MPIDI_nem_ib_request_queue_t *)&vc_ib->paused_send_queue); /*Need to implement for IB*/
-        
-    /* if anything is left on the paused queue, put it on the send queue and wait for the reconnect */
+        mpi_errno = MPID_nem_ib_send_queued(
+            vc, (MPIDI_nem_ib_request_queue_t *)&vc_ib
+                    ->paused_send_queue); /*Need to implement for IB*/
+
+    /* if anything is left on the paused queue, put it on the send queue and
+     * wait for the reconnect */
     if (!MPIDI_CH3I_Sendq_empty(vc_ib->paused_send_queue)) {
-        
-        MPIDI_CH3I_Sendq_enqueue_multiple_no_refcount(&vc_ib->send_queue, vc_ib->paused_send_queue.head, vc_ib->paused_send_queue.tail);
+        MPIDI_CH3I_Sendq_enqueue_multiple_no_refcount(
+            &vc_ib->send_queue, vc_ib->paused_send_queue.head,
+            vc_ib->paused_send_queue.tail);
         vc_ib->paused_send_queue.head = vc_ib->paused_send_queue.tail = NULL;
     }
 
@@ -107,17 +112,20 @@ int MPID_nem_ib_ckpt_continue_vc(MPIDI_VC_t *vc)
     unpause_pkt->type = MPIDI_NEM_PKT_NETMOD;
     unpause_pkt->subtype = MPIDI_NEM_IB_PKT_UNPAUSE;
 
-    fprintf(stderr,"Calling MPID_nem_ib_iStartContigMsg_paused\n");
-    mpi_errno = MPID_nem_ib_iStartContigMsg_paused(vc, &upkt, sizeof(MPIDI_nem_ib_pkt_unpause_t), NULL, 0, &unpause_req);
-    if (mpi_errno) MPIR_ERR_POP(mpi_errno);
-    if (unpause_req)
-    {
-        if (unpause_req->status.MPI_ERROR) MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
+    fprintf(stderr, "Calling MPID_nem_ib_iStartContigMsg_paused\n");
+    mpi_errno = MPID_nem_ib_iStartContigMsg_paused(
+        vc, &upkt, sizeof(MPIDI_nem_ib_pkt_unpause_t), NULL, 0, &unpause_req);
+    if (mpi_errno)
+        MPIR_ERR_POP(mpi_errno);
+    if (unpause_req) {
+        if (unpause_req->status.MPI_ERROR)
+            MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
         MPIR_Request_free(unpause_req);
-        if (mpi_errno) goto fn_fail;
+        if (mpi_errno)
+            goto fn_fail;
     }
 
-    fprintf(stderr,"Exiting MPID_nem_ib_ckpt_continue_vc\n");
+    fprintf(stderr, "Exiting MPID_nem_ib_ckpt_continue_vc\n");
 
 fn_exit:
     MPIDI_FUNC_EXIT(MPID_STATE_MPID_NEM_IB_CKPT_CONTINUE_VC);
@@ -127,8 +135,6 @@ fn_fail:
     goto fn_exit;
 }
 
-
-
 #undef FUNCNAME
 #define FUNCNAME MPID_nem_ib_ckpt_restart_vc
 #undef FCNAME
@@ -137,7 +143,7 @@ int MPID_nem_ib_ckpt_restart_vc(MPIDI_VC_t *vc)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIDI_CH3_Pkt_t upkt;
-    MPIDI_nem_ib_pkt_unpause_t * const pkt = (MPIDI_nem_ib_pkt_unpause_t *)&upkt;
+    MPIDI_nem_ib_pkt_unpause_t *const pkt = (MPIDI_nem_ib_pkt_unpause_t *)&upkt;
     MPIR_Request *sreq;
     MPIDI_STATE_DECL(MPID_STATE_MPID_NEM_IB_CKPT_RESTART_VC);
 
@@ -146,8 +152,10 @@ int MPID_nem_ib_ckpt_restart_vc(MPIDI_VC_t *vc)
     pkt->type = MPIDI_NEM_PKT_NETMOD;
     pkt->subtype = MPIDI_NEM_IB_PKT_UNPAUSE;
 
-    mpi_errno = MPID_nem_ib_iStartContigMsg_paused(vc, pkt, sizeof(pkt), NULL, 0, &sreq);
-    if (mpi_errno) MPIR_ERR_POP(mpi_errno);
+    mpi_errno = MPID_nem_ib_iStartContigMsg_paused(vc, pkt, sizeof(pkt), NULL,
+                                                   0, &sreq);
+    if (mpi_errno)
+        MPIR_ERR_POP(mpi_errno);
 
     if (sreq != NULL) {
         if (sreq->status.MPI_ERROR != MPI_SUCCESS) {
@@ -157,7 +165,7 @@ int MPID_nem_ib_ckpt_restart_vc(MPIDI_VC_t *vc)
         }
         MPIR_Request_free(sreq);
     }
-    
+
 fn_exit:
     MPIDI_FUNC_EXIT(MPID_STATE_MPID_NEM_IB_CKPT_RESTART_VC);
     return mpi_errno;

@@ -17,8 +17,8 @@
 m4_define([MPICH_VERSION_m4],[3.4.3])dnl
 m4_define([MPICH_RELEASE_DATE_m4],[General Availability Release])dnl
 
-m4_define([MVAPICH2_VERSION_m4],[3.0a1])dnl
-m4_define([MVAPICH2_RELEASE_DATE_m4],[Mon Aug 15 11:06:53 EDT 2022])dnl
+m4_define([MVAPICH_VERSION_m4],[3.0b])dnl
+m4_define([MVAPICH_RELEASE_DATE_m4],[04/10/2023])dnl
 
 # For libtool ABI versioning rules see:
 # http://www.gnu.org/software/libtool/manual/libtool.html#Updating-version-info

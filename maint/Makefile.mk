@@ -22,7 +22,7 @@ dist_noinst_SCRIPTS +=                \
     maint/getcoverage.in              \
     maint/gen_subcfg_m4               \
     maint/extractcvars                   \
-    maint/extractmv2cvars             \
+    maint/extractmvpcvars             \
     maint/genstates.in                \
     maint/getcoverage.in              \
     maint/local_perl/lib/YAML/Tiny.pm \

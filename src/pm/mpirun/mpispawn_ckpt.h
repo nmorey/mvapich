@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -19,7 +19,7 @@
 
 #include "common_ckpt.h"
 
-#define CR_RESTART_CMD      "cr_restart"
+#define CR_RESTART_CMD "cr_restart"
 
 // Used in mpispawn.c TODO: try remove these dependencies
 extern char *sessionid;
@@ -51,20 +51,20 @@ extern FTB_event_info_t cr_ftb_events[];
 extern pthread_t CR_wfe_tid;
 
 void *CR_wait_for_errors(void *);
-#else                           /* ! CR_FTB */
+#else /* ! CR_FTB */
 
-#endif                          /* CR_FTB */
+#endif /* CR_FTB */
 
 extern int cr_spawn_degree;
 
 #ifdef CR_AGGRE
-extern int use_aggre_mig;       // whether we enable migration func in CRFS
+extern int use_aggre_mig; // whether we enable migration func in CRFS
 extern int use_aggre;
 int init_ckpt_aggregation();
 #endif
 
 int restart_mpi_process(int cached_cr_mig_tgt, int i);
 
-#endif                          /* CKPT */
+#endif /* CKPT */
 
-#endif                          /* MPISPAWN_CKPT_H */
+#endif /* MPISPAWN_CKPT_H */

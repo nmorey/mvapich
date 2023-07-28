@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -25,12 +25,12 @@ int MPIR_Breakpoint(void);
 #define DBG(_stmt_)
 #endif
 
-#define TOTALVIEW_CMD_LEN       200
+#define TOTALVIEW_CMD_LEN 200
 
 /* Start mpirun_rsh totalview integration */
 
-#define MPIR_DEBUG_SPAWNED                1
-#define MPIR_DEBUG_ABORTING               2
+#define MPIR_DEBUG_SPAWNED  1
+#define MPIR_DEBUG_ABORTING 2
 
 extern struct MPIR_PROCDESC *MPIR_proctable;
 extern int MPIR_proctable_size;

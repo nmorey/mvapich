@@ -6,17 +6,17 @@
 /* Copyright (c) 2001-2021, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
 #include "mpiimpl.h"
-#include "mv2_coll_shmem.h"
+#include "mvp_coll_shmem.h"
 
 /*
 === BEGIN_MPI_T_CVAR_INFO_BLOCK ===
@@ -183,7 +183,7 @@ int MPIR_Allgatherv_impl(const void *sendbuf, int sendcount, MPI_Datatype sendty
     MPI_Aint total_size = 0, total_msgs = 0, avg_size = 0;
     int *send_displs;
 
-    if (mv2_enable_device) {
+    if (mvp_enable_device) {
         rank = comm_ptr->rank;
         if (comm_ptr->comm_kind == MPIR_COMM_KIND__INTRACOMM) {
             comm_size = comm_ptr->local_size;
@@ -209,8 +209,8 @@ int MPIR_Allgatherv_impl(const void *sendbuf, int sendcount, MPI_Datatype sendty
         avg_size = total_size / total_msgs;
 
         if ((sendbuf_on_device || recvbuf_on_device) &&
-             mv2_device_coll_use_stage &&
-             avg_size <= mv2_device_allgatherv_stage_limit) {
+             mvp_device_coll_use_stage &&
+             avg_size <= mvp_device_allgatherv_stage_limit) {
 
             send_displs = (int *) MPL_malloc(sizeof(int));
             if (send_displs == NULL) { 
@@ -290,10 +290,10 @@ int MPIR_Allgatherv_impl(const void *sendbuf, int sendcount, MPI_Datatype sendty
 
     /* TODO-merge: can we offload this to an OSU specific file? */
 #if defined(_ENABLE_CUDA_)
-    if (mv2_enable_device) {
+    if (mvp_enable_device) {
         if ((sendbuf_on_device || recvbuf_on_device) &&
-             mv2_device_coll_use_stage &&
-             avg_size <= mv2_device_allgatherv_stage_limit) {
+             mvp_device_coll_use_stage &&
+             avg_size <= mvp_device_allgatherv_stage_limit) {
 
             device_stage_free_v ((void **)&sendbuf, &sendcount, sendtype,
                &send_displs, 1,
@@ -491,9 +491,9 @@ int MPI_Allgatherv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
         goto fn_fail;
 
 #ifdef _OSU_MVAPICH_
-    if (mv2_use_osu_collectives) {
+    if (MVP_USE_OSU_COLLECTIVES) {
         if(comm_ptr->dev.ch.allgather_comm_ok == 0) {
-            mpi_errno = mv2_increment_allgather_coll_counter(comm_ptr);
+            mpi_errno = mvp_increment_allgather_coll_counter(comm_ptr);
             MPIR_ERR_CHECK(mpi_errno);
         }
     }

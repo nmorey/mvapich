@@ -1,13 +1,13 @@
 /*
- * Copyright (c) 2001-2022, The Ohio State University. All rights
+ * Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  */
 
 /*
@@ -17,7 +17,7 @@
 
 #include "mpid_nem_impl.h"
 #ifdef _OSU_MVAPICH_
-#include "mv2_ch3_shmem.h"
+#include "mvp_ch3_shmem.h"
 #endif /* _OSU_MVAPICH_ */
 
 int MPIDI_CH3_Finalize(void)
@@ -35,13 +35,13 @@ int MPIDI_CH3_Finalize(void)
     if (mpi_errno) MPIR_ERR_POP (mpi_errno);
 
 #ifdef _OSU_MVAPICH_
-    if (mv2_enable_shmem_collectives || finalize_coll_comm == 1) {
+    if (mvp_enable_shmem_collectives || finalize_coll_comm == 1) {
         /* Freeing up shared memory collective resources*/
-        mpi_errno = MPIR_MV2_SHMEM_COLL_finalize(MPID_nem_mem_region.local_rank,
+        mpi_errno = MPIR_MVP_SHMEM_COLL_finalize(MPID_nem_mem_region.local_rank,
                         MPID_nem_mem_region.num_local);
         if (mpi_errno) MPIR_ERR_POP (mpi_errno);
 
-        MV2_collectives_arch_finalize();
+        MVP_collectives_arch_finalize();
     }
 #endif
 

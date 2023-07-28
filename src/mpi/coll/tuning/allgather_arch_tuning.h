@@ -1,13 +1,13 @@
 /*
- * Copyright (c) 2001-2022, The Ohio State University. All rights
+ * Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  */
 
 #include "allgather/gen2_cma_RI2_1ppn.h"
@@ -34,8 +34,8 @@
 #include "allgather/gen2_INTEL_XEON_E5_2690_V2_2S_20_MLX_CX_CONNIB_1ppn.h"
 #include "allgather/gen2_INTEL_XEON_E5_2690_V2_2S_20_MLX_CX_CONNIB_2ppn.h"
 #include "allgather/gen2_INTEL_XEON_E5_2690_V2_2S_20_MLX_CX_CONNIB_20ppn.h"
-#include "allgather/psm_INTEL_XEON_X5650_12_MV2_HCA_QLGIC_QIB_1ppn.h"
-#include "allgather/psm_INTEL_XEON_X5650_12_MV2_HCA_QLGIC_QIB_12ppn.h"
+#include "allgather/psm_INTEL_XEON_X5650_12_MVP_HCA_QLGIC_QIB_1ppn.h"
+#include "allgather/psm_INTEL_XEON_X5650_12_MVP_HCA_QLGIC_QIB_12ppn.h"
 #include "allgather/gen2_AMD_OPTERON_6136_32_MLX_CX_QDR_1ppn.h"
 #include "allgather/gen2_AMD_OPTERON_6136_32_MLX_CX_QDR_2ppn.h"
 #include "allgather/gen2_AMD_OPTERON_6136_32_MLX_CX_QDR_32ppn.h"
@@ -166,11 +166,11 @@
 #include "allgather/gen2_cma_FRONTERA_28ppn.h"
 #include "allgather/gen2_cma_FRONTERA_32ppn.h"
 #include "allgather/gen2_cma_FRONTERA_56ppn.h"
-#include "allgather/gen2_cma_MV2_ARCH_INTEL_XEON_E5_2620_V4_2S_16_1ppn.h"
-#include "allgather/gen2_cma_MV2_ARCH_INTEL_XEON_E5_2620_V4_2S_16_2ppn.h"
-#include "allgather/gen2_cma_MV2_ARCH_INTEL_XEON_E5_2620_V4_2S_16_4ppn.h"
-#include "allgather/gen2_cma_MV2_ARCH_INTEL_XEON_E5_2620_V4_2S_16_8ppn.h"
-#include "allgather/gen2_cma_MV2_ARCH_INTEL_XEON_E5_2620_V4_2S_16_16ppn.h"
+#include "allgather/gen2_cma_MVP_ARCH_INTEL_XEON_E5_2620_V4_2S_16_1ppn.h"
+#include "allgather/gen2_cma_MVP_ARCH_INTEL_XEON_E5_2620_V4_2S_16_2ppn.h"
+#include "allgather/gen2_cma_MVP_ARCH_INTEL_XEON_E5_2620_V4_2S_16_4ppn.h"
+#include "allgather/gen2_cma_MVP_ARCH_INTEL_XEON_E5_2620_V4_2S_16_8ppn.h"
+#include "allgather/gen2_cma_MVP_ARCH_INTEL_XEON_E5_2620_V4_2S_16_16ppn.h"
 #include "allgather/gen2_cma_MAYER_1ppn.h"
 #include "allgather/gen2_cma_MAYER_2ppn.h"
 #include "allgather/gen2_cma_MAYER_4ppn.h"

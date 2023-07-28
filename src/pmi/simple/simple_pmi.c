@@ -3,15 +3,15 @@
  *     See COPYRIGHT in top-level directory
  */
 
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -109,7 +109,7 @@ static int PMII_Connect_to_pm(char *, int);
 static int GetResponse(const char[], const char[], int);
 static int getPMIFD(int *);
 
-/* MV2 pmi ibarrier support */
+/* MVP pmi ibarrier support */
 static int SendResponse(const char []);
 static int RecvResponse(const char [], const char [], int);
 

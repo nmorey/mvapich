@@ -46,7 +46,7 @@ int MPL_env2int(const char *envName, int *val)
 {
     const char *val_ptr;
 
-    /* MV2 support byte suffixes K, M, G */
+    /* MVP support byte suffixes K, M, G */
     int factor = 1;
 
     val_ptr = getenv(envName);
@@ -65,7 +65,7 @@ int MPL_env2int(const char *envName, int *val)
         while (*p && isdigit(*p))
             value = 10 * value + (*p++ - '0');
 
-        /* MV2 support byte suffixes K, M, G */
+        /* MVP support byte suffixes K, M, G */
         if (*p && isalpha(*p)) {
             if (*p == 'k' || *p == 'K') {
                 factor = 1<<10;

@@ -18,7 +18,7 @@ int MPID_Imrecv(void *buf, int count, MPI_Datatype datatype,
     if (message == NULL)
     {
         *rreqp = MPIR_Request_create_null_recv();
-        MV2_INC_NUM_POSTED_RECV();
+        MVP_INC_NUM_POSTED_RECV();
         goto fn_exit;
     }
 
@@ -28,7 +28,7 @@ int MPID_Imrecv(void *buf, int count, MPI_Datatype datatype,
     /* promote the request object to be a "real" recv request */
     message->kind = MPIR_REQUEST_KIND__RECV;
 
-    MV2_INC_NUM_POSTED_RECV();
+    MVP_INC_NUM_POSTED_RECV();
 
     *rreqp = rreq = message;
 
@@ -108,7 +108,7 @@ int MPID_Imrecv(void *buf, int count, MPI_Datatype datatype,
         MPIDI_Comm_get_vc_set_active(comm, rreq->dev.match.parts.rank, &vc);
 #if defined (CHANNEL_MRAIL)
         if (IS_VC_SMP(vc)) {
-            rreq->mrail.protocol = MV2_RNDV_PROTOCOL_R3;
+            rreq->mrail.protocol = MRAILI_PROTOCOL_R3;
         }
 #endif
         mpi_errno = vc->rndvRecv_fn(vc, rreq);

@@ -1,12 +1,12 @@
 #include "reduce_tuning.h"
 
-int MPIR_Reduce_two_level_helper_MV2(const void *sendbuf, void *recvbuf,
+int MPIR_Reduce_two_level_helper_MVP(const void *sendbuf, void *recvbuf,
                                      int count, MPI_Datatype datatype,
-                                     MPI_Op op, int root, MPIR_Comm * comm_ptr,
+                                     MPI_Op op, int root, MPIR_Comm *comm_ptr,
                                      MPIR_Errflag_t *errflag)
 {
     MPIR_TIMER_START(coll, reduce, two_level_helper);
-    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_reduce_two_level_helper, 1);
+    MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_reduce_two_level_helper, 1);
     int mpi_errno = MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
     int my_rank, total_size, local_rank, local_size;
@@ -24,7 +24,7 @@ int MPIR_Reduce_two_level_helper_MV2(const void *sendbuf, void *recvbuf,
 #endif
     MPIR_CHKLMEM_DECL(1);
 
-    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_num_shmem_coll_calls, 1);
+    MPIR_T_PVAR_COUNTER_INC(MVP, mvp_num_shmem_coll_calls, 1);
     my_rank = comm_ptr->rank;
     total_size = comm_ptr->local_size;
     shmem_comm = comm_ptr->dev.ch.shmem_comm;
@@ -51,11 +51,11 @@ int MPIR_Reduce_two_level_helper_MV2(const void *sendbuf, void *recvbuf,
     if (local_size == total_size) {
         /* First handle the case where there is only one node */
         if (comm_ptr->dev.ch.shmem_coll_ok == 1 &&
-            stride <= mv2_coll_param.shmem_intra_reduce_msg &&
-            mv2_enable_shmem_reduce && is_commutative == 1) {
-            if (local_rank == 0 ) {
-                MPIR_CHKLMEM_MALLOC(tmp_buf, void *, count *
-                                    (MPL_MAX(extent, true_extent)),
+            stride <= MVP_INTRA_SHMEM_REDUCE_MSG && MVP_USE_SHMEM_REDUCE &&
+            is_commutative == 1) {
+            if (local_rank == 0) {
+                MPIR_CHKLMEM_MALLOC(tmp_buf, void *,
+                                    count *(MPL_MAX(extent, true_extent)),
                                     mpi_errno, "receive buffer", MPL_MEM_COLL);
                 tmp_buf = (void *)((char *)tmp_buf - true_lb);
             }
@@ -67,11 +67,11 @@ int MPIR_Reduce_two_level_helper_MV2(const void *sendbuf, void *recvbuf,
             }
 
             if (local_rank == 0) {
-                if( my_rank != root) {
+                if (my_rank != root) {
                     out_buf = tmp_buf;
                 } else {
                     out_buf = recvbuf;
-                    if(in_buf == out_buf) {
+                    if (in_buf == out_buf) {
                         in_buf = MPI_IN_PLACE;
                         out_buf = recvbuf;
                     }
@@ -81,7 +81,7 @@ int MPIR_Reduce_two_level_helper_MV2(const void *sendbuf, void *recvbuf,
                     in_buf = (void *)sendbuf;
                     out_buf = NULL;
                 } else {
-                    if (sendbuf !=  MPI_IN_PLACE) {
+                    if (sendbuf != MPI_IN_PLACE) {
                         in_buf = (void *)sendbuf;
                         out_buf = (void *)recvbuf;
                     } else {
@@ -92,14 +92,14 @@ int MPIR_Reduce_two_level_helper_MV2(const void *sendbuf, void *recvbuf,
             }
 
             if (count * (MPL_MAX(extent, true_extent)) <
-                                        mv2_g_shmem_coll_max_msg_size) {
-                mpi_errno = MPIR_Reduce_shmem_MV2(in_buf, out_buf, count,
-                                                  datatype, op,
-                                                  0, shmem_commptr, errflag);
+                MVP_SHMEM_COLL_MAX_MSG_SIZE) {
+                mpi_errno =
+                    MPIR_Reduce_shmem_MVP(in_buf, out_buf, count, datatype, op,
+                                          0, shmem_commptr, errflag);
             } else {
-                mpi_errno = MPIR_Reduce_intra_knomial_wrapper_MV2(in_buf,
-                                                out_buf, count, datatype, op,
-                                                0, shmem_commptr, errflag);
+                mpi_errno = MPIR_Reduce_intra_knomial_wrapper_MVP(
+                    in_buf, out_buf, count, datatype, op, 0, shmem_commptr,
+                    errflag);
             }
 
             if (local_rank == 0 && root != my_rank) {
@@ -109,20 +109,18 @@ int MPIR_Reduce_two_level_helper_MV2(const void *sendbuf, void *recvbuf,
             }
             if ((local_rank != 0) && (root == my_rank)) {
                 MPIR_PVAR_INC(reduce, two_level_helper, recv, count, datatype);
-                mpi_errno = MPIC_Recv(recvbuf, count, datatype,
-                                      leader_of_root, MPIR_REDUCE_TAG, comm_ptr,
+                mpi_errno = MPIC_Recv(recvbuf, count, datatype, leader_of_root,
+                                      MPIR_REDUCE_TAG, comm_ptr,
                                       MPI_STATUS_IGNORE, errflag);
             }
         } else {
-            if(mv2_use_knomial_reduce == 1) {
-                reduce_fn = &MPIR_Reduce_intra_knomial_wrapper_MV2;
+            if (MVP_USE_KNOMIAL_REDUCE) {
+                reduce_fn = &MPIR_Reduce_intra_knomial_wrapper_MVP;
             } else {
-                reduce_fn = &MPIR_Reduce_binomial_MV2;
+                reduce_fn = &MPIR_Reduce_binomial_MVP;
             }
-            mpi_errno = reduce_fn(sendbuf, recvbuf, count,
-                                  datatype, op,
-                                  root, comm_ptr,
-                                  errflag);
+            mpi_errno = reduce_fn(sendbuf, recvbuf, count, datatype, op, root,
+                                  comm_ptr, errflag);
         }
         if (mpi_errno) {
             /* for communication errors, just record the error but
@@ -136,12 +134,11 @@ int MPIR_Reduce_two_level_helper_MV2(const void *sendbuf, void *recvbuf,
     }
 
 #ifdef CHANNEL_MRAIL_GEN2
-    if (mv2_use_slot_shmem_coll &&
-            mv2_enable_zcpy_reduce == 1 &&
-            stride <= mv2_shm_slot_len &&
-            comm_ptr->dev.ch.shmem_coll_ok == 1 &&
-            mv2_enable_shmem_reduce && is_commutative == 1) {
-        mpi_errno = MPIR_Reduce_Zcpy_MV2(sendbuf, recvbuf, count, datatype, op,
+    if (MVP_USE_SLOT_SHMEM_COLL && MVP_USE_ZCOPY_REDUCE &&
+        stride <= MVP_SHMEM_COLL_SLOT_LEN &&
+        comm_ptr->dev.ch.shmem_coll_ok == 1 && MVP_USE_SHMEM_REDUCE &&
+        is_commutative == 1) {
+        mpi_errno = MPIR_Reduce_Zcpy_MVP(sendbuf, recvbuf, count, datatype, op,
                                          root, comm_ptr, errflag);
         if (mpi_errno) {
             /* for communication errors, just record the error but
@@ -160,9 +157,9 @@ int MPIR_Reduce_two_level_helper_MV2(const void *sendbuf, void *recvbuf,
         MPIR_Comm_get_ptr(leader_comm, leader_commptr);
         leader_comm_rank = leader_commptr->rank;
         leader_comm_size = leader_commptr->local_size;
-        MPIR_CHKLMEM_MALLOC(tmp_buf, void *, count *
-                            (MPL_MAX(extent, true_extent)),
-                            mpi_errno, "receive buffer", MPL_MEM_COLL);
+        MPIR_CHKLMEM_MALLOC(tmp_buf, void *,
+                            count *(MPL_MAX(extent, true_extent)), mpi_errno,
+                            "receive buffer", MPL_MEM_COLL);
         tmp_buf = (void *)((char *)tmp_buf - true_lb);
     }
     if (sendbuf != MPI_IN_PLACE) {
@@ -176,32 +173,28 @@ int MPIR_Reduce_two_level_helper_MV2(const void *sendbuf, void *recvbuf,
         out_buf = NULL;
     }
 
-
-    if(local_size > 1) {
+    if (local_size > 1) {
         /* Lets do the intra-node reduce operations, if we have more than one
          * process in the node */
 
         /*Fix the input and outbuf buffers for the intra-node reduce.
          *Node leaders will have the reduced data in tmp_buf after
          *this step*/
-        if (MV2_Reduce_intra_function == & MPIR_Reduce_shmem_MV2) {
-            if (comm_ptr->dev.ch.shmem_coll_ok == 1 &&
-                mv2_enable_shmem_reduce && is_commutative == 1 &&
+        if (MVP_Reduce_intra_function == &MPIR_Reduce_shmem_MVP) {
+            if (comm_ptr->dev.ch.shmem_coll_ok == 1 && MVP_USE_SHMEM_REDUCE &&
+                is_commutative == 1 &&
                 (count * (MPL_MAX(extent, true_extent)) <
-                                            mv2_g_shmem_coll_max_msg_size)) {
-                    mpi_errno = MV2_Reduce_intra_function(in_buf, out_buf,
-                                                count, datatype, op,
-                                                intra_node_root, shmem_commptr,
-                                                errflag);
+                 MVP_SHMEM_COLL_MAX_MSG_SIZE)) {
+                mpi_errno = MVP_Reduce_intra_function(
+                    in_buf, out_buf, count, datatype, op, intra_node_root,
+                    shmem_commptr, errflag);
             } else {
-                mpi_errno = MPIR_Reduce_intra_knomial_wrapper_MV2(in_buf,
-                                                out_buf, count, datatype, op,
-                                                intra_node_root, shmem_commptr,
-                                                errflag);
+                mpi_errno = MPIR_Reduce_intra_knomial_wrapper_MVP(
+                    in_buf, out_buf, count, datatype, op, intra_node_root,
+                    shmem_commptr, errflag);
             }
         } else {
-
-            mpi_errno = MV2_Reduce_intra_function(in_buf, out_buf, count,
+            mpi_errno = MVP_Reduce_intra_function(in_buf, out_buf, count,
                                                   datatype, op, intra_node_root,
                                                   shmem_commptr, errflag);
         }
@@ -226,7 +219,7 @@ int MPIR_Reduce_two_level_helper_MV2(const void *sendbuf, void *recvbuf,
                 /* I am the root of the leader-comm, and the
                  * root of the reduce op. So, I will write the
                  * final result directly into my recvbuf */
-                if(tmp_buf != recvbuf) {
+                if (tmp_buf != recvbuf) {
                     in_buf = tmp_buf;
                     out_buf = recvbuf;
                 } else {
@@ -243,10 +236,8 @@ int MPIR_Reduce_two_level_helper_MV2(const void *sendbuf, void *recvbuf,
         }
 
         /* inter-leader communication  */
-        mpi_errno = MV2_Reduce_function(in_buf, out_buf, count,
-                                        datatype, op,
-                                        leader_root, leader_commptr,
-                                        errflag);
+        mpi_errno = MVP_Reduce_function(in_buf, out_buf, count, datatype, op,
+                                        leader_root, leader_commptr, errflag);
         if (mpi_errno) {
             /* for communication errors, just record the error
              * but continue */
@@ -259,8 +250,8 @@ int MPIR_Reduce_two_level_helper_MV2(const void *sendbuf, void *recvbuf,
     if (local_size > 1) {
         /* Send the message to the root if the leader is not the
          * root of the reduce operation. The reduced data is in tmp_buf */
-        if ((local_rank == 0) && (root != my_rank)
-                && (leader_root == leader_comm_rank)) {
+        if ((local_rank == 0) && (root != my_rank) &&
+            (leader_root == leader_comm_rank)) {
             MPIR_PVAR_INC(reduce, two_level_helper, send, count, datatype);
             mpi_errno = MPIC_Send(tmp_buf, count, datatype, root,
                                   MPIR_REDUCE_TAG, comm_ptr, errflag);
@@ -275,10 +266,9 @@ int MPIR_Reduce_two_level_helper_MV2(const void *sendbuf, void *recvbuf,
 
         if ((local_rank != 0) && (root == my_rank)) {
             MPIR_PVAR_INC(reduce, two_level_helper, recv, count, datatype);
-            mpi_errno = MPIC_Recv(recvbuf, count, datatype,
-                                  leader_of_root,
-                                  MPIR_REDUCE_TAG, comm_ptr,
-                                  MPI_STATUS_IGNORE, errflag);
+            mpi_errno = MPIC_Recv(recvbuf, count, datatype, leader_of_root,
+                                  MPIR_REDUCE_TAG, comm_ptr, MPI_STATUS_IGNORE,
+                                  errflag);
             if (mpi_errno) {
                 /* for communication errors, just record the error but
                  * continue */
@@ -289,7 +279,7 @@ int MPIR_Reduce_two_level_helper_MV2(const void *sendbuf, void *recvbuf,
         }
     }
 
-  fn_exit:
+fn_exit:
     MPIR_CHKLMEM_FREEALL();
     MPIR_TIMER_END(coll, reduce, two_level_helper);
     if (mpi_errno_ret) {

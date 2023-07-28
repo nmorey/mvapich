@@ -55,7 +55,7 @@ AC_SEARCH_LIBS([dlsym],
                [],
                [AC_MSG_ERROR([dlsym not available])])
 
-AC_DEFINE([_OSU_MVAPICH_], [1], [Define to enable MVAPICH2 customizations])
+AC_DEFINE([_OSU_MVAPICH_], [1], [Define to enable MVAPICH customizations])
 AC_DEFINE([CHANNEL_NEMESIS_IB], [1], [Define if using the nemesis ib netmod])
 
 ])dnl end AM_COND_IF(BUILD_NEMESIS_NETMOD_IB,...)

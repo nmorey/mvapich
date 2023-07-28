@@ -1,5 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
-/*  
+/*
  *  (C) 2006 by Argonne National Laboratory.
  *      See COPYRIGHT in top-level directory.
  */
@@ -7,7 +7,7 @@
 #define MAX_NUM_NICS 16
 
 /*
- * FIXME: This is an archived file that captures how to find available 
+ * FIXME: This is an archived file that captures how to find available
  * interfaces on a node in a cluster.
  */
 #ifdef HAVE_WINDOWS_H
@@ -20,20 +20,19 @@ static int GetLocalIPs(int32_t *pIP, int max)
     int n = 0;
     int mpi_errno = 0;
 
-    MPID_Get_processor_name( hostname, sizeof(hostname), 0 );
+    MPID_Get_processor_name(hostname, sizeof(hostname), 0);
 
-    struct addrinfo hints = { .ai_family = AF_INET };
+    struct addrinfo hints = {.ai_family = AF_INET};
     mpi_errno = getaddrinfo(hostname, NULL, &hints, &info_list);
     if (mpi_errno != 0) {
         return 0;
     }
 
     info = info_list;
-    while (*info != NULL && n<max)
-    {
+    while (*info != NULL && n < max) {
         pIP[n] = &((struct sockaddr_in *)info->ai_addr)->sin_addr;
 
-        /*{	
+        /*{
         unsigned int a, b, c, d;
         a = ((unsigned char *)(&pIP[n]))[0];
         b = ((unsigned char *)(&pIP[n]))[1];
@@ -70,7 +69,7 @@ static int GetLocalIPs(int32_t *pIP, int max)
    THESE NEED TO BE SET FOR ALL COMPILATIONS TO AVOID HAVING DIFFERENT
    FILES COMPILED WITH DIFFERENT AND INCOMPATIBLE HEADER FILES.
 
-   WHAT IS APPARENTLY NEEDED (SEE /usr/include/features.h ON A LINUX 
+   WHAT IS APPARENTLY NEEDED (SEE /usr/include/features.h ON A LINUX
    SYSTEM) IS EITHER _BSD_SOURCE OR _SVID_SOURCE; THIS MUST BE SET
    CONSISTENTLY FOR ALL FILES COMPILED AS PART OF MPICH
  */
@@ -94,16 +93,16 @@ static int GetLocalIPs(int32_t *pIP, int max)
 
 static int GetLocalIPs(int32_t *pIP, int max)
 {
-    int					fd;
-    char *				buf_ptr;
-    int					buf_len;
-    int					buf_len_prev;
-    char *				ptr;
+    int fd;
+    char *buf_ptr;
+    int buf_len;
+    int buf_len_prev;
+    char *ptr;
     int n = 0;
-    
+
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd < 0)
-	return 0;
+        return 0;
 
     /*
      * Obtain the interface information from the operating system
@@ -115,82 +114,74 @@ static int GetLocalIPs(int32_t *pIP, int max)
     buf_len = NUM_IFREQS * sizeof(struct ifreq);
     buf_len_prev = 0;
 
-    for(;;)
-    {
-	struct ifconf			ifconf;
-	int				rc;
+    for (;;) {
+        struct ifconf ifconf;
+        int rc;
 
-	buf_ptr = (char *) MPL_malloc(buf_len);
-	if (buf_ptr == NULL)
-	    return 0;
-	
-	ifconf.ifc_buf = buf_ptr;
-	ifconf.ifc_len = buf_len;
+        buf_ptr = (char *)MPL_malloc(buf_len);
+        if (buf_ptr == NULL)
+            return 0;
 
-	rc = ioctl(fd, SIOCGIFCONF, &ifconf);
-	if (rc < 0)
-	{
-	    if (errno != EINVAL || buf_len_prev != 0)
-		return 0;
-	}
-        else
-	{
-	    if (ifconf.ifc_len == buf_len_prev)
-	    {
-		buf_len = ifconf.ifc_len;
-		break;
-	    }
+        ifconf.ifc_buf = buf_ptr;
+        ifconf.ifc_len = buf_len;
 
-	    buf_len_prev = ifconf.ifc_len;
-	}
-	
-	MPL_free(buf_ptr);
-	buf_len += NUM_IFREQS * sizeof(struct ifreq);
+        rc = ioctl(fd, SIOCGIFCONF, &ifconf);
+        if (rc < 0) {
+            if (errno != EINVAL || buf_len_prev != 0)
+                return 0;
+        } else {
+            if (ifconf.ifc_len == buf_len_prev) {
+                buf_len = ifconf.ifc_len;
+                break;
+            }
+
+            buf_len_prev = ifconf.ifc_len;
+        }
+
+        MPL_free(buf_ptr);
+        buf_len += NUM_IFREQS * sizeof(struct ifreq);
     }
-	
+
     /*
      * Now that we've got the interface information, we need to run through
      * the interfaces and save the ip addresses
      */
     ptr = buf_ptr;
 
-    while(ptr < buf_ptr + buf_len)
-    {
-	struct ifreq *			ifreq;
+    while (ptr < buf_ptr + buf_len) {
+        struct ifreq *ifreq;
 
-	ifreq = (struct ifreq *) ptr;
-	
-	if (ifreq->ifr_addr.sa_family == AF_INET)
-	{
-	    struct in_addr		addr;
+        ifreq = (struct ifreq *)ptr;
 
-	    addr = ((struct sockaddr_in *) &(ifreq->ifr_addr))->sin_addr;
-/*	    
-	    if ((addr.s_addr & net_mask_p->s_addr) ==
-		(net_addr_p->s_addr & net_mask_p->s_addr))
-	    {
-		*if_addr_p = addr;
-		break;
-	    }
-*/
-	    pIP[n] = addr.s_addr;
-	    n++;
-	}
+        if (ifreq->ifr_addr.sa_family == AF_INET) {
+            struct in_addr addr;
 
-	/*
-	 *  Increment pointer to the next ifreq; some adjustment may be
-	 *  required if the address is an IPv6 address
-	 */
-	ptr += sizeof(struct ifreq);
-	
-#	if defined(AF_INET6)
-	{
-	    if (ifreq->ifr_addr.sa_family == AF_INET6)
-	    {
-		ptr += sizeof(struct sockaddr_in6) - sizeof(struct sockaddr);
-	    }
-	}
-#	endif
+            addr = ((struct sockaddr_in *)&(ifreq->ifr_addr))->sin_addr;
+            /*
+                    if ((addr.s_addr & net_mask_p->s_addr) ==
+                    (net_addr_p->s_addr & net_mask_p->s_addr))
+                    {
+                    *if_addr_p = addr;
+                    break;
+                    }
+            */
+            pIP[n] = addr.s_addr;
+            n++;
+        }
+
+        /*
+         *  Increment pointer to the next ifreq; some adjustment may be
+         *  required if the address is an IPv6 address
+         */
+        ptr += sizeof(struct ifreq);
+
+#if defined(AF_INET6)
+        {
+            if (ifreq->ifr_addr.sa_family == AF_INET6) {
+                ptr += sizeof(struct sockaddr_in6) - sizeof(struct sockaddr);
+            }
+        }
+#endif
     }
 
     MPL_free(buf_ptr);

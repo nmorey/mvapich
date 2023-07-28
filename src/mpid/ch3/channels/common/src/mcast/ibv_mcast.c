@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -27,27 +27,23 @@
 #include "rdma_impl.h"
 #include "ibv_mcast.h"
 #include "vbuf.h"
-#include "mv2_debug_utils.h"
+#include "mvp_debug_utils.h"
 
-extern MPIR_T_pvar_timer_t PVAR_TIMER_mv2_vbuf_allocated;
-extern MPIR_T_pvar_timer_t PVAR_TIMER_mv2_vbuf_freed;
-extern unsigned long PVAR_LEVEL_mv2_vbuf_available;
-extern MPIR_T_pvar_timer_t PVAR_TIMER_mv2_ud_vbuf_allocated;
-extern MPIR_T_pvar_timer_t PVAR_TIMER_mv2_ud_vbuf_freed;
-extern unsigned long PVAR_LEVEL_mv2_ud_vbuf_available;
+extern MPIR_T_pvar_timer_t PVAR_TIMER_mvp_vbuf_allocated;
+extern MPIR_T_pvar_timer_t PVAR_TIMER_mvp_vbuf_freed;
+extern unsigned long PVAR_LEVEL_mvp_vbuf_available;
+extern MPIR_T_pvar_timer_t PVAR_TIMER_mvp_ud_vbuf_allocated;
+extern MPIR_T_pvar_timer_t PVAR_TIMER_mvp_ud_vbuf_freed;
+extern unsigned long PVAR_LEVEL_mvp_ud_vbuf_available;
 
-
-extern mv2_MPIDI_CH3I_RDMA_Process_t mv2_MPIDI_CH3I_RDMA_Process;
+extern mvp_MPIDI_CH3I_RDMA_Process_t mvp_MPIDI_CH3I_RDMA_Process;
 /* TODO : replace with hash table */
-MPIR_Comm *comm_table[MV2_MCAST_MAX_COMMS];
+MPIR_Comm *comm_table[MVP_MCAST_MAX_COMMS];
 mcast_context_t *mcast_ctx = NULL;
 
-MPIR_Comm *mv2_mcast_find_comm(int comm_id)
-{
-    return comm_table[comm_id];
-}
+MPIR_Comm *mvp_mcast_find_comm(int comm_id) { return comm_table[comm_id]; }
 
-static void mv2_mcast_register_comm(MPIR_Comm * comm_ptr, int comm_id)
+static void mvp_mcast_register_comm(MPIR_Comm *comm_ptr, int comm_id)
 {
     MPIR_Assert(comm_table[comm_id] == NULL);
     comm_table[comm_id] = comm_ptr;
@@ -55,7 +51,7 @@ static void mv2_mcast_register_comm(MPIR_Comm * comm_ptr, int comm_id)
                 comm_id, comm_ptr);
 }
 
-static void mv2_mcast_unregister_comm(int comm_id)
+static void mvp_mcast_unregister_comm(int comm_id)
 {
     if (comm_table[comm_id] == NULL) {
         return;
@@ -65,24 +61,24 @@ static void mv2_mcast_unregister_comm(int comm_id)
     comm_table[comm_id] = NULL;
 }
 
-void mv2_mcast_add_comm_init_req(int comm_id, int comm_size)
+void mvp_mcast_add_comm_init_req(int comm_id, int comm_size)
 {
     mcast_init_elem_t *init_elem;
     int mask_size;
 
     /* initialize the element */
-    init_elem = (mcast_init_elem_t *) MPL_malloc(sizeof(mcast_init_elem_t), 
-                                                    MPL_MEM_OTHER);
+    init_elem = (mcast_init_elem_t *)MPL_malloc(sizeof(mcast_init_elem_t),
+                                                MPL_MEM_OTHER);
     init_elem->next = NULL;
     init_elem->status = MCAST_COMM_INACTIVE;
     init_elem->comm_id = comm_id;
-    init_elem->init_timer = mv2_get_time_us();
+    init_elem->init_timer = mvp_get_time_us();
     init_elem->init_retries = 0;
     init_elem->acks_pending = comm_size - 1;
     mask_size = ((sizeof(unsigned char) * 8 - 1) + (comm_size - 1)) /
-        (sizeof(unsigned char) * 8);
-    init_elem->init_ack_mask = (unsigned char *) MPL_malloc(mask_size,
-                                                            MPL_MEM_OTHER);
+                (sizeof(unsigned char) * 8);
+    init_elem->init_ack_mask =
+        (unsigned char *)MPL_malloc(mask_size, MPL_MEM_OTHER);
     MPIR_Memset(init_elem->init_ack_mask, 0, mask_size);
 
     /* insert at the beginig  */
@@ -93,11 +89,11 @@ void mv2_mcast_add_comm_init_req(int comm_id, int comm_size)
                 comm_id);
 }
 
-void mv2_mcast_remove_comm_init_req(mcast_init_elem_t * init_elem)
+void mvp_mcast_remove_comm_init_req(mcast_init_elem_t *init_elem)
 {
-
     mcast_init_elem_t *curr = NULL, *prev = NULL;
-    for (curr = mcast_ctx->init_list; curr != NULL; prev = curr, curr = curr->next) {
+    for (curr = mcast_ctx->init_list; curr != NULL;
+         prev = curr, curr = curr->next) {
         if (curr == init_elem) {
             if (prev == NULL) {
                 mcast_ctx->init_list = curr->next;
@@ -115,8 +111,8 @@ void mv2_mcast_remove_comm_init_req(mcast_init_elem_t * init_elem)
     MPL_free(curr);
 }
 
-static inline void vbuf_init_mcast_send(vbuf * v, unsigned long len, int hca_num,
-                                        mcast_info_t * minfo)
+static inline void vbuf_init_mcast_send(vbuf *v, unsigned long len, int hca_num,
+                                        mcast_info_t *minfo)
 {
     MPIR_Assert(v != NULL);
 
@@ -126,7 +122,7 @@ static inline void vbuf_init_mcast_send(vbuf * v, unsigned long len, int hca_num
         v->desc.u.sr.send_flags |= IBV_SEND_INLINE;
     }
     v->desc.u.sr.opcode = IBV_WR_SEND;
-    v->desc.u.sr.wr_id = (uintptr_t) v;
+    v->desc.u.sr.wr_id = (uintptr_t)v;
     v->desc.u.sr.num_sge = 1;
     v->desc.u.sr.sg_list = &(v->desc.sg_entry);
     v->desc.u.sr.wr.ud.ah = minfo->ah;
@@ -134,30 +130,30 @@ static inline void vbuf_init_mcast_send(vbuf * v, unsigned long len, int hca_num
     v->desc.u.sr.wr.ud.remote_qkey = MCAST_DEF_QKEY;
     v->desc.sg_entry.length = len;
     v->desc.sg_entry.lkey = v->region->mem_handle[hca_num]->lkey;
-    v->desc.sg_entry.addr = (uintptr_t) (v->buffer);
+    v->desc.sg_entry.addr = (uintptr_t)(v->buffer);
 
     v->padding = NORMAL_VBUF_FLAG;
     v->rail = hca_num;
 }
 
-static void mv2_mcast_send_comm_init(mcast_init_elem_t * elem, int rail)
+static void mvp_mcast_send_comm_init(mcast_init_elem_t *elem, int rail)
 {
     MPIR_Comm *comm_ptr;
     vbuf *v;
     mcast_info_t *minfo;
 
-    comm_ptr = mv2_mcast_find_comm(elem->comm_id);
+    comm_ptr = mvp_mcast_find_comm(elem->comm_id);
     if (comm_ptr == NULL) {
         PRINT_DEBUG(DEBUG_MCST_verbose > 1,
                     "Didn't find comm ptr. remove init info element \n");
-        mv2_mcast_remove_comm_init_req(elem);
+        mvp_mcast_remove_comm_init_req(elem);
         return;
     }
-    PRINT_DEBUG(DEBUG_MCST_verbose > 1, "sending on rail %d\n",rail);
-    minfo = &((bcast_info_t *) comm_ptr->dev.ch.bcast_info)->minfo;
+    PRINT_DEBUG(DEBUG_MCST_verbose > 1, "sending on rail %d\n", rail);
+    minfo = &((bcast_info_t *)comm_ptr->dev.ch.bcast_info)->minfo;
 
-    GET_UD_VBUF_BY_OFFSET_WITHOUT_LOCK(v, MV2_SEND_UD_VBUF_POOL_OFFSET);
-    MPIDI_CH3_Pkt_mcast_init_t *p = (MPIDI_CH3_Pkt_mcast_init_t *) v->pheader;
+    GET_UD_VBUF_BY_OFFSET_WITHOUT_LOCK(v, MVP_SEND_UD_VBUF_POOL_OFFSET);
+    MPIDI_CH3_Pkt_mcast_init_t *p = (MPIDI_CH3_Pkt_mcast_init_t *)v->pheader;
     p->type = MPIDI_CH3_PKT_MCST_INIT;
     p->rail = rail;
     p->psn = 0;
@@ -167,17 +163,17 @@ static void mv2_mcast_send_comm_init(mcast_init_elem_t * elem, int rail)
     vbuf_init_mcast_send(v, sizeof(MPIDI_CH3_Pkt_mcast_init_t), rail, minfo);
 
     IBV_POST_MCAST_SEND(v, mcast_ctx);
-    PRINT_DEBUG(DEBUG_MCST_verbose > 2,
-                "MCAST send init elem:%p comm_id:%d\n", elem, elem->comm_id);
+    PRINT_DEBUG(DEBUG_MCST_verbose > 2, "MCAST send init elem:%p comm_id:%d\n",
+                elem, elem->comm_id);
 }
 
-void mv2_mcast_handle_init_ack(MPIDI_CH3_Pkt_mcast_init_ack_t * p)
+void mvp_mcast_handle_init_ack(MPIDI_CH3_Pkt_mcast_init_ack_t *p)
 {
     int comm_id, leader_rank;
     mcast_init_elem_t *curr = mcast_ctx->init_list;
 
-    PRINT_DEBUG(DEBUG_MCST_verbose > 2,
-                "received mcast init ack from:%d \n", p->src_rank);
+    PRINT_DEBUG(DEBUG_MCST_verbose > 2, "received mcast init ack from:%d \n",
+                p->src_rank);
     comm_id = p->comm_id;
     leader_rank = p->src_rank;
 
@@ -194,14 +190,15 @@ void mv2_mcast_handle_init_ack(MPIDI_CH3_Pkt_mcast_init_ack_t * p)
         return;
     }
 
-    curr->init_timer = mv2_get_time_us();
+    curr->init_timer = mvp_get_time_us();
 
-    if (MV2_CHAR_ISBITSET(curr->init_ack_mask, leader_rank)) {
-        PRINT_DEBUG(DEBUG_MCST_verbose > 2, "Mcast init ack is already received \n");
+    if (MVP_CHAR_ISBITSET(curr->init_ack_mask, leader_rank)) {
+        PRINT_DEBUG(DEBUG_MCST_verbose > 2,
+                    "Mcast init ack is already received \n");
         return;
     }
 
-    MV2_CHAR_SETBIT(curr->init_ack_mask, leader_rank);
+    MVP_CHAR_SETBIT(curr->init_ack_mask, leader_rank);
     curr->acks_pending--;
     if (curr->acks_pending <= 0) {
         PRINT_DEBUG(DEBUG_MCST_verbose > 2, "Mcast init received all acks \n");
@@ -209,20 +206,21 @@ void mv2_mcast_handle_init_ack(MPIDI_CH3_Pkt_mcast_init_ack_t * p)
     }
 }
 
-void mv2_mcast_process_comm_init_req(mcast_init_elem_t * list)
+void mvp_mcast_process_comm_init_req(mcast_init_elem_t *list)
 {
     mcast_init_elem_t *curr = NULL, *next = NULL;
     curr = next = list;
-    long now = mv2_get_time_us();
+    long now = mvp_get_time_us();
     while (curr) {
         next = curr->next;
         if (curr->status == MCAST_COMM_INITIALIZING &&
             now > (curr->init_timer + mcast_comm_init_timeout)) {
             curr->init_retries++;
             if (curr->init_retries > mcast_comm_init_retries) {
-                PRINT_DEBUG(DEBUG_MCST_verbose > 1,
-                            "MCAST process Comm init failed comm_id:%d retries :%d\n",
-                            curr->comm_id, curr->init_retries);
+                PRINT_DEBUG(
+                    DEBUG_MCST_verbose > 1,
+                    "MCAST process Comm init failed comm_id:%d retries :%d\n",
+                    curr->comm_id, curr->init_retries);
                 curr->status = MCAST_COMM_FAILED;
                 curr = next;
                 continue;
@@ -231,20 +229,20 @@ void mv2_mcast_process_comm_init_req(mcast_init_elem_t * list)
             curr->init_timer = now;
             PRINT_DEBUG(DEBUG_MCST_verbose > 2,
                         "MCAST process Comm init comm_id:%d\n", curr->comm_id);
-            mv2_mcast_send_comm_init(curr, mcast_ctx->selected_rail);
+            mvp_mcast_send_comm_init(curr, mcast_ctx->selected_rail);
         }
         curr = next;
     }
 }
 
-int mv2_mcast_progress_comm_ready(MPIR_Comm * comm_ptr)
+int mvp_mcast_progress_comm_ready(MPIR_Comm *comm_ptr)
 {
     mcast_info_t *minfo = NULL;
     mcast_init_elem_t *curr = NULL;
     mcast_comm_status_t status;
     int comm_id = 0;
 
-    minfo = &(((bcast_info_t *) (comm_ptr->dev.ch.bcast_info))->minfo);
+    minfo = &(((bcast_info_t *)(comm_ptr->dev.ch.bcast_info))->minfo);
     comm_id = minfo->grp_info.comm_id;
     curr = mcast_ctx->init_list;
     while (curr) {
@@ -261,12 +259,13 @@ int mv2_mcast_progress_comm_ready(MPIR_Comm * comm_ptr)
         MPIDI_CH3I_Progress(FALSE, NULL);
     }
     status = curr->status;
-    mv2_mcast_remove_comm_init_req(curr);
+    mvp_mcast_remove_comm_init_req(curr);
     return (status == MCAST_COMM_ACTIVE) ? 1 : 0;
 }
 
-static inline int mv2_prepare_mcast_mad(void *umad_buf, uint8_t method,
-                                        ib_portid_t * dport, union ibv_gid *port_gid,
+static inline int mvp_prepare_mcast_mad(void *umad_buf, uint8_t method,
+                                        ib_portid_t *dport,
+                                        union ibv_gid *port_gid,
                                         union ibv_gid *mgid, uint64_t trid,
                                         uint64_t comp_mask)
 {
@@ -296,9 +295,10 @@ static inline int mv2_prepare_mcast_mad(void *umad_buf, uint8_t method,
     return MCAST_SUCCESS;
 }
 
-static inline int mv2_recv_umad_response(int mad_portid, char *umad_buf,
+static inline int mvp_recv_umad_response(int mad_portid, char *umad_buf,
                                          int trid_index, uint64_t trid,
-                                         uint64_t trid_max, unsigned char *recv_mask)
+                                         uint64_t trid_max,
+                                         unsigned char *recv_mask)
 {
     char *mad = NULL;
     uint64_t expected_trid, recv_trid;
@@ -315,7 +315,8 @@ static inline int mv2_recv_umad_response(int mad_portid, char *umad_buf,
         if (ret < 0) {
             if (errno == ENOSPC) {
                 // TODO : handle this error case
-                PRINT_DEBUG(DEBUG_MCST_verbose > 1,"recv buffer is not sufficitient \n");
+                PRINT_DEBUG(DEBUG_MCST_verbose > 1,
+                            "recv buffer is not sufficitient \n");
             }
             goto fn_fail;
         }
@@ -324,10 +325,10 @@ static inline int mv2_recv_umad_response(int mad_portid, char *umad_buf,
         if (status == 0) {
             /* recv success */
             int recv_index;
-            recv_trid = (uint32_t) mad_ops.get_field64(mad, 0, IB_MAD_TRID_F);
+            recv_trid = (uint32_t)mad_ops.get_field64(mad, 0, IB_MAD_TRID_F);
             MPIR_Assert(recv_trid >= trid && recv_trid <= trid_max);
             recv_index = recv_trid - trid + 1;
-            MV2_CHAR_SETBIT(recv_mask, recv_index);
+            MVP_CHAR_SETBIT(recv_mask, recv_index);
             if (recv_trid == expected_trid) {
                 break;
             }
@@ -338,19 +339,20 @@ static inline int mv2_recv_umad_response(int mad_portid, char *umad_buf,
             recv_retry_count++;
             if (recv_retry_count > MCAST_MAX_UMAD_RETRIES) {
                 PRINT_DEBUG(DEBUG_MCST_verbose > 1,
-                            "Umad recv failed retry_count:%d \n", recv_retry_count);
+                            "Umad recv failed retry_count:%d \n",
+                            recv_retry_count);
                 goto fn_fail;
             }
         }
     }
     return MCAST_SUCCESS;
-  fn_fail:
+fn_fail:
     return MCAST_FAILURE;
 }
 
-static inline int mv2_op_mcast_group(mcast_init_info_t * all_init_info,
-                                     int num_ranks, int method, union ibv_gid *mgid,
-                                     uint16_t * mlid)
+static inline int mvp_op_mcast_group(mcast_init_info_t *all_init_info,
+                                     int num_ranks, int method,
+                                     union ibv_gid *mgid, uint16_t *mlid)
 {
     char *ib_dev;
     int mad_portid = -1;
@@ -368,69 +370,71 @@ static inline int mv2_op_mcast_group(mcast_init_info_t * all_init_info,
 
     if (method == IB_MAD_METHOD_SET) {
         create_mask = SUBN_ADM_COMPMASK_MGID | SUBN_ADM_COMPMASK_PORT_GID |
-            SUBN_ADM_COMPMASK_QKEY | SUBN_ADM_COMPMASK_PKEY |
-            SUBN_ADM_COMPMASK_TCLASS | SUBN_ADM_COMPMASK_SL | SUBN_ADM_COMPMASK_FLOW
-            | SUBN_ADM_COMPMASK_JOIN_STATE;
-        join_mask =
-            SUBN_ADM_COMPMASK_MGID | SUBN_ADM_COMPMASK_PORT_GID |
-            SUBN_ADM_COMPMASK_JOIN_STATE;
+                      SUBN_ADM_COMPMASK_QKEY | SUBN_ADM_COMPMASK_PKEY |
+                      SUBN_ADM_COMPMASK_TCLASS | SUBN_ADM_COMPMASK_SL |
+                      SUBN_ADM_COMPMASK_FLOW | SUBN_ADM_COMPMASK_JOIN_STATE;
+        join_mask = SUBN_ADM_COMPMASK_MGID | SUBN_ADM_COMPMASK_PORT_GID |
+                    SUBN_ADM_COMPMASK_JOIN_STATE;
     } else if (method == IB_MAD_METHOD_DELETE) {
         delete_mask = SUBN_ADM_COMPMASK_MGID | SUBN_ADM_COMPMASK_PORT_GID |
-            SUBN_ADM_COMPMASK_JOIN_STATE;
-
+                      SUBN_ADM_COMPMASK_JOIN_STATE;
     }
 
-
     if (umad_ops.init() < 0) {
-        PRINT_DEBUG(DEBUG_MCST_verbose > 1,"UMAD Init failed\n");
+        PRINT_DEBUG(DEBUG_MCST_verbose > 1, "UMAD Init failed\n");
         goto fn_fail;
     }
 
-    ib_dev = (char *) ibv_ops.get_device_name(mv2_MPIDI_CH3I_RDMA_Process.ib_dev[0]);
+    ib_dev =
+        (char *)ibv_ops.get_device_name(mvp_MPIDI_CH3I_RDMA_Process.ib_dev[0]);
 
-    mad_portid = umad_ops.open_port(ib_dev, mv2_MPIDI_CH3I_RDMA_Process.ports[0][0]);
+    mad_portid =
+        umad_ops.open_port(ib_dev, mvp_MPIDI_CH3I_RDMA_Process.ports[0][0]);
     if (mad_portid < 0) {
-        PRINT_DEBUG(DEBUG_MCST_verbose > 1,"UMAD open port id failed\n");
+        PRINT_DEBUG(DEBUG_MCST_verbose > 1, "UMAD open port id failed\n");
         goto fn_fail;
     }
 
     memset(&dport, 0, sizeof(ib_portid_t));
-    if (ibv_ops.query_port(mv2_MPIDI_CH3I_RDMA_Process.nic_context[0],
-                       mv2_MPIDI_CH3I_RDMA_Process.ports[0][0], &port_attr)) {
-        PRINT_DEBUG(DEBUG_MCST_verbose > 1,"ibv_query_port failed \n");
+    if (ibv_ops.query_port(mvp_MPIDI_CH3I_RDMA_Process.nic_context[0],
+                           mvp_MPIDI_CH3I_RDMA_Process.ports[0][0],
+                           &port_attr)) {
+        PRINT_DEBUG(DEBUG_MCST_verbose > 1, "ibv_query_port failed \n");
         return MCAST_FAILURE;
     }
     dport.lid = port_attr.sm_lid;
     dport.qp = 1;
     dport.qkey = IB_DEFAULT_QP1_QKEY;
 
-    sa_agentid = umad_ops.u_register(mad_portid, IB_SA_CLASS, SA_CLASS_VERSION, 0, 0);
+    sa_agentid =
+        umad_ops.u_register(mad_portid, IB_SA_CLASS, SA_CLASS_VERSION, 0, 0);
     if (sa_agentid < 0) {
-        PRINT_DEBUG(DEBUG_MCST_verbose > 1," UMAD register failed \n");
+        PRINT_DEBUG(DEBUG_MCST_verbose > 1, " UMAD register failed \n");
         goto fn_fail;
     }
 
     umad_buf_size = umad_ops.size() + IB_MAD_SIZE;
     umad_send_buf = umad_ops.alloc(1, umad_buf_size);
     if (!umad_send_buf) {
-        PRINT_DEBUG(DEBUG_MCST_verbose > 1,"UMAD send buffer allocation failed\n");
+        PRINT_DEBUG(DEBUG_MCST_verbose > 1,
+                    "UMAD send buffer allocation failed\n");
         goto fn_fail;
     }
     if ((umad_recv_buf = umad_ops.alloc(1, umad_buf_size)) == NULL) {
-        PRINT_DEBUG(DEBUG_MCST_verbose > 1,"UMAD recv buffer allocation failed\n");
+        PRINT_DEBUG(DEBUG_MCST_verbose > 1,
+                    "UMAD recv buffer allocation failed\n");
         goto fn_fail;
     }
 
     MPIR_Memset(umad_recv_buf, 0, umad_buf_size);
 
-    trid = (uint32_t) rand();
+    trid = (uint32_t)rand();
     mask_size = ((sizeof(unsigned char) * 8 - 1) + num_ranks) /
-        (sizeof(unsigned char) * 8);
-    recv_mask = (unsigned char *) MPL_malloc(mask_size, MPL_MEM_OTHER);
+                (sizeof(unsigned char) * 8);
+    recv_mask = (unsigned char *)MPL_malloc(mask_size, MPL_MEM_OTHER);
     MPIR_Memset(recv_mask, 0, mask_size);
 
     for (i = 0; i < num_ranks; i++) {
-
         MPIR_Memset(umad_send_buf, 0, umad_buf_size);
         MPIR_Memcpy(port_gid.raw, &all_init_info[i], 16);
         if (method == IB_MAD_METHOD_SET) {
@@ -438,18 +442,18 @@ static inline int mv2_op_mcast_group(mcast_init_info_t * all_init_info,
         } else {
             comp_mask = delete_mask;
         }
-        mv2_prepare_mcast_mad(umad_send_buf, method,
-                              &dport, &port_gid, mgid, trid + i, comp_mask);
+        mvp_prepare_mcast_mad(umad_send_buf, method, &dport, &port_gid, mgid,
+                              trid + i, comp_mask);
 
-        if (umad_ops.send(mad_portid, sa_agentid, umad_send_buf,
-                      IB_MAD_SIZE, 100, 5) < 0) {
-            PRINT_DEBUG(DEBUG_MCST_verbose > 1,"UMAD Send failed \n");
+        if (umad_ops.send(mad_portid, sa_agentid, umad_send_buf, IB_MAD_SIZE,
+                          100, 5) < 0) {
+            PRINT_DEBUG(DEBUG_MCST_verbose > 1, "UMAD Send failed \n");
             goto fn_fail;
         }
 
         if (i == 0 && method == IB_MAD_METHOD_SET) {
-            ret = mv2_recv_umad_response(mad_portid, umad_recv_buf, i,
-                                         trid, trid + num_ranks, recv_mask);
+            ret = mvp_recv_umad_response(mad_portid, umad_recv_buf, i, trid,
+                                         trid + num_ranks, recv_mask);
             if (ret != MCAST_SUCCESS) {
                 goto cleanup;
             }
@@ -459,13 +463,14 @@ static inline int mv2_op_mcast_group(mcast_init_info_t * all_init_info,
             if (status == 0) {
                 /* recv success */
                 if (method == IB_MAD_METHOD_SET) {
-                    *mlid =
-                        (uint16_t) mad_ops.get_field(mad, IB_SA_DATA_OFFS,
-                                                 IB_SA_MCM_MLID_F);
-                    mad_ops.get_array(mad, IB_SA_DATA_OFFS, IB_SA_MCM_MGID_F, mgid->raw);
-                    PRINT_DEBUG(DEBUG_MCST_verbose > 1,
-                                "multicast join returned mlid:%8x mgid:0x%16llx\n ",
-                                *mlid, mgid->global.interface_id);
+                    *mlid = (uint16_t)mad_ops.get_field(mad, IB_SA_DATA_OFFS,
+                                                        IB_SA_MCM_MLID_F);
+                    mad_ops.get_array(mad, IB_SA_DATA_OFFS, IB_SA_MCM_MGID_F,
+                                      mgid->raw);
+                    PRINT_DEBUG(
+                        DEBUG_MCST_verbose > 1,
+                        "multicast join returned mlid:%8x mgid:0x%16llx\n ",
+                        *mlid, mgid->global.interface_id);
                 }
             }
             recv_index++;
@@ -476,13 +481,13 @@ static inline int mv2_op_mcast_group(mcast_init_info_t * all_init_info,
 
     for (; recv_index < num_ranks; recv_index++) {
         /* check if response is already received */
-        if (MV2_CHAR_ISBITSET(recv_mask, recv_index + 1)) {
+        if (MVP_CHAR_ISBITSET(recv_mask, recv_index + 1)) {
             PRINT_DEBUG(DEBUG_MCST_verbose > 2, "already received index:%d\n",
                         recv_index + 1);
             continue;
         }
-        ret = mv2_recv_umad_response(mad_portid, umad_recv_buf,
-                                     recv_index, trid, trid + num_ranks, recv_mask);
+        ret = mvp_recv_umad_response(mad_portid, umad_recv_buf, recv_index,
+                                     trid, trid + num_ranks, recv_mask);
         if (ret != MCAST_SUCCESS) {
             goto cleanup;
         }
@@ -492,9 +497,10 @@ static inline int mv2_op_mcast_group(mcast_init_info_t * all_init_info,
         if (status == 0) {
             /* recv success */
             if (method == IB_MAD_METHOD_SET) {
-                *mlid =
-                    (uint16_t) mad_ops.get_field(mad, IB_SA_DATA_OFFS, IB_SA_MCM_MLID_F);
-                mad_ops.get_array(mad, IB_SA_DATA_OFFS, IB_SA_MCM_MGID_F, mgid->raw);
+                *mlid = (uint16_t)mad_ops.get_field(mad, IB_SA_DATA_OFFS,
+                                                    IB_SA_MCM_MLID_F);
+                mad_ops.get_array(mad, IB_SA_DATA_OFFS, IB_SA_MCM_MGID_F,
+                                  mgid->raw);
                 PRINT_DEBUG(DEBUG_MCST_verbose > 1,
                             "multicast join returned mlid:%8x mgid:0x%8lx\n ",
                             *mlid, mgid->global.interface_id);
@@ -503,7 +509,7 @@ static inline int mv2_op_mcast_group(mcast_init_info_t * all_init_info,
     }
     ret = MCAST_SUCCESS;
 
-  cleanup:
+cleanup:
     if (umad_send_buf) {
         umad_ops.u_free(umad_send_buf);
     }
@@ -515,12 +521,13 @@ static inline int mv2_op_mcast_group(mcast_init_info_t * all_init_info,
     if (mad_portid >= 0) {
         if (sa_agentid >= 0) {
             if (umad_ops.unregister(mad_portid, sa_agentid)) {
-                PRINT_DEBUG(DEBUG_MCST_verbose > 1,"Failed to UMAD deregister agent for MADS\n");
+                PRINT_DEBUG(DEBUG_MCST_verbose > 1,
+                            "Failed to UMAD deregister agent for MADS\n");
                 ret = MCAST_FAILURE;
             }
         }
         if (umad_ops.close_port(mad_portid)) {
-            PRINT_DEBUG(DEBUG_MCST_verbose > 1,"failed to close UMAD port \n");
+            PRINT_DEBUG(DEBUG_MCST_verbose > 1, "failed to close UMAD port \n");
             ret = MCAST_FAILURE;
         }
     }
@@ -530,36 +537,38 @@ static inline int mv2_op_mcast_group(mcast_init_info_t * all_init_info,
 
     return ret;
 
-  fn_fail:
+fn_fail:
     ret = MCAST_FAILURE;
     goto cleanup;
 }
 
-static inline int mv2_mcast_detach_ud_qp(mcast_info_t * minfo)
+static inline int mvp_mcast_detach_ud_qp(mcast_info_t *minfo)
 {
     /* Detach qp from mcast group */
-    if (ibv_ops.detach_mcast
-        (mcast_ctx->ud_ctx->qp, &minfo->grp_info.mgid, minfo->grp_info.mlid) < 0) {
-        PRINT_DEBUG(DEBUG_MCST_verbose > 1,"MCAST QP detach failed \n");
+    if (ibv_ops.detach_mcast(mcast_ctx->ud_ctx->qp, &minfo->grp_info.mgid,
+                             minfo->grp_info.mlid) < 0) {
+        PRINT_DEBUG(DEBUG_MCST_verbose > 1, "MCAST QP detach failed \n");
         return MCAST_FAILURE;
     }
 
     return MCAST_SUCCESS;
 }
 
-static inline int mv2_mcast_post_ud_recv_buffers(int num_bufs, mv2_ud_ctx_t * ud_ctx)
+static inline int mvp_mcast_post_ud_recv_buffers(int num_bufs,
+                                                 mvp_ud_ctx_t *ud_ctx)
 {
     int i = 0, ret = 0;
     vbuf *v = NULL;
     struct ibv_recv_wr *bad_wr = NULL;
 
     if (num_bufs > mcast_max_ud_recv_wqe) {
-        PRINT_DEBUG(DEBUG_MCST_verbose > 1,"Try to post %d to MCAST UD recv buffers, max %d\n",
+        PRINT_DEBUG(DEBUG_MCST_verbose > 1,
+                    "Try to post %d to MCAST UD recv buffers, max %d\n",
                     num_bufs, mcast_max_ud_recv_wqe);
     }
 
     for (i = 0; i < num_bufs; ++i) {
-        v = get_ud_vbuf_by_offset(MV2_RECV_UD_VBUF_POOL_OFFSET);
+        v = get_ud_vbuf_by_offset(MVP_RECV_UD_VBUF_POOL_OFFSET);
         if (v == NULL) {
             break;
         }
@@ -571,42 +580,43 @@ static inline int mv2_mcast_post_ud_recv_buffers(int num_bufs, mv2_ud_ctx_t * ud
             ret = ibv_post_recv(ud_ctx->qp, &v->desc.u.rr, &bad_wr);
         }
         if (ret) {
-            PRINT_DEBUG(DEBUG_MCST_verbose > 1, "Failed to post recv buffer \n");
+            PRINT_DEBUG(DEBUG_MCST_verbose > 1,
+                        "Failed to post recv buffer \n");
             MRAILI_Release_vbuf(v);
             break;
         }
     }
 
     PRINT_DEBUG(DEBUG_MCST_verbose > 4,
-                "Posted %d buffers of size:%d to MCAST QP, rail %d \n", num_bufs,
-                rdma_default_ud_mtu, mcast_ctx->selected_rail);
+                "Posted %d buffers of size:%d to MCAST QP, rail %d \n",
+                num_bufs, rdma_default_ud_mtu, mcast_ctx->selected_rail);
 
     return i;
-
 }
 
-mv2_ud_ctx_t * mv2_mcast_prepare_ud_ctx()
+mvp_ud_ctx_t *mvp_mcast_prepare_ud_ctx()
 {
-    mv2_ud_qp_info_t qp_info;
-    mv2_ud_ctx_t *ud_ctx;
+    mvp_ud_qp_info_t qp_info;
+    mvp_ud_ctx_t *ud_ctx;
     char *val;
 
-
-    qp_info.send_cq = qp_info.recv_cq = mv2_MPIDI_CH3I_RDMA_Process.cq_hndl[mcast_ctx->selected_rail];
+    qp_info.send_cq = qp_info.recv_cq =
+        mvp_MPIDI_CH3I_RDMA_Process.cq_hndl[mcast_ctx->selected_rail];
     qp_info.sq_psn = rdma_default_psn;
-    qp_info.pd = mv2_MPIDI_CH3I_RDMA_Process.ptag[mcast_ctx->selected_rail];
+    qp_info.pd = mvp_MPIDI_CH3I_RDMA_Process.ptag[mcast_ctx->selected_rail];
     qp_info.cap.max_send_sge = rdma_default_max_sg_list;
     qp_info.cap.max_recv_sge = rdma_default_max_sg_list;
     qp_info.cap.max_send_wr = 2 * mcast_window_size;
     qp_info.cap.max_recv_wr = mcast_max_ud_recv_wqe;
     qp_info.srq = NULL;
-    if ((val = getenv("MV2_USE_UD_SRQ")) != NULL && atoi(val)) {
-        qp_info.srq = create_srq(&mv2_MPIDI_CH3I_RDMA_Process, mcast_ctx->selected_rail);
+    if ((val = getenv("MVP_USE_UD_SRQ")) != NULL && atoi(val)) {
+        qp_info.srq =
+            create_srq(&mvp_MPIDI_CH3I_RDMA_Process, mcast_ctx->selected_rail);
     }
     qp_info.cap.max_inline_data = rdma_max_inline_size;
-    ud_ctx = mv2_ud_create_ctx(&qp_info, mcast_ctx->selected_rail);
+    ud_ctx = mvp_ud_create_ctx(&qp_info, mcast_ctx->selected_rail);
     if (!ud_ctx) {
-        PRINT_DEBUG(DEBUG_MCST_verbose > 1,"MCAST UD QP creation failed");
+        PRINT_DEBUG(DEBUG_MCST_verbose > 1, "MCAST UD QP creation failed");
         return NULL;
     }
 
@@ -618,12 +628,12 @@ mv2_ud_ctx_t * mv2_mcast_prepare_ud_ctx()
     ud_ctx->ext_sendq_count = 0;
 
     ud_ctx->num_recvs_posted +=
-        mv2_mcast_post_ud_recv_buffers(mcast_max_ud_recv_wqe, ud_ctx);
+        mvp_mcast_post_ud_recv_buffers(mcast_max_ud_recv_wqe, ud_ctx);
 
     return ud_ctx;
 }
 
-static inline int mv2_mcast_attach_ud_qp(mcast_info_t * minfo)
+static inline int mvp_mcast_attach_ud_qp(mcast_info_t *minfo)
 {
     char buf[40];
     struct ibv_ah_attr *ah_attr = NULL;
@@ -636,118 +646,126 @@ static inline int mv2_mcast_attach_ud_qp(mcast_info_t * minfo)
     ah_attr->is_global = 1;
     memcpy(ah_attr->grh.dgid.raw, minfo->grp_info.mgid.raw, 16);
     ah_attr->port_num = rdma_default_port;
-    minfo->ah = ibv_ops.create_ah(mv2_MPIDI_CH3I_RDMA_Process.ptag[0], ah_attr);
+    minfo->ah = ibv_ops.create_ah(mvp_MPIDI_CH3I_RDMA_Process.ptag[0], ah_attr);
     if (!minfo->ah) {
         PRINT_INFO((MPIDI_Process.my_pg_rank == 0), "MCAST Address handle\n");
         return MCAST_FAILURE;
     }
 
     /* attach qp to multicast group */
-    if (ibv_ops.attach_mcast
-        (mcast_ctx->ud_ctx->qp, &minfo->grp_info.mgid, minfo->grp_info.mlid) < 0) {
+    if (ibv_ops.attach_mcast(mcast_ctx->ud_ctx->qp, &minfo->grp_info.mgid,
+                             minfo->grp_info.mlid) < 0) {
         PRINT_INFO((MPIDI_Process.my_pg_rank == 0), "MCAST QP attach failed\n");
         return MCAST_FAILURE;
     }
 
     inet_ntop(AF_INET6, minfo->grp_info.mgid.raw, buf, 40);
-    PRINT_DEBUG(DEBUG_MCST_verbose>1,"attached qp mgid %s \n",buf);
+    PRINT_DEBUG(DEBUG_MCST_verbose > 1, "attached qp mgid %s \n", buf);
 
     return MCAST_SUCCESS;
 }
 
 #if defined(RDMA_CM)
-int mv2_rdma_cm_mcst_get_addr_info(char *dst, struct sockaddr *addr)
+int mvp_rdma_cm_mcst_get_addr_info(char *dst, struct sockaddr *addr)
 {
     struct addrinfo *res;
     int ret;
 
     ret = getaddrinfo(dst, NULL, NULL, &res);
     if (ret) {
-        PRINT_INFO((MPIDI_Process.my_pg_rank == 0), "[Warning]: getaddrinfo failed (%s) - invalid hostname or IP"
-                " address for rdma_cm multicast\n", gai_strerror(ret));
+        PRINT_INFO((MPIDI_Process.my_pg_rank == 0),
+                   "[Warning]: getaddrinfo failed (%s) - invalid hostname or IP"
+                   " address for rdma_cm multicast\n",
+                   gai_strerror(ret));
         return ret;
     }
-    PRINT_DEBUG(DEBUG_MCST_verbose,"addr len %d, addr: %s ends\n",res->ai_addrlen,dst); 
+    PRINT_DEBUG(DEBUG_MCST_verbose, "addr len %d, addr: %s ends\n",
+                res->ai_addrlen, dst);
     MPIR_Memcpy(addr, res->ai_addr, res->ai_addrlen);
     freeaddrinfo(res);
 
     return ret;
 }
 
-static int mv2_rdma_cm_mcst_addr_handler(mcast_info_t *node)
+static int mvp_rdma_cm_mcst_addr_handler(mcast_info_t *node)
 {
     int ret = 0;
-    
-    ret = rdma_ops.join_multicast(node->cma_id, node->dst_addr, node);     
-    PRINT_DEBUG(DEBUG_MCST_verbose>1,"Join multicast status %d\n",ret);
+
+    ret = rdma_ops.join_multicast(node->cma_id, node->dst_addr, node);
+    PRINT_DEBUG(DEBUG_MCST_verbose > 1, "Join multicast status %d\n", ret);
     if (ret) {
-        PRINT_INFO((MPIDI_Process.my_pg_rank == 0), "[Warning]: Failure joining multicast group for rdma_cm"
-                " multicast\n");
-    }   
+        PRINT_INFO((MPIDI_Process.my_pg_rank == 0),
+                   "[Warning]: Failure joining multicast group for rdma_cm"
+                   " multicast\n");
+    }
 
     return ret;
 }
 
-static int mv2_rdma_cm_mcst_join_handler(mcast_info_t *minfo,
-            struct rdma_ud_param *param)
+static int mvp_rdma_cm_mcst_join_handler(mcast_info_t *minfo,
+                                         struct rdma_ud_param *param)
 {
     char buf[40];
     mcast_ctx->remote_qpn = param->qp_num;
     mcast_ctx->remote_qkey = param->qkey;
     inet_ntop(AF_INET6, param->ah_attr.grh.dgid.raw, buf, 40);
-    MPIR_Memcpy(minfo->grp_info.mgid.raw,param->ah_attr.grh.dgid.raw, sizeof(param->ah_attr.grh.dgid.raw));
+    MPIR_Memcpy(minfo->grp_info.mgid.raw, param->ah_attr.grh.dgid.raw,
+                sizeof(param->ah_attr.grh.dgid.raw));
     minfo->grp_info.mlid = param->ah_attr.dlid;
     return 0;
 }
 
-
-static int mv2_rdma_cm_mcst_cma_handler(struct rdma_cm_id *cma_id, struct rdma_cm_event *event, mcast_info_t * minfo)
+static int mvp_rdma_cm_mcst_cma_handler(struct rdma_cm_id *cma_id,
+                                        struct rdma_cm_event *event,
+                                        mcast_info_t *minfo)
 {
     int ret = 0;
-    
+
     switch (event->event) {
-    case RDMA_CM_EVENT_ADDR_RESOLVED:
-        ret = mv2_rdma_cm_mcst_addr_handler((mcast_info_t *)cma_id->context);
-        break;
-    case RDMA_CM_EVENT_MULTICAST_JOIN:
-        ret = mv2_rdma_cm_mcst_join_handler((mcast_info_t *)cma_id->context, &event->param.ud);
-        break;
-    case RDMA_CM_EVENT_ADDR_ERROR:
-    case RDMA_CM_EVENT_ROUTE_ERROR:
-    case RDMA_CM_EVENT_MULTICAST_ERROR:
-        PRINT_DEBUG(DEBUG_MCST_verbose,"Event: %s, Error: %d\n",
-               rdma_ops.event_str(event->event), event->status);
-       
-        ret = event->status;
-        break;
-    case RDMA_CM_EVENT_DEVICE_REMOVAL:
-        /* Cleanup will occur after test completes. */
-        break;
-    default:
-        break; 
+        case RDMA_CM_EVENT_ADDR_RESOLVED:
+            ret =
+                mvp_rdma_cm_mcst_addr_handler((mcast_info_t *)cma_id->context);
+            break;
+        case RDMA_CM_EVENT_MULTICAST_JOIN:
+            ret = mvp_rdma_cm_mcst_join_handler((mcast_info_t *)cma_id->context,
+                                                &event->param.ud);
+            break;
+        case RDMA_CM_EVENT_ADDR_ERROR:
+        case RDMA_CM_EVENT_ROUTE_ERROR:
+        case RDMA_CM_EVENT_MULTICAST_ERROR:
+            PRINT_DEBUG(DEBUG_MCST_verbose, "Event: %s, Error: %d\n",
+                        rdma_ops.event_str(event->event), event->status);
+
+            ret = event->status;
+            break;
+        case RDMA_CM_EVENT_DEVICE_REMOVAL:
+            /* Cleanup will occur after test completes. */
+            break;
+        default:
+            break;
     }
     return ret;
 }
 
-static int mv2_rdma_cm_mcst_get_dst_addr(char *dst, struct sockaddr *addr)
+static int mvp_rdma_cm_mcst_get_dst_addr(char *dst, struct sockaddr *addr)
 {
-	struct sockaddr_ib *sib;
-	sib = (struct sockaddr_ib *) addr;
-	MPIR_Memset(sib, 0, sizeof *sib);
-	sib->sib_family = AF_IB;
-	inet_pton(AF_INET6, dst, &sib->sib_addr);
-	return 0;
+    struct sockaddr_ib *sib;
+    sib = (struct sockaddr_ib *)addr;
+    MPIR_Memset(sib, 0, sizeof *sib);
+    sib->sib_family = AF_IB;
+    inet_pton(AF_INET6, dst, &sib->sib_addr);
+    return 0;
 }
 
-static inline int mv2_rdma_cm_join_mcast_group(mcast_info_t * minfo,
-                                       mcast_init_info_t * all_init_info,
-                                       int rank)
+static inline int mvp_rdma_cm_join_mcast_group(mcast_info_t *minfo,
+                                               mcast_init_info_t *all_init_info,
+                                               int rank)
 {
     char buf[40];
     int ret = 0;
     int num_expected_events = 0;
     struct rdma_cm_event *event = NULL;
-    mv2_MPIDI_CH3I_RDMA_Process_t *proc = &mv2_MPIDI_CH3I_RDMA_Process;
+    mvp_MPIDI_CH3I_RDMA_Process_t *proc = &mvp_MPIDI_CH3I_RDMA_Process;
 
     if (rank == 0) {
         minfo->grp_info.mlid = 0;
@@ -756,41 +774,42 @@ static inline int mv2_rdma_cm_join_mcast_group(mcast_info_t * minfo,
         MPIR_Memset(minfo->grp_info.mgid.raw, 0, 16);
     }
 
-    minfo->dst_addr = (struct sockaddr *) &(minfo->dst_in);
+    minfo->dst_addr = (struct sockaddr *)&(minfo->dst_in);
     minfo->channel = rdma_ops.create_event_channel();
 
     if (!minfo->channel) {
-	    minfo->grp_info.status = 0;
-	    return MCAST_FAILURE;
+        minfo->grp_info.status = 0;
+        return MCAST_FAILURE;
     }
 
-    ret = rdma_ops.create_id(minfo->channel, &minfo->cma_id,
-		    minfo, RDMA_PS_UDP);
+    ret =
+        rdma_ops.create_id(minfo->channel, &minfo->cma_id, minfo, RDMA_PS_UDP);
     if (ret) {
-	    minfo->grp_info.status = 0;
-	    return MCAST_FAILURE;
+        minfo->grp_info.status = 0;
+        return MCAST_FAILURE;
     }
-    
-    ret = rdma_ops.bind_addr(minfo->cma_id,mcast_ctx->src_addr);
-    PRINT_DEBUG(DEBUG_MCST_verbose, "bind addr %d\n",ret);
 
+    ret = rdma_ops.bind_addr(minfo->cma_id, mcast_ctx->src_addr);
+    PRINT_DEBUG(DEBUG_MCST_verbose, "bind addr %d\n", ret);
 
     if (rank == 0) {
-        mv2_rdma_cm_mcst_get_addr_info("0.0.0.0", (struct sockaddr *) &minfo->dst_in);
-        ret = rdma_ops.resolve_addr(minfo->cma_id,
-                mcast_ctx->src_addr, minfo->dst_addr,
-                2000);
+        mvp_rdma_cm_mcst_get_addr_info("0.0.0.0",
+                                       (struct sockaddr *)&minfo->dst_in);
+        ret = rdma_ops.resolve_addr(minfo->cma_id, mcast_ctx->src_addr,
+                                    minfo->dst_addr, 2000);
         if (ret) {
-            PRINT_INFO((MPIDI_Process.my_pg_rank == 0), "[Warning]: rdma_resolve_addr failed (ret = %d) when"
-                    " trying to resolve address for rdma cm multicast\n", ret);
+            PRINT_INFO((MPIDI_Process.my_pg_rank == 0),
+                       "[Warning]: rdma_resolve_addr failed (ret = %d) when"
+                       " trying to resolve address for rdma cm multicast\n",
+                       ret);
             return MCAST_FAILURE;
         }
-        PRINT_DEBUG(DEBUG_MCST_verbose,"Resolve addr success\n");
+        PRINT_DEBUG(DEBUG_MCST_verbose, "Resolve addr success\n");
     } else {
         inet_ntop(AF_INET6, minfo->grp_info.mgid.raw, buf, 40);
-        PRINT_DEBUG(DEBUG_MCST_verbose, "MGID RAW %s \n",buf);
-        mv2_rdma_cm_mcst_get_dst_addr(buf, (struct sockaddr *) &minfo->dst_in);
-        mv2_rdma_cm_mcst_addr_handler(minfo); 
+        PRINT_DEBUG(DEBUG_MCST_verbose, "MGID RAW %s \n", buf);
+        mvp_rdma_cm_mcst_get_dst_addr(buf, (struct sockaddr *)&minfo->dst_in);
+        mvp_rdma_cm_mcst_addr_handler(minfo);
     }
 
     if (rank != 0) {
@@ -801,7 +820,7 @@ static inline int mv2_rdma_cm_join_mcast_group(mcast_info_t * minfo,
     while (!ret && num_expected_events > 0) {
         ret = rdma_ops.get_cm_event(minfo->channel, &event);
         if (!ret) {
-            ret = mv2_rdma_cm_mcst_cma_handler(event->id, event, minfo); 
+            ret = mvp_rdma_cm_mcst_cma_handler(event->id, event, minfo);
             rdma_ops.ack_cm_event(event);
             num_expected_events--;
         }
@@ -813,27 +832,29 @@ static inline int mv2_rdma_cm_join_mcast_group(mcast_info_t * minfo,
     return MCAST_SUCCESS;
 }
 
-static inline int mv2_rdma_cm_leave_mcast_group(mcast_info_t * minfo)
+static inline int mvp_rdma_cm_leave_mcast_group(mcast_info_t *minfo)
 {
     int ret = 0;
-    ret = rdma_ops.leave_multicast(minfo->cma_id, minfo->dst_addr);  
+    ret = rdma_ops.leave_multicast(minfo->cma_id, minfo->dst_addr);
     if (ret) {
-        PRINT_INFO((MPIDI_Process.my_pg_rank == 0), "[Warning]: rdma_leave_multicast failed for rdma_cm"
-                " multicast\n");
+        PRINT_INFO((MPIDI_Process.my_pg_rank == 0),
+                   "[Warning]: rdma_leave_multicast failed for rdma_cm"
+                   " multicast\n");
     }
     return ret;
 }
 #endif /* #if defined (RDMA_CM) */
 
-static inline int mv2_join_mcast_group(mcast_info_t * minfo,
-                                       mcast_init_info_t * all_init_info,
+static inline int mvp_join_mcast_group(mcast_info_t *minfo,
+                                       mcast_init_info_t *all_init_info,
                                        int num_ranks)
 {
     minfo->grp_info.mlid = 0;
     minfo->grp_info.comm_id = 0;
     MPIR_Memset(minfo->grp_info.mgid.raw, 0, 16);
-    if (mv2_op_mcast_group(all_init_info, num_ranks, IB_MAD_METHOD_SET, 
-             &minfo->grp_info.mgid, &minfo->grp_info.mlid) != MCAST_SUCCESS) {
+    if (mvp_op_mcast_group(all_init_info, num_ranks, IB_MAD_METHOD_SET,
+                           &minfo->grp_info.mgid,
+                           &minfo->grp_info.mlid) != MCAST_SUCCESS) {
         minfo->grp_info.status = 0;
         return MCAST_FAILURE;
     }
@@ -841,15 +862,15 @@ static inline int mv2_join_mcast_group(mcast_info_t * minfo,
     return MCAST_SUCCESS;
 }
 
-static inline int mv2_leave_mcast_group(mcast_info_t * minfo,
-                                        mcast_init_info_t * all_init_info,
+static inline int mvp_leave_mcast_group(mcast_info_t *minfo,
+                                        mcast_init_info_t *all_init_info,
                                         int num_ranks)
 {
-    return mv2_op_mcast_group(all_init_info, num_ranks, IB_MAD_METHOD_DELETE,
+    return mvp_op_mcast_group(all_init_info, num_ranks, IB_MAD_METHOD_DELETE,
                               &(minfo->grp_info.mgid), NULL);
 }
 
-static inline void mv2_mcast_remove_sendwin(message_queue_t * q, vbuf * v)
+static inline void mvp_mcast_remove_sendwin(message_queue_t *q, vbuf *v)
 {
     MPIR_Assert(q->head == v);
     q->head = v->mcast_sendwin_msg.next;
@@ -861,7 +882,7 @@ static inline void mv2_mcast_remove_sendwin(message_queue_t * q, vbuf * v)
     v->mcast_sendwin_msg.next = NULL;
 }
 
-static inline void mv2_mcast_add_sendwin(message_queue_t * q, vbuf * v)
+static inline void mvp_mcast_add_sendwin(message_queue_t *q, vbuf *v)
 {
     v->mcast_sendwin_msg.next = v->mcast_sendwin_msg.prev = NULL;
 
@@ -875,7 +896,7 @@ static inline void mv2_mcast_add_sendwin(message_queue_t * q, vbuf * v)
     q->count++;
 }
 
-static inline void mv2_mcast_remove_recvwin(message_queue_t * q, vbuf * v)
+static inline void mvp_mcast_remove_recvwin(message_queue_t *q, vbuf *v)
 {
     MPIR_Assert(q->head == v);
     q->head = v->mcast_recvwin_msg.next;
@@ -890,16 +911,16 @@ static inline void mv2_mcast_remove_recvwin(message_queue_t * q, vbuf * v)
     v->mcast_recvwin_msg.next = NULL;
 }
 
-static inline void mv2_mcast_add_recvwin(message_queue_t * q, vbuf * v)
+static inline void mvp_mcast_add_recvwin(message_queue_t *q, vbuf *v)
 {
     vbuf *next = NULL, *prev = NULL;
     MPIDI_CH3_Pkt_mcast_t *p, *p1;
-    p = (MPIDI_CH3_Pkt_mcast_t *) v->pheader;
+    p = (MPIDI_CH3_Pkt_mcast_t *)v->pheader;
 
     /* check if it duplicate */
     next = q->head;
     while (next) {
-        p1 = (MPIDI_CH3_Pkt_mcast_t *) next->pheader;
+        p1 = (MPIDI_CH3_Pkt_mcast_t *)next->pheader;
         if (p1->psn >= p->psn) {
             break;
         }
@@ -913,10 +934,8 @@ static inline void mv2_mcast_add_recvwin(message_queue_t * q, vbuf * v)
 
 #if !defined(NDEBUG)
     /* drop packet if it is to test reliability */
-    if (mcast_drop_packet_rate &&
-            (rand() % mcast_drop_packet_rate) == 0) {
-        PRINT_DEBUG(DEBUG_MCST_verbose > 2, "mcast pkt dropped :%d\n",
-                p->psn);
+    if (mcast_drop_packet_rate && (rand() % mcast_drop_packet_rate) == 0) {
+        PRINT_DEBUG(DEBUG_MCST_verbose > 2, "mcast pkt dropped :%d\n", p->psn);
         MRAILI_Release_vbuf(v);
         return;
     }
@@ -944,7 +963,7 @@ static inline void mv2_mcast_add_recvwin(message_queue_t * q, vbuf * v)
     q->count++;
 }
 
-static inline void mv2_mcast_send_init_ack(int comm_id, int root)
+static inline void mvp_mcast_send_init_ack(int comm_id, int root)
 {
     int mpi_errno = MPI_SUCCESS;
     int leader_rank;
@@ -956,7 +975,7 @@ static inline void mv2_mcast_send_init_ack(int comm_id, int root)
     MPIDI_Pkt_init(&pkt, MPIDI_CH3_PKT_MCST_INIT_ACK);
     pkt.psn = 0;
     pkt.comm_id = comm_id;
-    comm_ptr = mv2_mcast_find_comm(comm_id);
+    comm_ptr = mvp_mcast_find_comm(comm_id);
     MPIR_Assert(comm_ptr);
     PMPI_Comm_rank(comm_ptr->dev.ch.leader_comm, &leader_rank);
     pkt.src_rank = leader_rank;
@@ -964,18 +983,19 @@ static inline void mv2_mcast_send_init_ack(int comm_id, int root)
 
     mpi_errno = MPIDI_CH3_iStartMsg(vc, &pkt, sizeof(pkt), &sreq);
     if (mpi_errno != MPI_SUCCESS) {
-        PRINT_DEBUG(DEBUG_MCST_verbose > 1,"Error in sending multicast NACK\n");
+        PRINT_DEBUG(DEBUG_MCST_verbose > 1,
+                    "Error in sending multicast NACK\n");
     }
 
     if (sreq != NULL) {
         MPIR_Request_free(sreq);
     }
 
-    PRINT_DEBUG(DEBUG_MCST_verbose > 2,
-                "sent init ack comm_id:%d  to :%d\n", comm_id, root);
+    PRINT_DEBUG(DEBUG_MCST_verbose > 2, "sent init ack comm_id:%d  to :%d\n",
+                comm_id, root);
 }
 
-static inline void mv2_mcast_send_nack(uint32_t psn, int comm_id, int root)
+static inline void mvp_mcast_send_nack(uint32_t psn, int comm_id, int root)
 {
     int mpi_errno = MPI_SUCCESS;
     vbuf *v;
@@ -990,58 +1010,62 @@ static inline void mv2_mcast_send_nack(uint32_t psn, int comm_id, int root)
     pkt.psn = psn;
     pkt.comm_id = comm_id;
     pkt.root = root;
-    comm_ptr = mv2_mcast_find_comm(comm_id);
+    comm_ptr = mvp_mcast_find_comm(comm_id);
     pkt.src_rank = comm_ptr->rank;
 
     if (mcast_use_mcast_nack) {
-        bcast_info = (bcast_info_t *) comm_ptr->dev.ch.bcast_info;
+        bcast_info = (bcast_info_t *)comm_ptr->dev.ch.bcast_info;
         minfo = &bcast_info->minfo;
 
-        long now = mv2_get_time_us();
+        long now = mvp_get_time_us();
         if ((now - bcast_info->nack_time) < mcast_retry_timeout) {
             /* received multicast NACK recently from other */
             return;
         }
-        GET_UD_VBUF_BY_OFFSET_WITHOUT_LOCK(v, MV2_SEND_UD_VBUF_POOL_OFFSET);
-        bcast_info->nack_time = mv2_get_time_us();
-        MPIR_Memcpy(v->pheader, (const void *) &pkt, sizeof(MPIDI_CH3_Pkt_mcast_nack_t));
+        GET_UD_VBUF_BY_OFFSET_WITHOUT_LOCK(v, MVP_SEND_UD_VBUF_POOL_OFFSET);
+        bcast_info->nack_time = mvp_get_time_us();
+        MPIR_Memcpy(v->pheader, (const void *)&pkt,
+                    sizeof(MPIDI_CH3_Pkt_mcast_nack_t));
 
-        vbuf_init_mcast_send(v, sizeof(MPIDI_CH3_Pkt_mcast_nack_t), mcast_ctx->selected_rail, minfo);
+        vbuf_init_mcast_send(v, sizeof(MPIDI_CH3_Pkt_mcast_nack_t),
+                             mcast_ctx->selected_rail, minfo);
         IBV_POST_MCAST_SEND(v, mcast_ctx);
 
-        PRINT_DEBUG(DEBUG_MCST_verbose > 2, 
-                            "sending mcast nack psn:%d to :%d head:%d tail:%d\n", 
-                            psn, root, bcast_info->win_head, bcast_info->win_tail);
+        PRINT_DEBUG(DEBUG_MCST_verbose > 2,
+                    "sending mcast nack psn:%d to :%d head:%d tail:%d\n", psn,
+                    root, bcast_info->win_head, bcast_info->win_tail);
 
     } else {
         MPIDI_Comm_get_vc(comm_ptr, root, &vc);
         mpi_errno = MPIDI_CH3_iStartMsg(vc, &pkt, sizeof(pkt), &sreq);
         if (mpi_errno != MPI_SUCCESS) {
-            PRINT_DEBUG(DEBUG_MCST_verbose > 1,"Error in sending multicast NACK\n");
+            PRINT_DEBUG(DEBUG_MCST_verbose > 1,
+                        "Error in sending multicast NACK\n");
         }
 
         if (sreq != NULL) {
             MPIR_Request_free(sreq);
         }
-    
-        PRINT_DEBUG(DEBUG_MCST_verbose > 2, "sending rc nack psn:%d to :%d\n", psn, root);
+
+        PRINT_DEBUG(DEBUG_MCST_verbose > 2, "sending rc nack psn:%d to :%d\n",
+                    psn, root);
     }
 }
 
-static inline void mv2_mcast_resend_window(bcast_info_t * bcast_info, uint32_t psn)
+static inline void mvp_mcast_resend_window(bcast_info_t *bcast_info,
+                                           uint32_t psn)
 {
     int num_resends = 0;
     vbuf *v;
 
-    bcast_info->resend_time = mv2_get_time_us();
+    bcast_info->resend_time = mvp_get_time_us();
     v = bcast_info->send_window.head;
     while (v) {
-
         MPIR_Assert(v != NULL);
 
         v->retry_count++;
         v->pending_send_polls++;
-        v->timestamp = mv2_get_time_us();
+        v->timestamp = mvp_get_time_us();
         v->flags &= ~(UD_VBUF_FREE_PENIDING);
 
         IBV_POST_MCAST_SEND(v, mcast_ctx);
@@ -1049,11 +1073,12 @@ static inline void mv2_mcast_resend_window(bcast_info_t * bcast_info, uint32_t p
         v = v->mcast_sendwin_msg.next;
         num_resends++;
     }
-        PRINT_DEBUG(DEBUG_MCST_verbose > 2, 
-                "mcast resend window psn:%d num_resends:%d \n", psn, num_resends);
+    PRINT_DEBUG(DEBUG_MCST_verbose > 2,
+                "mcast resend window psn:%d num_resends:%d \n", psn,
+                num_resends);
 }
 
-static inline void mv2_mcast_resend(bcast_info_t * bcast_info, uint32_t psn)
+static inline void mvp_mcast_resend(bcast_info_t *bcast_info, uint32_t psn)
 {
     long now;
     uint16_t resend_backoff;
@@ -1066,7 +1091,7 @@ static inline void mv2_mcast_resend(bcast_info_t * bcast_info, uint32_t psn)
 
     v = bcast_info->send_window.head;
     while (v) {
-        p = (MPIDI_CH3_Pkt_mcast_t *) v->pheader;
+        p = (MPIDI_CH3_Pkt_mcast_t *)v->pheader;
         if (psn == p->psn) {
             break;
         }
@@ -1081,28 +1106,28 @@ static inline void mv2_mcast_resend(bcast_info_t * bcast_info, uint32_t psn)
         LOG2(v->retry_count, resend_backoff);
     }
 
-    now = mv2_get_time_us();
-    if (now < v->timestamp + MIN((mcast_retry_timeout *
-                                  resend_backoff), mcast_max_retry_timeout)) {
+    now = mvp_get_time_us();
+    if (now < v->timestamp + MIN((mcast_retry_timeout * resend_backoff),
+                                 mcast_max_retry_timeout)) {
         PRINT_DEBUG(DEBUG_MCST_verbose > 2,
-                    "mcast resend psn:%u is resent recenty now:%ld \n", psn, now);
+                    "mcast resend psn:%u is resent recenty now:%ld \n", psn,
+                    now);
         return;
     }
 
     v->retry_count++;
-    v->timestamp = mv2_get_time_us();
+    v->timestamp = mvp_get_time_us();
     v->pending_send_polls++;
-    
+
     IBV_POST_MCAST_SEND(v, mcast_ctx);
 
     PRINT_DEBUG(DEBUG_MCST_verbose > 2, "mcast resend psn:%d \n", psn);
 }
 
-
-int mv2_mcast_init_bcast_info(bcast_info_t ** bcast_info)
+int mvp_mcast_init_bcast_info(bcast_info_t **bcast_info)
 {
-    *bcast_info = (bcast_info_t *) MPL_malloc(sizeof(bcast_info_t), 
-                                                MPL_MEM_OTHER);
+    *bcast_info =
+        (bcast_info_t *)MPL_malloc(sizeof(bcast_info_t), MPL_MEM_OTHER);
     /* init bcast info */
     MESSAGE_QUEUE_INIT(&((*bcast_info)->send_window));
     MESSAGE_QUEUE_INIT(&((*bcast_info)->recv_window));
@@ -1115,7 +1140,7 @@ int mv2_mcast_init_bcast_info(bcast_info_t ** bcast_info)
     return MCAST_SUCCESS;
 }
 
-int mv2_setup_multicast(mcast_info_t * minfo, MPIR_Comm * comm_ptr)
+int mvp_setup_multicast(mcast_info_t *minfo, MPIR_Comm *comm_ptr)
 {
     int mpi_errno = MPI_SUCCESS, i;
     MPIR_Comm *leader_ptr;
@@ -1129,65 +1154,69 @@ int mv2_setup_multicast(mcast_info_t * minfo, MPIR_Comm * comm_ptr)
 
     PMPI_Comm_size(comm_ptr->dev.ch.leader_comm, &leader_comm_size);
     PMPI_Comm_rank(comm_ptr->dev.ch.leader_comm, &leader_rank);
-    
+
     if (leader_rank == 0) {
         all_init_info = MPL_malloc(leader_comm_size * sizeof(mcast_init_info_t),
-                                    MPL_MEM_OTHER);
+                                   MPL_MEM_OTHER);
         if (all_init_info == NULL) {
             return MCAST_FAILURE;
         }
     }
 
-    MPIR_Memcpy(init_info.gid, mv2_MPIDI_CH3I_RDMA_Process.gids[0][0].raw, 16);
+    MPIR_Memcpy(init_info.gid, mvp_MPIDI_CH3I_RDMA_Process.gids[0][0].raw, 16);
 
     MPIR_Gather_impl(init_info.gid, sizeof(mcast_init_info_t), MPI_BYTE,
-                                 all_init_info, sizeof(mcast_init_info_t), MPI_BYTE,
-                                 0, leader_ptr, &errflag);
+                     all_init_info, sizeof(mcast_init_info_t), MPI_BYTE, 0,
+                     leader_ptr, &errflag);
 #if defined(RDMA_CM)
     if (num_ip_enabled_devices > 0) {
         num_ip_enabled_nodes = 1;
     }
-    mpi_errno =  MPIR_Allreduce_impl(MPI_IN_PLACE, &num_ip_enabled_nodes,
-                                    1, MPI_INT, MPI_SUM, leader_ptr, &errflag);
+    mpi_errno = MPIR_Allreduce_impl(MPI_IN_PLACE, &num_ip_enabled_nodes, 1,
+                                    MPI_INT, MPI_SUM, leader_ptr, &errflag);
     if (mpi_errno) {
         MPIR_ERR_POP(mpi_errno);
     }
     if (num_ip_enabled_nodes < leader_comm_size) {
-        PRINT_INFO((MPIDI_Process.my_pg_rank == 0), "[Warning]: One or more nodes do not have any IP enabled"
-                " HCAs. Disabling rdma_cm based multicast\n");
+        PRINT_INFO((MPIDI_Process.my_pg_rank == 0),
+                   "[Warning]: One or more nodes do not have any IP enabled"
+                   " HCAs. Disabling rdma_cm based multicast\n");
         rdma_use_rdma_cm_mcast = 0;
     }
 #endif /*defined(RDMA_CM)*/
-        
+
     if (leader_rank == 0) {
         minfo->init_info = all_init_info;
         for (i = 0; i < leader_comm_size; i++) {
-            PRINT_DEBUG_GID(((union ibv_gid *) &all_init_info[i]))
+            PRINT_DEBUG_GID(((union ibv_gid *)&all_init_info[i]))
         }
 
 #if defined(RDMA_CM)
-        if(rdma_use_rdma_cm_mcast == 1) {
-            mcast_status = mv2_rdma_cm_join_mcast_group(minfo, all_init_info, leader_rank);
-        }
-        else
+        if (rdma_use_rdma_cm_mcast == 1) {
+            mcast_status =
+                mvp_rdma_cm_join_mcast_group(minfo, all_init_info, leader_rank);
+        } else
 #endif
         {
-            mcast_status = mv2_join_mcast_group(minfo, all_init_info, leader_comm_size);
+            mcast_status =
+                mvp_join_mcast_group(minfo, all_init_info, leader_comm_size);
         }
 
         if (mcast_status == MCAST_SUCCESS) {
             /* assign a unique comm_id */
             while (1) {
-                comm_id = rand() % MV2_MCAST_MAX_COMMS;
-                if (mv2_mcast_find_comm(comm_id) == NULL) {
+                comm_id = rand() % MVP_MCAST_MAX_COMMS;
+                if (mvp_mcast_find_comm(comm_id) == NULL) {
                     minfo->grp_info.comm_id = comm_id;
                     break;
                 }
             }
-            PRINT_DEBUG(DEBUG_MCST_verbose>1,"leader comm size %d\n",leader_comm_size);
-            mv2_mcast_add_comm_init_req(comm_id, leader_comm_size);
+            PRINT_DEBUG(DEBUG_MCST_verbose > 1, "leader comm size %d\n",
+                        leader_comm_size);
+            mvp_mcast_add_comm_init_req(comm_id, leader_comm_size);
         } else {
-            PRINT_INFO((MPIDI_Process.my_pg_rank == 0), "[Warning]: mv2_rdma_cm_join_mcast_group failed\n");
+            PRINT_INFO((MPIDI_Process.my_pg_rank == 0),
+                       "[Warning]: mvp_rdma_cm_join_mcast_group failed\n");
         }
     }
     /* Broadcast mcast info */
@@ -1204,7 +1233,7 @@ int mv2_setup_multicast(mcast_info_t * minfo, MPIR_Comm * comm_ptr)
     }
 #if defined(RDMA_CM)
     if (leader_rank != 0 && rdma_use_rdma_cm_mcast) {
-        mv2_rdma_cm_join_mcast_group(minfo, all_init_info, leader_rank);
+        mvp_rdma_cm_join_mcast_group(minfo, all_init_info, leader_rank);
     }
 #endif
 
@@ -1213,10 +1242,10 @@ int mv2_setup_multicast(mcast_info_t * minfo, MPIR_Comm * comm_ptr)
                 minfo->grp_info.status, minfo->grp_info.comm_id,
                 minfo->grp_info.mlid, minfo->grp_info.mgid.global.interface_id);
 
-    mv2_mcast_register_comm(comm_ptr, minfo->grp_info.comm_id);
+    mvp_mcast_register_comm(comm_ptr, minfo->grp_info.comm_id);
 
     /* TODO: does root needs to gather attach status from all non-roots? */
-    if (mv2_mcast_attach_ud_qp(minfo) != MCAST_SUCCESS) {
+    if (mvp_mcast_attach_ud_qp(minfo) != MCAST_SUCCESS) {
         goto fn_fail;
     }
     return MCAST_SUCCESS;
@@ -1224,48 +1253,46 @@ int mv2_setup_multicast(mcast_info_t * minfo, MPIR_Comm * comm_ptr)
 fn_fail:
 #if defined(RDMA_CM)
     if (rdma_use_rdma_cm_mcast != 0) {
-        mv2_rdma_cm_leave_mcast_group(minfo);
-    }
-    else
+        mvp_rdma_cm_leave_mcast_group(minfo);
+    } else
 #endif
-    {    
+    {
         if (leader_rank == 0) {
-            mv2_leave_mcast_group(minfo, minfo->init_info, leader_comm_size);
+            mvp_leave_mcast_group(minfo, minfo->init_info, leader_comm_size);
         }
     }
 
     return MCAST_FAILURE;
 }
 
-int mv2_cleanup_multicast(mcast_info_t * minfo, MPIR_Comm * comm_ptr)
+int mvp_cleanup_multicast(mcast_info_t *minfo, MPIR_Comm *comm_ptr)
 {
     int leader_rank, leader_comm_size, cleanup_status = MCAST_SUCCESS;
 
     PMPI_Comm_size(comm_ptr->dev.ch.leader_comm, &leader_comm_size);
     PMPI_Comm_rank(comm_ptr->dev.ch.leader_comm, &leader_rank);
 
-    mv2_mcast_unregister_comm(minfo->grp_info.comm_id);
-    mv2_mcast_detach_ud_qp(minfo);
-
+    mvp_mcast_unregister_comm(minfo->grp_info.comm_id);
+    mvp_mcast_detach_ud_qp(minfo);
 
 #if defined(RDMA_CM)
     if (rdma_use_rdma_cm_mcast != 0) {
-        PRINT_DEBUG(DEBUG_MCST_verbose > 2, "Leaving RDMA CM multicast group\n"); 
-        if (mv2_rdma_cm_leave_mcast_group(minfo)) {
+        PRINT_DEBUG(DEBUG_MCST_verbose > 2,
+                    "Leaving RDMA CM multicast group\n");
+        if (mvp_rdma_cm_leave_mcast_group(minfo)) {
             cleanup_status = MCAST_FAILURE;
         }
-        rdma_ops.destroy_id(minfo->cma_id); 
+        rdma_ops.destroy_id(minfo->cma_id);
         minfo->cma_id = NULL;
-        rdma_ops.destroy_event_channel(minfo->channel); 
+        rdma_ops.destroy_event_channel(minfo->channel);
         minfo->channel = NULL;
-    }
-    else
+    } else
 #endif
     {
         if (leader_rank == 0) {
             PRINT_DEBUG(DEBUG_MCST_verbose > 2, "Leaving multicast group\n");
-            if (mv2_leave_mcast_group(minfo, minfo->init_info, leader_comm_size) !=
-                    MCAST_SUCCESS) {
+            if (mvp_leave_mcast_group(minfo, minfo->init_info,
+                                      leader_comm_size) != MCAST_SUCCESS) {
                 cleanup_status = MCAST_FAILURE;
             }
         }
@@ -1279,14 +1306,14 @@ int mv2_cleanup_multicast(mcast_info_t * minfo, MPIR_Comm * comm_ptr)
     return cleanup_status;
 }
 
-void mv2_mcast_flush_sendwin(message_queue_t * q)
+void mvp_mcast_flush_sendwin(message_queue_t *q)
 {
     vbuf *v;
 
     while (q->head) {
         v = q->head;
-        mv2_mcast_remove_sendwin(q, v);
-        if (v->flags & UD_VBUF_FREE_PENIDING)  {
+        mvp_mcast_remove_sendwin(q, v);
+        if (v->flags & UD_VBUF_FREE_PENIDING) {
             v->flags &= ~(UD_VBUF_FREE_PENIDING);
             release_vbuf(v);
         }
@@ -1294,52 +1321,52 @@ void mv2_mcast_flush_sendwin(message_queue_t * q)
     }
 }
 
-void mv2_mcast_send(bcast_info_t * bcast_info, char *buf, int len)
+void mvp_mcast_send(bcast_info_t *bcast_info, char *buf, int len)
 {
     vbuf *v;
     MPIR_Comm *comm_ptr;
     mcast_info_t *minfo = &bcast_info->minfo;
 
-    GET_UD_VBUF_BY_OFFSET_WITHOUT_LOCK(v, MV2_SEND_UD_VBUF_POOL_OFFSET);
-    MPIDI_CH3_Pkt_mcast_t *p = (MPIDI_CH3_Pkt_mcast_t *) v->pheader;
+    GET_UD_VBUF_BY_OFFSET_WITHOUT_LOCK(v, MVP_SEND_UD_VBUF_POOL_OFFSET);
+    MPIDI_CH3_Pkt_mcast_t *p = (MPIDI_CH3_Pkt_mcast_t *)v->pheader;
     p->type = MPIDI_CH3_PKT_MCST;
     p->rail = mcast_ctx->selected_rail;
     p->psn = bcast_info->win_head;
     p->comm_id = minfo->grp_info.comm_id;
-    comm_ptr = mv2_mcast_find_comm(p->comm_id);
+    comm_ptr = mvp_mcast_find_comm(p->comm_id);
     p->src_rank = comm_ptr->rank;
 
-    memcpy((char *) p + sizeof(MPIDI_CH3_Pkt_mcast_t), buf, len);
+    memcpy((char *)p + sizeof(MPIDI_CH3_Pkt_mcast_t), buf, len);
 
-    mv2_mcast_add_sendwin(&bcast_info->send_window, v);
+    mvp_mcast_add_sendwin(&bcast_info->send_window, v);
     v->flags |= (UD_VBUF_SEND_INPROGRESS | UD_VBUF_MCAST_MSG);
-    v->timestamp = mv2_get_time_us();
+    v->timestamp = mvp_get_time_us();
     v->retry_count = 1;
     v->pending_send_polls = 1;
 
-    vbuf_init_mcast_send(v, sizeof(MPIDI_CH3_Pkt_mcast_t) + len, mcast_ctx->selected_rail, minfo);
+    vbuf_init_mcast_send(v, sizeof(MPIDI_CH3_Pkt_mcast_t) + len,
+                         mcast_ctx->selected_rail, minfo);
 
     IBV_POST_MCAST_SEND(v, mcast_ctx);
-    PRINT_DEBUG(DEBUG_MCST_verbose > 3, "mcast send psn:%u len:%lu\n",
-                p->psn, sizeof(MPIDI_CH3_Pkt_mcast_t) + len);
+    PRINT_DEBUG(DEBUG_MCST_verbose > 3, "mcast send psn:%u len:%lu\n", p->psn,
+                sizeof(MPIDI_CH3_Pkt_mcast_t) + len);
 }
 
-void mv2_process_mcast_msg(vbuf * v)
+void mvp_process_mcast_msg(vbuf *v)
 {
     MPIDI_CH3_Pkt_mcast_t *p;
     MPIR_Comm *comm_ptr = NULL;
     bcast_info_t *bcast_info;
-    p = (MPIDI_CH3_Pkt_mcast_t *) v->pheader;
+    p = (MPIDI_CH3_Pkt_mcast_t *)v->pheader;
 
-    mv2_ud_ctx_t *ud_ctx = mcast_ctx->ud_ctx;
+    mvp_ud_ctx_t *ud_ctx = mcast_ctx->ud_ctx;
     --ud_ctx->num_recvs_posted;
     if (ud_ctx->num_recvs_posted < ud_ctx->credit_preserve) {
-        ud_ctx->num_recvs_posted +=
-            mv2_mcast_post_ud_recv_buffers((mcast_max_ud_recv_wqe -
-                                            ud_ctx->num_recvs_posted), ud_ctx);
+        ud_ctx->num_recvs_posted += mvp_mcast_post_ud_recv_buffers(
+            (mcast_max_ud_recv_wqe - ud_ctx->num_recvs_posted), ud_ctx);
     }
 
-    comm_ptr = mv2_mcast_find_comm(p->comm_id);
+    comm_ptr = mvp_mcast_find_comm(p->comm_id);
     if (comm_ptr == NULL) {
         MRAILI_Release_vbuf(v);
         return;
@@ -1351,87 +1378,91 @@ void mv2_process_mcast_msg(vbuf * v)
         return;
     }
 
-    bcast_info = (bcast_info_t *) comm_ptr->dev.ch.bcast_info;
+    bcast_info = (bcast_info_t *)comm_ptr->dev.ch.bcast_info;
 
     switch (p->type) {
         case MPIDI_CH3_PKT_MCST_NACK:
             if (comm_ptr->rank == p->root) {
-                mv2_mcast_handle_nack((void *) p);
+                mvp_mcast_handle_nack((void *)p);
             } else {
-                PRINT_DEBUG(DEBUG_MCST_verbose > 3, 
-                        "Nack received at non root. psn:%d root:%d\n", p->psn, p->root);
-                bcast_info->nack_time = mv2_get_time_us();
+                PRINT_DEBUG(DEBUG_MCST_verbose > 3,
+                            "Nack received at non root. psn:%d root:%d\n",
+                            p->psn, p->root);
+                bcast_info->nack_time = mvp_get_time_us();
             }
             MRAILI_Release_vbuf(v);
             break;
         case MPIDI_CH3_PKT_MCST_INIT:
             PRINT_DEBUG(DEBUG_MCST_verbose > 2,
                         "mcast init received comm_id:%d\n", p->comm_id);
-            mv2_mcast_send_init_ack(p->comm_id, p->src_rank);
+            mvp_mcast_send_init_ack(p->comm_id, p->src_rank);
             MRAILI_Release_vbuf(v);
             break;
         case MPIDI_CH3_PKT_MCST:
-             PRINT_DEBUG(DEBUG_MCST_verbose > 3, "Received psn:%d head:%d tail:%d size %lu \n",
-                                    p->psn, bcast_info->win_head, bcast_info->win_tail, v->content_size);
+            PRINT_DEBUG(DEBUG_MCST_verbose > 3,
+                        "Received psn:%d head:%d tail:%d size %lu \n", p->psn,
+                        bcast_info->win_head, bcast_info->win_tail,
+                        v->content_size);
             /* check out of window */
-            if (!INCL_BETWEEN(p->psn, bcast_info->win_head, 
-                        bcast_info->win_head + mcast_window_size)) {
-                PRINT_DEBUG(DEBUG_MCST_verbose > 3, "Dropped psn:%d head:%d tail:%d \n", 
-                        p->psn, bcast_info->win_head, bcast_info->win_tail);
+            if (!INCL_BETWEEN(p->psn, bcast_info->win_head,
+                              bcast_info->win_head + mcast_window_size)) {
+                PRINT_DEBUG(DEBUG_MCST_verbose > 3,
+                            "Dropped psn:%d head:%d tail:%d \n", p->psn,
+                            bcast_info->win_head, bcast_info->win_tail);
                 MRAILI_Release_vbuf(v);
                 break;
             }
 
-            mv2_mcast_add_recvwin(&bcast_info->recv_window, v);
+            mvp_mcast_add_recvwin(&bcast_info->recv_window, v);
 
-            if (bcast_info->in_recv_progress && p->psn == bcast_info->win_head) {
+            if (bcast_info->in_recv_progress &&
+                p->psn == bcast_info->win_head) {
                 MPIDI_CH3I_progress_completion_count++;
             }
             break;
         default:
-            PRINT_DEBUG(DEBUG_MCST_verbose > 1,"unknown mcast pkt received\n");
+            PRINT_DEBUG(DEBUG_MCST_verbose > 1, "unknown mcast pkt received\n");
     }
-
 }
 
-void mv2_mcast_handle_nack(MPIDI_CH3_Pkt_mcast_nack_t * p)
+void mvp_mcast_handle_nack(MPIDI_CH3_Pkt_mcast_nack_t *p)
 {
     uint32_t psn;
     MPIR_Comm *comm_ptr = NULL;
     bcast_info_t *bcast_info;
     PRINT_DEBUG(DEBUG_MCST_verbose > 2, "nack received psn:%d\n", p->psn);
     psn = p->psn;
-    comm_ptr = mv2_mcast_find_comm(p->comm_id);
-    bcast_info = (bcast_info_t *) comm_ptr->dev.ch.bcast_info;
+    comm_ptr = mvp_mcast_find_comm(p->comm_id);
+    bcast_info = (bcast_info_t *)comm_ptr->dev.ch.bcast_info;
     if (!EXCL_BETWEEN(psn, bcast_info->win_tail, bcast_info->win_head)) {
-        PRINT_DEBUG(DEBUG_MCST_verbose > 2, "psn:%d is not in window (%d - %d)\n",
-                    psn, bcast_info->win_tail, bcast_info->win_head);
+        PRINT_DEBUG(DEBUG_MCST_verbose > 2,
+                    "psn:%d is not in window (%d - %d)\n", psn,
+                    bcast_info->win_tail, bcast_info->win_head);
         return;
     }
 
     if (mcast_use_mcast_nack) {
-        mv2_mcast_resend_window(bcast_info, psn);
+        mvp_mcast_resend_window(bcast_info, psn);
     } else {
-        mv2_mcast_resend(bcast_info, psn);
+        mvp_mcast_resend(bcast_info, psn);
     }
 }
 
-void mv2_mcast_recv(bcast_info_t * bcast_info, char *buf, int len, int root)
+void mvp_mcast_recv(bcast_info_t *bcast_info, char *buf, int len, int root)
 {
     vbuf *v;
     uint32_t nspin = 1, resend_count = 1;
     MPIDI_CH3_Pkt_mcast_t *p;
-    long next_retry_timeout = mcast_retry_timeout + mv2_get_time_us();
+    long next_retry_timeout = mcast_retry_timeout + mvp_get_time_us();
     long timestamp;
     int retry_backoff;
 
     bcast_info->in_recv_progress = 1;
 
-
     while (1) {
         if (bcast_info->recv_window.head) {
             v = bcast_info->recv_window.head;
-            p = (MPIDI_CH3_Pkt_mcast_t *) v->pheader;
+            p = (MPIDI_CH3_Pkt_mcast_t *)v->pheader;
 
             if (p->psn == bcast_info->win_head) {
                 break;
@@ -1439,34 +1470,32 @@ void mv2_mcast_recv(bcast_info_t * bcast_info, char *buf, int len, int root)
         }
         nspin++;
         if (nspin % mcast_nspin_threshold == 0) {
-            timestamp = mv2_get_time_us();
+            timestamp = mvp_get_time_us();
             if (timestamp > next_retry_timeout && mcast_enable_rel) {
-                mv2_mcast_send_nack(bcast_info->win_head,
+                mvp_mcast_send_nack(bcast_info->win_head,
                                     bcast_info->minfo.grp_info.comm_id, root);
                 resend_count++;
                 LOG2(resend_count, retry_backoff);
-                next_retry_timeout = timestamp +
-                    MIN((mcast_retry_timeout * retry_backoff),
-                        mcast_max_retry_timeout);
+                next_retry_timeout =
+                    timestamp + MIN((mcast_retry_timeout * retry_backoff),
+                                    mcast_max_retry_timeout);
             }
-
         }
         MPIDI_CH3I_Progress(FALSE, NULL);
     }
 
     bcast_info->in_recv_progress = 0;
 
-    mv2_mcast_remove_recvwin(&bcast_info->recv_window, v);
+    mvp_mcast_remove_recvwin(&bcast_info->recv_window, v);
 
-    PRINT_DEBUG(DEBUG_MCST_verbose > 3,
-                "mcast recv size:%zu psn:%d len:%d\n", v->content_size, p->psn, len);
+    PRINT_DEBUG(DEBUG_MCST_verbose > 3, "mcast recv size:%zu psn:%d len:%d\n",
+                v->content_size, p->psn, len);
     if (len != (v->content_size - sizeof(MPIDI_CH3_Pkt_mcast_t))) {
         PRINT_DEBUG(DEBUG_MCST_verbose > 1, "mismatch in size\n");
     }
     MPIR_Assert(len == (v->content_size - sizeof(MPIDI_CH3_Pkt_mcast_t)));
-    memcpy(buf, (char *) v->pheader + sizeof(MPIDI_CH3_Pkt_mcast_t), len);
+    memcpy(buf, (char *)v->pheader + sizeof(MPIDI_CH3_Pkt_mcast_t), len);
 
     MRAILI_Release_vbuf(v);
-
 }
 #endif

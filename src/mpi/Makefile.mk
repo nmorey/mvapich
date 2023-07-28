@@ -54,3 +54,7 @@ endif BUILD_ROMIO
 
 # dir is present but currently intentionally unbuilt
 #include $(top_srcdir)/src/mpi/io/Makefile.mk
+
+if BUILD_OSU_MVAPICH
+include $(top_srcdir)/src/mpi/mvp/Makefile.mk
+endif

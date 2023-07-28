@@ -19,9 +19,7 @@ mpi_core_sources += \
     src/mpi/coll/ireduce/ireduce_intra_gentran_ring.c
 
 if BUILD_OSU_MVAPICH
-if BUILD_MRAIL
 mpi_core_sources += \
 	src/mpi/coll/ireduce/ireduce_osu.c 	\
 	src/mpi/coll/ireduce/ireduce_tuning.c
-endif
 endif

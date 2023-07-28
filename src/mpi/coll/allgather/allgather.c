@@ -6,16 +6,16 @@
 /* Copyright (c) 2001-2021, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  */
 
 #include "mpiimpl.h"
-#include "mv2_coll_shmem.h"
+#include "mvp_coll_shmem.h"
 
 /*
 === BEGIN_MPI_T_CVAR_INFO_BLOCK ===
@@ -401,9 +401,9 @@ int MPI_Allgather(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
         goto fn_fail;
 
 #ifdef _OSU_MVAPICH_
-    if (mv2_use_osu_collectives) {
+    if (MVP_USE_OSU_COLLECTIVES) {
         if(comm_ptr->dev.ch.allgather_comm_ok == 0) {
-            mpi_errno = mv2_increment_allgather_coll_counter(comm_ptr);
+            mpi_errno = mvp_increment_allgather_coll_counter(comm_ptr);
             MPIR_ERR_CHECK(mpi_errno);
         }
     }

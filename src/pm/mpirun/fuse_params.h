@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -29,13 +29,13 @@
 #include <limits.h>
 #include <stdio.h>
 
-#define MAX_PATH_LEN    (256)
+#define MAX_PATH_LEN (256)
 
 struct crfs_state {
     FILE *logfile;
     char *rootdir;
 };
 
-#define CRFS_DATA ( (struct crfs_state *)(fuse_get_context()->private_data) )
+#define CRFS_DATA ((struct crfs_state *)(fuse_get_context()->private_data))
 
-#endif                          // end of _FUSE_PARAMS_H_
+#endif // end of _FUSE_PARAMS_H_

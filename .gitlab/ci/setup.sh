@@ -17,7 +17,8 @@ case $BRANCH in
         export BRANCH   
         export BUILDER="MR_mrail_master"
         mkdir .buildbot
-        echo 'try_builders = ["MR_mrail_master", "MR_ofi_master", "MR_ucx_master", "MR_sock_master", "REG_ri2_mrail_master", "REG_mri_ucx_master", "REG_nowlab_ofi_master" ]' > .buildbot/options
+        echo 'try_builders = ["MR_ofi_master", "MR_ucx_master", "MR_sock_master", "REG_mri_ucx_master", "REG_nowlab_ofi_master" ]' > .buildbot/options
+	#disabled builders ["MR_mrail_master", "REG_ri2_mrail_master"]
         ;;
     "master-x" | "x" )
         export BRANCH="master-x"

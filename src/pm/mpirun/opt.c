@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 #include <mpichconf.h>
@@ -27,10 +27,10 @@
 
 #include "crfs.h"
 #include "debug.h"
-#include "mv2_debug_utils.h"
+#include "mvp_debug_utils.h"
 
-#define    MAX_PATH_LEN    (128)    // length of mount-point
-#define MAX_CMD_LEN    (MAX_PATH_LEN*2)
+#define MAX_PATH_LEN (128) // length of mount-point
+#define MAX_CMD_LEN  (MAX_PATH_LEN * 2)
 
 // defined in mpispawn.c
 extern int mt_id;
@@ -45,7 +45,7 @@ char crfs_mig_real[MAX_PATH_LEN];
 char crfs_mig_mnt[MAX_PATH_LEN];
 int crfs_mig_pid = 0;
 
-char crfs_mig_filename[MAX_PATH_LEN];   // like:  /tmp/cr-<sessionid>/mig/myfile
+char crfs_mig_filename[MAX_PATH_LEN]; // like:  /tmp/cr-<sessionid>/mig/myfile
 
 char crfs_sessionid[MAX_PATH_LEN];
 
@@ -77,7 +77,7 @@ int crfs_stop_mig()
     return ret;
 }
 
-// ckptfile is:  ${real-dir}/filename-base. 
+// ckptfile is:  ${real-dir}/filename-base.
 // Need to extract "${real-dir}" and "file-basename" from it
 int start_crfs_wa(char *sessionid, char *realdir)
 {
@@ -109,7 +109,7 @@ int start_crfs_wa(char *sessionid, char *realdir)
     argv[0] = "crfs-wa";
     argv[1] = crfs_wa_real;
     argv[2] = crfs_wa_mnt;
-    argv[3] = "-obig_writes";   //NULL; //"-odirect_io"; //"-obig_writes";
+    argv[3] = "-obig_writes"; // NULL; //"-odirect_io"; //"-obig_writes";
     argv[4] = NULL;
     argc = 4;
     if (fg) {
@@ -127,7 +127,7 @@ int start_crfs_wa(char *sessionid, char *realdir)
 
     crfs_wa_pid = fork();
 
-    if (crfs_wa_pid == 0)       // in child proc
+    if (crfs_wa_pid == 0) // in child proc
     {
         clear_sigmask();
 
@@ -138,17 +138,18 @@ int start_crfs_wa(char *sessionid, char *realdir)
             gethostname(hostname, MAX_LENGTH);
             hostname[MAX_LENGTH - 1] = '\0';
             char output_prefix[MAX_LENGTH];
-            snprintf(output_prefix, MAX_LENGTH, "%s:mpispawn_wa_%i", hostname, mt_id);
+            snprintf(output_prefix, MAX_LENGTH, "%s:mpispawn_wa_%i", hostname,
+                     mt_id);
             set_output_prefix(output_prefix);
         }
 
         extern void *crfs_main(int pfd, int argc, char **argv);
-        close(pfd[0]);          // close the read-end
+        close(pfd[0]); // close the read-end
         PRINT_DEBUG(DEBUG_Fork_verbose, "start CRFS-wa (pid=%d)\n", getpid());
         crfs_main(pfd[1], argc, argv);
         PRINT_DEBUG(DEBUG_Fork_verbose, "CRFS-wa will exit now...\n");
         exit(0);
-    } else if (crfs_wa_pid < 0) // error!! 
+    } else if (crfs_wa_pid < 0) // error!!
     {
         perror("fail to fork...\n");
         return -1;
@@ -156,9 +157,9 @@ int start_crfs_wa(char *sessionid, char *realdir)
 
     PRINT_DEBUG(DEBUG_Fork_verbose, "FORK mpispawn_wa (pid=%d)\n", crfs_wa_pid);
     /// pid>0: in parent proc
-    close(pfd[1]);              // close the write-end
+    close(pfd[1]); // close the write-end
     dbg("parent proc waits...\n\n");
-    read(pfd[0], &ch, 1);       // wait for a sig
+    read(pfd[0], &ch, 1); // wait for a sig
     dbg("*****   has got a char ==  %c\n", ch);
     close(pfd[0]);
     if (ch != '0') {
@@ -177,7 +178,7 @@ int start_crfs_mig(char *sessionid, int src_tgt)
         err("Incorrect param: src_tgt=%d\n", src_tgt);
         return -1;
     }
-    //realdir = ckptfile;
+    // realdir = ckptfile;
 
     memset(crfs_mig_real, 0, MAX_PATH_LEN);
     memset(crfs_mig_mnt, 0, MAX_PATH_LEN);
@@ -195,14 +196,14 @@ int start_crfs_mig(char *sessionid, int src_tgt)
     char ch;
 
     int argc = 0;
-    char *argv[10];             //
+    char *argv[10]; //
     //{ "crfs-wa",  "/tmp/ckpt", "/tmp/mnt", "-f", "-odirect_io", NULL };
 
-    if (src_tgt == 1)           // I'm mig-source
+    if (src_tgt == 1) // I'm mig-source
     {
         crfs_mode = MODE_WRITEAGGRE;
         mig_role = ROLE_MIG_SRC;
-    } else if (src_tgt == 2)    // at target side
+    } else if (src_tgt == 2) // at target side
     {
         crfs_mode = MODE_MIG;
         mig_role = ROLE_MIG_TGT;
@@ -213,7 +214,7 @@ int start_crfs_mig(char *sessionid, int src_tgt)
     argv[1] = crfs_mig_real;
     argv[2] = crfs_mig_mnt;
     argv[3] = "-osync_read";
-    argv[4] = "-obig_writes";   //NULL; //"-odirect_io"; //"-obig_writes";
+    argv[4] = "-obig_writes"; // NULL; //"-odirect_io"; //"-obig_writes";
     argv[5] = NULL;
     argc = 5;
     if (fg) {
@@ -228,7 +229,7 @@ int start_crfs_mig(char *sessionid, int src_tgt)
 
     crfs_mig_pid = fork();
 
-    if (crfs_mig_pid == 0)      // in child proc
+    if (crfs_mig_pid == 0) // in child proc
     {
         clear_sigmask();
 
@@ -239,27 +240,29 @@ int start_crfs_mig(char *sessionid, int src_tgt)
             gethostname(hostname, MAX_LENGTH);
             hostname[MAX_LENGTH - 1] = '\0';
             char output_prefix[MAX_LENGTH];
-            snprintf(output_prefix, MAX_LENGTH, "%s:mpispawn_mig_%i", hostname, mt_id);
+            snprintf(output_prefix, MAX_LENGTH, "%s:mpispawn_mig_%i", hostname,
+                     mt_id);
             set_output_prefix(output_prefix);
         }
 
         extern void *crfs_main(int pfd, int argc, char **argv);
-        close(pfd[0]);          // close the read-end
+        close(pfd[0]); // close the read-end
         PRINT_DEBUG(DEBUG_Fork_verbose, "start CRFS-mig (pid=%d)\n", getpid());
         crfs_main(pfd[1], argc, argv);
         PRINT_DEBUG(DEBUG_Fork_verbose, "CRFS-mig will exit now...\n");
         exit(0);
-    } else if (crfs_mig_pid < 0)    // error!! 
+    } else if (crfs_mig_pid < 0) // error!!
     {
         perror("fail to fork...\n");
         return -1;
     }
-    PRINT_DEBUG(DEBUG_Fork_verbose, "FORK mpispawn_mig (pid=%d)\n", crfs_mig_pid);
+    PRINT_DEBUG(DEBUG_Fork_verbose, "FORK mpispawn_mig (pid=%d)\n",
+                crfs_mig_pid);
 
     /// pid>0: in parent proc
-    close(pfd[1]);              // close the write-end
+    close(pfd[1]); // close the write-end
     dbg("parent proc waits...\n\n");
-    read(pfd[0], &ch, 1);       // wait for a sig
+    read(pfd[0], &ch, 1); // wait for a sig
     dbg("has got a char: %c\n", ch);
     close(pfd[0]);
     if (ch != '0') {
@@ -268,10 +271,9 @@ int start_crfs_mig(char *sessionid, int src_tgt)
     }
 
     return 0;
-
 }
 
-// the ckptfile is: ${dir}/filename. Parse this string to 
+// the ckptfile is: ${dir}/filename. Parse this string to
 // extract ${dir} and filename.
 int parse_ckptname(char *ckptfile, char *out_dir, char *out_file)
 {
@@ -282,7 +284,7 @@ int parse_ckptname(char *ckptfile, char *out_dir, char *out_file)
 
     p = ckptfile + len - 1;
     while (len) {
-        if (*p == '/')          // find the last "/", any before it is the dir-path
+        if (*p == '/') // find the last "/", any before it is the dir-path
         {
             break;
         }
@@ -290,7 +292,7 @@ int parse_ckptname(char *ckptfile, char *out_dir, char *out_file)
         p--;
     }
 
-    if (len <= 0)               // something is wrong. ill-formated input ckptfile name
+    if (len <= 0) // something is wrong. ill-formated input ckptfile name
     {
         err("incorrect ckpt name: %s\n", ckptfile);
         return -1;
@@ -354,15 +356,16 @@ int start_crfs(char *sessionid, char *fullpath, int mig)
     /// now, init the bufpool & chunk-size
     long val;
     char *p;
-    p = getenv("MV2_CKPT_AGGREGATION_BUFPOOL_SIZE");
+    p = getenv("MVP_CKPT_AGGREGATION_BUFPOOL_SIZE");
     if (p && (val = parse_value_string(p)) > 0) {
         srv_rdmabuf_size = cli_rdmabuf_size = val;
     }
-    p = getenv("MV2_CKPT_AGGREGATION_CHUNK_SIZE");
+    p = getenv("MVP_CKPT_AGGREGATION_CHUNK_SIZE");
     if (p && (val = parse_value_string(p)) > 0) {
-        rdmaslot_size = (int) val;
+        rdmaslot_size = (int)val;
     }
-    dbg("cli_rdmabuf_size=%ld, srv_rdmabuf_size=%ld, slot-size=%d\n", cli_rdmabuf_size, srv_rdmabuf_size, rdmaslot_size);
+    dbg("cli_rdmabuf_size=%ld, srv_rdmabuf_size=%ld, slot-size=%d\n",
+        cli_rdmabuf_size, srv_rdmabuf_size, rdmaslot_size);
 
     rv = start_crfs_wa(sessionid, realdir);
     dbg("[mt_%d]: Start WA ret %d\n", mt_id, rv);
@@ -383,7 +386,8 @@ int start_crfs(char *sessionid, char *fullpath, int mig)
         if (rv == 0) {
             has_mig_fs = mig;
             // this mig_filename is the filename used in aggre-based migration
-            snprintf(crfs_mig_filename, MAX_PATH_LEN, "%s%s", crfs_mig_mnt, crfile_basename);
+            snprintf(crfs_mig_filename, MAX_PATH_LEN, "%s%s", crfs_mig_mnt,
+                     crfile_basename);
         } else {
             err("Fail to start Aggre-for-Migration...\n");
             stop_crfs_wa();
@@ -405,27 +409,26 @@ static long parse_value_string(char *msg)
     unsigned long val;
     unsigned long unit;
     switch (c) {
-    case 'k':
-    case 'K':
-        unit = 1024;
-        break;
-    case 'm':
-    case 'M':
-        unit = 1024 * 1024;
-        break;
-    case 'g':
-    case 'G':
-        unit = 1024UL * 1024 * 1024;
-        break;
-    default:
-        unit = 1;
-        break;
+        case 'k':
+        case 'K':
+            unit = 1024;
+            break;
+        case 'm':
+        case 'M':
+            unit = 1024 * 1024;
+            break;
+        case 'g':
+        case 'G':
+            unit = 1024UL * 1024 * 1024;
+            break;
+        default:
+            unit = 1;
+            break;
     }
 
     val = atol(msg) * unit;
 
     return val;
-
 }
 
 int stop_crfs(const char *crfs_mnt, int crfs_pid)
@@ -435,19 +438,28 @@ int stop_crfs(const char *crfs_mnt, int crfs_pid)
     char cmd[MAX_CMD_LEN];
 
     if (strlen(crfs_mnt) != 0) {
-        snprintf(cmd, MAX_CMD_LEN, "fusermount -u %s > /dev/null 2>&1", crfs_mnt);
+        snprintf(cmd, MAX_CMD_LEN, "fusermount -u %s > /dev/null 2>&1",
+                 crfs_mnt);
         PRINT_DEBUG(DEBUG_Fork_verbose, "Stop CRFS: %s\n", cmd);
         rv = system(cmd);
         if (rv == -1) {
-            PRINT_DEBUG(DEBUG_Fork_verbose, "system call to fusermount failed\n");
+            PRINT_DEBUG(DEBUG_Fork_verbose,
+                        "system call to fusermount failed\n");
         } else {
-            PRINT_DEBUG(DEBUG_Fork_verbose, "system call to fusermount returned %d\n", rv);
+            PRINT_DEBUG(DEBUG_Fork_verbose,
+                        "system call to fusermount returned %d\n", rv);
             if (WIFEXITED(rv)) {
-                PRINT_DEBUG(DEBUG_Fork_verbose, "fusermount exited with status %d\n", WEXITSTATUS(rv));
+                PRINT_DEBUG(DEBUG_Fork_verbose,
+                            "fusermount exited with status %d\n",
+                            WEXITSTATUS(rv));
             } else if (WIFSIGNALED(rv)) {
-                PRINT_DEBUG(DEBUG_Fork_verbose, "fusermount terminated with signal %d\n", WTERMSIG(rv));
+                PRINT_DEBUG(DEBUG_Fork_verbose,
+                            "fusermount terminated with signal %d\n",
+                            WTERMSIG(rv));
             } else if (WIFSTOPPED(rv)) {
-                PRINT_DEBUG(DEBUG_Fork_verbose, "fusermount stopped with signal %d\n", WSTOPSIG(rv));
+                PRINT_DEBUG(DEBUG_Fork_verbose,
+                            "fusermount stopped with signal %d\n",
+                            WSTOPSIG(rv));
             } else if (WIFCONTINUED(rv)) {
                 PRINT_DEBUG(DEBUG_Fork_verbose, "fusermount continued\n");
             }
@@ -456,12 +468,12 @@ int stop_crfs(const char *crfs_mnt, int crfs_pid)
     if (crfs_pid > 0) {
         rv = kill(crfs_pid, SIGTERM);
         PRINT_DEBUG(DEBUG_Fork_verbose, "kill with SIGTERM ret=%d\n", rv);
-        usleep(100000);         // wait for CRFS to terminate
+        usleep(100000); // wait for CRFS to terminate
         rv = kill(crfs_pid, SIGINT);
         PRINT_DEBUG(DEBUG_Fork_verbose, "kill with SIGINT ret=%d\n", rv);
     }
-    //snprintf(path, MAX_PATH_LEN, "/tmp/cr-%s/", crfs_sessionid);
-    //rv = rmdir(path);
+    // snprintf(path, MAX_PATH_LEN, "/tmp/cr-%s/", crfs_sessionid);
+    // rv = rmdir(path);
     return 0;
 }
 

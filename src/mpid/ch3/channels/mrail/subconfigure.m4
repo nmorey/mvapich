@@ -233,7 +233,7 @@ fi
 
 AC_ARG_ENABLE([xrc],
               [AS_HELP_STRING([--disable-xrc],
-                              [compile MVAPICH2 without XRC support])
+                              [compile MVAPICH without XRC support])
               ],
               [enable_xrc=no],
               [enable_xrc=check])
@@ -827,7 +827,7 @@ if test "$with_rdma" = "gen2"; then
                          [AC_MSG_WARN([Unable to verify if program can run linked with CUDA])])
 
 
-           AC_DEFINE(_ENABLE_CUDA_,1,[Define to enable MVAPICH2-GPU design.])
+           AC_DEFINE(_ENABLE_CUDA_,1,[Define to enable MVAPICH-GPU design.])
            found_cuda=1
            found_cudaipc_funcs=yes
         AC_CHECK_FUNCS([cudaIpcGetMemHandle], , found_cudaipc_funcs=no)
@@ -920,7 +920,7 @@ fi
 AC_MSG_CHECKING([whether to enable header caching])
 
 if test "$enable_header_caching" != "yes"; then
-    AC_DEFINE(MV2_DISABLE_HEADER_CACHING,1,[Define to disable header caching.])
+    AC_DEFINE(MVP_DISABLE_HEADER_CACHING,1,[Define to disable header caching.])
 fi
 
 AC_MSG_RESULT($enable_header_caching)
@@ -976,14 +976,14 @@ fi
 dnl
 dnl Definitions based on user selections
 dnl
-AC_DEFINE([_OSU_MVAPICH_], [1], [Define to enable MVAPICH2 customizations])
+AC_DEFINE([_OSU_MVAPICH_], [1], [Define to enable MVAPICH customizations])
 AC_DEFINE([CHANNEL_MRAIL], [1], [Define if using the mrail channel])
 AC_DEFINE([MPIDI_CH3_CHANNEL_RNDV], [1],
-        [Define to enable channel rendezvous (Required by MVAPICH2)])
+        [Define to enable channel rendezvous (Required by MVAPICH)])
 AC_DEFINE([MPID_USE_SEQUENCE_NUMBERS], [1],
-        [Define to enable use of sequence numbers (Required by MVAPICH2)])
+        [Define to enable use of sequence numbers (Required by MVAPICH)])
 AC_DEFINE([_OSU_COLLECTIVES_], [1],
-        [Define to enable the use of MVAPICH2 implementation of collectives])
+        [Define to enable the use of MVAPICH implementation of collectives])
 
 AS_CASE([$with_rdma],
     [gen2], [

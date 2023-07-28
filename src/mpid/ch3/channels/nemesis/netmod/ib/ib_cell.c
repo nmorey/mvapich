@@ -4,15 +4,15 @@
  *      See COPYRIGHT in top-level directory.
  */
 
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -29,7 +29,6 @@
 static MPID_nem_ib_queue_ptr_t alloc_cells_queue;
 
 MPID_nem_ib_cell_pool_t MPID_nem_ib_cell_pool;
-
 
 #undef FUNCNAME
 #define FUNCNAME MPID_nem_ib_add_cells
@@ -49,10 +48,9 @@ int MPID_nem_ib_add_cells(int n)
 
     ce = MPL_malloc(sizeof(MPID_nem_ib_cell_elem_t) * n);
 
-    if(NULL == ce) {
-        MPIR_CHKMEM_SETERR(mpi_errno,
-                sizeof(MPID_nem_ib_cell_elem_t) * n,
-                "IB Module Cell Elements");
+    if (NULL == ce) {
+        MPIR_CHKMEM_SETERR(mpi_errno, sizeof(MPID_nem_ib_cell_elem_t) * n,
+                           "IB Module Cell Elements");
     }
 
     memset(ce, 0, sizeof(MPID_nem_ib_cell_elem_t) * n);
@@ -65,11 +63,10 @@ int MPID_nem_ib_add_cells(int n)
 
     /* Allocate the queue elements and enqueue */
 
-    for(i = 0; i < n; i++) {
-
+    for (i = 0; i < n; i++) {
         mpi_errno = MPID_nem_ib_queue_new_elem(&qe, &ce[i]);
 
-        if(mpi_errno) {
+        if (mpi_errno) {
             MPIR_ERR_POP(mpi_errno);
         }
 
@@ -103,7 +100,7 @@ int MPID_nem_ib_init_cell_pool(int n)
 
     mpi_errno = MPID_nem_ib_add_cells(n);
 
-    if(mpi_errno) {
+    if (mpi_errno) {
         MPIR_ERR_POP(mpi_errno);
     }
 
@@ -125,14 +122,13 @@ void MPID_nem_ib_finalize_cell_pool()
     MPID_nem_ib_queue_elem_t *e;
     /*MPID_nem_ib_cell_elem_t *ce;*/
 
-    while(!MPID_nem_ib_queue_empty(MPID_nem_ib_cell_pool.queue)) {
+    while (!MPID_nem_ib_queue_empty(MPID_nem_ib_cell_pool.queue)) {
         MPID_nem_ib_queue_dequeue(MPID_nem_ib_cell_pool.queue, &e);
         MPL_free(e);
     }
 
-    while(!MPID_nem_ib_queue_empty(alloc_cells_queue)) {
-
-        MPID_nem_ib_queue_dequeue( alloc_cells_queue, &e);
+    while (!MPID_nem_ib_queue_empty(alloc_cells_queue)) {
+        MPID_nem_ib_queue_dequeue(alloc_cells_queue, &e);
         MPL_free(e->data);
 
         MPL_free(e);
@@ -144,20 +140,15 @@ void MPID_nem_ib_finalize_cell_pool()
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 
-int MPID_nem_ib_get_cell(
-        MPID_nem_ib_cell_elem_t **e)
+int MPID_nem_ib_get_cell(MPID_nem_ib_cell_elem_t **e)
 {
     int mpi_errno = MPI_SUCCESS;
     MPID_nem_ib_queue_elem_t *qe;
 
     pthread_spin_lock(&MPID_nem_ib_cell_pool.lock);
 
-    if(!MPID_nem_ib_queue_empty(
-                MPID_nem_ib_cell_pool.queue)) {
-
-        MPID_nem_ib_queue_dequeue(
-                MPID_nem_ib_cell_pool.queue,
-                &qe);
+    if (!MPID_nem_ib_queue_empty(MPID_nem_ib_cell_pool.queue)) {
+        MPID_nem_ib_queue_dequeue(MPID_nem_ib_cell_pool.queue, &qe);
 
         *e = qe->data;
 
@@ -166,21 +157,18 @@ int MPID_nem_ib_get_cell(
         (*e)->vc = NULL;
 
     } else {
-
         NEM_IB_DBG("Ran out of cells, allocating new ones");
 
-        mpi_errno = MPID_nem_ib_add_cells(
-                MPID_nem_ib_dev_param_ptr->sec_pool_size);
+        mpi_errno =
+            MPID_nem_ib_add_cells(MPID_nem_ib_dev_param_ptr->sec_pool_size);
 
-        if(mpi_errno) {
+        if (mpi_errno) {
             MPIR_ERR_POP(mpi_errno);
         }
 
         /* At least one cell is available now! */
 
-        MPID_nem_ib_queue_dequeue(
-                MPID_nem_ib_cell_pool.queue,
-                &qe);
+        MPID_nem_ib_queue_dequeue(MPID_nem_ib_cell_pool.queue, &qe);
 
         *e = qe->data;
 
@@ -195,7 +183,6 @@ fn_exit:
     return mpi_errno;
 fn_fail:
     goto fn_exit;
-
 }
 
 #undef FUNCNAME
@@ -203,17 +190,14 @@ fn_fail:
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 
-void MPID_nem_ib_return_cell(
-        MPID_nem_ib_cell_elem_t *ce)
+void MPID_nem_ib_return_cell(MPID_nem_ib_cell_elem_t *ce)
 {
     pthread_spin_lock(&MPID_nem_ib_cell_pool.lock);
 
     ce->vc = NULL;
     ce->nem_cell = NULL;
 
-    MPID_nem_ib_queue_enqueue(
-            MPID_nem_ib_cell_pool.queue,
-            ce->qe);
+    MPID_nem_ib_queue_enqueue(MPID_nem_ib_cell_pool.queue, ce->qe);
 
     pthread_spin_unlock(&MPID_nem_ib_cell_pool.lock);
 }
@@ -223,16 +207,14 @@ void MPID_nem_ib_return_cell(
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 
-void MPID_nem_ib_prep_cell_recv(
-        MPID_nem_ib_cell_elem_t *ce,
-        void* buf)
+void MPID_nem_ib_prep_cell_recv(MPID_nem_ib_cell_elem_t *ce, void *buf)
 {
-    ce->desc.sg_list.addr = (uintptr_t) buf;
+    ce->desc.sg_list.addr = (uintptr_t)buf;
     ce->desc.sg_list.length = MPID_NEM_MAX_PACKET_LEN;
     ce->desc.sg_list.lkey = module_elements_mr->lkey;
 
     ce->desc.u.r_wr.next = NULL;
-    ce->desc.u.r_wr.wr_id = (uint64_t) ce;
+    ce->desc.u.r_wr.wr_id = (uint64_t)ce;
     ce->desc.u.r_wr.sg_list = &ce->desc.sg_list;
     ce->desc.u.r_wr.num_sge = 1;
 }
@@ -242,24 +224,22 @@ void MPID_nem_ib_prep_cell_recv(
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 
-void MPID_nem_ib_prep_cell_send(
-        MPID_nem_ib_cell_elem_t *ce,
-        void* buf, uint32_t len)
+void MPID_nem_ib_prep_cell_send(MPID_nem_ib_cell_elem_t *ce, void *buf,
+                                uint32_t len)
 {
-    ce->desc.sg_list.addr = (uintptr_t) buf;
+    ce->desc.sg_list.addr = (uintptr_t)buf;
     ce->desc.sg_list.length = len;
     ce->desc.sg_list.lkey = proc_elements_mr->lkey;
 
     ce->desc.u.s_wr.next = NULL;
-    ce->desc.u.s_wr.wr_id = (uint64_t) ce;
+    ce->desc.u.s_wr.wr_id = (uint64_t)ce;
     ce->desc.u.s_wr.sg_list = &ce->desc.sg_list;
     ce->desc.u.s_wr.num_sge = 1;
 
     ce->desc.u.s_wr.opcode = IBV_WR_SEND;
 
-    if(len < MPID_nem_ib_dev_param_ptr->max_inline_size) {
-        ce->desc.u.s_wr.send_flags = IBV_SEND_SIGNALED |
-            IBV_SEND_INLINE;
+    if (len < MPID_nem_ib_dev_param_ptr->max_inline_size) {
+        ce->desc.u.s_wr.send_flags = IBV_SEND_SIGNALED | IBV_SEND_INLINE;
     } else {
         ce->desc.u.s_wr.send_flags = IBV_SEND_SIGNALED;
     }

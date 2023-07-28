@@ -1,21 +1,18 @@
 #include "allgather_tuning.h"
 
-extern MPIR_T_pvar_timer_t PVAR_TIMER_mv2_coll_timer_allgather_ring;
-extern unsigned long long PVAR_COUNTER_mv2_coll_allgather_ring;
-extern unsigned long long PVAR_COUNTER_mv2_coll_allgather_ring_bytes_send;
-extern unsigned long long PVAR_COUNTER_mv2_coll_allgather_ring_bytes_recv;
-extern unsigned long long PVAR_COUNTER_mv2_coll_allgather_ring_count_send;
-extern unsigned long long PVAR_COUNTER_mv2_coll_allgather_ring_count_recv;
+extern MPIR_T_pvar_timer_t PVAR_TIMER_mvp_coll_timer_allgather_ring;
+extern unsigned long long PVAR_COUNTER_mvp_coll_allgather_ring;
+extern unsigned long long PVAR_COUNTER_mvp_coll_allgather_ring_bytes_send;
+extern unsigned long long PVAR_COUNTER_mvp_coll_allgather_ring_bytes_recv;
+extern unsigned long long PVAR_COUNTER_mvp_coll_allgather_ring_count_send;
+extern unsigned long long PVAR_COUNTER_mvp_coll_allgather_ring_count_recv;
 
-int MPIR_Allgather_Ring_MV2(const void *sendbuf,
-                            int sendcount,
-                            MPI_Datatype sendtype,
-                            void *recvbuf,
-                            int recvcount,
-                            MPI_Datatype recvtype, MPIR_Comm * comm_ptr,
+int MPIR_Allgather_Ring_MVP(const void *sendbuf, int sendcount,
+                            MPI_Datatype sendtype, void *recvbuf, int recvcount,
+                            MPI_Datatype recvtype, MPIR_Comm *comm_ptr,
                             MPIR_Errflag_t *errflag)
 {
-    MPIR_TIMER_START(coll,allgather,ring);
+    MPIR_TIMER_START(coll, allgather, ring);
     int comm_size, rank;
     int mpi_errno = MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
@@ -23,7 +20,7 @@ int MPIR_Allgather_Ring_MV2(const void *sendbuf,
     int j, i;
     int left, right, jnext;
 
-    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_allgather_ring, 1);
+    MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_allgather_ring, 1);
 
     comm_size = comm_ptr->local_size;
     rank = comm_ptr->rank;
@@ -32,10 +29,10 @@ int MPIR_Allgather_Ring_MV2(const void *sendbuf,
 
     /* First, load the "local" version in the recvbuf. */
     if (sendbuf != MPI_IN_PLACE) {
-        mpi_errno = MPIR_Localcopy(sendbuf, sendcount, sendtype,
-                                   ((char *) recvbuf +
-                                    rank * recvcount * recvtype_extent),
-                                   recvcount, recvtype);
+        mpi_errno = MPIR_Localcopy(
+            sendbuf, sendcount, sendtype,
+            ((char *)recvbuf + rank * recvcount * recvtype_extent), recvcount,
+            recvtype);
         MPIR_ERR_CHECK(mpi_errno);
     }
 
@@ -51,15 +48,12 @@ int MPIR_Allgather_Ring_MV2(const void *sendbuf,
     for (i = 1; i < comm_size; i++) {
         MPIR_PVAR_INC(allgather, ring, send, recvcount, recvtype);
         MPIR_PVAR_INC(allgather, ring, recv, recvcount, recvtype);
-        mpi_errno = MPIC_Sendrecv(((char *) recvbuf +
-                                      j * recvcount * recvtype_extent),
-                                     recvcount, recvtype, right,
-                                     MPIR_ALLGATHER_TAG,
-                                     ((char *) recvbuf +
-                                      jnext * recvcount * recvtype_extent),
-                                     recvcount, recvtype, left,
-                                     MPIR_ALLGATHER_TAG, comm_ptr,
-                                     MPI_STATUS_IGNORE, errflag);
+        mpi_errno = MPIC_Sendrecv(
+            ((char *)recvbuf + j * recvcount * recvtype_extent), recvcount,
+            recvtype, right, MPIR_ALLGATHER_TAG,
+            ((char *)recvbuf + jnext * recvcount * recvtype_extent), recvcount,
+            recvtype, left, MPIR_ALLGATHER_TAG, comm_ptr, MPI_STATUS_IGNORE,
+            errflag);
         if (mpi_errno) {
             /* for communication errors, just record the error but continue */
             *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
@@ -70,7 +64,7 @@ int MPIR_Allgather_Ring_MV2(const void *sendbuf,
         jnext = (comm_size + jnext - 1) % comm_size;
     }
 
-  fn_fail:
-    MPIR_TIMER_END(coll,allgather,ring);
+fn_fail:
+    MPIR_TIMER_END(coll, allgather, ring);
     return (mpi_errno);
 }

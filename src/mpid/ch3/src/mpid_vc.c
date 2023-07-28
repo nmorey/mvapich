@@ -2,22 +2,22 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
 #include "mpidimpl.h"
 /* #include "mpidi_ch3_post.h" */
 
-/* MV2 unified pmi interface */
+/* MVP unified pmi interface */
 #include "upmi.h"
 
 #if defined(HAVE_LIMITS_H)
@@ -34,7 +34,7 @@
 
 #if defined(CHANNEL_MRAIL)
 #include "mpir_nodemap.h"
-static int MV2_populate_ids_from_mapping(char* mapping, int *max_node_id, MPIDI_PG_t *pg, int *did_map);
+static int MVP_populate_ids_from_mapping(char* mapping, int *max_node_id, MPIDI_PG_t *pg, int *did_map);
 #endif
 
 /*
@@ -916,17 +916,17 @@ fn_fail:
 }
 
 #if defined(CHANNEL_MRAIL)
-int MPIDI_MV2_Get_num_nodes()
+int MPIDI_MVP_Get_num_nodes()
 {
     return g_max_node_id + 1;
 }
 
-int MPIDI_MV2_Get_local_process_id(MPIDI_PG_t *pg)
+int MPIDI_MVP_Get_local_process_id(MPIDI_PG_t *pg)
 {
     return pg->ch.local_process_id;
 }
 
-int MPIDI_MV2_Num_local_processes(MPIDI_PG_t *pg)
+int MPIDI_MVP_Num_local_processes(MPIDI_PG_t *pg)
 {
     return pg->ch.num_local_processes;
 }

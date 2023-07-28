@@ -8,7 +8,7 @@
 
 #include "mpid_coll.h"
 #if defined(CHANNEL_MRAIL) || defined(CHANNEL_PSM)
-#include "mv2_mpidi_ch3_coll.h"
+#include "mvp_mpidi_ch3_coll.h"
 #endif
 
 /* FIXME: mpidpost.h is included by mpiimpl.h .  However, mpiimpl.h should 

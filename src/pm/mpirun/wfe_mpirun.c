@@ -1,19 +1,19 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
 #include <src/pm/mpirun/mpirun_rsh.h>
 #include <mpirun_ckpt.h>
 #include <wfe_mpirun.h>
-#include <mv2_debug_utils.h>
+#include <mvp_debug_utils.h>
 #include <mpispawn_error_codes.h>
 #include <m_state.h>
 #include <process.h>
@@ -28,7 +28,6 @@
 #include <libftb.h>
 #endif
 
-
 static pthread_t wfe_tid;
 static pthread_cond_t wfe_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t wfe_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -36,8 +35,7 @@ static pthread_mutex_t wfe_mutex = PTHREAD_MUTEX_INITIALIZER;
 static int is_joined = 1;
 static int is_running = 0;
 
-static int
-make_sfd_block (int sfd)
+static int make_sfd_block(int sfd)
 {
     int flags = fcntl(sfd, F_GETFL);
 
@@ -52,7 +50,7 @@ make_sfd_block (int sfd)
 
     flags &= ~O_NONBLOCK;
 
-    if(fcntl(sfd, F_SETFL, flags)) {
+    if (fcntl(sfd, F_SETFL, flags)) {
         /*
          * We shouldn't need the following perror call but PRINT_ERROR_ERRNO
          * doesn't seem to be working in the calling function.
@@ -64,12 +62,11 @@ make_sfd_block (int sfd)
     return 0;
 }
 
-static void
-process_mpispawn_connection (int sfd)
+static void process_mpispawn_connection(int sfd)
 {
     int code, id;
     extern int dpm_cnt;
-    extern process_groups * pglist;
+    extern process_groups *pglist;
 
     /*
      * The next two read_socket calls should probably be preceded by the
@@ -92,7 +89,7 @@ process_mpispawn_connection (int sfd)
              * Handle DPM request
              */
             PRINT_DEBUG(DEBUG_Fork_verbose, "Dynamic spawn request from %d\n",
-                    id);
+                        id);
             if (handle_spawn_req(sfd)) {
                 PRINT_ERROR("Unable to process DPM spawn request\n");
                 m_state_fail();
@@ -104,8 +101,10 @@ process_mpispawn_connection (int sfd)
              * Maybe we should read the code from mpispawn and assign
              * this via `exit_code |= code' instead.
              */
-            PRINT_DEBUG(DEBUG_Fork_verbose, "mpispawn %d reported an MPI "
-                    "process exit with non-zero code\n", id);
+            PRINT_DEBUG(DEBUG_Fork_verbose,
+                        "mpispawn %d reported an MPI "
+                        "process exit with non-zero code\n",
+                        id);
             m_state_fail();
             break;
         case MPISPAWN_TRIGGER_MIGRATION:
@@ -114,19 +113,21 @@ process_mpispawn_connection (int sfd)
             /*
              * Handle the migration request mpispawn
              */
-            PRINT_DEBUG(DEBUG_FT_verbose,"Migration request from: "
-                                        "%s\n", pglist->index[id]->hostname);
+            PRINT_DEBUG(DEBUG_FT_verbose,
+                        "Migration request from: "
+                        "%s\n",
+                        pglist->index[id]->hostname);
             FTB_receive_event_t mig_recv_event;
             memset(&mig_recv_event, 0, sizeof(FTB_receive_event_t));
-            snprintf(mig_recv_event.event_name,FTB_MAX_EVENT_NAME,
-                                            "FTB_MIGRATE_TRIGGER");
+            snprintf(mig_recv_event.event_name, FTB_MAX_EVENT_NAME,
+                     "FTB_MIGRATE_TRIGGER");
             snprintf(mig_recv_event.event_payload,
-                                sizeof(pglist->index[id]->hostname),
-                                pglist->index[id]->hostname);
-            cr_ftb_callback(&mig_recv_event,NULL);
+                     sizeof(pglist->index[id]->hostname),
+                     pglist->index[id]->hostname);
+            cr_ftb_callback(&mig_recv_event, NULL);
 #else
-            PRINT_ERROR("MVAPICH2 has not been configured with"
-                                    " Process-Migration support!\n");
+            PRINT_ERROR("MVAPICH has not been configured with"
+                        " Process-Migration support!\n");
 #endif
             break;
         default:
@@ -134,29 +135,27 @@ process_mpispawn_connection (int sfd)
              * Assume abort from mpispawn
              */
             PRINT_ERROR("mpispawn_%d from node %s aborted: %s (%d)\n", id,
-                                        pglist->index[id]->hostname,
-                                        get_mpispawn_error_str(code), code);
+                        pglist->index[id]->hostname,
+                        get_mpispawn_error_str(code), code);
             m_state_fail();
             pthread_exit(NULL);
             break;
     }
 }
 
-static void
-cleanup_wfe_thread (void * arg)
+static void cleanup_wfe_thread(void *arg)
 {
     extern int is_running;
     is_running = 0;
 }
 
-static void *
-wfe_thread (void * arg)
+static void *wfe_thread(void *arg)
 {
-    struct wfe_params * params = arg;
+    struct wfe_params *params = arg;
     int wfe_socket;
 
     /*
-     * Let start_wfe_thread know that it may continue. 
+     * Let start_wfe_thread know that it may continue.
      */
     pthread_mutex_lock(&wfe_mutex);
     is_running = 1;
@@ -201,7 +200,7 @@ wfe_thread (void * arg)
          * by the mpispawn process.
          */
         wfe_socket = accept(params->s, (struct sockaddr *)params->sockaddr,
-                &params->sockaddr_len); 
+                            &params->sockaddr_len);
 
         if (0 > wfe_socket) {
 #ifdef CKPT
@@ -250,8 +249,7 @@ wfe_thread (void * arg)
     return NULL;
 }
 
-void
-start_wfe_thread (struct wfe_params * params)
+void start_wfe_thread(struct wfe_params *params)
 {
     extern pthread_t wfe_tid;
     extern int is_joined;
@@ -270,7 +268,8 @@ start_wfe_thread (struct wfe_params * params)
      * is_running is set to 1.
      */
     pthread_mutex_lock(&wfe_mutex);
-    while (!is_running) pthread_cond_wait(&wfe_cond, &wfe_mutex);
+    while (!is_running)
+        pthread_cond_wait(&wfe_cond, &wfe_mutex);
     pthread_mutex_unlock(&wfe_mutex);
 
     is_joined = 0;
@@ -278,16 +277,17 @@ start_wfe_thread (struct wfe_params * params)
     return;
 }
 
-extern void
-stop_wfe_thread (void)
+extern void stop_wfe_thread(void)
 {
     extern pthread_t wfe_tid;
     extern int is_joined;
     extern int is_running;
-    void * return_value;
+    void *return_value;
 
-    if (is_running) pthread_cancel(wfe_tid);
-    if (!is_joined) pthread_join(wfe_tid, &return_value);
+    if (is_running)
+        pthread_cancel(wfe_tid);
+    if (!is_joined)
+        pthread_join(wfe_tid, &return_value);
     is_joined = 1;
 }
 

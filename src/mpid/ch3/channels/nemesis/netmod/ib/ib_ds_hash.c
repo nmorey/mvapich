@@ -4,22 +4,21 @@
  *      See COPYRIGHT in top-level directory.
  */
 
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
 #include "mpidimpl.h"
 #include "ib_ds_hash.h"
 #include "ib_errors.h"
-
 
 /** hash - A simple hash function
  *  Too simple really, but this
@@ -40,29 +39,26 @@ static uint32_t hash(uint64_t key, uint32_t size)
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 
-int MPID_nem_ib_init_hash_table(
-        MPID_nem_ib_hash_table_ptr_t table,
-        uint32_t nentries)
+int MPID_nem_ib_init_hash_table(MPID_nem_ib_hash_table_ptr_t table,
+                                uint32_t nentries)
 {
     int mpi_errno = MPI_SUCCESS;
 
-    table->entries = MPL_malloc(
-            sizeof(MPID_nem_ib_hash_elem_t) * nentries);
+    table->entries = MPL_malloc(sizeof(MPID_nem_ib_hash_elem_t) * nentries);
     table->num_entries = nentries;
 
-    if(NULL == table->entries) {
+    if (NULL == table->entries) {
         MPIR_CHKMEM_SETERR(mpi_errno,
-                sizeof(MPID_nem_ib_hash_elem_t) * nentries,
-                "IB Module Hash Table");
+                           sizeof(MPID_nem_ib_hash_elem_t) * nentries,
+                           "IB Module Hash Table");
     }
 
-    memset(table->entries, 0,
-            sizeof(MPID_nem_ib_hash_elem_t) * nentries);
+    memset(table->entries, 0, sizeof(MPID_nem_ib_hash_elem_t) * nentries);
 
     pthread_mutex_init(&table->hash_table_lock, NULL);
 
     /*   fn_exit: */
-           return mpi_errno;
+    return mpi_errno;
     /*   fn_fail:
            goto fn_exit;
            */
@@ -73,9 +69,8 @@ int MPID_nem_ib_init_hash_table(
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 
-int MPID_nem_ib_insert_hash_elem(
-        MPID_nem_ib_hash_table_ptr_t table,
-        uint64_t key, void *data, uint32_t uniq)
+int MPID_nem_ib_insert_hash_elem(MPID_nem_ib_hash_table_ptr_t table,
+                                 uint64_t key, void *data, uint32_t uniq)
 {
     int mpi_errno = MPI_SUCCESS;
     uint32_t hash_index;
@@ -98,17 +93,16 @@ int MPID_nem_ib_insert_hash_elem(
 
     /* Walk to end of list in this hash slot */
     elem = start_elem;
-    while(elem->next != NULL) {
+    while (elem->next != NULL) {
         elem = elem->next;
     }
 
     /* Insert the element */
     new_elem = MPL_malloc(sizeof(MPID_nem_ib_hash_elem_t));
 
-    if(NULL == new_elem) {
-        MPIR_CHKMEM_SETERR(mpi_errno,
-                sizeof(MPID_nem_ib_hash_elem_t),
-                "IB Module Hash Table New Element");
+    if (NULL == new_elem) {
+        MPIR_CHKMEM_SETERR(mpi_errno, sizeof(MPID_nem_ib_hash_elem_t),
+                           "IB Module Hash Table New Element");
     }
 
     memset(new_elem, 0, sizeof(MPID_nem_ib_hash_elem_t));
@@ -121,13 +115,13 @@ int MPID_nem_ib_insert_hash_elem(
 
     elem->next = new_elem;
 
-    NEM_IB_DBG("Inserted elem key %lu, uniq %u, hash index %u",
-            key, uniq, hash_index);
+    NEM_IB_DBG("Inserted elem key %lu, uniq %u, hash index %u", key, uniq,
+               hash_index);
 
     pthread_mutex_unlock(&table->hash_table_lock);
 
     /*   fn_exit: */
-           return mpi_errno;
+    return mpi_errno;
     /*   fn_fail:
            goto fn_exit;
            */
@@ -138,9 +132,8 @@ int MPID_nem_ib_insert_hash_elem(
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 
-void* MPID_nem_ib_lookup_hash_table(
-        MPID_nem_ib_hash_table_ptr_t table,
-        uint64_t key, uint32_t unique_id)
+void *MPID_nem_ib_lookup_hash_table(MPID_nem_ib_hash_table_ptr_t table,
+                                    uint64_t key, uint32_t unique_id)
 {
     uint32_t hash_index;
     void *data = NULL;
@@ -151,8 +144,8 @@ void* MPID_nem_ib_lookup_hash_table(
 
     hash_index = hash(key, table->num_entries);
 
-    NEM_IB_DBG("Got hash_index %u, key %lu, uniq %u",
-            hash_index, key, unique_id);
+    NEM_IB_DBG("Got hash_index %u, key %lu, uniq %u", hash_index, key,
+               unique_id);
 
     start_elem = &table->entries[hash_index];
 
@@ -161,9 +154,8 @@ void* MPID_nem_ib_lookup_hash_table(
     /* The first element is just a place holder */
     elem = start_elem->next;
 
-    while(elem != NULL) {
-
-        if((elem->key == key) && (elem->uniq == unique_id)) {
+    while (elem != NULL) {
+        if ((elem->key == key) && (elem->uniq == unique_id)) {
             data = elem->data;
             break;
         }
@@ -180,8 +172,7 @@ void* MPID_nem_ib_lookup_hash_table(
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 
-void MPID_nem_ib_finalize_hash_table(
-        MPID_nem_ib_hash_table_ptr_t table)
+void MPID_nem_ib_finalize_hash_table(MPID_nem_ib_hash_table_ptr_t table)
 {
     int i;
     MPID_nem_ib_hash_elem_ptr_t start_elem;
@@ -191,15 +182,14 @@ void MPID_nem_ib_finalize_hash_table(
 
     MPIR_Assert(table->entries != NULL);
 
-    for(i = 0; i < table->num_entries; i++) {
-
+    for (i = 0; i < table->num_entries; i++) {
         start_elem = &table->entries[i];
 
         /* Walk through the list freeing
          * elements as we go */
         elem = start_elem->next;
 
-        while(elem != NULL) {
+        while (elem != NULL) {
             next_elem = elem->next;
             MPL_free(elem);
             elem = next_elem;
@@ -210,5 +200,3 @@ void MPID_nem_ib_finalize_hash_table(
 
     MPL_free(table->entries);
 }
-
-

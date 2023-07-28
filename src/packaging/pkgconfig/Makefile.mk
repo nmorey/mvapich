@@ -3,4 +3,4 @@
 ##     See COPYRIGHT in top-level directory
 ##
 
-nodist_pkgconfig_DATA += src/packaging/pkgconfig/mvapich2.pc
+nodist_pkgconfig_DATA += src/packaging/pkgconfig/mvapich.pc

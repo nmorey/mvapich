@@ -7,7 +7,7 @@
  * This file is part of The Scalable Checkpoint / Restart (SCR) library.
  * For details, see https://sourceforge.net/projects/scalablecr/
  * Please also read this file: LICENSE.TXT.
-*/
+ */
 
 /* Reads configuration file into hash */
 
@@ -31,8 +31,8 @@
 #include <errno.h>
 
 /* read parameters from config file and fill in hash */
-int scr_config_read(const char* file, scr_hash* hash)
+int scr_config_read(const char *file, scr_hash *hash)
 {
-  int rc = scr_config_read_common(file, hash);
-  return rc;
+    int rc = scr_config_read_common(file, hash);
+    return rc;
 }

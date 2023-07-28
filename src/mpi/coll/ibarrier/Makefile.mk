@@ -15,9 +15,7 @@ mpi_core_sources +=                                      \
     src/mpi/coll/ibarrier/ibarrier_intra_gentran_recexch.c
 
 if BUILD_OSU_MVAPICH
-if BUILD_MRAIL
 mpi_core_sources += \
 	src/mpi/coll/ibarrier/ibarrier_osu.c 	\
 	src/mpi/coll/ibarrier/ibarrier_tuning.c
-endif
 endif

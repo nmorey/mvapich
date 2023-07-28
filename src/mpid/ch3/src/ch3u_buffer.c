@@ -3,15 +3,15 @@
  *     See COPYRIGHT in top-level directory
  */
 
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -222,7 +222,7 @@ void MPIDI_CH3U_Buffer_copy_device(
     if (sdt_contig && rdt_contig)
     {
         MPIDI_FUNC_ENTER(MPID_STATE_MEMCPY);
-        MV2_MPIDI_Memcpy_Device((char *)rbuf + rdt_true_lb,
+        MVP_MPIDI_Memcpy_Device((char *)rbuf + rdt_true_lb,
                 (const char *)sbuf + sdt_true_lb, sdata_sz, deviceMemcpyDefault);
         MPIDI_FUNC_EXIT(MPID_STATE_MEMCPY);
         *rsz = sdata_sz;
@@ -277,7 +277,7 @@ void MPIDI_CH3U_Buffer_copy_device(
         MPID_Segment rseg;
         intptr_t rfirst;
 
-        MV2_MPIDI_Malloc_Device(buf, sdata_sz);
+        MVP_MPIDI_Malloc_Device(buf, sdata_sz);
         if (buf == NULL)
         {
             MPL_DBG_MSG(CH3_OTHER,TYPICAL,"SRBuf allocation failure");
@@ -318,7 +318,7 @@ void MPIDI_CH3U_Buffer_copy_device(
         rfirst = last;
 
         *rsz = rfirst;
-        MV2_MPIDI_Free_Device(buf);
+        MVP_MPIDI_Free_Device(buf);
     }
 
 fn_exit:
@@ -341,19 +341,19 @@ int MPIDI_CH3_RecvFromSelf( MPIR_Request *rreq, void *buf, MPI_Aint count,
 	intptr_t data_sz;
 	
 #ifdef _ENABLE_CUDA_
-    if (mv2_enable_device && is_device_buffer(sreq->dev.user_buf)) {
+    if (mvp_enable_device && is_device_buffer(sreq->dev.user_buf)) {
         sreq->mrail.device_transfer_mode = DEVICE_TO_DEVICE;
     } else {
         sreq->mrail.device_transfer_mode = NONE;
     }
 
-    if (mv2_enable_device && is_device_buffer(rreq->dev.user_buf)) {
+    if (mvp_enable_device && is_device_buffer(rreq->dev.user_buf)) {
         rreq->mrail.device_transfer_mode = DEVICE_TO_DEVICE;
     } else {
         rreq->mrail.device_transfer_mode = NONE;
     }
 
-    if (mv2_enable_device &&
+    if (mvp_enable_device &&
             (DEVICE_TO_DEVICE == sreq->mrail.device_transfer_mode ||
              DEVICE_TO_DEVICE == rreq->mrail.device_transfer_mode))
     {

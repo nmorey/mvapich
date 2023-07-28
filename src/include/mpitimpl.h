@@ -4,15 +4,15 @@
  */
 
 /*
- * Copyright (c) 2001-2022, The Ohio State University. All rights
+ * Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  */
 
 /* Types and interfaces in this file are internally used by MPIR_T itself.
@@ -594,7 +594,7 @@ typedef struct pvar_bucket
 
 #define QUOTE(name) #name
 
-#if ENABLE_PVAR_MV2
+#if ENABLE_PVAR_MVP
 #define MPIR_T_PVAR_COMM_COUNTER_INC_impl(name_, inc_,comm) \
     do { \
     name2index_hash_t *hash_entry;\
@@ -614,56 +614,68 @@ typedef struct pvar_bucket
    #define MPIR_T_PVAR_COMM_COUNTER_INC_impl(name_, inc_,comm)
 #endif
 
-#if ENABLE_PVAR_MV2
-#define MPIR_T_PVAR_COMM_TIMER_START_impl(name_,comm) \
-    do { \
-        if(mv2_enable_pvar_timer) {\
-            name2index_hash_t *hash_entry;\
-            pvar_table_entry_t *pvar;\
-            int pvar_idx;\
-            int seq = MPI_T_PVAR_CLASS_TIMER - MPIR_T_PVAR_CLASS_FIRST;\
-            int counter_seq = MPI_T_PVAR_CLASS_COUNTER - MPIR_T_PVAR_CLASS_FIRST;\
-            char *name = QUOTE(name_);\
-            HASH_FIND_STR(pvar_hashs[seq],name, hash_entry);\
-            if (hash_entry != NULL) {\
-                pvar_idx = hash_entry->idx;\
-                pvar = (pvar_table_entry_t *)utarray_eltptr(pvar_table, pvar_idx);\
-                if(comm->sub_comm_timers!=NULL) {\
-                    MPID_Wtime(&((comm->sub_comm_timers[pvar->sub_comm_timer_index]).curstart)); \
-                    (comm->sub_comm_timers[pvar->sub_comm_timer_index]).count++; \
-                }\
-            }\
-            HASH_FIND_STR(pvar_hashs[counter_seq],name, hash_entry);\
-            if (hash_entry != NULL) {\
-                pvar_idx = hash_entry->idx;\
-                pvar = (pvar_table_entry_t *)utarray_eltptr(pvar_table, pvar_idx);\
-                if(comm->sub_comm_counters!=NULL) {\
-                    comm->sub_comm_counters[pvar->sub_comm_index]+=1;\
-                }\
-            }\
-        } \
-    } while(0) 
-#define MPIR_T_PVAR_COMM_TIMER_END_impl(name_,comm) \
-    do { \
-        if(mv2_enable_pvar_timer) {\
-            name2index_hash_t *hash_entry;\
-            pvar_table_entry_t *pvar;\
-            int pvar_idx;\
-            int seq = MPI_T_PVAR_CLASS_TIMER - MPIR_T_PVAR_CLASS_FIRST;\
-            char *name = QUOTE(name_);\
-            HASH_FIND_STR(pvar_hashs[seq],name, hash_entry);\
-            if (hash_entry != NULL) {\
-                pvar_idx = hash_entry->idx;\
-                pvar = (pvar_table_entry_t *)utarray_eltptr(pvar_table, pvar_idx);\
-                if(comm->sub_comm_timers!=NULL && comm->sub_comm_counters!=NULL) {\
-                    MPID_Time_t tmp; \
-                    MPID_Wtime(&tmp); \
-                    MPID_Wtime_acc(&((comm->sub_comm_timers[pvar->sub_comm_timer_index]).curstart), &tmp,\
-                            &((comm->sub_comm_timers[pvar->sub_comm_timer_index]).total)); \
-                }\
-            }\
-        } \
-    } while(0)  
+#if ENABLE_PVAR_MVP
+#define MPIR_T_PVAR_COMM_TIMER_START_impl(name_, comm)                         \
+    do {                                                                       \
+        if (MVP_ENABLE_PVAR_TIMER) {                                           \
+            name2index_hash_t *hash_entry;                                     \
+            pvar_table_entry_t *pvar;                                          \
+            int pvar_idx;                                                      \
+            int seq = MPI_T_PVAR_CLASS_TIMER - MPIR_T_PVAR_CLASS_FIRST;        \
+            int counter_seq =                                                  \
+                MPI_T_PVAR_CLASS_COUNTER - MPIR_T_PVAR_CLASS_FIRST;            \
+            char *name = QUOTE(name_);                                         \
+            HASH_FIND_STR(pvar_hashs[seq], name, hash_entry);                  \
+            if (hash_entry != NULL) {                                          \
+                pvar_idx = hash_entry->idx;                                    \
+                pvar = (pvar_table_entry_t *)utarray_eltptr(pvar_table,        \
+                                                            pvar_idx);         \
+                if (comm->sub_comm_timers != NULL) {                           \
+                    MPID_Wtime(                                                \
+                        &((comm->sub_comm_timers[pvar->sub_comm_timer_index])  \
+                              .curstart));                                     \
+                    (comm->sub_comm_timers[pvar->sub_comm_timer_index])        \
+                        .count++;                                              \
+                }                                                              \
+            }                                                                  \
+            HASH_FIND_STR(pvar_hashs[counter_seq], name, hash_entry);          \
+            if (hash_entry != NULL) {                                          \
+                pvar_idx = hash_entry->idx;                                    \
+                pvar = (pvar_table_entry_t *)utarray_eltptr(pvar_table,        \
+                                                            pvar_idx);         \
+                if (comm->sub_comm_counters != NULL) {                         \
+                    comm->sub_comm_counters[pvar->sub_comm_index] += 1;        \
+                }                                                              \
+            }                                                                  \
+        }                                                                      \
+    } while (0)
+#define MPIR_T_PVAR_COMM_TIMER_END_impl(name_, comm)                           \
+    do {                                                                       \
+        if (MVP_ENABLE_PVAR_TIMER) {                                           \
+            name2index_hash_t *hash_entry;                                     \
+            pvar_table_entry_t *pvar;                                          \
+            int pvar_idx;                                                      \
+            int seq = MPI_T_PVAR_CLASS_TIMER - MPIR_T_PVAR_CLASS_FIRST;        \
+            char *name = QUOTE(name_);                                         \
+            HASH_FIND_STR(pvar_hashs[seq], name, hash_entry);                  \
+            if (hash_entry != NULL) {                                          \
+                pvar_idx = hash_entry->idx;                                    \
+                pvar = (pvar_table_entry_t *)utarray_eltptr(pvar_table,        \
+                                                            pvar_idx);         \
+                if (comm->sub_comm_timers != NULL &&                           \
+                    comm->sub_comm_counters != NULL) {                         \
+                    MPID_Time_t tmp;                                           \
+                    MPID_Wtime(&tmp);                                          \
+                    MPID_Wtime_acc(                                            \
+                        &((comm->sub_comm_timers[pvar->sub_comm_timer_index])  \
+                              .curstart),                                      \
+                        &tmp,                                                  \
+                        &((comm->sub_comm_timers[pvar->sub_comm_timer_index])  \
+                              .total));                                        \
+                }                                                              \
+            }                                                                  \
+        }                                                                      \
+    } while (0)
 #else
    #define MPIR_T_PVAR_COMM_TIMER_START_impl(name_,comm)
    #define MPIR_T_PVAR_COMM_TIMER_END_impl(name_,comm)
@@ -1317,7 +1329,7 @@ static inline int MPIR_T_is_initialized(void)
 }
 
 /* Helper function to update count and volume of send and recv messages for PVARS */
-#if ENABLE_PVAR_MV2
+#if ENABLE_PVAR_MVP
     #define MPIR_PVAR_INC(_mpicoll, _algo, _operation, _count, _datatype)                        \
     do {                                                                                         \
         int _pSize = 0;                                                                          \
@@ -1326,33 +1338,34 @@ static inline int MPIR_T_is_initialized(void)
         if (_size < 0) {                                                                         \
             _size = 0;                                                                           \
         }                                                                                        \
-        MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_##_mpicoll##_##_algo##_bytes_##_operation, _size); \
-        MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_##_mpicoll##_##_algo##_count_##_operation, 1);     \
-        MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_##_mpicoll##_bytes_##_operation, _size);           \
-        MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_##_mpicoll##_count_##_operation, 1);               \
+        MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_##_mpicoll##_##_algo##_bytes_##_operation, _size); \
+        MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_##_mpicoll##_##_algo##_count_##_operation, 1);     \
+        MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_##_mpicoll##_bytes_##_operation, _size);           \
+        MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_##_mpicoll##_count_##_operation, 1);               \
     } while (0)
-#else /*ENABLE_PVAR_MV2*/
+#else /*ENABLE_PVAR_MVP*/
     #define MPIR_PVAR_INC(_mpicoll, _algo, _operation, _count, _datatype)
-#endif /*ENABLE_PVAR_MV2*/
+#endif /*ENABLE_PVAR_MVP*/
 
 
-/* Helper functions to start/end MV2 PVAR timers */
+/* Helper functions to start/end MVP PVAR timers */
 
-#if ENABLE_PVAR_MV2
-    #define MPIR_TIMER_START(_optype,_op,_algo)                                                  \
-    do {                                                                                         \
-        if(mv2_enable_pvar_timer)                                                                \
-             MPIR_T_PVAR_TIMER_START(MV2,mv2_##_optype##_timer_##_op##_##_algo);                 \
-    } while (0)                                                                                  
-    #define MPIR_TIMER_END(_optype,_op,_algo)                                                    \
-    do {                                                                                         \
-        if(mv2_enable_pvar_timer)                                                                \
-             MPIR_T_PVAR_TIMER_END(MV2,mv2_##_optype##_timer_##_op##_##_algo);                   \
-    } while(0)
-#else /*ENABLE_PVAR_MV2*/
+#if ENABLE_PVAR_MVP
+#define MPIR_TIMER_START(_optype, _op, _algo)                                  \
+    do {                                                                       \
+        if (MVP_ENABLE_PVAR_TIMER)                                             \
+            MPIR_T_PVAR_TIMER_START(MVP,                                       \
+                                    mvp_##_optype##_timer_##_op##_##_algo);    \
+    } while (0)
+#define MPIR_TIMER_END(_optype, _op, _algo)                                    \
+    do {                                                                       \
+        if (MVP_ENABLE_PVAR_TIMER)                                             \
+            MPIR_T_PVAR_TIMER_END(MVP, mvp_##_optype##_timer_##_op##_##_algo); \
+    } while (0)
+#else /*ENABLE_PVAR_MVP*/
     #define MPIR_TIMER_START(_optype,_op,_algo)                                                  
     #define MPIR_TIMER_END(_optype,_op,_algo)
-#endif /*ENABLE_PVAR_MV2*/
+#endif /*ENABLE_PVAR_MVP*/
 
 
 

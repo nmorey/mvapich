@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 #ifndef MPIRUN_PARAMS_H
@@ -17,7 +17,7 @@
 int read_param_file(char *paramfile, char **env);
 void commandLine(int argc, char *argv[], char *totalview_cmd, char **env);
 int file_exists(char *filename);
-void usage(const char * arg0);
+void usage(const char *arg0);
 
 /* xxx need to add checking for string overflow, do this more carefully ... */
 extern char *mpispawn_param_env;
@@ -26,15 +26,15 @@ extern int nprocs;
 extern int aout_index;
 extern int use_rsh;
 
-#define ENV_LEN 1024
-#define MAXLINE 1024
+#define ENV_LEN  1024
+#define MAXLINE  1024
 #define LINE_LEN 256
-#define TMP_PFX "/tmp/tempfile_"
-#define END     "endcmd"
-#define PORT    "PARENT_ROOT_PORT_NAME"
-#define ARG     "arg"
-#define ENDARG  "endarg"
-#define INFN    "info_num="
+#define TMP_PFX  "/tmp/tempfile_"
+#define END      "endcmd"
+#define PORT     "PARENT_ROOT_PORT_NAME"
+#define ARG      "arg"
+#define ENDARG   "endarg"
+#define INFN     "info_num="
 /*
 #define END_s   strlen(END)
 #define PORT_s  strlen(PORT)
@@ -67,8 +67,8 @@ extern char *change_group;
 extern int USE_LINEAR_SSH;
 
 /* By default, use ssh. Enable
-   -srun for using slurm's srun */ 
+   -srun for using slurm's srun */
 extern int USE_SRUN;
 
-#endif                          /* MPIRUN_PARAMS_H */
+#endif /* MPIRUN_PARAMS_H */
 /* vi:set sw=4 sts=4 tw=76 expandtab: */

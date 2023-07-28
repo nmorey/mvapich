@@ -1,9 +1,9 @@
 #include "reduce_tuning.h"
 
 #ifdef CHANNEL_MRAIL_GEN2
-int MPIR_Reduce_Zcpy_MV2(const void *sendbuf, void *recvbuf, int count,
+int MPIR_Reduce_Zcpy_MVP(const void *sendbuf, void *recvbuf, int count,
                          MPI_Datatype datatype, MPI_Op op, int root,
-                         MPIR_Comm * comm_ptr, MPIR_Errflag_t *errflag)
+                         MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag)
 {
     MPIR_TIMER_START(coll, reduce, zcpy);
     int mpi_errno = MPI_SUCCESS;
@@ -15,12 +15,12 @@ int MPIR_Reduce_Zcpy_MV2(const void *sendbuf, void *recvbuf, int count,
     MPI_Aint true_lb, true_extent, extent;
     int stride = 0;
     int dst, expected_send_count, expected_recv_count;
-    int *src_array=NULL;
+    int *src_array = NULL;
     int pseudo_root = 0;
-    static int fn_call=0;
+    static int fn_call = 0;
     MPI_Status status;
 
-    MPIR_T_PVAR_COUNTER_INC(MV2, mv2_coll_reduce_zcpy, 1);
+    MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_reduce_zcpy, 1);
 
     fn_call++;
 
@@ -41,22 +41,20 @@ int MPIR_Reduce_Zcpy_MV2(const void *sendbuf, void *recvbuf, int count,
         MPIR_Comm_get_ptr(leader_comm, leader_commptr);
 
         leader_of_psuedo_root = comm_ptr->dev.ch.leader_map[pseudo_root];
-        leader_psuedo_root = comm_ptr->dev.
-                                        ch.
-                                        leader_rank[leader_of_psuedo_root];
+        leader_psuedo_root =
+            comm_ptr->dev.ch.leader_rank[leader_of_psuedo_root];
 
         shmem_info = comm_ptr->dev.ch.shmem_info;
         /* If the knomial_factor requested for this specific bcast
          * is the same as the one that we have used before, the communication
          * tree is already setup and cached. No need to do it again
          */
-        if((shmem_info)->reduce_knomial_factor 
-                != mv2_reduce_zcopy_inter_knomial_factor) {
-            MPIR_Reduce_knomial_trace(leader_psuedo_root,
-                                      mv2_reduce_zcopy_inter_knomial_factor,
-                                      leader_commptr, &dst, 
-                                      &expected_send_count,
-                                      &expected_recv_count, &src_array);
+        if ((shmem_info)->reduce_knomial_factor !=
+            MVP_REDUCE_ZCOPY_INTER_KNOMIAL_FACTOR) {
+            MPIR_Reduce_knomial_trace(
+                leader_psuedo_root, MVP_REDUCE_ZCOPY_INTER_KNOMIAL_FACTOR,
+                leader_commptr, &dst, &expected_send_count,
+                &expected_recv_count, &src_array);
             (shmem_info)->reduce_exchange_rdma_keys = 1;
         }
     }
@@ -67,15 +65,10 @@ int MPIR_Reduce_Zcpy_MV2(const void *sendbuf, void *recvbuf, int count,
         in_buf = recvbuf;
     }
 
-    mpi_errno = mv2_shm_zcpy_reduce(shmem_commptr->dev.ch.shmem_info,
-                                    in_buf, &out_buf, count, stride,
-                                    datatype, op,
-                                    root,
-                                    expected_recv_count, src_array,
-                                    expected_send_count, dst,
-                                    mv2_reduce_zcopy_inter_knomial_factor,
-                                    comm_ptr,
-                                    errflag);
+    mpi_errno = mvp_shm_zcpy_reduce(
+        shmem_commptr->dev.ch.shmem_info, in_buf, &out_buf, count, stride,
+        datatype, op, root, expected_recv_count, src_array, expected_send_count,
+        dst, MVP_REDUCE_ZCOPY_INTER_KNOMIAL_FACTOR, comm_ptr, errflag);
     if (mpi_errno) {
         /* for communication errors, just record the error
          * but continue */
@@ -84,8 +77,8 @@ int MPIR_Reduce_Zcpy_MV2(const void *sendbuf, void *recvbuf, int count,
         MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
     }
 
-    if(my_rank == 0 && root == my_rank) {
-         MPIR_Memcpy(recvbuf, out_buf, stride);
+    if (my_rank == 0 && root == my_rank) {
+        MPIR_Memcpy(recvbuf, out_buf, stride);
     } else {
         /* Send the message to the root if the root is not rank0 */
         if ((my_rank == 0) && (root != my_rank)) {
@@ -95,7 +88,7 @@ int MPIR_Reduce_Zcpy_MV2(const void *sendbuf, void *recvbuf, int count,
             if (mpi_errno) {
                 /* for communication errors, just record the error
                  * but continue */
-                fprintf(stderr,"%d send to %d failed, mpi_errno %d\n",
+                fprintf(stderr, "%d send to %d failed, mpi_errno %d\n",
                         comm_ptr->rank, root, mpi_errno);
 
                 *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
@@ -106,14 +99,12 @@ int MPIR_Reduce_Zcpy_MV2(const void *sendbuf, void *recvbuf, int count,
 
         if ((my_rank != 0) && (root == my_rank)) {
             MPIR_PVAR_INC(reduce, zcpy, recv, count, datatype);
-            mpi_errno = MPIC_Recv(recvbuf, count, datatype,
-                                  pseudo_root,
-                                  MPIR_REDUCE_TAG, comm_ptr,
-                                  &status, errflag);
+            mpi_errno = MPIC_Recv(recvbuf, count, datatype, pseudo_root,
+                                  MPIR_REDUCE_TAG, comm_ptr, &status, errflag);
             if (mpi_errno) {
                 /* for communication errors, just record the error but
                  * continue */
-                fprintf(stderr,"%d send to %d failed, mpi_errno %d\n", 
+                fprintf(stderr, "%d send to %d failed, mpi_errno %d\n",
                         comm_ptr->rank, root, mpi_errno);
                 *errflag = MPIR_ERR_GET_CLASS(mpi_errno);
                 MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
@@ -131,4 +122,3 @@ int MPIR_Reduce_Zcpy_MV2(const void *sendbuf, void *recvbuf, int count,
     return mpi_errno;
 }
 #endif /* CHANNEL_MRAIL_GEN2 */
-

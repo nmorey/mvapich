@@ -23,9 +23,7 @@ mpi_core_sources +=                                         \
     src/mpi/coll/iallreduce/iallreduce_intra_gentran_recexch_reduce_scatter_recexch_allgatherv.c
 
 if BUILD_OSU_MVAPICH
-if BUILD_MRAIL
 mpi_core_sources += \
 	src/mpi/coll/iallreduce/iallreduce_osu.c 	\
 	src/mpi/coll/iallreduce/iallreduce_tuning.c
-endif
 endif

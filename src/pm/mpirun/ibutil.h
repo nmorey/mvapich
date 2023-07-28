@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -17,7 +17,7 @@ char *ibv_wr_opcode_string(int opcode);
 
 char *ibv_wc_opcode_string(int opcode);
 
-//char* ibv_mtu_string( enum ibv_mtu  mtu );
+// char* ibv_mtu_string( enum ibv_mtu  mtu );
 
 const char *ibv_port_state_string(enum ibv_port_state state);
 
@@ -46,4 +46,4 @@ void dump_ibv_port_attr(struct ibv_port_attr *attr);
 double tv2sec(struct timeval *start, struct timeval *end);
 
 const char *int_to_binary(int x);
-#endif                          // __IB_UTIL__
+#endif // __IB_UTIL__

@@ -23,8 +23,8 @@ dnl $MPICH_VERSION as before
 MPICH_VERSION=MPICH_VERSION_m4
 export MPICH_VERSION
 
-MVAPICH2_VERSION=MVAPICH2_VERSION_m4
-export MVAPICH2_VERSION
+MVAPICH_VERSION=MVAPICH_VERSION_m4
+export MVAPICH_VERSION
 
 if [[ -f modules/libfabric/autogen.sh ]]; then
     cd modules/libfabric
@@ -32,7 +32,7 @@ if [[ -f modules/libfabric/autogen.sh ]]; then
     export LIBFABRIC_VERSION
     cd -
 else
-    error "Submodule libfabric not checked out. Perhaps you need to run 'git submodule update --init' from the top of the MVAPICH2 source tree?"
+    error "Submodule libfabric not checked out. Perhaps you need to run 'git submodule update --init' from the top of the MVAPICH source tree?"
 fi
 
 dnl balance our pushed diversion

@@ -1,616 +1,542 @@
 /*
- * Copyright (c) 2001-2022, The Ohio State University. All rights
+ * Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  */
 
-#define GEN2__INTEL_XEON_E5_2630_V2_2S_12__MLX_CX_CONNIB__12PPN {	\
-	{		\
-	24,		\
-	4,		\
-	4,		\
-	{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},		\
-	18,		\
-	{		\
-	{1, &MPIR_Reduce_binomial_MV2},		\
-	{2, &MPIR_Reduce_binomial_MV2},		\
-	{4, &MPIR_Reduce_binomial_MV2},		\
-	{8, &MPIR_Reduce_binomial_MV2},		\
-	{16, &MPIR_Reduce_binomial_MV2},		\
-	{32, &MPIR_Reduce_binomial_MV2},		\
-	{64, &MPIR_Reduce_binomial_MV2},		\
-	{128, &MPIR_Reduce_binomial_MV2},		\
-	{256, &MPIR_Reduce_binomial_MV2},		\
-	{512, &MPIR_Reduce_binomial_MV2},		\
-	{1024, &MPIR_Reduce_binomial_MV2},		\
-	{2048, &MPIR_Reduce_binomial_MV2},		\
-	{4096, &MPIR_Reduce_binomial_MV2},		\
-	{8192, &MPIR_Reduce_binomial_MV2},		\
-	{16384, &MPIR_Reduce_binomial_MV2},		\
-	{32768, &MPIR_Reduce_binomial_MV2},		\
-	{65536, &MPIR_Reduce_binomial_MV2},		\
-	{131072, &MPIR_Reduce_binomial_MV2},		\
-	{262144, &MPIR_Reduce_binomial_MV2}		\
-	},		\
-	18,		\
-	{		\
-	{1, &MPIR_Reduce_shmem_MV2},		\
-	{2, &MPIR_Reduce_shmem_MV2},		\
-	{4, &MPIR_Reduce_shmem_MV2},		\
-	{8, &MPIR_Reduce_shmem_MV2},		\
-	{16, &MPIR_Reduce_shmem_MV2},		\
-	{32, &MPIR_Reduce_shmem_MV2},		\
-	{64, &MPIR_Reduce_shmem_MV2},		\
-	{128, &MPIR_Reduce_shmem_MV2},		\
-	{256, &MPIR_Reduce_shmem_MV2},		\
-	{512, &MPIR_Reduce_shmem_MV2},		\
-	{1024, &MPIR_Reduce_shmem_MV2},		\
-	{2048, &MPIR_Reduce_shmem_MV2},		\
-	{4096, &MPIR_Reduce_shmem_MV2},		\
-	{8192, &MPIR_Reduce_shmem_MV2},		\
-	{16384, &MPIR_Reduce_shmem_MV2},		\
-	{32768, &MPIR_Reduce_shmem_MV2},		\
-	{65536, &MPIR_Reduce_shmem_MV2},		\
-	{131072, &MPIR_Reduce_shmem_MV2},		\
-	{262144, &MPIR_Reduce_shmem_MV2}		\
-	}		\
-	},		\
-	{		\
-	48,		\
-	4,		\
-	4,		\
-	{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},		\
-	18,		\
-	{		\
-	{1, &MPIR_Reduce_redscat_gather_MV2},		\
-	{2, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{4, &MPIR_Reduce_redscat_gather_MV2},		\
-	{8, &MPIR_Reduce_binomial_MV2},		\
-	{16, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{32, &MPIR_Reduce_binomial_MV2},		\
-	{64, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{128, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{256, &MPIR_Reduce_binomial_MV2},		\
-	{512, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{1024, &MPIR_Reduce_redscat_gather_MV2},		\
-	{2048, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{4096, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{8192, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{16384, &MPIR_Reduce_binomial_MV2},		\
-	{32768, &MPIR_Reduce_binomial_MV2},		\
-	{65536, &MPIR_Reduce_binomial_MV2},		\
-	{131072, &MPIR_Reduce_redscat_gather_MV2},		\
-	{262144, &MPIR_Reduce_redscat_gather_MV2}		\
-	},		\
-	18,		\
-	{		\
-	{1, &MPIR_Reduce_binomial_MV2},		\
-	{2, &MPIR_Reduce_binomial_MV2},		\
-	{4, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{8, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{16, &MPIR_Reduce_shmem_MV2},		\
-	{32, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{64, &MPIR_Reduce_shmem_MV2},		\
-	{128, &MPIR_Reduce_binomial_MV2},		\
-	{256, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{512, &MPIR_Reduce_binomial_MV2},		\
-	{1024, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{2048, &MPIR_Reduce_binomial_MV2},		\
-	{4096, &MPIR_Reduce_shmem_MV2},		\
-	{8192, &MPIR_Reduce_shmem_MV2},		\
-	{16384, &MPIR_Reduce_shmem_MV2},		\
-	{32768, &MPIR_Reduce_shmem_MV2},		\
-	{65536, &MPIR_Reduce_shmem_MV2},		\
-	{131072, &MPIR_Reduce_shmem_MV2},		\
-	{262144, &MPIR_Reduce_shmem_MV2}		\
-	}		\
-	},		\
-	{		\
-	96,		\
-	4,		\
-	4,		\
-	{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},		\
-	18,		\
-	{		\
-	{1, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{2, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{4, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{8, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{16, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{32, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{64, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{128, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{256, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{512, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{1024, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{2048, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{4096, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{8192, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{16384, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{32768, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{65536, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{131072, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{262144, &MPIR_Reduce_inter_knomial_wrapper_MV2}		\
-	},		\
-	18,		\
-	{		\
-	{1, &MPIR_Reduce_shmem_MV2},		\
-	{2, &MPIR_Reduce_shmem_MV2},		\
-	{4, &MPIR_Reduce_shmem_MV2},		\
-	{8, &MPIR_Reduce_shmem_MV2},		\
-	{16, &MPIR_Reduce_shmem_MV2},		\
-	{32, &MPIR_Reduce_shmem_MV2},		\
-	{64, &MPIR_Reduce_shmem_MV2},		\
-	{128, &MPIR_Reduce_shmem_MV2},		\
-	{256, &MPIR_Reduce_shmem_MV2},		\
-	{512, &MPIR_Reduce_shmem_MV2},		\
-	{1024, &MPIR_Reduce_shmem_MV2},		\
-	{2048, &MPIR_Reduce_shmem_MV2},		\
-	{4096, &MPIR_Reduce_shmem_MV2},		\
-	{8192, &MPIR_Reduce_shmem_MV2},		\
-	{16384, &MPIR_Reduce_shmem_MV2},		\
-	{32768, &MPIR_Reduce_shmem_MV2},		\
-	{65536, &MPIR_Reduce_shmem_MV2},		\
-	{131072, &MPIR_Reduce_shmem_MV2},		\
-	{262144, &MPIR_Reduce_shmem_MV2}		\
-	}		\
-	},		\
-	{		\
-	192,		\
-	4,		\
-	4,		\
-	{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},		\
-	18,		\
-	{		\
-	{1, &MPIR_Reduce_redscat_gather_MV2},		\
-	{2, &MPIR_Reduce_redscat_gather_MV2},		\
-	{4, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{8, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{16, &MPIR_Reduce_binomial_MV2},		\
-	{32, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{64, &MPIR_Reduce_binomial_MV2},		\
-	{128, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{256, &MPIR_Reduce_redscat_gather_MV2},		\
-	{512, &MPIR_Reduce_binomial_MV2},		\
-	{1024, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{2048, &MPIR_Reduce_redscat_gather_MV2},		\
-	{4096, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{8192, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{16384, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{32768, &MPIR_Reduce_binomial_MV2},		\
-	{65536, &MPIR_Reduce_binomial_MV2},		\
-	{131072, &MPIR_Reduce_binomial_MV2},		\
-	{262144, &MPIR_Reduce_binomial_MV2}		\
-	},		\
-	18,		\
-	{		\
-	{1, &MPIR_Reduce_binomial_MV2},		\
-	{2, &MPIR_Reduce_binomial_MV2},		\
-	{4, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{8, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{16, &MPIR_Reduce_shmem_MV2},		\
-	{32, &MPIR_Reduce_shmem_MV2},		\
-	{64, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{128, &MPIR_Reduce_binomial_MV2},		\
-	{256, &MPIR_Reduce_shmem_MV2},		\
-	{512, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{1024, &MPIR_Reduce_shmem_MV2},		\
-	{2048, &MPIR_Reduce_shmem_MV2},		\
-	{4096, &MPIR_Reduce_shmem_MV2},		\
-	{8192, &MPIR_Reduce_shmem_MV2},		\
-	{16384, &MPIR_Reduce_shmem_MV2},		\
-	{32768, &MPIR_Reduce_shmem_MV2},		\
-	{65536, &MPIR_Reduce_shmem_MV2},		\
-	{131072, &MPIR_Reduce_shmem_MV2},		\
-	{262144, &MPIR_Reduce_shmem_MV2}		\
-	}		\
-	},		\
-	{		\
-	384,		\
-	4,		\
-	4,		\
-	{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},		\
-	18,		\
-	{		\
-	{1, &MPIR_Reduce_binomial_MV2},		\
-	{2, &MPIR_Reduce_redscat_gather_MV2},		\
-	{4, &MPIR_Reduce_binomial_MV2},		\
-	{8, &MPIR_Reduce_binomial_MV2},		\
-	{16, &MPIR_Reduce_binomial_MV2},		\
-	{32, &MPIR_Reduce_binomial_MV2},		\
-	{64, &MPIR_Reduce_redscat_gather_MV2},		\
-	{128, &MPIR_Reduce_redscat_gather_MV2},		\
-	{256, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{512, &MPIR_Reduce_redscat_gather_MV2},		\
-	{1024, &MPIR_Reduce_redscat_gather_MV2},		\
-	{2048, &MPIR_Reduce_redscat_gather_MV2},		\
-	{4096, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{8192, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{16384, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{32768, &MPIR_Reduce_binomial_MV2},		\
-	{65536, &MPIR_Reduce_binomial_MV2},		\
-	{131072, &MPIR_Reduce_binomial_MV2},		\
-	{262144, &MPIR_Reduce_binomial_MV2}		\
-	},		\
-	18,		\
-	{		\
-	{1, &MPIR_Reduce_shmem_MV2},		\
-	{2, &MPIR_Reduce_shmem_MV2},		\
-	{4, &MPIR_Reduce_shmem_MV2},		\
-	{8, &MPIR_Reduce_binomial_MV2},		\
-	{16, &MPIR_Reduce_shmem_MV2},		\
-	{32, &MPIR_Reduce_binomial_MV2},		\
-	{64, &MPIR_Reduce_binomial_MV2},		\
-	{128, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{256, &MPIR_Reduce_binomial_MV2},		\
-	{512, &MPIR_Reduce_binomial_MV2},		\
-	{1024, &MPIR_Reduce_binomial_MV2},		\
-	{2048, &MPIR_Reduce_binomial_MV2},		\
-	{4096, &MPIR_Reduce_shmem_MV2},		\
-	{8192, &MPIR_Reduce_shmem_MV2},		\
-	{16384, &MPIR_Reduce_shmem_MV2},		\
-	{32768, &MPIR_Reduce_shmem_MV2},		\
-	{65536, &MPIR_Reduce_shmem_MV2},		\
-	{131072, &MPIR_Reduce_shmem_MV2},		\
-	{262144, &MPIR_Reduce_shmem_MV2}		\
-	}		\
-	},		\
-	{		\
-	768,		\
-	4,		\
-	4,		\
-	{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},		\
-	18,		\
-	{		\
-	{1, &MPIR_Reduce_redscat_gather_MV2},		\
-	{2, &MPIR_Reduce_redscat_gather_MV2},		\
-	{4, &MPIR_Reduce_redscat_gather_MV2},		\
-	{8, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{16, &MPIR_Reduce_binomial_MV2},		\
-	{32, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{64, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{128, &MPIR_Reduce_redscat_gather_MV2},		\
-	{256, &MPIR_Reduce_binomial_MV2},		\
-	{512, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{1024, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{2048, &MPIR_Reduce_redscat_gather_MV2},		\
-	{4096, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{8192, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{16384, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{32768, &MPIR_Reduce_binomial_MV2},		\
-	{65536, &MPIR_Reduce_binomial_MV2},		\
-	{131072, &MPIR_Reduce_binomial_MV2},		\
-	{262144, &MPIR_Reduce_binomial_MV2}		\
-	},		\
-	18,		\
-	{		\
-	{1, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{2, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{4, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{8, &MPIR_Reduce_binomial_MV2},		\
-	{16, &MPIR_Reduce_binomial_MV2},		\
-	{32, &MPIR_Reduce_binomial_MV2},		\
-	{64, &MPIR_Reduce_binomial_MV2},		\
-	{128, &MPIR_Reduce_shmem_MV2},		\
-	{256, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{512, &MPIR_Reduce_binomial_MV2},		\
-	{1024, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{2048, &MPIR_Reduce_shmem_MV2},		\
-	{4096, &MPIR_Reduce_shmem_MV2},		\
-	{8192, &MPIR_Reduce_shmem_MV2},		\
-	{16384, &MPIR_Reduce_shmem_MV2},		\
-	{32768, &MPIR_Reduce_shmem_MV2},		\
-	{65536, &MPIR_Reduce_shmem_MV2},		\
-	{131072, &MPIR_Reduce_shmem_MV2},		\
-	{262144, &MPIR_Reduce_shmem_MV2}		\
-	}		\
-	}		\
-};
-#define GEN2__INTEL_XEON_E5_2630_V2_2S_12__MLX_CX_CONNIB__12PPN {	\
-	{		\
-	24,		\
-	4,		\
-	4,		\
-	{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},		\
-	18,		\
-	{		\
-	{1, &MPIR_Reduce_binomial_MV2},		\
-	{2, &MPIR_Reduce_binomial_MV2},		\
-	{4, &MPIR_Reduce_binomial_MV2},		\
-	{8, &MPIR_Reduce_binomial_MV2},		\
-	{16, &MPIR_Reduce_binomial_MV2},		\
-	{32, &MPIR_Reduce_binomial_MV2},		\
-	{64, &MPIR_Reduce_binomial_MV2},		\
-	{128, &MPIR_Reduce_binomial_MV2},		\
-	{256, &MPIR_Reduce_binomial_MV2},		\
-	{512, &MPIR_Reduce_binomial_MV2},		\
-	{1024, &MPIR_Reduce_binomial_MV2},		\
-	{2048, &MPIR_Reduce_binomial_MV2},		\
-	{4096, &MPIR_Reduce_binomial_MV2},		\
-	{8192, &MPIR_Reduce_binomial_MV2},		\
-	{16384, &MPIR_Reduce_binomial_MV2},		\
-	{32768, &MPIR_Reduce_binomial_MV2},		\
-	{65536, &MPIR_Reduce_binomial_MV2},		\
-	{131072, &MPIR_Reduce_binomial_MV2},		\
-	{262144, &MPIR_Reduce_binomial_MV2}		\
-	},		\
-	18,		\
-	{		\
-	{1, &MPIR_Reduce_shmem_MV2},		\
-	{2, &MPIR_Reduce_shmem_MV2},		\
-	{4, &MPIR_Reduce_shmem_MV2},		\
-	{8, &MPIR_Reduce_shmem_MV2},		\
-	{16, &MPIR_Reduce_shmem_MV2},		\
-	{32, &MPIR_Reduce_shmem_MV2},		\
-	{64, &MPIR_Reduce_shmem_MV2},		\
-	{128, &MPIR_Reduce_shmem_MV2},		\
-	{256, &MPIR_Reduce_shmem_MV2},		\
-	{512, &MPIR_Reduce_shmem_MV2},		\
-	{1024, &MPIR_Reduce_shmem_MV2},		\
-	{2048, &MPIR_Reduce_shmem_MV2},		\
-	{4096, &MPIR_Reduce_shmem_MV2},		\
-	{8192, &MPIR_Reduce_shmem_MV2},		\
-	{16384, &MPIR_Reduce_shmem_MV2},		\
-	{32768, &MPIR_Reduce_shmem_MV2},		\
-	{65536, &MPIR_Reduce_shmem_MV2},		\
-	{131072, &MPIR_Reduce_shmem_MV2},		\
-	{262144, &MPIR_Reduce_shmem_MV2}		\
-	}		\
-	},		\
-	{		\
-	48,		\
-	4,		\
-	4,		\
-	{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},		\
-	18,		\
-	{		\
-	{1, &MPIR_Reduce_redscat_gather_MV2},		\
-	{2, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{4, &MPIR_Reduce_redscat_gather_MV2},		\
-	{8, &MPIR_Reduce_binomial_MV2},		\
-	{16, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{32, &MPIR_Reduce_binomial_MV2},		\
-	{64, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{128, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{256, &MPIR_Reduce_binomial_MV2},		\
-	{512, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{1024, &MPIR_Reduce_redscat_gather_MV2},		\
-	{2048, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{4096, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{8192, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{16384, &MPIR_Reduce_binomial_MV2},		\
-	{32768, &MPIR_Reduce_binomial_MV2},		\
-	{65536, &MPIR_Reduce_binomial_MV2},		\
-	{131072, &MPIR_Reduce_redscat_gather_MV2},		\
-	{262144, &MPIR_Reduce_redscat_gather_MV2}		\
-	},		\
-	18,		\
-	{		\
-	{1, &MPIR_Reduce_binomial_MV2},		\
-	{2, &MPIR_Reduce_binomial_MV2},		\
-	{4, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{8, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{16, &MPIR_Reduce_shmem_MV2},		\
-	{32, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{64, &MPIR_Reduce_shmem_MV2},		\
-	{128, &MPIR_Reduce_binomial_MV2},		\
-	{256, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{512, &MPIR_Reduce_binomial_MV2},		\
-	{1024, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{2048, &MPIR_Reduce_binomial_MV2},		\
-	{4096, &MPIR_Reduce_shmem_MV2},		\
-	{8192, &MPIR_Reduce_shmem_MV2},		\
-	{16384, &MPIR_Reduce_shmem_MV2},		\
-	{32768, &MPIR_Reduce_shmem_MV2},		\
-	{65536, &MPIR_Reduce_shmem_MV2},		\
-	{131072, &MPIR_Reduce_shmem_MV2},		\
-	{262144, &MPIR_Reduce_shmem_MV2}		\
-	}		\
-	},		\
-	{		\
-	96,		\
-	4,		\
-	4,		\
-	{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},		\
-	18,		\
-	{		\
-	{1, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{2, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{4, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{8, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{16, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{32, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{64, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{128, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{256, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{512, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{1024, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{2048, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{4096, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{8192, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{16384, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{32768, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{65536, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{131072, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{262144, &MPIR_Reduce_inter_knomial_wrapper_MV2}		\
-	},		\
-	18,		\
-	{		\
-	{1, &MPIR_Reduce_shmem_MV2},		\
-	{2, &MPIR_Reduce_shmem_MV2},		\
-	{4, &MPIR_Reduce_shmem_MV2},		\
-	{8, &MPIR_Reduce_shmem_MV2},		\
-	{16, &MPIR_Reduce_shmem_MV2},		\
-	{32, &MPIR_Reduce_shmem_MV2},		\
-	{64, &MPIR_Reduce_shmem_MV2},		\
-	{128, &MPIR_Reduce_shmem_MV2},		\
-	{256, &MPIR_Reduce_shmem_MV2},		\
-	{512, &MPIR_Reduce_shmem_MV2},		\
-	{1024, &MPIR_Reduce_shmem_MV2},		\
-	{2048, &MPIR_Reduce_shmem_MV2},		\
-	{4096, &MPIR_Reduce_shmem_MV2},		\
-	{8192, &MPIR_Reduce_shmem_MV2},		\
-	{16384, &MPIR_Reduce_shmem_MV2},		\
-	{32768, &MPIR_Reduce_shmem_MV2},		\
-	{65536, &MPIR_Reduce_shmem_MV2},		\
-	{131072, &MPIR_Reduce_shmem_MV2},		\
-	{262144, &MPIR_Reduce_shmem_MV2}		\
-	}		\
-	},		\
-	{		\
-	192,		\
-	4,		\
-	4,		\
-	{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},		\
-	18,		\
-	{		\
-	{1, &MPIR_Reduce_redscat_gather_MV2},		\
-	{2, &MPIR_Reduce_redscat_gather_MV2},		\
-	{4, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{8, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{16, &MPIR_Reduce_binomial_MV2},		\
-	{32, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{64, &MPIR_Reduce_binomial_MV2},		\
-	{128, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{256, &MPIR_Reduce_redscat_gather_MV2},		\
-	{512, &MPIR_Reduce_binomial_MV2},		\
-	{1024, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{2048, &MPIR_Reduce_redscat_gather_MV2},		\
-	{4096, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{8192, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{16384, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{32768, &MPIR_Reduce_binomial_MV2},		\
-	{65536, &MPIR_Reduce_binomial_MV2},		\
-	{131072, &MPIR_Reduce_binomial_MV2},		\
-	{262144, &MPIR_Reduce_binomial_MV2}		\
-	},		\
-	18,		\
-	{		\
-	{1, &MPIR_Reduce_binomial_MV2},		\
-	{2, &MPIR_Reduce_binomial_MV2},		\
-	{4, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{8, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{16, &MPIR_Reduce_shmem_MV2},		\
-	{32, &MPIR_Reduce_shmem_MV2},		\
-	{64, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{128, &MPIR_Reduce_binomial_MV2},		\
-	{256, &MPIR_Reduce_shmem_MV2},		\
-	{512, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{1024, &MPIR_Reduce_shmem_MV2},		\
-	{2048, &MPIR_Reduce_shmem_MV2},		\
-	{4096, &MPIR_Reduce_shmem_MV2},		\
-	{8192, &MPIR_Reduce_shmem_MV2},		\
-	{16384, &MPIR_Reduce_shmem_MV2},		\
-	{32768, &MPIR_Reduce_shmem_MV2},		\
-	{65536, &MPIR_Reduce_shmem_MV2},		\
-	{131072, &MPIR_Reduce_shmem_MV2},		\
-	{262144, &MPIR_Reduce_shmem_MV2}		\
-	}		\
-	},		\
-	{		\
-	384,		\
-	4,		\
-	4,		\
-	{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},		\
-	18,		\
-	{		\
-	{1, &MPIR_Reduce_binomial_MV2},		\
-	{2, &MPIR_Reduce_redscat_gather_MV2},		\
-	{4, &MPIR_Reduce_binomial_MV2},		\
-	{8, &MPIR_Reduce_binomial_MV2},		\
-	{16, &MPIR_Reduce_binomial_MV2},		\
-	{32, &MPIR_Reduce_binomial_MV2},		\
-	{64, &MPIR_Reduce_redscat_gather_MV2},		\
-	{128, &MPIR_Reduce_redscat_gather_MV2},		\
-	{256, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{512, &MPIR_Reduce_redscat_gather_MV2},		\
-	{1024, &MPIR_Reduce_redscat_gather_MV2},		\
-	{2048, &MPIR_Reduce_redscat_gather_MV2},		\
-	{4096, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{8192, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{16384, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{32768, &MPIR_Reduce_binomial_MV2},		\
-	{65536, &MPIR_Reduce_binomial_MV2},		\
-	{131072, &MPIR_Reduce_binomial_MV2},		\
-	{262144, &MPIR_Reduce_binomial_MV2}		\
-	},		\
-	18,		\
-	{		\
-	{1, &MPIR_Reduce_shmem_MV2},		\
-	{2, &MPIR_Reduce_shmem_MV2},		\
-	{4, &MPIR_Reduce_shmem_MV2},		\
-	{8, &MPIR_Reduce_binomial_MV2},		\
-	{16, &MPIR_Reduce_shmem_MV2},		\
-	{32, &MPIR_Reduce_binomial_MV2},		\
-	{64, &MPIR_Reduce_binomial_MV2},		\
-	{128, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{256, &MPIR_Reduce_binomial_MV2},		\
-	{512, &MPIR_Reduce_binomial_MV2},		\
-	{1024, &MPIR_Reduce_binomial_MV2},		\
-	{2048, &MPIR_Reduce_binomial_MV2},		\
-	{4096, &MPIR_Reduce_shmem_MV2},		\
-	{8192, &MPIR_Reduce_shmem_MV2},		\
-	{16384, &MPIR_Reduce_shmem_MV2},		\
-	{32768, &MPIR_Reduce_shmem_MV2},		\
-	{65536, &MPIR_Reduce_shmem_MV2},		\
-	{131072, &MPIR_Reduce_shmem_MV2},		\
-	{262144, &MPIR_Reduce_shmem_MV2}		\
-	}		\
-	},		\
-	{		\
-	768,		\
-	4,		\
-	4,		\
-	{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},		\
-	18,		\
-	{		\
-	{1, &MPIR_Reduce_redscat_gather_MV2},		\
-	{2, &MPIR_Reduce_redscat_gather_MV2},		\
-	{4, &MPIR_Reduce_redscat_gather_MV2},		\
-	{8, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{16, &MPIR_Reduce_binomial_MV2},		\
-	{32, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{64, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{128, &MPIR_Reduce_redscat_gather_MV2},		\
-	{256, &MPIR_Reduce_binomial_MV2},		\
-	{512, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{1024, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{2048, &MPIR_Reduce_redscat_gather_MV2},		\
-	{4096, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{8192, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{16384, &MPIR_Reduce_inter_knomial_wrapper_MV2},		\
-	{32768, &MPIR_Reduce_binomial_MV2},		\
-	{65536, &MPIR_Reduce_binomial_MV2},		\
-	{131072, &MPIR_Reduce_binomial_MV2},		\
-	{262144, &MPIR_Reduce_binomial_MV2}		\
-	},		\
-	18,		\
-	{		\
-	{1, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{2, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{4, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{8, &MPIR_Reduce_binomial_MV2},		\
-	{16, &MPIR_Reduce_binomial_MV2},		\
-	{32, &MPIR_Reduce_binomial_MV2},		\
-	{64, &MPIR_Reduce_binomial_MV2},		\
-	{128, &MPIR_Reduce_shmem_MV2},		\
-	{256, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{512, &MPIR_Reduce_binomial_MV2},		\
-	{1024, &MPIR_Reduce_intra_knomial_wrapper_MV2},		\
-	{2048, &MPIR_Reduce_shmem_MV2},		\
-	{4096, &MPIR_Reduce_shmem_MV2},		\
-	{8192, &MPIR_Reduce_shmem_MV2},		\
-	{16384, &MPIR_Reduce_shmem_MV2},		\
-	{32768, &MPIR_Reduce_shmem_MV2},		\
-	{65536, &MPIR_Reduce_shmem_MV2},		\
-	{131072, &MPIR_Reduce_shmem_MV2},		\
-	{262144, &MPIR_Reduce_shmem_MV2}		\
-	}		\
-	}		\
-};
+#define GEN2__INTEL_XEON_E5_2630_V2_2S_12__MLX_CX_CONNIB__12PPN                \
+    {{24,                                                                      \
+      4,                                                                       \
+      4,                                                                       \
+      {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},               \
+      18,                                                                      \
+      {{1, &MPIR_Reduce_binomial_MVP},                                         \
+       {2, &MPIR_Reduce_binomial_MVP},                                         \
+       {4, &MPIR_Reduce_binomial_MVP},                                         \
+       {8, &MPIR_Reduce_binomial_MVP},                                         \
+       {16, &MPIR_Reduce_binomial_MVP},                                        \
+       {32, &MPIR_Reduce_binomial_MVP},                                        \
+       {64, &MPIR_Reduce_binomial_MVP},                                        \
+       {128, &MPIR_Reduce_binomial_MVP},                                       \
+       {256, &MPIR_Reduce_binomial_MVP},                                       \
+       {512, &MPIR_Reduce_binomial_MVP},                                       \
+       {1024, &MPIR_Reduce_binomial_MVP},                                      \
+       {2048, &MPIR_Reduce_binomial_MVP},                                      \
+       {4096, &MPIR_Reduce_binomial_MVP},                                      \
+       {8192, &MPIR_Reduce_binomial_MVP},                                      \
+       {16384, &MPIR_Reduce_binomial_MVP},                                     \
+       {32768, &MPIR_Reduce_binomial_MVP},                                     \
+       {65536, &MPIR_Reduce_binomial_MVP},                                     \
+       {131072, &MPIR_Reduce_binomial_MVP},                                    \
+       {262144, &MPIR_Reduce_binomial_MVP}},                                   \
+      18,                                                                      \
+      {{1, &MPIR_Reduce_shmem_MVP},                                            \
+       {2, &MPIR_Reduce_shmem_MVP},                                            \
+       {4, &MPIR_Reduce_shmem_MVP},                                            \
+       {8, &MPIR_Reduce_shmem_MVP},                                            \
+       {16, &MPIR_Reduce_shmem_MVP},                                           \
+       {32, &MPIR_Reduce_shmem_MVP},                                           \
+       {64, &MPIR_Reduce_shmem_MVP},                                           \
+       {128, &MPIR_Reduce_shmem_MVP},                                          \
+       {256, &MPIR_Reduce_shmem_MVP},                                          \
+       {512, &MPIR_Reduce_shmem_MVP},                                          \
+       {1024, &MPIR_Reduce_shmem_MVP},                                         \
+       {2048, &MPIR_Reduce_shmem_MVP},                                         \
+       {4096, &MPIR_Reduce_shmem_MVP},                                         \
+       {8192, &MPIR_Reduce_shmem_MVP},                                         \
+       {16384, &MPIR_Reduce_shmem_MVP},                                        \
+       {32768, &MPIR_Reduce_shmem_MVP},                                        \
+       {65536, &MPIR_Reduce_shmem_MVP},                                        \
+       {131072, &MPIR_Reduce_shmem_MVP},                                       \
+       {262144, &MPIR_Reduce_shmem_MVP}}},                                     \
+     {48,                                                                      \
+      4,                                                                       \
+      4,                                                                       \
+      {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},               \
+      18,                                                                      \
+      {{1, &MPIR_Reduce_redscat_gather_MVP},                                   \
+       {2, &MPIR_Reduce_inter_knomial_wrapper_MVP},                            \
+       {4, &MPIR_Reduce_redscat_gather_MVP},                                   \
+       {8, &MPIR_Reduce_binomial_MVP},                                         \
+       {16, &MPIR_Reduce_inter_knomial_wrapper_MVP},                           \
+       {32, &MPIR_Reduce_binomial_MVP},                                        \
+       {64, &MPIR_Reduce_inter_knomial_wrapper_MVP},                           \
+       {128, &MPIR_Reduce_inter_knomial_wrapper_MVP},                          \
+       {256, &MPIR_Reduce_binomial_MVP},                                       \
+       {512, &MPIR_Reduce_inter_knomial_wrapper_MVP},                          \
+       {1024, &MPIR_Reduce_redscat_gather_MVP},                                \
+       {2048, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {4096, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {8192, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {16384, &MPIR_Reduce_binomial_MVP},                                     \
+       {32768, &MPIR_Reduce_binomial_MVP},                                     \
+       {65536, &MPIR_Reduce_binomial_MVP},                                     \
+       {131072, &MPIR_Reduce_redscat_gather_MVP},                              \
+       {262144, &MPIR_Reduce_redscat_gather_MVP}},                             \
+      18,                                                                      \
+      {{1, &MPIR_Reduce_binomial_MVP},                                         \
+       {2, &MPIR_Reduce_binomial_MVP},                                         \
+       {4, &MPIR_Reduce_intra_knomial_wrapper_MVP},                            \
+       {8, &MPIR_Reduce_intra_knomial_wrapper_MVP},                            \
+       {16, &MPIR_Reduce_shmem_MVP},                                           \
+       {32, &MPIR_Reduce_intra_knomial_wrapper_MVP},                           \
+       {64, &MPIR_Reduce_shmem_MVP},                                           \
+       {128, &MPIR_Reduce_binomial_MVP},                                       \
+       {256, &MPIR_Reduce_intra_knomial_wrapper_MVP},                          \
+       {512, &MPIR_Reduce_binomial_MVP},                                       \
+       {1024, &MPIR_Reduce_intra_knomial_wrapper_MVP},                         \
+       {2048, &MPIR_Reduce_binomial_MVP},                                      \
+       {4096, &MPIR_Reduce_shmem_MVP},                                         \
+       {8192, &MPIR_Reduce_shmem_MVP},                                         \
+       {16384, &MPIR_Reduce_shmem_MVP},                                        \
+       {32768, &MPIR_Reduce_shmem_MVP},                                        \
+       {65536, &MPIR_Reduce_shmem_MVP},                                        \
+       {131072, &MPIR_Reduce_shmem_MVP},                                       \
+       {262144, &MPIR_Reduce_shmem_MVP}}},                                     \
+     {96,                                                                      \
+      4,                                                                       \
+      4,                                                                       \
+      {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},               \
+      18,                                                                      \
+      {{1, &MPIR_Reduce_inter_knomial_wrapper_MVP},                            \
+       {2, &MPIR_Reduce_inter_knomial_wrapper_MVP},                            \
+       {4, &MPIR_Reduce_inter_knomial_wrapper_MVP},                            \
+       {8, &MPIR_Reduce_inter_knomial_wrapper_MVP},                            \
+       {16, &MPIR_Reduce_inter_knomial_wrapper_MVP},                           \
+       {32, &MPIR_Reduce_inter_knomial_wrapper_MVP},                           \
+       {64, &MPIR_Reduce_inter_knomial_wrapper_MVP},                           \
+       {128, &MPIR_Reduce_inter_knomial_wrapper_MVP},                          \
+       {256, &MPIR_Reduce_inter_knomial_wrapper_MVP},                          \
+       {512, &MPIR_Reduce_inter_knomial_wrapper_MVP},                          \
+       {1024, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {2048, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {4096, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {8192, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {16384, &MPIR_Reduce_inter_knomial_wrapper_MVP},                        \
+       {32768, &MPIR_Reduce_inter_knomial_wrapper_MVP},                        \
+       {65536, &MPIR_Reduce_inter_knomial_wrapper_MVP},                        \
+       {131072, &MPIR_Reduce_inter_knomial_wrapper_MVP},                       \
+       {262144, &MPIR_Reduce_inter_knomial_wrapper_MVP}},                      \
+      18,                                                                      \
+      {{1, &MPIR_Reduce_shmem_MVP},                                            \
+       {2, &MPIR_Reduce_shmem_MVP},                                            \
+       {4, &MPIR_Reduce_shmem_MVP},                                            \
+       {8, &MPIR_Reduce_shmem_MVP},                                            \
+       {16, &MPIR_Reduce_shmem_MVP},                                           \
+       {32, &MPIR_Reduce_shmem_MVP},                                           \
+       {64, &MPIR_Reduce_shmem_MVP},                                           \
+       {128, &MPIR_Reduce_shmem_MVP},                                          \
+       {256, &MPIR_Reduce_shmem_MVP},                                          \
+       {512, &MPIR_Reduce_shmem_MVP},                                          \
+       {1024, &MPIR_Reduce_shmem_MVP},                                         \
+       {2048, &MPIR_Reduce_shmem_MVP},                                         \
+       {4096, &MPIR_Reduce_shmem_MVP},                                         \
+       {8192, &MPIR_Reduce_shmem_MVP},                                         \
+       {16384, &MPIR_Reduce_shmem_MVP},                                        \
+       {32768, &MPIR_Reduce_shmem_MVP},                                        \
+       {65536, &MPIR_Reduce_shmem_MVP},                                        \
+       {131072, &MPIR_Reduce_shmem_MVP},                                       \
+       {262144, &MPIR_Reduce_shmem_MVP}}},                                     \
+     {192,                                                                     \
+      4,                                                                       \
+      4,                                                                       \
+      {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},               \
+      18,                                                                      \
+      {{1, &MPIR_Reduce_redscat_gather_MVP},                                   \
+       {2, &MPIR_Reduce_redscat_gather_MVP},                                   \
+       {4, &MPIR_Reduce_inter_knomial_wrapper_MVP},                            \
+       {8, &MPIR_Reduce_inter_knomial_wrapper_MVP},                            \
+       {16, &MPIR_Reduce_binomial_MVP},                                        \
+       {32, &MPIR_Reduce_inter_knomial_wrapper_MVP},                           \
+       {64, &MPIR_Reduce_binomial_MVP},                                        \
+       {128, &MPIR_Reduce_inter_knomial_wrapper_MVP},                          \
+       {256, &MPIR_Reduce_redscat_gather_MVP},                                 \
+       {512, &MPIR_Reduce_binomial_MVP},                                       \
+       {1024, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {2048, &MPIR_Reduce_redscat_gather_MVP},                                \
+       {4096, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {8192, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {16384, &MPIR_Reduce_inter_knomial_wrapper_MVP},                        \
+       {32768, &MPIR_Reduce_binomial_MVP},                                     \
+       {65536, &MPIR_Reduce_binomial_MVP},                                     \
+       {131072, &MPIR_Reduce_binomial_MVP},                                    \
+       {262144, &MPIR_Reduce_binomial_MVP}},                                   \
+      18,                                                                      \
+      {{1, &MPIR_Reduce_binomial_MVP},                                         \
+       {2, &MPIR_Reduce_binomial_MVP},                                         \
+       {4, &MPIR_Reduce_intra_knomial_wrapper_MVP},                            \
+       {8, &MPIR_Reduce_intra_knomial_wrapper_MVP},                            \
+       {16, &MPIR_Reduce_shmem_MVP},                                           \
+       {32, &MPIR_Reduce_shmem_MVP},                                           \
+       {64, &MPIR_Reduce_intra_knomial_wrapper_MVP},                           \
+       {128, &MPIR_Reduce_binomial_MVP},                                       \
+       {256, &MPIR_Reduce_shmem_MVP},                                          \
+       {512, &MPIR_Reduce_intra_knomial_wrapper_MVP},                          \
+       {1024, &MPIR_Reduce_shmem_MVP},                                         \
+       {2048, &MPIR_Reduce_shmem_MVP},                                         \
+       {4096, &MPIR_Reduce_shmem_MVP},                                         \
+       {8192, &MPIR_Reduce_shmem_MVP},                                         \
+       {16384, &MPIR_Reduce_shmem_MVP},                                        \
+       {32768, &MPIR_Reduce_shmem_MVP},                                        \
+       {65536, &MPIR_Reduce_shmem_MVP},                                        \
+       {131072, &MPIR_Reduce_shmem_MVP},                                       \
+       {262144, &MPIR_Reduce_shmem_MVP}}},                                     \
+     {384,                                                                     \
+      4,                                                                       \
+      4,                                                                       \
+      {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},               \
+      18,                                                                      \
+      {{1, &MPIR_Reduce_binomial_MVP},                                         \
+       {2, &MPIR_Reduce_redscat_gather_MVP},                                   \
+       {4, &MPIR_Reduce_binomial_MVP},                                         \
+       {8, &MPIR_Reduce_binomial_MVP},                                         \
+       {16, &MPIR_Reduce_binomial_MVP},                                        \
+       {32, &MPIR_Reduce_binomial_MVP},                                        \
+       {64, &MPIR_Reduce_redscat_gather_MVP},                                  \
+       {128, &MPIR_Reduce_redscat_gather_MVP},                                 \
+       {256, &MPIR_Reduce_inter_knomial_wrapper_MVP},                          \
+       {512, &MPIR_Reduce_redscat_gather_MVP},                                 \
+       {1024, &MPIR_Reduce_redscat_gather_MVP},                                \
+       {2048, &MPIR_Reduce_redscat_gather_MVP},                                \
+       {4096, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {8192, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {16384, &MPIR_Reduce_inter_knomial_wrapper_MVP},                        \
+       {32768, &MPIR_Reduce_binomial_MVP},                                     \
+       {65536, &MPIR_Reduce_binomial_MVP},                                     \
+       {131072, &MPIR_Reduce_binomial_MVP},                                    \
+       {262144, &MPIR_Reduce_binomial_MVP}},                                   \
+      18,                                                                      \
+      {{1, &MPIR_Reduce_shmem_MVP},                                            \
+       {2, &MPIR_Reduce_shmem_MVP},                                            \
+       {4, &MPIR_Reduce_shmem_MVP},                                            \
+       {8, &MPIR_Reduce_binomial_MVP},                                         \
+       {16, &MPIR_Reduce_shmem_MVP},                                           \
+       {32, &MPIR_Reduce_binomial_MVP},                                        \
+       {64, &MPIR_Reduce_binomial_MVP},                                        \
+       {128, &MPIR_Reduce_intra_knomial_wrapper_MVP},                          \
+       {256, &MPIR_Reduce_binomial_MVP},                                       \
+       {512, &MPIR_Reduce_binomial_MVP},                                       \
+       {1024, &MPIR_Reduce_binomial_MVP},                                      \
+       {2048, &MPIR_Reduce_binomial_MVP},                                      \
+       {4096, &MPIR_Reduce_shmem_MVP},                                         \
+       {8192, &MPIR_Reduce_shmem_MVP},                                         \
+       {16384, &MPIR_Reduce_shmem_MVP},                                        \
+       {32768, &MPIR_Reduce_shmem_MVP},                                        \
+       {65536, &MPIR_Reduce_shmem_MVP},                                        \
+       {131072, &MPIR_Reduce_shmem_MVP},                                       \
+       {262144, &MPIR_Reduce_shmem_MVP}}},                                     \
+     {768,                                                                     \
+      4,                                                                       \
+      4,                                                                       \
+      {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},               \
+      18,                                                                      \
+      {{1, &MPIR_Reduce_redscat_gather_MVP},                                   \
+       {2, &MPIR_Reduce_redscat_gather_MVP},                                   \
+       {4, &MPIR_Reduce_redscat_gather_MVP},                                   \
+       {8, &MPIR_Reduce_inter_knomial_wrapper_MVP},                            \
+       {16, &MPIR_Reduce_binomial_MVP},                                        \
+       {32, &MPIR_Reduce_inter_knomial_wrapper_MVP},                           \
+       {64, &MPIR_Reduce_inter_knomial_wrapper_MVP},                           \
+       {128, &MPIR_Reduce_redscat_gather_MVP},                                 \
+       {256, &MPIR_Reduce_binomial_MVP},                                       \
+       {512, &MPIR_Reduce_inter_knomial_wrapper_MVP},                          \
+       {1024, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {2048, &MPIR_Reduce_redscat_gather_MVP},                                \
+       {4096, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {8192, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {16384, &MPIR_Reduce_inter_knomial_wrapper_MVP},                        \
+       {32768, &MPIR_Reduce_binomial_MVP},                                     \
+       {65536, &MPIR_Reduce_binomial_MVP},                                     \
+       {131072, &MPIR_Reduce_binomial_MVP},                                    \
+       {262144, &MPIR_Reduce_binomial_MVP}},                                   \
+      18,                                                                      \
+      {{1, &MPIR_Reduce_intra_knomial_wrapper_MVP},                            \
+       {2, &MPIR_Reduce_intra_knomial_wrapper_MVP},                            \
+       {4, &MPIR_Reduce_intra_knomial_wrapper_MVP},                            \
+       {8, &MPIR_Reduce_binomial_MVP},                                         \
+       {16, &MPIR_Reduce_binomial_MVP},                                        \
+       {32, &MPIR_Reduce_binomial_MVP},                                        \
+       {64, &MPIR_Reduce_binomial_MVP},                                        \
+       {128, &MPIR_Reduce_shmem_MVP},                                          \
+       {256, &MPIR_Reduce_intra_knomial_wrapper_MVP},                          \
+       {512, &MPIR_Reduce_binomial_MVP},                                       \
+       {1024, &MPIR_Reduce_intra_knomial_wrapper_MVP},                         \
+       {2048, &MPIR_Reduce_shmem_MVP},                                         \
+       {4096, &MPIR_Reduce_shmem_MVP},                                         \
+       {8192, &MPIR_Reduce_shmem_MVP},                                         \
+       {16384, &MPIR_Reduce_shmem_MVP},                                        \
+       {32768, &MPIR_Reduce_shmem_MVP},                                        \
+       {65536, &MPIR_Reduce_shmem_MVP},                                        \
+       {131072, &MPIR_Reduce_shmem_MVP},                                       \
+       {262144, &MPIR_Reduce_shmem_MVP}}}};
+#define GEN2__INTEL_XEON_E5_2630_V2_2S_12__MLX_CX_CONNIB__12PPN                \
+    {{24,                                                                      \
+      4,                                                                       \
+      4,                                                                       \
+      {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},               \
+      18,                                                                      \
+      {{1, &MPIR_Reduce_binomial_MVP},                                         \
+       {2, &MPIR_Reduce_binomial_MVP},                                         \
+       {4, &MPIR_Reduce_binomial_MVP},                                         \
+       {8, &MPIR_Reduce_binomial_MVP},                                         \
+       {16, &MPIR_Reduce_binomial_MVP},                                        \
+       {32, &MPIR_Reduce_binomial_MVP},                                        \
+       {64, &MPIR_Reduce_binomial_MVP},                                        \
+       {128, &MPIR_Reduce_binomial_MVP},                                       \
+       {256, &MPIR_Reduce_binomial_MVP},                                       \
+       {512, &MPIR_Reduce_binomial_MVP},                                       \
+       {1024, &MPIR_Reduce_binomial_MVP},                                      \
+       {2048, &MPIR_Reduce_binomial_MVP},                                      \
+       {4096, &MPIR_Reduce_binomial_MVP},                                      \
+       {8192, &MPIR_Reduce_binomial_MVP},                                      \
+       {16384, &MPIR_Reduce_binomial_MVP},                                     \
+       {32768, &MPIR_Reduce_binomial_MVP},                                     \
+       {65536, &MPIR_Reduce_binomial_MVP},                                     \
+       {131072, &MPIR_Reduce_binomial_MVP},                                    \
+       {262144, &MPIR_Reduce_binomial_MVP}},                                   \
+      18,                                                                      \
+      {{1, &MPIR_Reduce_shmem_MVP},                                            \
+       {2, &MPIR_Reduce_shmem_MVP},                                            \
+       {4, &MPIR_Reduce_shmem_MVP},                                            \
+       {8, &MPIR_Reduce_shmem_MVP},                                            \
+       {16, &MPIR_Reduce_shmem_MVP},                                           \
+       {32, &MPIR_Reduce_shmem_MVP},                                           \
+       {64, &MPIR_Reduce_shmem_MVP},                                           \
+       {128, &MPIR_Reduce_shmem_MVP},                                          \
+       {256, &MPIR_Reduce_shmem_MVP},                                          \
+       {512, &MPIR_Reduce_shmem_MVP},                                          \
+       {1024, &MPIR_Reduce_shmem_MVP},                                         \
+       {2048, &MPIR_Reduce_shmem_MVP},                                         \
+       {4096, &MPIR_Reduce_shmem_MVP},                                         \
+       {8192, &MPIR_Reduce_shmem_MVP},                                         \
+       {16384, &MPIR_Reduce_shmem_MVP},                                        \
+       {32768, &MPIR_Reduce_shmem_MVP},                                        \
+       {65536, &MPIR_Reduce_shmem_MVP},                                        \
+       {131072, &MPIR_Reduce_shmem_MVP},                                       \
+       {262144, &MPIR_Reduce_shmem_MVP}}},                                     \
+     {48,                                                                      \
+      4,                                                                       \
+      4,                                                                       \
+      {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},               \
+      18,                                                                      \
+      {{1, &MPIR_Reduce_redscat_gather_MVP},                                   \
+       {2, &MPIR_Reduce_inter_knomial_wrapper_MVP},                            \
+       {4, &MPIR_Reduce_redscat_gather_MVP},                                   \
+       {8, &MPIR_Reduce_binomial_MVP},                                         \
+       {16, &MPIR_Reduce_inter_knomial_wrapper_MVP},                           \
+       {32, &MPIR_Reduce_binomial_MVP},                                        \
+       {64, &MPIR_Reduce_inter_knomial_wrapper_MVP},                           \
+       {128, &MPIR_Reduce_inter_knomial_wrapper_MVP},                          \
+       {256, &MPIR_Reduce_binomial_MVP},                                       \
+       {512, &MPIR_Reduce_inter_knomial_wrapper_MVP},                          \
+       {1024, &MPIR_Reduce_redscat_gather_MVP},                                \
+       {2048, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {4096, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {8192, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {16384, &MPIR_Reduce_binomial_MVP},                                     \
+       {32768, &MPIR_Reduce_binomial_MVP},                                     \
+       {65536, &MPIR_Reduce_binomial_MVP},                                     \
+       {131072, &MPIR_Reduce_redscat_gather_MVP},                              \
+       {262144, &MPIR_Reduce_redscat_gather_MVP}},                             \
+      18,                                                                      \
+      {{1, &MPIR_Reduce_binomial_MVP},                                         \
+       {2, &MPIR_Reduce_binomial_MVP},                                         \
+       {4, &MPIR_Reduce_intra_knomial_wrapper_MVP},                            \
+       {8, &MPIR_Reduce_intra_knomial_wrapper_MVP},                            \
+       {16, &MPIR_Reduce_shmem_MVP},                                           \
+       {32, &MPIR_Reduce_intra_knomial_wrapper_MVP},                           \
+       {64, &MPIR_Reduce_shmem_MVP},                                           \
+       {128, &MPIR_Reduce_binomial_MVP},                                       \
+       {256, &MPIR_Reduce_intra_knomial_wrapper_MVP},                          \
+       {512, &MPIR_Reduce_binomial_MVP},                                       \
+       {1024, &MPIR_Reduce_intra_knomial_wrapper_MVP},                         \
+       {2048, &MPIR_Reduce_binomial_MVP},                                      \
+       {4096, &MPIR_Reduce_shmem_MVP},                                         \
+       {8192, &MPIR_Reduce_shmem_MVP},                                         \
+       {16384, &MPIR_Reduce_shmem_MVP},                                        \
+       {32768, &MPIR_Reduce_shmem_MVP},                                        \
+       {65536, &MPIR_Reduce_shmem_MVP},                                        \
+       {131072, &MPIR_Reduce_shmem_MVP},                                       \
+       {262144, &MPIR_Reduce_shmem_MVP}}},                                     \
+     {96,                                                                      \
+      4,                                                                       \
+      4,                                                                       \
+      {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},               \
+      18,                                                                      \
+      {{1, &MPIR_Reduce_inter_knomial_wrapper_MVP},                            \
+       {2, &MPIR_Reduce_inter_knomial_wrapper_MVP},                            \
+       {4, &MPIR_Reduce_inter_knomial_wrapper_MVP},                            \
+       {8, &MPIR_Reduce_inter_knomial_wrapper_MVP},                            \
+       {16, &MPIR_Reduce_inter_knomial_wrapper_MVP},                           \
+       {32, &MPIR_Reduce_inter_knomial_wrapper_MVP},                           \
+       {64, &MPIR_Reduce_inter_knomial_wrapper_MVP},                           \
+       {128, &MPIR_Reduce_inter_knomial_wrapper_MVP},                          \
+       {256, &MPIR_Reduce_inter_knomial_wrapper_MVP},                          \
+       {512, &MPIR_Reduce_inter_knomial_wrapper_MVP},                          \
+       {1024, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {2048, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {4096, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {8192, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {16384, &MPIR_Reduce_inter_knomial_wrapper_MVP},                        \
+       {32768, &MPIR_Reduce_inter_knomial_wrapper_MVP},                        \
+       {65536, &MPIR_Reduce_inter_knomial_wrapper_MVP},                        \
+       {131072, &MPIR_Reduce_inter_knomial_wrapper_MVP},                       \
+       {262144, &MPIR_Reduce_inter_knomial_wrapper_MVP}},                      \
+      18,                                                                      \
+      {{1, &MPIR_Reduce_shmem_MVP},                                            \
+       {2, &MPIR_Reduce_shmem_MVP},                                            \
+       {4, &MPIR_Reduce_shmem_MVP},                                            \
+       {8, &MPIR_Reduce_shmem_MVP},                                            \
+       {16, &MPIR_Reduce_shmem_MVP},                                           \
+       {32, &MPIR_Reduce_shmem_MVP},                                           \
+       {64, &MPIR_Reduce_shmem_MVP},                                           \
+       {128, &MPIR_Reduce_shmem_MVP},                                          \
+       {256, &MPIR_Reduce_shmem_MVP},                                          \
+       {512, &MPIR_Reduce_shmem_MVP},                                          \
+       {1024, &MPIR_Reduce_shmem_MVP},                                         \
+       {2048, &MPIR_Reduce_shmem_MVP},                                         \
+       {4096, &MPIR_Reduce_shmem_MVP},                                         \
+       {8192, &MPIR_Reduce_shmem_MVP},                                         \
+       {16384, &MPIR_Reduce_shmem_MVP},                                        \
+       {32768, &MPIR_Reduce_shmem_MVP},                                        \
+       {65536, &MPIR_Reduce_shmem_MVP},                                        \
+       {131072, &MPIR_Reduce_shmem_MVP},                                       \
+       {262144, &MPIR_Reduce_shmem_MVP}}},                                     \
+     {192,                                                                     \
+      4,                                                                       \
+      4,                                                                       \
+      {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},               \
+      18,                                                                      \
+      {{1, &MPIR_Reduce_redscat_gather_MVP},                                   \
+       {2, &MPIR_Reduce_redscat_gather_MVP},                                   \
+       {4, &MPIR_Reduce_inter_knomial_wrapper_MVP},                            \
+       {8, &MPIR_Reduce_inter_knomial_wrapper_MVP},                            \
+       {16, &MPIR_Reduce_binomial_MVP},                                        \
+       {32, &MPIR_Reduce_inter_knomial_wrapper_MVP},                           \
+       {64, &MPIR_Reduce_binomial_MVP},                                        \
+       {128, &MPIR_Reduce_inter_knomial_wrapper_MVP},                          \
+       {256, &MPIR_Reduce_redscat_gather_MVP},                                 \
+       {512, &MPIR_Reduce_binomial_MVP},                                       \
+       {1024, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {2048, &MPIR_Reduce_redscat_gather_MVP},                                \
+       {4096, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {8192, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {16384, &MPIR_Reduce_inter_knomial_wrapper_MVP},                        \
+       {32768, &MPIR_Reduce_binomial_MVP},                                     \
+       {65536, &MPIR_Reduce_binomial_MVP},                                     \
+       {131072, &MPIR_Reduce_binomial_MVP},                                    \
+       {262144, &MPIR_Reduce_binomial_MVP}},                                   \
+      18,                                                                      \
+      {{1, &MPIR_Reduce_binomial_MVP},                                         \
+       {2, &MPIR_Reduce_binomial_MVP},                                         \
+       {4, &MPIR_Reduce_intra_knomial_wrapper_MVP},                            \
+       {8, &MPIR_Reduce_intra_knomial_wrapper_MVP},                            \
+       {16, &MPIR_Reduce_shmem_MVP},                                           \
+       {32, &MPIR_Reduce_shmem_MVP},                                           \
+       {64, &MPIR_Reduce_intra_knomial_wrapper_MVP},                           \
+       {128, &MPIR_Reduce_binomial_MVP},                                       \
+       {256, &MPIR_Reduce_shmem_MVP},                                          \
+       {512, &MPIR_Reduce_intra_knomial_wrapper_MVP},                          \
+       {1024, &MPIR_Reduce_shmem_MVP},                                         \
+       {2048, &MPIR_Reduce_shmem_MVP},                                         \
+       {4096, &MPIR_Reduce_shmem_MVP},                                         \
+       {8192, &MPIR_Reduce_shmem_MVP},                                         \
+       {16384, &MPIR_Reduce_shmem_MVP},                                        \
+       {32768, &MPIR_Reduce_shmem_MVP},                                        \
+       {65536, &MPIR_Reduce_shmem_MVP},                                        \
+       {131072, &MPIR_Reduce_shmem_MVP},                                       \
+       {262144, &MPIR_Reduce_shmem_MVP}}},                                     \
+     {384,                                                                     \
+      4,                                                                       \
+      4,                                                                       \
+      {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},               \
+      18,                                                                      \
+      {{1, &MPIR_Reduce_binomial_MVP},                                         \
+       {2, &MPIR_Reduce_redscat_gather_MVP},                                   \
+       {4, &MPIR_Reduce_binomial_MVP},                                         \
+       {8, &MPIR_Reduce_binomial_MVP},                                         \
+       {16, &MPIR_Reduce_binomial_MVP},                                        \
+       {32, &MPIR_Reduce_binomial_MVP},                                        \
+       {64, &MPIR_Reduce_redscat_gather_MVP},                                  \
+       {128, &MPIR_Reduce_redscat_gather_MVP},                                 \
+       {256, &MPIR_Reduce_inter_knomial_wrapper_MVP},                          \
+       {512, &MPIR_Reduce_redscat_gather_MVP},                                 \
+       {1024, &MPIR_Reduce_redscat_gather_MVP},                                \
+       {2048, &MPIR_Reduce_redscat_gather_MVP},                                \
+       {4096, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {8192, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {16384, &MPIR_Reduce_inter_knomial_wrapper_MVP},                        \
+       {32768, &MPIR_Reduce_binomial_MVP},                                     \
+       {65536, &MPIR_Reduce_binomial_MVP},                                     \
+       {131072, &MPIR_Reduce_binomial_MVP},                                    \
+       {262144, &MPIR_Reduce_binomial_MVP}},                                   \
+      18,                                                                      \
+      {{1, &MPIR_Reduce_shmem_MVP},                                            \
+       {2, &MPIR_Reduce_shmem_MVP},                                            \
+       {4, &MPIR_Reduce_shmem_MVP},                                            \
+       {8, &MPIR_Reduce_binomial_MVP},                                         \
+       {16, &MPIR_Reduce_shmem_MVP},                                           \
+       {32, &MPIR_Reduce_binomial_MVP},                                        \
+       {64, &MPIR_Reduce_binomial_MVP},                                        \
+       {128, &MPIR_Reduce_intra_knomial_wrapper_MVP},                          \
+       {256, &MPIR_Reduce_binomial_MVP},                                       \
+       {512, &MPIR_Reduce_binomial_MVP},                                       \
+       {1024, &MPIR_Reduce_binomial_MVP},                                      \
+       {2048, &MPIR_Reduce_binomial_MVP},                                      \
+       {4096, &MPIR_Reduce_shmem_MVP},                                         \
+       {8192, &MPIR_Reduce_shmem_MVP},                                         \
+       {16384, &MPIR_Reduce_shmem_MVP},                                        \
+       {32768, &MPIR_Reduce_shmem_MVP},                                        \
+       {65536, &MPIR_Reduce_shmem_MVP},                                        \
+       {131072, &MPIR_Reduce_shmem_MVP},                                       \
+       {262144, &MPIR_Reduce_shmem_MVP}}},                                     \
+     {768,                                                                     \
+      4,                                                                       \
+      4,                                                                       \
+      {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},               \
+      18,                                                                      \
+      {{1, &MPIR_Reduce_redscat_gather_MVP},                                   \
+       {2, &MPIR_Reduce_redscat_gather_MVP},                                   \
+       {4, &MPIR_Reduce_redscat_gather_MVP},                                   \
+       {8, &MPIR_Reduce_inter_knomial_wrapper_MVP},                            \
+       {16, &MPIR_Reduce_binomial_MVP},                                        \
+       {32, &MPIR_Reduce_inter_knomial_wrapper_MVP},                           \
+       {64, &MPIR_Reduce_inter_knomial_wrapper_MVP},                           \
+       {128, &MPIR_Reduce_redscat_gather_MVP},                                 \
+       {256, &MPIR_Reduce_binomial_MVP},                                       \
+       {512, &MPIR_Reduce_inter_knomial_wrapper_MVP},                          \
+       {1024, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {2048, &MPIR_Reduce_redscat_gather_MVP},                                \
+       {4096, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {8192, &MPIR_Reduce_inter_knomial_wrapper_MVP},                         \
+       {16384, &MPIR_Reduce_inter_knomial_wrapper_MVP},                        \
+       {32768, &MPIR_Reduce_binomial_MVP},                                     \
+       {65536, &MPIR_Reduce_binomial_MVP},                                     \
+       {131072, &MPIR_Reduce_binomial_MVP},                                    \
+       {262144, &MPIR_Reduce_binomial_MVP}},                                   \
+      18,                                                                      \
+      {{1, &MPIR_Reduce_intra_knomial_wrapper_MVP},                            \
+       {2, &MPIR_Reduce_intra_knomial_wrapper_MVP},                            \
+       {4, &MPIR_Reduce_intra_knomial_wrapper_MVP},                            \
+       {8, &MPIR_Reduce_binomial_MVP},                                         \
+       {16, &MPIR_Reduce_binomial_MVP},                                        \
+       {32, &MPIR_Reduce_binomial_MVP},                                        \
+       {64, &MPIR_Reduce_binomial_MVP},                                        \
+       {128, &MPIR_Reduce_shmem_MVP},                                          \
+       {256, &MPIR_Reduce_intra_knomial_wrapper_MVP},                          \
+       {512, &MPIR_Reduce_binomial_MVP},                                       \
+       {1024, &MPIR_Reduce_intra_knomial_wrapper_MVP},                         \
+       {2048, &MPIR_Reduce_shmem_MVP},                                         \
+       {4096, &MPIR_Reduce_shmem_MVP},                                         \
+       {8192, &MPIR_Reduce_shmem_MVP},                                         \
+       {16384, &MPIR_Reduce_shmem_MVP},                                        \
+       {32768, &MPIR_Reduce_shmem_MVP},                                        \
+       {65536, &MPIR_Reduce_shmem_MVP},                                        \
+       {131072, &MPIR_Reduce_shmem_MVP},                                       \
+       {262144, &MPIR_Reduce_shmem_MVP}}}};

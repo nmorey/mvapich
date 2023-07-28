@@ -1,5 +1,10 @@
 #!/bin/bash
 
+REPORT_FAILURES=false
+THRESHOLD=30
+THRESHOLDMRI=120
+THRESHOLDRI2=120
+
 pushd $PWD
 
 echo "Running on"
@@ -110,7 +115,60 @@ do
  #exit base venv
  conda deactivate
 
+ #check the HTML report for errors, custom exit code will signal without having to check the logs
+ if grep -q "version failed to run" /home/gitlab-runner/merges/tuning-suite/regression/report-${CLUSTER_ABBREV}-${channel}-${CI_COMMIT_SHA}.html; then
+        echo "There may have been an error running the regressions, please check the following report in this job's artifacts:"
+	echo "/home/gitlab-runner/merges/tuning-suite/regression/report-${CLUSTER_ABBREV}-${channel}-${CI_COMMIT_SHA}.html"
+        REPORT_FAILURES=true
+ fi
+
+ for i in $(ls | egrep -i 'slurm-*' ); do
+  if grep -q "error" $i; then
+         echo "There may have been an error in the following benchmark:"
+         echo "/home/gitlab-runner/merges/tuning-suite/regression/${i}"
+         REPORT_FAILURES=true
+  fi
+ done
+
+ if [ "$REPORT_FAILURES" = true ]; then
+        echo "Script succeeded, but errors may be present in regression files, please check above logs"
+ fi
+
+ rm -f /home/gitlab-runner/merges/tuning-suite/regression/negatives.txt
+
+ grep -o '\-[0-9]*.[0-9]*%' /home/gitlab-runner/merges/tuning-suite/regression/report-${CLUSTER_ABBREV}-${channel}-${CI_COMMIT_SHA}.html | grep -o '\-[0-9]*' > /home/gitlab-runner/merges/tuning-suite/regression/negatives.txt
+
+ #Check number of degredations at or above 10%
+ NUMBAD=$(awk '{ if($0 < -9) print $0;}' /home/gitlab-runner/merges/tuning-suite/regression/negatives.txt | wc -l)
+ echo "Number of degredations over 10% for $channel on $CLUSTER_ABBREV: "
+ echo $NUMBAD
+ if [ "$NUMBAD" -gt "$THRESHOLD" ]; then
+   echo "This is more than the allowed threshold of $THRESHOLD for $channel on $CLUSTER_ABBREV";
+   rm -f /home/gitlab-runner/merges/tuning-suite/regression/negatives.txt
+   if [ $CLUSTER_ABBREV == "mri" ]; then
+     if [ "$NUMBAD" -gt "$THRESHOLDMRI" ]; then
+       exit 1
+     else
+       echo "but within tolerance to account for system performance variance"
+       exit 30
+     fi
+   fi
+   if [ $CLUSTER_ABBREV == "ri2" ]; then
+     if [ "$NUMBAD" -gt "$THRESHOLDRI2" ]; then
+       exit 1
+     else
+       echo "but within tolerance to account for system performance variance"
+       exit 30
+     fi
+   fi
+   exit 1
+ else
+   echo "This is within the allowed limit of $THRESHOLD for $channel on $CLUSTER_ABBREV";
+   rm -f /home/gitlab-runner/merges/tuning-suite/regression/negatives.txt
+ fi
+
 done
 
 #return to original directory
 popd
+

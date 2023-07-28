@@ -576,7 +576,7 @@ static inline int MPID_Iscatterv(const void *sendbuf, const int *sendcounts,
 
 /* 
 #if defined(CHANNEL_MRAIL) || defined(CHANNEL_PSM)
-#include "mv2_mpidi_ch3_coll.h"
+#include "mvp_mpidi_ch3_coll.h"
 #endif
 */
 

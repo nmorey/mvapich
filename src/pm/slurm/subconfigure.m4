@@ -1,4 +1,5 @@
 [#] start of __file__
+dnl MPICH_SUBCFG_BEFORE=src/pmi
 
 AC_DEFUN([PAC_SUBCFG_PREREQ_]PAC_SUBCFG_AUTO_SUFFIX,[
 ])
@@ -43,6 +44,10 @@ PAC_SET_HEADER_LIB_PATH([slurm])
 
 if test "x$with_pmi" = "xsimple" -o "x$with_pmi" = "xpmi1"; then
     AC_CHECK_HEADER([slurm/pmi.h], [], [AC_MSG_ERROR([could not find slurm/pmi.h.  Configure aborted])])
+    AC_CHECK_FILE([/usr/include/slurm/pmi.h],
+                  [found pmi.h for slurm]
+                  [CPPFLAGS="$CPPFLAGS -I/usr/include/slurm"],
+                  [AC_MSG_WARN([could not find slurm/pmi.h in default location. Please add the path to CPATH])])
     AC_CHECK_LIB([pmi], [PMI_Init],
              [PAC_PREPEND_FLAG([-lpmi],[LIBS])
               PAC_PREPEND_FLAG([-lpmi], [WRAPPER_LIBS])],
@@ -52,6 +57,10 @@ if test "x$with_pmi" = "xsimple" -o "x$with_pmi" = "xpmi1"; then
 elif test "x$with_pmi" = "xpmi2/simple" -o "x$with_pmi" = "xpmi2"; then
     USE_PMI2_API=yes
     AC_CHECK_HEADER([slurm/pmi2.h], [], [AC_MSG_ERROR([could not find slurm/pmi2.h.  Configure aborted])])
+    AC_CHECK_FILE([/usr/include/slurm/pmi2.h],
+                  [found pmi2.h for slurm]
+                  [CPPFLAGS="$CPPFLAGS -I/usr/include/slurm"],
+                  [AC_MSG_WARN([could not find slurm/pmi2.h in default location. Please add the path to CPATH])])
     AC_CHECK_LIB([pmi2], [PMI2_Init],
              [PAC_PREPEND_FLAG([-lpmi2],[LIBS])
               PAC_PREPEND_FLAG([-lpmi2], [WRAPPER_LIBS])],
@@ -89,6 +98,36 @@ elif test "x$with_pmi" = "xpmix"; then
                   AC_DEFINE([USE_PMIX_API], [1], [Define if PMIx client supports PMIx])],
                  [AC_MSG_ERROR([could not find the slurm libpmix. Please use --with-pmix to point to the correct location. Configure aborted])])
     fi
+elif test "x$with_pmi" = "xcray"; then
+    with_pmi=pmi2
+    pmi_name=pmi2
+    USE_PMI2_API=yes
+    AC_DEFINE([PMI_keyval_t], [PMI2_keyval_t], [Define to support the Cray PMI2 which removes the definition of PMI_keyval_t])
+    AC_ARG_WITH([craypmi],
+        [AS_HELP_STRING([--with-craypmi=@<:@Path to Cray PMI library@:>@],
+                           [Absolute path to Cray PMI base directory])
+        ],
+        [AS_CASE([$with_craypmi],
+            [yes|no], [AC_MSG_FAILURE([--with-craypmi must be passed a path])],
+            [CPPFLAGS="$CPPFLAGS -I$with_craypmi/include"]
+            [LDFLAGS="$LDFLAGS -Wl,-rpath,$with_craypmi/lib -L$with_craypmi/lib"])
+        ],
+        [
+            [with_craypmi=/opt/cray/pe/pmi/default]
+            [CPPFLAGS="$CPPFLAGS -I$with_craypmi/include"]
+            [LDFLAGS="$LDFLAGS -Wl,-rpath,$with_craypmi/lib -L$with_craypmi/lib"]
+        ])
+
+        AC_CHECK_HEADER([pmi2.h], [], [AC_MSG_ERROR([could not find pmi2.h. Use --with-craypmi to point to the correct location. Configure aborted])])
+        AC_CHECK_LIB([pmi2], [PMI2_Init],
+                 [PAC_PREPEND_FLAG([-lpmi2],[LIBS])],
+                 [AC_MSG_ERROR([could not find the cray libpmi2. Use --with-craypmi to point to the correct location. Configure aborted])])
+        AC_CHECK_FUNCS([PMI2_KVS_Ifence], [AC_DEFINE([HAVE_PMI2_KVS_IFENCE], [1], [Define if pmi client supports PMI2_KVS_Ifence])])
+        AC_CHECK_FUNCS([PMI2_KVS_Wait], [AC_DEFINE([HAVE_PMI2_KVS_WAIT], [1], [Define if pmi client supports PMI2_KVS_Wait])])
+        AC_CHECK_FUNCS([PMI2_Iallgather], [AC_DEFINE([HAVE_PMI2_SHMEM_IALLGATHER], [1], [Define if pmi client supports PMI2_Iallgather])])
+        AC_CHECK_FUNCS([PMI2_Iallgather_wait], [AC_DEFINE([HAVE_PMI2_SHMEM_IALLGATHER_WAIT], [1], [Define if pmi client supports PMI2_Iallgather_wait])])
+        AC_CHECK_FUNCS([PMI2_SHMEM_Iallgather], [AC_DEFINE([HAVE_PMI2_SHMEM_IALLGATHER], [1], [Define if pmi client supports PMI2_SHMEM_Iallgather])])
+        AC_CHECK_FUNCS([PMI2_SHMEM_Iallgather_wait], [AC_DEFINE([HAVE_PMI2_SHMEM_IALLGATHER_WAIT], [1], [Define if pmi client supports PMI2_SHMEM_Iallgather_wait])])
 else
     AC_MSG_ERROR([Selected PMI ($with_pmi) is not compatible with slurm])
 fi

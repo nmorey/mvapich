@@ -8,12 +8,12 @@
 # Copyright (c) 2001-2022, The Ohio State University. All rights
 # reserved.
 #
-# This file is part of the MVAPICH2 software package developed by the
+# This file is part of the MVAPICH software package developed by the
 # team members of The Ohio State University's Network-Based Computing
 # Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
 #
 # For detailed copyright and licensing information, please refer to the
-# copyright file COPYRIGHT in the top level MVAPICH2 directory.
+# copyright file COPYRIGHT in the top level MVAPICH directory.
 #
 # Update all of the derived files
 # For best performance, execute this in the top-level directory.
@@ -651,6 +651,10 @@ if [ "yes" = "$do_yaksa" ] ; then
     check_submodule_presence "modules/yaksa"
 fi
 
+if [ "yes" = "$do_nccl" ] ; then
+    check_submodule_presence "modules/nccl"
+fi
+
 ########################################################################
 # This used to be an optionally installed hook to help with git-svn
 # versions of the old SVN repo.  Now that we are using git, this is our
@@ -963,20 +967,20 @@ else
     echo "skipped"
 fi
 
-# BEGIN: MV2 CVAR Extraction
-echo_n "Extracting MV2 control variables (cvar) ... "
-if test -x maint/extractmv2cvars -a "$do_getcvars" = "yes" ; then
-    if ./maint/extractmv2cvars --dirs="`cat maint/cvardirs`"; then
+# BEGIN: MVP CVAR Extraction
+echo_n "Extracting MVP control variables (cvar) ... "
+if test -x maint/extractmvpcvars -a "$do_getcvars" = "yes" ; then
+    if ./maint/extractmvpcvars --dirs="`cat maint/cvardirs`"; then
         echo "done"
     else
         echo "failed"
-        error "unable to extract MV2 control variables"
+        error "unable to extract MVP control variables"
         exit 1
     fi
 else
     echo "skipped"
 fi
-# END: MV2 CVAR Extraction
+# END: MVP CVAR Extraction
 
 echo
 echo

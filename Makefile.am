@@ -190,7 +190,7 @@ endif
 # build the current directory and then the examples directory after everything else
 SUBDIRS += . examples
 if BUILD_OSU_MVAPICH
-SUBDIRS += src/env/mpiname src/util/mv2_ckpt_rebuild
+SUBDIRS += src/env/mpiname src/util/mvp_ckpt_rebuild
 if BUILD_OMB
 SUBDIRS += osu_benchmarks
 endif

@@ -2,15 +2,15 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -279,11 +279,11 @@ int MPIDI_CH3_PktHandler_CancelSendReq( MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, vo
 #if defined(CHANNEL_MRAIL)
         MPIDI_CH3I_MRAILI_RREQ_RNDV_FINISH(rreq);
         /* MPIR_Request_free() treats all rreqs as posted recvs and always
-         * decrements mv2_posted_recvq_length.  Here rreq is unexpected, so
-         * increment mv2_posted_recvq_length and decrement mv2_unexp_msg_recv (#908)
+         * decrements mvp_posted_recvq_length.  Here rreq is unexpected, so
+         * increment mvp_posted_recvq_length and decrement mvp_unexp_msg_recv (#908)
          */
-        MV2_INC_NUM_POSTED_RECV();
-        MV2_DEC_NUM_UNEXP_RECV();
+        MVP_INC_NUM_POSTED_RECV();
+        MVP_DEC_NUM_UNEXP_RECV();
 #endif /* defined(CHANNEL_MRAIL) */
         if (MPIDI_Request_get_msg_type(rreq) == MPIDI_REQUEST_RNDV_MSG)
         {

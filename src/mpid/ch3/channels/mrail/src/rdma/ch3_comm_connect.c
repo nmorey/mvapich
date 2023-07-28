@@ -3,22 +3,22 @@
  *  (C) 2001 by Argonne National Laboratory.
  *      See COPYRIGHT in top-level directory.
  *
- * Copyright (c) 2001-2022, The Ohio State University. All rights
+ * Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  */
 
 #include "mpidi_ch3_impl.h"
 #include "upmi.h"
 
-int MPIDI_CH3_Comm_connect(char *port_name, int root, MPIR_Comm * comm_ptr,
-                           MPIR_Comm ** newcomm)
+int MPIDI_CH3_Comm_connect(char *port_name, int root, MPIR_Comm *comm_ptr,
+                           MPIR_Comm **newcomm)
 {
     MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPIDI_CH3_COMM_CONNECT);
     MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPIDI_CH3_COMM_CONNECT);

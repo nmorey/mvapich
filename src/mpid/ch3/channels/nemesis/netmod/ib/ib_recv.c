@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -21,13 +21,12 @@
 /* add ib_poll.h for MPIDI_nem_ib_request_adjust_iov */
 #include "ib_poll.h"
 
-
 /** We maintain an index table to get the header size ******/
 int MPIDI_CH3_Pkt_size_index[] = {
-    sizeof(MPIDI_CH3_Pkt_eager_send_t),        /* 0 */
+    sizeof(MPIDI_CH3_Pkt_eager_send_t), /* 0 */
 #if defined(USE_EAGER_SHORT)
     sizeof(MPIDI_CH3_Pkt_eagershort_send_t),
-#endif 
+#endif
     sizeof(MPIDI_CH3_Pkt_eager_sync_send_t),
     sizeof(MPIDI_CH3_Pkt_eager_sync_ack_t),
     sizeof(MPIDI_CH3_Pkt_ready_send_t),
@@ -42,37 +41,37 @@ int MPIDI_CH3_Pkt_size_index[] = {
     sizeof(MPIDI_CH3_Pkt_accum_t),
     sizeof(MPIDI_CH3_Pkt_lock_t),
     sizeof(MPIDI_CH3_Pkt_lock_granted_t),
-    -1,                                 /* FLOW CONTROL UPDATE unused */
+    -1, /* FLOW CONTROL UPDATE unused */
     sizeof(MPIDI_CH3_Pkt_close_t),
-    -1,                                 /* MPIDI_CH3_PKT_END_CH3 */  
-    -1,                                 /* MPIDI_CH3_PKT_END_ALL */ 
+    -1, /* MPIDI_CH3_PKT_END_CH3 */
+    -1, /* MPIDI_CH3_PKT_END_ALL */
     sizeof(MPID_nem_pkt_lmt_rts_t),
     sizeof(MPID_nem_pkt_lmt_cts_t),
     sizeof(MPID_nem_pkt_lmt_done_t),
     sizeof(MPID_nem_pkt_lmt_cookie_t),
-    -1,                                 /* MPIDI_CH3_PKT_END_ALL */
+    -1, /* MPIDI_CH3_PKT_END_ALL */
     sizeof(MPIDI_nem_ib_pkt_noop),
     sizeof(MPIDI_nem_ib_pkt_address),
     sizeof(MPIDI_nem_ib_pkt_address_reply),
-#ifndef MV2_DISABLE_HEADER_CACHING
+#ifndef MVP_DISABLE_HEADER_CACHING
     sizeof(MPIDI_nem_ib_pkt_fast_eager),
     sizeof(MPIDI_nem_ib_pkt_fast_eager_with_req),
-#endif 
+#endif
     sizeof(MPIDI_CH3_Pkt_packetized_send_start_t),
     sizeof(MPIDI_CH3_Pkt_packetized_send_data_t),
     sizeof(MPIDI_CH3_Pkt_rndv_r3_data_t),
     sizeof(MPIDI_CH3_Pkt_rndv_r3_ack_t),
-    -1                                  /* MPIDI_NEM_IB_PKT_END */
+    -1 /* MPIDI_NEM_IB_PKT_END */
 };
 
-#define SET_CREDIT(header, c, rail) \
-{                                                               \
-    c->rfp.ptail_RDMA_send += header->rdma_credit;         \
-    if (c->rfp.ptail_RDMA_send >= num_rdma_buffer)               \
-        c->rfp.ptail_RDMA_send -= num_rdma_buffer;               \
-    c->srp.credits[rail].remote_cc = header->remote_credit;\
-    c->srp.credits[rail].remote_credit += header->vbuf_credit; \
-}
+#define SET_CREDIT(header, c, rail)                                            \
+    {                                                                          \
+        c->rfp.ptail_RDMA_send += header->rdma_credit;                         \
+        if (c->rfp.ptail_RDMA_send >= num_rdma_buffer)                         \
+            c->rfp.ptail_RDMA_send -= num_rdma_buffer;                         \
+        c->srp.credits[rail].remote_cc = header->remote_credit;                \
+        c->srp.credits[rail].remote_credit += header->vbuf_credit;             \
+    }
 
 #undef FUNCNAME
 #define FUNCNAME MPIDI_nem_ib_parse_header
@@ -82,8 +81,8 @@ int MPIDI_CH3_Pkt_size_index[] = {
  *  FIXME: Ideally the header size should be determined by high level macros,
  * instead of hacking the message header at the device layer
  */
-int MPIDI_nem_ib_parse_header(MPIDI_VC_t * vc,
-                                  vbuf * v, void **pkt, int *header_size)
+int MPIDI_nem_ib_parse_header(MPIDI_VC_t *vc, vbuf *v, void **pkt,
+                              int *header_size)
 {
     void *vstart;
     MPIDI_nem_ib_pkt_comm_header *header;
@@ -100,22 +99,23 @@ int MPIDI_nem_ib_parse_header(MPIDI_VC_t * vc,
     /* set it to the header size by default */
     *header_size = sizeof(MPIDI_CH3_Pkt_t);
 #ifdef CRC_CHECK
-    crc = update_crc(1, (void *)((uintptr_t)header+sizeof *header),
+    crc = update_crc(1, (void *)((uintptr_t)header + sizeof *header),
                      v->content_size - sizeof *header);
     if (crc != header->mrail.crc) {
-        int rank; UPMI_GET_RANK(&rank);
-        MPL_error_printf(stderr, "CRC mismatch, get %lx, should be %lx "
-                "type %d, ocntent size %d\n",
-                crc, header->mrail.crc, header->type, v->content_size);
-        exit( EXIT_FAILURE );
+        int rank;
+        UPMI_GET_RANK(&rank);
+        MPL_error_printf(stderr,
+                         "CRC mismatch, get %lx, should be %lx "
+                         "type %d, ocntent size %d\n",
+                         crc, header->mrail.crc, header->type, v->content_size);
+        exit(EXIT_FAILURE);
     }
 #endif
     switch (header->type) {
 /*header caching codes */
-#ifndef MV2_DISABLE_HEADER_CACHING 
-    case (MPIDI_CH3_PKT_FAST_EAGER_SEND):
-    case (MPIDI_CH3_PKT_FAST_EAGER_SEND_WITH_REQ):
-        {
+#ifndef MVP_DISABLE_HEADER_CACHING
+        case (MPIDI_CH3_PKT_FAST_EAGER_SEND):
+        case (MPIDI_CH3_PKT_FAST_EAGER_SEND_WITH_REQ): {
             /* since header caching do not have regular iheader,
              * revert back pre-adjust
              */
@@ -124,20 +124,19 @@ int MPIDI_nem_ib_parse_header(MPIDI_VC_t * vc,
             v->pheader -= IB_PKT_HEADER_LENGTH;
             MPIDI_nem_ib_pkt_fast_eager *fast_header = vstart;
             MPIDI_CH3_Pkt_eager_send_t *eager_header =
-                (MPIDI_CH3_Pkt_eager_send_t *) VC_FIELD(vc, connection)->rfp.
-                cached_incoming;
+                (MPIDI_CH3_Pkt_eager_send_t *)VC_FIELD(vc, connection)
+                    ->rfp.cached_incoming;
             MPIDI_nem_ib_pkt_comm_header *eager_iheader =
-                (MPIDI_nem_ib_pkt_comm_header *) VC_FIELD(vc, connection)->rfp.
-                cached_incoming_iheader;
+                (MPIDI_nem_ib_pkt_comm_header *)VC_FIELD(vc, connection)
+                    ->rfp.cached_incoming_iheader;
 
             if (MPIDI_CH3_PKT_FAST_EAGER_SEND == header->type) {
                 *header_size = sizeof(MPIDI_nem_ib_pkt_fast_eager);
             } else {
-                *header_size =
-                    sizeof(MPIDI_nem_ib_pkt_fast_eager_with_req);
+                *header_size = sizeof(MPIDI_nem_ib_pkt_fast_eager_with_req);
                 eager_header->sender_req_id =
-                    ((MPIDI_nem_ib_pkt_fast_eager_with_req *)
-                     vstart)->sender_req_id;
+                    ((MPIDI_nem_ib_pkt_fast_eager_with_req *)vstart)
+                        ->sender_req_id;
             }
             header = eager_iheader;
 
@@ -146,204 +145,177 @@ int MPIDI_nem_ib_parse_header(MPIDI_VC_t * vc,
 
             eager_header->data_sz = fast_header->bytes_in_pkt;
 
-            *pkt = (void *) eager_header;
-            DEBUG_PRINT
-                ("[recv: parse header] faster headersize returned %d\n",
-                 *header_size);
-        }
-        break;
+            *pkt = (void *)eager_header;
+            DEBUG_PRINT("[recv: parse header] faster headersize returned %d\n",
+                        *header_size);
+        } break;
 #endif
-    case (MPIDI_CH3_PKT_EAGER_SEND):
-        {
+        case (MPIDI_CH3_PKT_EAGER_SEND): {
             DEBUG_PRINT("[recv: parse header] pkt eager send\n");
 /* header caching codes */
-#ifndef MV2_DISABLE_HEADER_CACHING 
-            if (v->padding != NORMAL_VBUF_FLAG && 
-                    (v->content_size - sizeof(MPIDI_CH3_Pkt_t) <= MAX_SIZE_WITH_HEADER_CACHING) ) {
+#ifndef MVP_DISABLE_HEADER_CACHING
+            if (v->padding != NORMAL_VBUF_FLAG &&
+                (v->content_size - sizeof(MPIDI_CH3_Pkt_t) <=
+                 MAX_SIZE_WITH_HEADER_CACHING)) {
                 /* Only cache header if the packet is from RdMA path
                  * XXXX: what is R3_FLAG?
                  */
-                MPIR_Memcpy((VC_FIELD(vc, connection)->rfp.cached_incoming), vstart,
-                       sizeof(MPIDI_CH3_Pkt_eager_send_t));
-                MPIR_Memcpy((VC_FIELD(vc, connection)->rfp.cached_incoming_iheader), header,
-                    sizeof(MPIDI_nem_ib_pkt_comm_header));
+                MPIR_Memcpy((VC_FIELD(vc, connection)->rfp.cached_incoming),
+                            vstart, sizeof(MPIDI_CH3_Pkt_eager_send_t));
+                MPIR_Memcpy(
+                    (VC_FIELD(vc, connection)->rfp.cached_incoming_iheader),
+                    header, sizeof(MPIDI_nem_ib_pkt_comm_header));
             }
 #endif
-            *pkt = (MPIDI_CH3_Pkt_t *) vstart;
+            *pkt = (MPIDI_CH3_Pkt_t *)vstart;
             *header_size = sizeof(MPIDI_CH3_Pkt_t);
             DEBUG_PRINT("[recv: parse header] headersize returned %d\n",
                         *header_size);
-        }
-        break;
-    case (MPIDI_CH3_PKT_RNDV_REQ_TO_SEND):
-    case (MPIDI_CH3_PKT_RNDV_CLR_TO_SEND):
-    case MPIDI_CH3_PKT_EAGER_SYNC_ACK:
-    case MPIDI_NEM_PKT_LMT_RTS:
-    case MPIDI_NEM_PKT_LMT_CTS:
-    case MPIDI_NEM_PKT_LMT_DONE:
-    case MPIDI_NEM_PKT_LMT_COOKIE:
+        } break;
+        case (MPIDI_CH3_PKT_RNDV_REQ_TO_SEND):
+        case (MPIDI_CH3_PKT_RNDV_CLR_TO_SEND):
+        case MPIDI_CH3_PKT_EAGER_SYNC_ACK:
+        case MPIDI_NEM_PKT_LMT_RTS:
+        case MPIDI_NEM_PKT_LMT_CTS:
+        case MPIDI_NEM_PKT_LMT_DONE:
+        case MPIDI_NEM_PKT_LMT_COOKIE:
 /* Packet type for CKPT in IB-Netmod */
 #ifdef ENABLE_CHECKPOINTING
-    case MPIDI_NEM_PKT_CKPT_MARKER:
+        case MPIDI_NEM_PKT_CKPT_MARKER:
 #endif
 
 /* Legacy CKPT packet types from CH3 */
 #ifdef CKPT
-    case MPIDI_CH3_PKT_CM_SUSPEND:
-    case MPIDI_CH3_PKT_CM_REACTIVATION_DONE:
-    case MPIDI_CH3_PKT_CR_REMOTE_UPDATE:
+        case MPIDI_CH3_PKT_CM_SUSPEND:
+        case MPIDI_CH3_PKT_CM_REACTIVATION_DONE:
+        case MPIDI_CH3_PKT_CR_REMOTE_UPDATE:
 #endif
         {
             *pkt = vstart;
-        }
-        break;
-    case MPIDI_CH3_PKT_CANCEL_SEND_REQ:
-        {
+        } break;
+        case MPIDI_CH3_PKT_CANCEL_SEND_REQ: {
             *pkt = vstart;
-            /*Fix: Need to unregister and free the rndv buffer in get protocol.*/
-        }
-        break;
-    case MPIDI_CH3_PKT_CANCEL_SEND_RESP:
-        {
+            /*Fix: Need to unregister and free the rndv buffer in get
+             * protocol.*/
+        } break;
+        case MPIDI_CH3_PKT_CANCEL_SEND_RESP: {
             MPIR_Request *req;
             *pkt = vstart;
-            MPIR_Request_get_ptr(((MPIDI_CH3_Pkt_cancel_send_resp_t *)(*pkt))->sender_req_id, req);
+            MPIR_Request_get_ptr(
+                ((MPIDI_CH3_Pkt_cancel_send_resp_t *)(*pkt))->sender_req_id,
+                req);
             if (req != NULL) {
-              /* unregister and free the rndv buffer */
-              MPIDI_NEM_IB_RREQ_RNDV_FINISH(req);
+                /* unregister and free the rndv buffer */
+                MPIDI_NEM_IB_RREQ_RNDV_FINISH(req);
             }
-        }
-        break;
-    case (MPIDI_CH3_PKT_NOOP):
-        {
+        } break;
+        case (MPIDI_CH3_PKT_NOOP): {
             *pkt = v->iheader;
-        }
-        break;
-    /* rfp codes */
-    case MPIDI_CH3_PKT_ADDRESS:
-        {
+        } break;
+        /* rfp codes */
+        case MPIDI_CH3_PKT_ADDRESS: {
             *pkt = v->iheader;
             MPIDI_nem_ib_recv_addr(vc, vstart);
             break;
         }
-    case MPIDI_CH3_PKT_ADDRESS_REPLY:
-        {
+        case MPIDI_CH3_PKT_ADDRESS_REPLY: {
             *pkt = v->iheader;
             MPIDI_nem_ib_recv_addr_reply(vc, vstart);
             break;
         }
-    case MPIDI_CH3_PKT_PACKETIZED_SEND_START:
-        {
+        case MPIDI_CH3_PKT_PACKETIZED_SEND_START: {
             *pkt = vstart;
             *header_size = sizeof(MPIDI_CH3_Pkt_packetized_send_start_t);
             break;
         }
-    case MPIDI_CH3_PKT_PACKETIZED_SEND_DATA:
-        {
+        case MPIDI_CH3_PKT_PACKETIZED_SEND_DATA: {
             *header_size = sizeof(MPIDI_CH3_Pkt_packetized_send_data_t);
             *pkt = vstart;
             break;
         }
-    case MPIDI_CH3_PKT_RNDV_R3_DATA:
-        {
+        case MPIDI_CH3_PKT_RNDV_R3_DATA: {
             *header_size = sizeof(MPIDI_CH3_Pkt_rndv_r3_data_t);
             *pkt = vstart;
             break;
         }
-    case MPIDI_CH3_PKT_RNDV_R3_ACK:
-        {
+        case MPIDI_CH3_PKT_RNDV_R3_ACK: {
             *pkt = v->iheader;
             MPIDI_nem_ib_lmt_r3_recv_ack(vc, vstart);
             break;
         }
 #if defined(USE_EAGER_SHORT)
-    case MPIDI_CH3_PKT_EAGERSHORT_SEND:
+        case MPIDI_CH3_PKT_EAGERSHORT_SEND:
 #endif
-    case MPIDI_CH3_PKT_EAGER_SYNC_SEND:
-    case MPIDI_CH3_PKT_READY_SEND:
+        case MPIDI_CH3_PKT_EAGER_SYNC_SEND:
+        case MPIDI_CH3_PKT_READY_SEND: {
+            *pkt = vstart;
+            break;
+        }
+        case MPIDI_CH3_PKT_PUT: {
+            *pkt = vstart;
+            break;
+        }
+        case MPIDI_CH3_PKT_PUT_IMMED: {
+            *pkt = vstart;
+            break;
+        }
+        case MPIDI_CH3_PKT_GET: {
+            *pkt = vstart;
+            break;
+        }
+        case MPIDI_CH3_PKT_GET_RESP: /*15 */
         {
             *pkt = vstart;
             break;
         }
-    case MPIDI_CH3_PKT_PUT:
-        {
+        case MPIDI_CH3_PKT_ACCUMULATE: {
             *pkt = vstart;
             break;
         }
-    case MPIDI_CH3_PKT_PUT_IMMED:
-        {
+        case MPIDI_CH3_PKT_LOCK:
+        case MPIDI_CH3_PKT_LOCK_ACK:
+        case MPIDI_CH3_PKT_LOCK_OP_ACK: {
             *pkt = vstart;
             break;
         }
-    case MPIDI_CH3_PKT_GET:
-        {
+        case MPIDI_CH3_PKT_FLUSH:
+        case MPIDI_CH3_PKT_ACK:
+        case MPIDI_CH3_PKT_UNLOCK:
+        case MPIDI_CH3_PKT_GET_ACCUM:
+        case MPIDI_CH3_PKT_GET_ACCUM_RESP:
+        case MPIDI_CH3_PKT_FOP:
+        case MPIDI_CH3_PKT_FOP_RESP: {
             *pkt = vstart;
             break;
         }
-    case MPIDI_CH3_PKT_GET_RESP:       /*15 */
-        {
-            *pkt = vstart;
-            break;
-        }
-    case MPIDI_CH3_PKT_ACCUMULATE:
-        {
-            *pkt = vstart;
-            break;
-        }
-    case MPIDI_CH3_PKT_LOCK:
-    case MPIDI_CH3_PKT_LOCK_ACK:
-    case MPIDI_CH3_PKT_LOCK_OP_ACK:
-        {
-            *pkt = vstart;
-            break;
-        }
-    case MPIDI_CH3_PKT_FLUSH:
-    case MPIDI_CH3_PKT_ACK:
-    case MPIDI_CH3_PKT_UNLOCK:
-    case MPIDI_CH3_PKT_GET_ACCUM:
-    case MPIDI_CH3_PKT_GET_ACCUM_RESP:
-    case MPIDI_CH3_PKT_FOP:
-    case MPIDI_CH3_PKT_FOP_RESP:
-        {
-            *pkt = vstart;
-            break;
-        }
-    case MPIDI_CH3_PKT_FLOW_CNTL_UPDATE:
-        {
+        case MPIDI_CH3_PKT_FLOW_CNTL_UPDATE: {
             *pkt = vstart;
             break;
         }
 #ifdef ENABLE_CHECKPOINTING
-    case MPIDI_NEM_IB_PKT_UNPAUSE:
-        {
+        case MPIDI_NEM_IB_PKT_UNPAUSE: {
             *pkt = vstart;
-        }
-        break;
+        } break;
 #endif
-    case MPIDI_CH3_PKT_CLOSE:
-        {
+        case MPIDI_CH3_PKT_CLOSE: {
             *pkt = vstart;
-        }
-        break;
-    default:
-        {
+        } break;
+        default: {
             /* Header is corrupted if control has reached here in prototype */
             /* */
-            MPIR_ERR_SETFATALANDJUMP2(mpi_errno,
-                    MPI_ERR_OTHER,
-                    "**fail",
-                    "**fail %s %d",
-                    "Control shouldn't reach here "
-                    "in prototype, header %d\n",
-                    header->type);
+            MPIR_ERR_SETFATALANDJUMP2(mpi_errno, MPI_ERR_OTHER, "**fail",
+                                      "**fail %s %d",
+                                      "Control shouldn't reach here "
+                                      "in prototype, header %d\n",
+                                      header->type);
         }
     }
 
     DEBUG_PRINT("Before set credit, vc: %p, v->rail: %d, "
-            "pkt: %p, pheader: %p\n", vc, v->rail, pkt, v->pheader);
+                "pkt: %p, pheader: %p\n",
+                vc, v->rail, pkt, v->pheader);
 
     SET_CREDIT(header, VC_FIELD(vc, connection), (v->rail));
-
 
     if (VC_FIELD(vc, connection)->srp.credits[v->rail].remote_credit > 0 &&
         VC_FIELD(vc, connection)->srp.credits[v->rail].backlog.len > 0) {
@@ -353,11 +325,10 @@ int MPIDI_nem_ib_parse_header(MPIDI_VC_t * vc,
 
     /* if any credits remain, schedule rendezvous progress */
     if ((VC_FIELD(vc, connection)->srp.credits[v->rail].remote_credit > 0
-/* rfp codes */
-            || (VC_FIELD(vc, connection)->rfp.ptail_RDMA_send !=
-                VC_FIELD(vc, connection)->rfp.phead_RDMA_send)
-        )
-        && (VC_FIELD(vc, connection)->sreq_head != NULL)) {
+         /* rfp codes */
+         || (VC_FIELD(vc, connection)->rfp.ptail_RDMA_send !=
+             VC_FIELD(vc, connection)->rfp.phead_RDMA_send)) &&
+        (VC_FIELD(vc, connection)->sreq_head != NULL)) {
         /* rndv codes */
 #if 0
         PUSH_FLOWLIST(vc);
@@ -365,13 +336,15 @@ int MPIDI_nem_ib_parse_header(MPIDI_VC_t * vc,
     }
 
     /* rfp codes */
-    if ((VC_FIELD(vc, connection)->rfp.RDMA_recv_buf == NULL) &&       /*(c->initialized) && */
-            num_rdma_buffer && !VC_FIELD(vc, connection)->rfp.rdma_failed) {
+    if ((VC_FIELD(vc, connection)->rfp.RDMA_recv_buf ==
+         NULL) && /*(c->initialized) && */
+        num_rdma_buffer &&
+        !VC_FIELD(vc, connection)->rfp.rdma_failed) {
         if ((process_info.polling_group_size + rdma_pending_conn_request) <
-                rdma_polling_set_limit) {
+            rdma_polling_set_limit) {
             VC_FIELD(vc, connection)->rfp.eager_start_cnt++;
             if (rdma_polling_set_threshold <
-                    VC_FIELD(vc, connection)->rfp.eager_start_cnt) {
+                VC_FIELD(vc, connection)->rfp.eager_start_cnt) {
                 {
                     ret = vbuf_fast_rdma_alloc(vc, 1);
                     if (ret == MPI_SUCCESS) {
@@ -397,36 +370,32 @@ fn_fail:
 #define FUNCNAME MPIDI_nem_ib_fill_request
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDI_nem_ib_fill_request(MPIR_Request * req, vbuf * v,
-                                  int header_size, int *nb)
+int MPIDI_nem_ib_fill_request(MPIR_Request *req, vbuf *v, int header_size,
+                              int *nb)
 {
+    struct iovec *iov;
+    int n_iov;
+    int len_avail;
+    void *data_buf;
+    int i;
 
-    struct iovec    *iov;
-    int         n_iov;
-    int         len_avail;
-    void        *data_buf;
-    int         i;
+    len_avail = v->content_size - header_size;
+    iov = (req == NULL) ? NULL : req->dev.iov;
+    n_iov = (req == NULL) ? 0 : req->dev.iov_count;
+    data_buf = (void *)((uintptr_t)v->pheader + header_size);
 
-    len_avail   = v->content_size - header_size;
-    iov         = (req == NULL) ? NULL : req->dev.iov;
-    n_iov       = (req == NULL) ? 0 : req->dev.iov_count;
-    data_buf    = (void *) ((uintptr_t) v->pheader + header_size);
-
-    DEBUG_PRINT 
-        ("[recv:fill request] total len %d, head len %d, n iov %d\n",
-         v->content_size, header_size, n_iov);
-
+    DEBUG_PRINT("[recv:fill request] total len %d, head len %d, n iov %d\n",
+                v->content_size, header_size, n_iov);
 
     *nb = 0;
     for (i = req->dev.iov_offset; i < n_iov; i++) {
-        if (len_avail >= (int) iov[i].iov_len
-            && iov[i].iov_len != 0) {
+        if (len_avail >= (int)iov[i].iov_len && iov[i].iov_len != 0) {
             MPIR_Memcpy(iov[i].iov_base, data_buf, iov[i].iov_len);
-            data_buf = (void *) ((uintptr_t) data_buf + iov[i].iov_len);
+            data_buf = (void *)((uintptr_t)data_buf + iov[i].iov_len);
             len_avail -= iov[i].iov_len;
             *nb += iov[i].iov_len;
         } else if (len_avail > 0) {
-          MPIR_Memcpy(iov[i].iov_base, data_buf, len_avail);
+            MPIR_Memcpy(iov[i].iov_base, data_buf, len_avail);
             *nb += len_avail;
             break;
         }
@@ -434,36 +403,34 @@ int MPIDI_nem_ib_fill_request(MPIR_Request * req, vbuf * v,
 
     v->content_consumed = header_size + *nb;
 
-    DEBUG_PRINT
-        ("[recv:fill request] about to return form request, nb %d\n", *nb);
+    DEBUG_PRINT("[recv:fill request] about to return form request, nb %d\n",
+                *nb);
     return MPI_SUCCESS;
 }
 
-void MPIDI_nem_ib_release_vbuf(vbuf * v)
+void MPIDI_nem_ib_release_vbuf(vbuf *v)
 {
     v->eager = 0;
     v->content_size = 0;
 
-    if (v->padding == NORMAL_VBUF_FLAG || v->padding == RPUT_VBUF_FLAG){
+    if (v->padding == NORMAL_VBUF_FLAG || v->padding == RPUT_VBUF_FLAG) {
         MRAILI_Release_vbuf(v);
-    }
-    else {
+    } else {
         MRAILI_Release_recv_rdma(v);
-        MRAILI_Send_noop_if_needed((MPIDI_VC_t *) v->vc, v->rail);
+        MRAILI_Send_noop_if_needed((MPIDI_VC_t *)v->vc, v->rail);
     }
 }
 
-int MPIDI_nem_ib_recv_addr(MPIDI_VC_t * vc, void *vstart)
+int MPIDI_nem_ib_recv_addr(MPIDI_VC_t *vc, void *vstart)
 {
     MPIDI_nem_ib_pkt_address *pkt = vstart;
     int i;
     int ret;
     DEBUG_PRINT("set rdma address, dma address %p\n",
-            (void *)pkt->rdma_address);
+                (void *)pkt->rdma_address);
 
     /* check if it has accepted max allowing connections */
-    if (rdma_fp_sendconn_accepted >= rdma_polling_set_limit)
-    {
+    if (rdma_fp_sendconn_accepted >= rdma_polling_set_limit) {
         vbuf_address_reply_send(vc, RDMA_FP_MAX_SEND_CONN_REACHED);
         goto fn_exit;
     }
@@ -472,10 +439,12 @@ int MPIDI_nem_ib_recv_addr(MPIDI_VC_t * vc, void *vstart)
         /* Allocating the send vbufs for the eager RDMA flow */
         ret = vbuf_fast_rdma_alloc(vc, 0);
         if (ret == MPI_SUCCESS) {
-            for (i = 0; i < ib_hca_num_hcas; i ++) {
-                VC_FIELD(vc, connection)->rfp.RDMA_remote_buf_rkey[i] = pkt->rdma_hndl[i];
+            for (i = 0; i < ib_hca_num_hcas; i++) {
+                VC_FIELD(vc, connection)->rfp.RDMA_remote_buf_rkey[i] =
+                    pkt->rdma_hndl[i];
             }
-            VC_FIELD(vc, connection)->rfp.remote_RDMA_buf = (void *)pkt->rdma_address;
+            VC_FIELD(vc, connection)->rfp.remote_RDMA_buf =
+                (void *)pkt->rdma_address;
             vbuf_address_reply_send(vc, RDMA_FP_SUCCESS);
             rdma_fp_sendconn_accepted++;
         } else {
@@ -487,27 +456,29 @@ fn_exit:
     return MPI_SUCCESS;
 }
 
-int MPIDI_nem_ib_recv_addr_reply(MPIDI_VC_t * vc, void *vstart)
+int MPIDI_nem_ib_recv_addr_reply(MPIDI_VC_t *vc, void *vstart)
 {
     int hca_index;
     int ret;
     MPIDI_nem_ib_pkt_address_reply *pkt = vstart;
-    DEBUG_PRINT("Received addr reply packet. reply data :%d\n", pkt->reply_data);
+    DEBUG_PRINT("Received addr reply packet. reply data :%d\n",
+                pkt->reply_data);
 
-    if (pkt->reply_data == RDMA_FP_SENDBUFF_ALLOC_FAILED
-        || pkt->reply_data == RDMA_FP_MAX_SEND_CONN_REACHED) {
-
+    if (pkt->reply_data == RDMA_FP_SENDBUFF_ALLOC_FAILED ||
+        pkt->reply_data == RDMA_FP_MAX_SEND_CONN_REACHED) {
         DEBUG_PRINT("RDMA FP setup failed. clean up recv buffers\n ");
 
         /* de-regster the recv buffers */
         for (hca_index = 0; hca_index < ib_hca_num_hcas; hca_index++) {
             if (VC_FIELD(vc, connection)->rfp.RDMA_recv_buf_mr[hca_index]) {
-                ret = deregister_memory(VC_FIELD(vc, connection)->rfp.RDMA_recv_buf_mr[hca_index]);
-            if (ret) {
-                MPL_error_printf("Failed to deregister mr (%d)\n", ret);
-            } else {
-                VC_FIELD(vc, connection)->rfp.RDMA_recv_buf_mr[hca_index] = NULL;
-            }
+                ret = deregister_memory(
+                    VC_FIELD(vc, connection)->rfp.RDMA_recv_buf_mr[hca_index]);
+                if (ret) {
+                    MPL_error_printf("Failed to deregister mr (%d)\n", ret);
+                } else {
+                    VC_FIELD(vc, connection)->rfp.RDMA_recv_buf_mr[hca_index] =
+                        NULL;
+                }
             }
         }
         /* deallocate recv RDMA buffers */
@@ -522,12 +493,11 @@ int MPIDI_nem_ib_recv_addr_reply(MPIDI_VC_t * vc, void *vstart)
             VC_FIELD(vc, connection)->rfp.RDMA_recv_buf = NULL;
         }
 
-        /* set flag to mark that FP setup is failed/rejected. 
+        /* set flag to mark that FP setup is failed/rejected.
         we shouldn't try further on this vc */
         VC_FIELD(vc, connection)->rfp.rdma_failed = 1;
 
     } else if (pkt->reply_data == RDMA_FP_SUCCESS) {
-
         /* set pointers */
         VC_FIELD(vc, connection)->rfp.p_RDMA_recv = 0;
         VC_FIELD(vc, connection)->rfp.p_RDMA_recv_tail = num_rdma_buffer - 1;
@@ -535,20 +505,19 @@ int MPIDI_nem_ib_recv_addr_reply(MPIDI_VC_t * vc, void *vstart)
         /* Add the connection to the RDMA polling list */
         MPIR_Assert(process_info.polling_group_size < rdma_polling_set_limit);
 
-        process_info.polling_set
-            [process_info.polling_group_size] = vc;
+        process_info.polling_set[process_info.polling_group_size] = vc;
         process_info.polling_group_size++;
 
-        VC_FIELD(vc, cmanager)->num_channels      += 1;
+        VC_FIELD(vc, cmanager)->num_channels += 1;
         VC_FIELD(vc, cmanager)->num_local_pollings = 1;
-        VC_FIELD(vc, connection)->rfp.in_polling_set          = 1;
+        VC_FIELD(vc, connection)->rfp.in_polling_set = 1;
 
     } else {
-        ibv_va_error_abort(GEN_EXIT_ERR,
-                "Invalid reply data received. reply_data: pkt->reply_data%d\n",
-                                                              pkt->reply_data);
+        ibv_va_error_abort(
+            GEN_EXIT_ERR,
+            "Invalid reply data received. reply_data: pkt->reply_data%d\n",
+            pkt->reply_data);
     }
-
 
     rdma_pending_conn_request--;
 
@@ -559,17 +528,14 @@ int MPIDI_nem_ib_recv_addr_reply(MPIDI_VC_t * vc, void *vstart)
 #define FUNCNAME MPIDI_NEM_IB_PACKETIZED_RECV_REQ
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDI_nem_ib_packetized_recv_req(MPIDI_VC_t * vc, MPIR_Request * rreq)
+int MPIDI_nem_ib_packetized_recv_req(MPIDI_VC_t *vc, MPIR_Request *rreq)
 {
     int mpi_errno = MPI_SUCCESS;
     if (NULL == VC_FIELD(vc, connection)->packetized_recv) {
-        VC_FIELD(vc, connection)->packetized_recv = (void *) rreq;
+        VC_FIELD(vc, connection)->packetized_recv = (void *)rreq;
     } else {
-        mpi_errno =
-            MPIR_Err_create_code(mpi_errno, MPIR_ERR_FATAL,
-                                 FCNAME, __LINE__,
-                                 MPI_ERR_OTHER,
-                                 "**fail", 0);
+        mpi_errno = MPIR_Err_create_code(mpi_errno, MPIR_ERR_FATAL, FCNAME,
+                                         __LINE__, MPI_ERR_OTHER, "**fail", 0);
     }
     DEBUG_PRINT("Add rreq %p to packetized recv\n", rreq);
     return mpi_errno;
@@ -579,7 +545,7 @@ int MPIDI_nem_ib_packetized_recv_req(MPIDI_VC_t * vc, MPIR_Request * rreq)
 #define FUNCNAME MPIDI_NEM_IB_PACKETIZED_RECV_DATA
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDI_nem_ib_packetized_recv_data(MPIDI_VC_t * vc, vbuf *v)
+int MPIDI_nem_ib_packetized_recv_data(MPIDI_VC_t *vc, vbuf *v)
 {
     int mpi_errno = MPI_SUCCESS;
     int skipsize = sizeof(MPIDI_CH3_Pkt_packetized_send_data_t);
@@ -587,24 +553,18 @@ int MPIDI_nem_ib_packetized_recv_data(MPIDI_VC_t * vc, vbuf *v)
     MPIR_Request *rreq = VC_FIELD(vc, connection)->packetized_recv;
 
     if (NULL == VC_FIELD(vc, connection)->packetized_recv) {
-        mpi_errno =
-            MPIR_Err_create_code(mpi_errno, MPIR_ERR_FATAL,
-                                 FCNAME, __LINE__,
-                                 MPI_ERR_OTHER,
-                                 "**fail", 0);
+        mpi_errno = MPIR_Err_create_code(mpi_errno, MPIR_ERR_FATAL, FCNAME,
+                                         __LINE__, MPI_ERR_OTHER, "**fail", 0);
         goto fn_exit;
     }
 
-    DEBUG_PRINT("[pkt recv], rreq %p, offset %d, count %d\n", rreq, rreq->dev.iov_offset,
-            rreq->dev.iov_count);
+    DEBUG_PRINT("[pkt recv], rreq %p, offset %d, count %d\n", rreq,
+                rreq->dev.iov_offset, rreq->dev.iov_count);
 
     mpi_errno = MPIDI_nem_ib_fill_request(rreq, v, skipsize, &nb);
     if (mpi_errno != MPI_SUCCESS) {
-        mpi_errno =
-            MPIR_Err_create_code(mpi_errno, MPIR_ERR_FATAL,
-                                 FCNAME, __LINE__,
-                                 MPI_ERR_OTHER, "**fail",
-                                 0);
+        mpi_errno = MPIR_Err_create_code(mpi_errno, MPIR_ERR_FATAL, FCNAME,
+                                         __LINE__, MPI_ERR_OTHER, "**fail", 0);
         goto fn_exit;
     }
     skipsize += nb;
@@ -615,8 +575,7 @@ int MPIDI_nem_ib_packetized_recv_data(MPIDI_VC_t * vc, vbuf *v)
                     complete);
         if (mpi_errno != MPI_SUCCESS) {
             mpi_errno =
-                MPIR_Err_create_code(mpi_errno,
-                                     MPIR_ERR_RECOVERABLE, FCNAME,
+                MPIR_Err_create_code(mpi_errno, MPIR_ERR_RECOVERABLE, FCNAME,
                                      __LINE__, MPI_ERR_OTHER, "**fail", 0);
             goto fn_exit;
         }
@@ -624,25 +583,22 @@ int MPIDI_nem_ib_packetized_recv_data(MPIDI_VC_t * vc, vbuf *v)
             mpi_errno = MPIDI_nem_ib_fill_request(rreq, v, skipsize, &nb);
             if (mpi_errno != MPI_SUCCESS) {
                 mpi_errno =
-                    MPIR_Err_create_code(mpi_errno, MPIR_ERR_FATAL,
-                                 FCNAME, __LINE__,
-                                 MPI_ERR_OTHER, "**fail",
-                                 0);
+                    MPIR_Err_create_code(mpi_errno, MPIR_ERR_FATAL, FCNAME,
+                                         __LINE__, MPI_ERR_OTHER, "**fail", 0);
                 goto fn_exit;
             }
             if (!MPIDI_nem_ib_request_adjust_iov(rreq, nb)) {
                 goto fn_exit;
             }
-        skipsize += nb;
+            skipsize += nb;
 
             mpi_errno = MPIDI_CH3U_Handle_recv_req(vc, rreq, &complete);
             DEBUG_PRINT("[recv: handle read] adjust req fine, complete %d\n",
-                    complete);
+                        complete);
             if (mpi_errno != MPI_SUCCESS) {
-                mpi_errno =
-                    MPIR_Err_create_code(mpi_errno,
-                                     MPIR_ERR_RECOVERABLE, FCNAME,
-                                     __LINE__, MPI_ERR_OTHER, "**fail", 0);
+                mpi_errno = MPIR_Err_create_code(
+                    mpi_errno, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__,
+                    MPI_ERR_OTHER, "**fail", 0);
                 goto fn_exit;
             }
         }
@@ -650,8 +606,6 @@ int MPIDI_nem_ib_packetized_recv_data(MPIDI_VC_t * vc, vbuf *v)
             VC_FIELD(vc, connection)->packetized_recv = NULL;
         }
     }
-  fn_exit:
+fn_exit:
     return mpi_errno;
-
 }
-

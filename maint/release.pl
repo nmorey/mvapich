@@ -18,7 +18,7 @@ my $append_commit_id;
 my $root = cwd();
 my $with_autoconf = "";
 my $with_automake = "";
-my $prefix = "mvapich2";
+my $prefix = "mvapich";
 my $git_repo = "";
 
 my $logfile = "release.log";
@@ -172,8 +172,8 @@ print("done\n");
 check_git_repo($local_git_clone);
 print("\n");
 
-my $current_ver = `git show ${branch}:maint/version.m4 | grep MVAPICH2_VERSION_m4 | \
-                   sed -e 's/^.*\\[MVAPICH2_VERSION_m4\\],\\[\\(.*\\)\\].*/\\1/g'`;
+my $current_ver = `git show ${branch}:maint/version.m4 | grep MVAPICH_VERSION_m4 | \
+                   sed -e 's/^.*\\[MVAPICH_VERSION_m4\\],\\[\\(.*\\)\\].*/\\1/g'`;
 if ("$current_ver" ne "$version\n") {
     print("\tWARNING: maint/version does not match user version\n\n");
 }
@@ -208,7 +208,7 @@ chdir($expdir);
 
 my $date = `date`;
 chomp $date;
-system(qq(perl -p -i -e 's/\\[MVAPICH2_RELEASE_DATE_m4\\],\\[unreleased development copy\\]/[MVAPICH2_RELEASE_DATE_m4],[$date]/g' ./maint/version.m4));
+system(qq(perl -p -i -e 's/\\[MVAPICH_RELEASE_DATE_m4\\],\\[unreleased development copy\\]/[MVAPICH_RELEASE_DATE_m4],[$date]/g' ./maint/version.m4));
 system(qq(perl -p -i -e 's/\\[MPICH_RELEASE_DATE_m4\\],\\[unreleased development copy\\]/[MPICH_RELEASE_DATE_m4],[$date]/g' ./maint/version.m4));
 # the main version.m4 file will be copied to hydra's version.m4, including the
 # above modifications

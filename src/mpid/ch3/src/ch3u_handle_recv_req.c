@@ -2,15 +2,15 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -70,7 +70,7 @@ int MPIDI_CH3U_Handle_recv_req(MPIDI_VC_t * vc, MPIR_Request * rreq, int *comple
     }
     else {
 #if defined (_ENABLE_CUDA_)
-        if (mv2_enable_device && reqFn == MPIDI_CH3_ReqHandler_unpack_device) {
+        if (mvp_enable_device && reqFn == MPIDI_CH3_ReqHandler_unpack_device) {
             /*pass stream if using rndv protocol*/ 
             if (rreq->mrail.protocol != 0) {
                 mpi_errno = MPIDI_CH3_ReqHandler_unpack_device_stream(vc, rreq,
@@ -90,12 +90,11 @@ int MPIDI_CH3U_Handle_recv_req(MPIDI_VC_t * vc, MPIR_Request * rreq, int *comple
 
   fn_exit:
 #if defined(CHANNEL_MRAIL)
-    if (TRUE == *complete && MV2_RNDV_PROTOCOL_R3 == rreq->mrail.protocol) {
-        MPIDI_CH3I_MRAILI_RREQ_RNDV_FINISH(rreq);
-    }
-    else if (PARTIAL_COMPLETION == *complete) {
-        *complete = 1;
-    }
+      if (TRUE == *complete && MRAILI_PROTOCOL_R3 == rreq->mrail.protocol) {
+          MPIDI_CH3I_MRAILI_RREQ_RNDV_FINISH(rreq);
+      } else if (PARTIAL_COMPLETION == *complete) {
+          *complete = 1;
+      }
 #endif /* defined(CHANNEL_MRAIL) */
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3U_HANDLE_RECV_REQ);
@@ -416,8 +415,8 @@ int MPIDI_CH3_ReqHandler_GaccumRecvComplete(MPIDI_VC_t * vc, MPIR_Request * rreq
 
 #if defined (CHANNEL_MRAIL)
     /*if this is a rndv exchange*/
-    if (rreq->mrail.protocol == MV2_RNDV_PROTOCOL_RPUT ||
-        rreq->mrail.protocol == MV2_RNDV_PROTOCOL_R3) {
+    if (rreq->mrail.protocol == MRAILI_PROTOCOL_RPUT ||
+        rreq->mrail.protocol == MRAILI_PROTOCOL_R3) {
         int i;
         MPID_Seqnum_t seqnum;
         MPIDI_VC_FAI_send_seqnum(vc, seqnum);
@@ -431,7 +430,7 @@ int MPIDI_CH3_ReqHandler_GaccumRecvComplete(MPIDI_VC_t * vc, MPIR_Request * rreq
         resp_req->dev.iov_count = 1;
 
         resp_req->mrail.protocol = rreq->mrail.protocol;
-        if (rreq->mrail.protocol == MV2_RNDV_PROTOCOL_RPUT) {
+        if (rreq->mrail.protocol == MRAILI_PROTOCOL_RPUT) {
             resp_req->mrail.remote_addr = rreq->mrail.remote_addr;
             for (i = 0; i < rdma_num_hcas; i++) {
                 resp_req->mrail.rkey[i] = rreq->mrail.rkey[i];
@@ -653,11 +652,11 @@ int MPIDI_CH3_ReqHandler_PutDerivedDTRecvComplete(MPIDI_VC_t * vc ATTRIBUTE((unu
 #endif
 
 #if defined(CHANNEL_MRAIL)
-    if (MV2_RNDV_PROTOCOL_EAGER == rreq->mrail.protocol) {
+    if (MRAILI_PROTOCOL_EAGER == rreq->mrail.protocol) {
         *complete = FALSE;
-    } else if (MV2_RNDV_PROTOCOL_RPUT == rreq->mrail.protocol ||
-               MV2_RNDV_PROTOCOL_R3 == rreq->mrail.protocol ||
-               MV2_RNDV_PROTOCOL_UD_ZCOPY == rreq->mrail.protocol) {
+    } else if (MRAILI_PROTOCOL_RPUT == rreq->mrail.protocol ||
+               MRAILI_PROTOCOL_R3 == rreq->mrail.protocol ||
+               MRAILI_PROTOCOL_UD_ZCOPY == rreq->mrail.protocol) {
         MPIR_Request *cts_req;
         MPIDI_CH3_Pkt_t upkt;
         MPIDI_CH3_Pkt_rndv_clr_to_send_t *cts_pkt =
@@ -791,17 +790,16 @@ int MPIDI_CH3_ReqHandler_AccumMetadataRecvComplete(MPIDI_VC_t * vc ATTRIBUTE((un
 
 #if defined(CHANNEL_MRAIL)
     /*FIXME: Use Eager for streamed op as well, can RDNV also support streamed op?*/
-    if (MV2_RNDV_PROTOCOL_EAGER == rreq->mrail.protocol) { 
+    if (MRAILI_PROTOCOL_EAGER == rreq->mrail.protocol) {
 #endif /* defined(CHANNEL_MRAIL) */
     *complete = FALSE;
 #if defined(CHANNEL_MRAIL)
-    } else if (MV2_RNDV_PROTOCOL_RPUT == rreq->mrail.protocol ||
-               MV2_RNDV_PROTOCOL_R3 == rreq->mrail.protocol ||
-               MV2_RNDV_PROTOCOL_UD_ZCOPY == rreq->mrail.protocol) {
-    MPIR_Request *cts_req;
-    MPIDI_CH3_Pkt_t upkt;
-    MPIDI_CH3_Pkt_rndv_clr_to_send_t *cts_pkt =
-        &upkt.rndv_clr_to_send;
+    } else if (MRAILI_PROTOCOL_RPUT == rreq->mrail.protocol ||
+               MRAILI_PROTOCOL_R3 == rreq->mrail.protocol ||
+               MRAILI_PROTOCOL_UD_ZCOPY == rreq->mrail.protocol) {
+        MPIR_Request *cts_req;
+        MPIDI_CH3_Pkt_t upkt;
+        MPIDI_CH3_Pkt_rndv_clr_to_send_t *cts_pkt = &upkt.rndv_clr_to_send;
 #if defined(MPID_USE_SEQUENCE_NUMBERS)
     MPID_Seqnum_t seqnum;
 #endif /* defined(MPID_USE_SEQUENCE_NUMBERS) */
@@ -830,7 +828,7 @@ int MPIDI_CH3_ReqHandler_AccumMetadataRecvComplete(MPIDI_VC_t * vc ATTRIBUTE((un
 
     *complete = PARTIAL_COMPLETION;
     } else {
-            MPIR_ERR_SETANDJUMP(mpi_errno,MPI_ERR_OTHER,"**ch3|loadrecviov");
+        MPIR_ERR_SETANDJUMP(mpi_errno, MPI_ERR_OTHER, "**ch3|loadrecviov");
     }
 #endif /* defined(CHANNEL_MRAIL) */
 
@@ -946,13 +944,13 @@ int MPIDI_CH3_ReqHandler_GaccumMetadataRecvComplete(MPIDI_VC_t * vc,
         rreq->dev.OnDataAvail = MPIDI_CH3_ReqHandler_GaccumRecvComplete;
 
 #if defined(CHANNEL_MRAIL)
-        if (MV2_RNDV_PROTOCOL_EAGER == rreq->mrail.protocol) {
+        if (MRAILI_PROTOCOL_EAGER == rreq->mrail.protocol) {
 #endif /* defined(CHANNEL_MRAIL) */
             *complete = FALSE;
 #if defined(CHANNEL_MRAIL)
-        } else if (MV2_RNDV_PROTOCOL_RPUT == rreq->mrail.protocol ||
-                   MV2_RNDV_PROTOCOL_R3 == rreq->mrail.protocol ||
-                   MV2_RNDV_PROTOCOL_UD_ZCOPY == rreq->mrail.protocol) {
+        } else if (MRAILI_PROTOCOL_RPUT == rreq->mrail.protocol ||
+                   MRAILI_PROTOCOL_R3 == rreq->mrail.protocol ||
+                   MRAILI_PROTOCOL_UD_ZCOPY == rreq->mrail.protocol) {
             MPIR_Request *cts_req;
             MPIDI_CH3_Pkt_t upkt;
             MPIDI_CH3_Pkt_rndv_clr_to_send_t *cts_pkt =
@@ -1033,7 +1031,7 @@ int MPIDI_CH3_ReqHandler_GetDerivedDTRecvComplete(MPIDI_VC_t * vc,
     MPIR_ERR_CHKANDJUMP(sreq == NULL, mpi_errno, MPI_ERR_OTHER, "**nomemreq");
 
     sreq->kind = MPIR_REQUEST_KIND__SEND;
-    MV2_INC_NUM_POSTED_SEND();
+    MVP_INC_NUM_POSTED_SEND();
     MPIDI_Request_set_type(sreq, MPIDI_REQUEST_TYPE_GET_RESP);
     sreq->dev.OnDataAvail = MPIDI_CH3_ReqHandler_GetSendComplete;
     sreq->dev.OnFinal = MPIDI_CH3_ReqHandler_GetSendComplete;
@@ -1070,8 +1068,8 @@ int MPIDI_CH3_ReqHandler_GetDerivedDTRecvComplete(MPIDI_VC_t * vc,
     MPIDI_VC_FAI_send_seqnum(vc, seqnum);
     MPIDI_Pkt_set_seqnum(get_resp_pkt, seqnum);
 
-    if (sreq->mrail.protocol == MV2_RNDV_PROTOCOL_EAGER) {
-        get_resp_pkt->protocol = MV2_RNDV_PROTOCOL_EAGER;
+    if (sreq->mrail.protocol == MRAILI_PROTOCOL_EAGER) {
+        get_resp_pkt->protocol = MRAILI_PROTOCOL_EAGER;
 #endif /* defined(CHANNEL_MRAIL) */
 
         /* Because this is in a packet handler, it is already within a critical section */
@@ -1305,7 +1303,7 @@ static inline int perform_get_in_lock_queue(MPIR_Win * win_ptr,
 
     MPIDI_Request_set_type(sreq, MPIDI_REQUEST_TYPE_GET_RESP);
     sreq->kind = MPIR_REQUEST_KIND__SEND;
-    MV2_INC_NUM_POSTED_SEND();
+    MVP_INC_NUM_POSTED_SEND();
     sreq->dev.OnDataAvail = MPIDI_CH3_ReqHandler_GetSendComplete;
     sreq->dev.OnFinal = MPIDI_CH3_ReqHandler_GetSendComplete;
 
@@ -1479,7 +1477,7 @@ static inline int perform_get_acc_in_lock_queue(MPIR_Win * win_ptr,
 
     MPIDI_Request_set_type(sreq, MPIDI_REQUEST_TYPE_GET_ACCUM_RESP);
     sreq->kind = MPIR_REQUEST_KIND__SEND;
-    MV2_INC_NUM_POSTED_SEND();
+    MVP_INC_NUM_POSTED_SEND();
     sreq->dev.OnDataAvail = MPIDI_CH3_ReqHandler_GaccumSendComplete;
     sreq->dev.OnFinal = MPIDI_CH3_ReqHandler_GaccumSendComplete;
 

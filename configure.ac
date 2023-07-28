@@ -6,12 +6,12 @@
 # Copyright (c) 2001-2022, The Ohio State University. All rights
 # reserved.
 #
-# This file is part of the MVAPICH2 software package developed by the
+# This file is part of the MVAPICH software package developed by the
 # team members of The Ohio State University's Network-Based Computing
 # Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
 #
 # For detailed copyright and licensing information, please refer to the
-# copyright file COPYRIGHT in the top level MVAPICH2 directory.
+# copyright file COPYRIGHT in the top level MVAPICH directory.
 
 
 AC_PREREQ(2.63)
@@ -23,7 +23,7 @@ dnl bugs in autoconf caching.
 dnl
 dnl This is a large configure script and it is important to keep it
 dnl clearly organized.  In addition, this script must coordinate with 
-dnl the other modules that can be used to construct MVAPICH2, such as
+dnl the other modules that can be used to construct MVAPICH, such as
 dnl the communication device and the process manager.  Each of these
 dnl may have special features or limitations that other modules or
 dnl this configure may need to take into account.  To handle this, there
@@ -113,10 +113,10 @@ dnl dropped) before AC_INIT.
 
 m4_include([maint/version.m4])
 dnl 2nd arg is intentionally underquoted
-AC_INIT([MVAPICH2],
-        MVAPICH2_VERSION_m4,
+AC_INIT([MVAPICH],
+        MVAPICH_VERSION_m4,
         [mvapich-discuss@cse.ohio-state.edu],
-        [mvapich2],
+        [mvapich],
         [http://mvapich.cse.ohio-state.edu])
 
 if test "x$prefix" != "xNONE" && test -d "$prefix"; then
@@ -131,13 +131,13 @@ AC_SUBST(CONFIGURE_ARGS_CLEAN)
 
 # these values come from the m4_include above
 MPICH_VERSION=MPICH_VERSION_m4
-MVAPICH2_VERSION=MVAPICH2_VERSION_m4
+MVAPICH_VERSION=MVAPICH_VERSION_m4
 AC_SUBST([MPICH_VERSION])
-AC_SUBST([MVAPICH2_VERSION])
+AC_SUBST([MVAPICH_VERSION])
 MPICH_RELEASE_DATE="MPICH_RELEASE_DATE_m4"
-MVAPICH2_RELEASE_DATE="MVAPICH2_RELEASE_DATE_m4"
+MVAPICH_RELEASE_DATE="MVAPICH_RELEASE_DATE_m4"
 AC_SUBST([MPICH_RELEASE_DATE])
-AC_SUBST([MVAPICH2_RELEASE_DATE])
+AC_SUBST([MVAPICH_RELEASE_DATE])
 libmpi_so_version="libmpi_so_version_m4"
 AC_SUBST([libmpi_so_version])
 
@@ -146,11 +146,11 @@ if test -z "$MPICH_VERSION" ; then
     AC_MSG_ERROR([MPICH_VERSION is empty, check maint/version.m4 for errors])
 fi
 
-if test -z "$MVAPICH2_VERSION" ; then
-    AC_MSG_ERROR([MVAPICH2_VERSION is empty, check maint/version.m4 for errors])
+if test -z "$MVAPICH_VERSION" ; then
+    AC_MSG_ERROR([MVAPICH_VERSION is empty, check maint/version.m4 for errors])
 fi
 AC_SUBST(MPICH2_RELEASE_DATE)
-AC_SUBST(MVAPICH2_RELEASE_DATE)
+AC_SUBST(MVAPICH_RELEASE_DATE)
 # Produce a numeric version assuming the following format:
 # Version: [MAJ].[MIN].[REV][EXT][EXT_NUMBER]
 # Example: 1.0.7rc1 has
@@ -170,11 +170,11 @@ AC_SUBST(MVAPICH2_RELEASE_DATE)
 # Numeric version will have 1 digit for MAJ, 2 digits for MIN,
 # 2 digits for REV, 1 digit for EXT and 2 digits for EXT_NUMBER.
 changequote(<<,>>)
-V1=`expr $MVAPICH2_VERSION : '\([0-9]*\)\.[0-9]*\.*[0-9]*[a-zA-Z]*[0-9]*'`
-V2=`expr $MVAPICH2_VERSION : '[0-9]*\.\([0-9]*\)\.*[0-9]*[a-zA-Z]*[0-9]*'`
-V3=`expr $MVAPICH2_VERSION : '[0-9]*\.[0-9]*\.*\([0-9]*\)[a-zA-Z]*[0-9]*'`
-V4=`expr $MVAPICH2_VERSION : '[0-9]*\.[0-9]*\.*[0-9]*\([a-zA-Z]*\)[0-9]*'`
-V5=`expr $MVAPICH2_VERSION : '[0-9]*\.[0-9]*\.*[0-9]*[a-zA-Z]*\([0-9]*\)'`
+V1=`expr $MVAPICH_VERSION : '\([0-9]*\)\.[0-9]*\.*[0-9]*[a-zA-Z]*[0-9]*'`
+V2=`expr $MVAPICH_VERSION : '[0-9]*\.\([0-9]*\)\.*[0-9]*[a-zA-Z]*[0-9]*'`
+V3=`expr $MVAPICH_VERSION : '[0-9]*\.[0-9]*\.*\([0-9]*\)[a-zA-Z]*[0-9]*'`
+V4=`expr $MVAPICH_VERSION : '[0-9]*\.[0-9]*\.*[0-9]*\([a-zA-Z]*\)[0-9]*'`
+V5=`expr $MVAPICH_VERSION : '[0-9]*\.[0-9]*\.*[0-9]*[a-zA-Z]*\([0-9]*\)'`
 changequote([,])
 
 if test "$V2" -le 9 ; then V2=0$V2 ; fi
@@ -194,8 +194,8 @@ elif test "$V4" = "p" ; then
 fi
 if test "$V5" -le 9 ; then V5=0$V5 ; fi
 
-MVAPICH2_NUMVERSION=`expr $V1$V2$V3$V4$V5 + 0`
-AC_SUBST(MVAPICH2_NUMVERSION)
+MVAPICH_NUMVERSION=`expr $V1$V2$V3$V4$V5 + 0`
+AC_SUBST(MVAPICH_NUMVERSION)
 
 changequote(<<,>>)
 V1=`expr $MPICH_VERSION : '\([0-9]*\)\.[0-9]*\.*[0-9]*[a-zA-Z]*[0-9]*'`
@@ -227,7 +227,7 @@ AC_SUBST(MPICH_NUMVERSION)
 
 AC_ARG_WITH(custom-version-string,
             AC_HELP_STRING([--with-custom-version-string], [Adds a user-specified value to the output of the mpichversion executable]),,with_custom_version_string="")
-MVAPICH2_CUSTOM_STRING=$with_custom_version_string
+MVAPICH_CUSTOM_STRING=$with_custom_version_string
 AC_SUBST(MPICH_CUSTOM_STRING)
 
 # ABIVERSION is the name used by simplemake, so we reassign the
@@ -241,9 +241,9 @@ AC_SUBST(ABIVERSION)
 CONFIGURE_ARGUMENTS="$ac_configure_args"
 AC_SUBST(CONFIGURE_ARGUMENTS)
 if test -n "$ac_configure_args" ; then
-    echo "Configuring MVAPICH2 version $MVAPICH2_VERSION with $ac_configure_args"
+    echo "Configuring MVAPICH version $MVAPICH_VERSION with $ac_configure_args"
 else 
-    echo "Configuring MVAPICH2 version $MVAPICH2_VERSION"
+    echo "Configuring MVAPICH version $MVAPICH_VERSION"
 fi
 
 # Add the information on the system:
@@ -255,12 +255,12 @@ AH_TOP([/*
  * Copyright (c) 2001-2021, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 /*  
@@ -430,7 +430,7 @@ AC_ARG_ENABLE(extended-context-bits,
 
 AC_ARG_ENABLE(timing,
 [  --enable-timing=level - Control the amount of timing information
-                           collected by the MVAPICH2 implementation.
+                           collected by the MVAPICH implementation.
         none    - Collect no data (default)
         all     - Collect lots of data
         runtime - Runtime control of data collected
@@ -438,7 +438,7 @@ AC_ARG_ENABLE(timing,
 
 AC_ARG_ENABLE(g,
 [  --enable-g=option - Control the level of debugging support in the
-                       MVAPICH2 implementation.  "option" is a list of comma
+                       MVAPICH implementation.  "option" is a list of comma
                        separated names including
         none     - No debugging
         handle   - Trace handle operations
@@ -471,7 +471,7 @@ AC_ARG_ENABLE([mpit-pvars],
         recvq    - All message queue-related
         nem      - All nemesis-related
         rma      - All rma-related
-        mv2      - All mvapich2-related
+        mvp      - All mvapich-related
         mem      - All memory related
         all      - All variables above
 ],[],[enable_mpit_pvars=none])
@@ -484,7 +484,7 @@ AC_ARG_WITH(aint-size,
 
 AC_ARG_ENABLE(fast,
 [  --enable-fast=option - Control the level of fast execution in the
-                         MVAPICH2 implementation.  option is a list of
+                         MVAPICH implementation.  option is a list of
                          comma separated names including
         O<n>     - Appends default optimization flags, -O<n>, to all internal
                    compiler flags, i.e. MPICHLIB_CFLAGS, MPICHLIB_CXXFLAGS,
@@ -557,7 +557,7 @@ dnl "default" is a special device that allows MPICH to choose one
 dnl based on the environment.
 dnl AC_ARG_WITH(hwloc,
 dnl 	AC_HELP_STRING([--with-hwloc=version],
-dnl                    [Specify the hwloc version to use with MVAPICH2
+dnl                    [Specify the hwloc version to use with MVAPICH
 dnl                     (Options: v1, v2) (Default: v1)]),,
 dnl 	               with_hwloc=v1)
 dnl  
@@ -573,18 +573,18 @@ dnl     AC_DEFINE([_USE_HWLOC_V2_], 1, [Define when using HWLOC V2])
 dnl fi
 
 AC_ARG_WITH(device,
-	AC_HELP_STRING([--with-device=name], [Specify the communication device for MVAPICH2]),,
+	AC_HELP_STRING([--with-device=name], [Specify the communication device for MVAPICH]),,
 	with_device=ch4)
 dnl	AC_HELP_STRING([--with-device=name], [Specify the communication device for MPICH]),,
 dnl	with_device=ch4)
 
 AC_ARG_WITH(pmi,
-	AC_HELP_STRING([--with-pmi=name], [Specify the pmi interface for MVAPICH2]),,
+	AC_HELP_STRING([--with-pmi=name], [Specify the pmi interface for MVAPICH]),,
 	with_pmi=default)
 
 AC_ARG_WITH(pm,
 	AC_HELP_STRING([--with-pm=name],
-		[Specify the process manager for MVAPICH2.  "no" or "none" are
+		[Specify the process manager for MVAPICH.  "no" or "none" are
                  valid values.  Multiple process managers may be specified as
                  long as they all use the same pmi interface by separating them
                  with colons.  The mpiexec for the first named process manager
@@ -595,12 +595,12 @@ AC_ARG_WITH(pm,
                  manager can be selcted.]),,with_pm=default)
 
 AC_ARG_WITH(logging,
-	AC_HELP_STRING([--with-logging=name], [Specify the logging library for MVAPICH2]),
+	AC_HELP_STRING([--with-logging=name], [Specify the logging library for MVAPICH]),
 	[if test -z "$withval" ; then with_logging=rlog ; fi],with_logging=none)
 
 AC_ARG_ENABLE(threads,
 [  --enable-threads=level - Control the level of thread support in the 
-                           MVAPICH2 implementation.  The following levels
+                           MVAPICH implementation.  The following levels
                            are supported.
         single          - No threads (MPI_THREAD_SINGLE)
         funneled        - Only the main thread calls MPI (MPI_THREAD_FUNNELED)
@@ -652,7 +652,7 @@ AC_ARG_ENABLE([two-level-namespace],
                                built with the mpicc/mpifort/etc. compiler
                                wrappers with '-Wl,-commons,use_dylibs' and
                                without '-Wl,-flat_namespace'.  This may make the
-                               MVAPICH2 installation and MPI programs more
+                               MVAPICH installation and MPI programs more
                                compatible with other libraries.  Only enable
                                this option if you really know what these linker
                                options imply.])],
@@ -811,7 +811,7 @@ AC_ARG_ENABLE([registration-cache],
 
 AC_ARG_ENABLE([xrc],
               [AS_HELP_STRING([--disable-xrc],
-                              [compile MVAPICH2 without XRC support])
+                              [compile MVAPICH without XRC support])
               ])
 
 AC_ARG_ENABLE([rsh],
@@ -844,7 +844,7 @@ AC_ARG_ENABLE([hybrid],
 AC_MSG_CHECKING([whether to enable header caching])
 
 if test "$enable_header_caching" != "yes"; then
-    AC_DEFINE(MV2_DISABLE_HEADER_CACHING,1,[Define to disable header caching.])
+    AC_DEFINE(MVP_DISABLE_HEADER_CACHING,1,[Define to disable header caching.])
 fi
 
 AC_MSG_RESULT($enable_header_caching)
@@ -2165,14 +2165,14 @@ save_IFS="$IFS"
 IFS=","
 for var in $enable_mpit_pvars ; do
     AS_CASE(["$var"],
-            [mv2|yes],[enable_pvar_mv2=yes],
+            [mvp|yes],[enable_pvar_mvp=yes],
             [mem],[enable_pvar_mem=yes],
             [nem],[enable_pvar_nem=yes],
             [recvq],[enable_pvar_recvq=yes],
             [rma],[enable_pvar_rma=yes],
 	        [dims],[enable_pvar_dims=yes],
             [all|yes],
-            [enable_pvar_mv2=yes
+            [enable_pvar_mvp=yes
 	         enable_pvar_mem=yes
              enable_pvar_nem=yes
              enable_pvar_recvq=yes
@@ -2186,13 +2186,13 @@ for var in $enable_mpit_pvars ; do
 done
 IFS="$save_IFS"
 
-if test -n "$enable_pvar_mv2" ; then
-    status_mv2_pvars=1
+if test -n "$enable_pvar_mvp" ; then
+    status_mvp_pvars=1
 else
-    status_mv2_pvars=0
+    status_mvp_pvars=0
 fi
-AC_DEFINE_UNQUOTED(ENABLE_PVAR_MV2,$status_mv2_pvars,
-          [Define to 1 to enable mvapich2-related MPI_T performance variables])
+AC_DEFINE_UNQUOTED(ENABLE_PVAR_MVP,$status_mvp_pvars,
+          [Define to 1 to enable mvapich-related MPI_T performance variables])
 
 if test -n "$enable_pvar_mem" ; then
     status_mem_pvars=1
@@ -3018,7 +3018,7 @@ if test "$enable_debuginfo" = "yes" ; then
    if test "$ac_cv_prog_gcc" = "yes" ; then
        AC_MSG_WARN([Some versions of gcc do not include debugging information
 within the executable.  Totalview requires this information to detect
-an MVAPICH2 code.  If you have trouble, try linking with the additional
+an MVAPICH code.  If you have trouble, try linking with the additional
 option 
     +noobjdebug
 on all link lines (consider adding it to LDFLAGS)])
@@ -4303,7 +4303,7 @@ dnl Removed MPI_2COMPLEX and MPI_2DOUBLE_COMPLEX, leaving comments to explain th
 	if grep HAVE_FINT_IS_INT $main_top_srcdir/src/binding/fortran/mpif_h/testf.c 2>&1 1>/dev/null ; then
 	    AC_MSG_WARN([Fortran integers and C ints are not the same size.  Support for this case is experimental; use at your own risk])
 	else 
-            AC_MSG_ERROR([Fortran integers and C ints are not the same size.  The current Fortran binding does not support this case.  Either force the Fortran compiler to use integers of $ac_cv_sizeof_int bytes, or use --disable-fortran on the configure line for MVAPICH2.])
+            AC_MSG_ERROR([Fortran integers and C ints are not the same size.  The current Fortran binding does not support this case.  Either force the Fortran compiler to use integers of $ac_cv_sizeof_int bytes, or use --disable-fortran on the configure line for MVAPICH.])
 	fi
     fi
 
@@ -5853,8 +5853,8 @@ AC_OUTPUT(Makefile \
             src/binding/fortran/use_mpi/mpi_constants.f90 \
             src/binding/fortran/use_mpi_f08/mpi_f08_compile_constants.f90 \
             src/binding/fortran/use_mpi_f08/mpi_c_interface_types.f90 \
-            src/packaging/pkgconfig/mvapich2.pc \
-            src/packaging/envmods/mvapich2.module \
+            src/packaging/pkgconfig/mvapich.pc \
+            src/packaging/envmods/mvapich.module \
             src/env/mpixxx_opts.conf \
             src/env/mpicc.sh \
             src/env/mpicc.bash \
@@ -5874,7 +5874,7 @@ AC_OUTPUT(Makefile \
             test/commands/cmdtests \
             src/env/mpiname/Makefile \
             src/pm/mpirun/mpirun_rsh.h \
-            src/util/mv2_ckpt_rebuild/Makefile \
+            src/util/mvp_ckpt_rebuild/Makefile \
             )
 
 if test ${device_name} = "ch4" ; then

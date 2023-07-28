@@ -13,15 +13,15 @@
  *          Michael Welcome  <mlwelcome@lbl.gov>
  */
 
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -44,13 +44,13 @@
 #include "src/db/text.h"
 #include "src/slurm/slurm_startup.h"
 #include "src/pbs/pbs_startup.h"
-#include <mv2_debug_utils.h>
+#include <mvp_debug_utils.h>
 
 #if defined(_NSIG)
 #define NSIG _NSIG
-#endif                          /* defined(_NSIG) */
+#endif /* defined(_NSIG) */
 
-extern int read_hostfile(char const * hostfile_name, int using_pbs);
+extern int read_hostfile(char const *hostfile_name, int using_pbs);
 
 process *plist = NULL;
 int nprocs = 0;
@@ -64,9 +64,9 @@ char *binary_dirname = NULL;
 
 #if defined(USE_RSH)
 int use_rsh = 1;
-#else                           /* defined(USE_RSH) */
+#else  /* defined(USE_RSH) */
 int use_rsh = 0;
-#endif                          /* defined(USE_RSH) */
+#endif /* defined(USE_RSH) */
 
 int xterm_on = 0;
 int show_on = 0;
@@ -76,11 +76,11 @@ int param_count = 0;
 int legacy_startup = 0;
 int dpm = 0;
 extern spawn_info_t spinf;
-int USE_LINEAR_SSH = 1;         /* By default, use linear ssh. Enable
-                                   -fastssh for tree based ssh */
-int USE_SRUN = 0;               /* By default, use ssh. Enable
-                                   -srun for using slurm's srun */
-#define LAUNCHER_LEN 4          /* set for srun as the longest name */
+int USE_LINEAR_SSH = 1; /* By default, use linear ssh. Enable
+                           -fastssh for tree based ssh */
+int USE_SRUN = 0;       /* By default, use ssh. Enable
+                           -srun for using slurm's srun */
+#define LAUNCHER_LEN 4  /* set for srun as the longest name */
 
 char hostfile[HOSTFILE_LEN + 1];
 char launcher[LAUNCHER_LEN + 1];
@@ -133,7 +133,8 @@ static struct option option_table[] = {
     {"spawnfile", required_argument, 0, 0},
     {"dpm", no_argument, 0, 0},
     {"fastssh", no_argument, 0, 0},
-    //This option is to activate the mpmd, it requires the configuration file as argument
+    // This option is to activate the mpmd, it requires the configuration file
+    // as argument
     {"config", required_argument, 0, 0},
     {"dpmspawn", required_argument, 0, 0},
     // This option enables the group selection for mpispawns
@@ -141,12 +142,11 @@ static struct option option_table[] = {
     {"n", required_argument, 0, 0},
     {"env", required_argument, 0, 0},
     {"export-all", no_argument, 0, 0},
-    {0, 0, 0, 0}
-};
+    {0, 0, 0, 0}};
 
-static inline int mpirun_get_launcher(char *launcher_arg) 
-{ 
-    const char* const mpirun_launcher_options[] = { "ssh", "rsh", "srun" };
+static inline int mpirun_get_launcher(char *launcher_arg)
+{
+    const char *const mpirun_launcher_options[] = {"ssh", "rsh", "srun"};
     int launchers = 3;
     int i, ret = 0;
     for (i = 0; i < launchers; i++) {
@@ -158,20 +158,24 @@ static inline int mpirun_get_launcher(char *launcher_arg)
         case 0:
             use_rsh = 0;
             USE_SRUN = 0;
-            DBG(fprintf(stderr, "ssh => use_rsh: %d, USE_SRUN: %d\n", use_rsh, USE_SRUN));
+            DBG(fprintf(stderr, "ssh => use_rsh: %d, USE_SRUN: %d\n", use_rsh,
+                        USE_SRUN));
             break;
         case 1:
             use_rsh = 1;
             USE_SRUN = 0;
-            DBG(fprintf(stderr, "rsh => use_rsh: %d, USE_SRUN: %d\n", use_rsh, USE_SRUN));
+            DBG(fprintf(stderr, "rsh => use_rsh: %d, USE_SRUN: %d\n", use_rsh,
+                        USE_SRUN));
             break;
         case 2:
             use_rsh = 0;
             USE_SRUN = 1;
-            DBG(fprintf(stderr, "srun => use_rsh: %d, USE_SRUN: %d\n", use_rsh, USE_SRUN));
+            DBG(fprintf(stderr, "srun => use_rsh: %d, USE_SRUN: %d\n", use_rsh,
+                        USE_SRUN));
             break;
         default:
-            fprintf(stderr, "Invalid launcher selected. Launcher must be one of:\n");
+            fprintf(stderr,
+                    "Invalid launcher selected. Launcher must be one of:\n");
             for (i = 0; i < launchers; i++) {
                 fprintf(stderr, "\t%s\n", mpirun_launcher_options[i]);
             }
@@ -188,7 +192,9 @@ char *get_current_dir_name()
     struct stat64 pwdstat;
     char *pwd = getenv("PWD");
 
-    if (pwd != NULL && stat64(".", &dotstat) == 0 && stat64(pwd, &pwdstat) == 0 && pwdstat.st_dev == dotstat.st_dev && pwdstat.st_ino == dotstat.st_ino) {
+    if (pwd != NULL && stat64(".", &dotstat) == 0 &&
+        stat64(pwd, &pwdstat) == 0 && pwdstat.st_dev == dotstat.st_dev &&
+        pwdstat.st_ino == dotstat.st_ino) {
         /* The PWD value is correct. */
         return strdup(pwd);
     }
@@ -216,7 +222,7 @@ char *get_current_dir_name()
 
     return buffer;
 }
-#endif                          /* !defined(HAVE_GET_CURRENT_DIR_NAME) */
+#endif /* !defined(HAVE_GET_CURRENT_DIR_NAME) */
 
 #if !defined(HAVE_STRNDUP)
 char *strndup(const char *s, size_t n)
@@ -236,60 +242,59 @@ char *strndup(const char *s, size_t n)
     result[len] = '\0';
     return memcpy(result, s, len);
 }
-#endif                          /* !defined(HAVE_STRNDUP) */
+#endif /* !defined(HAVE_STRNDUP) */
 
 #define PARAMFILE_LEN 256
 
-static void check_option(int argc, char *argv[], int option_index, char *totalview_cmd)
+static void check_option(int argc, char *argv[], int option_index,
+                         char *totalview_cmd)
 {
-
     char *tmp;
 
     switch (option_index) {
-    case PARAM_NP:             /* -np */
-    case PARAM_N:              /* -n */
-        nprocs = atoi(optarg);
-        if (nprocs < 1) {
+        case PARAM_NP: /* -np */
+        case PARAM_N:  /* -n */
+            nprocs = atoi(optarg);
+            if (nprocs < 1) {
+                usage(argv[0]);
+                exit(EXIT_FAILURE);
+            }
+            break;
+        case PARAM_GDB:
+            debug_on = 1;
+            xterm_on = 1;
+            break;
+        case PARAM_XTERM:
+            xterm_on = 1;
+            break;
+        case PARAM_F:
+        case PARAM_MACHINEFILE:
+            hostfile_on = 1;
+            using_slurm = 0;
+            using_pbs = 0;
+            strncpy(hostfile, optarg, HOSTFILE_LEN);
+            if (strlen(optarg) >= HOSTFILE_LEN - 1)
+                hostfile[HOSTFILE_LEN] = '\0';
+            break;
+        case PARAM_SHOW:
+            show_on = 1;
+            break;
+        case PARAM_LAUNCHER:
+            strncpy(launcher, optarg, LAUNCHER_LEN);
+            if (mpirun_get_launcher(launcher)) {
+                usage(argv[0]);
+                exit(EXIT_FAILURE);
+            }
+            break;
+        case PARAM_HELP:
             usage(argv[0]);
-            exit(EXIT_FAILURE);
-        }
-        break;
-    case PARAM_GDB:
-        debug_on = 1;
-        xterm_on = 1;
-        break;
-    case PARAM_XTERM:
-        xterm_on = 1;
-        break;
-    case PARAM_F:
-    case PARAM_MACHINEFILE:
-        hostfile_on = 1;
-        using_slurm = 0;
-        using_pbs = 0;
-        strncpy(hostfile, optarg, HOSTFILE_LEN);
-        if (strlen(optarg) >= HOSTFILE_LEN - 1)
-            hostfile[HOSTFILE_LEN] = '\0';
-        break;
-    case PARAM_SHOW:
-        show_on = 1;
-        break;
-    case PARAM_LAUNCHER:
-        strncpy(launcher, optarg, LAUNCHER_LEN);
-        if (mpirun_get_launcher(launcher)) {
-            usage(argv[0]);
-            exit(EXIT_FAILURE);
-        }
-        break;
-    case PARAM_HELP:
-        usage(argv[0]);
-        exit(EXIT_SUCCESS);
-        break;
-    case PARAM_V:
-        PRINT_MVAPICH2_VERSION();
-        exit(EXIT_SUCCESS);
-        break;
-    case PARAM_TV:
-        {
+            exit(EXIT_SUCCESS);
+            break;
+        case PARAM_V:
+            PRINT_MVAPICH_VERSION();
+            exit(EXIT_SUCCESS);
+            break;
+        case PARAM_TV: {
             /* -tv */
             char *tv_env;
             int count, idx;
@@ -298,10 +303,11 @@ static void check_option(int argc, char *argv[], int option_index, char *totalvi
             if (tv_env != NULL) {
                 strncpy(totalview_cmd, tv_env, TOTALVIEW_CMD_LEN);
             } else {
-                fprintf(stderr, "TOTALVIEW env is NULL, use default: %s\n", TOTALVIEW_CMD);
+                fprintf(stderr, "TOTALVIEW env is NULL, use default: %s\n",
+                        TOTALVIEW_CMD);
                 sprintf(totalview_cmd, "%s", TOTALVIEW_CMD);
             }
-            new_argv = (char **) malloc(sizeof(char **) * argc + 3);
+            new_argv = (char **)malloc(sizeof(char **) * argc + 3);
             new_argv[0] = totalview_cmd;
             new_argv[1] = argv[0];
             new_argv[2] = "-a";
@@ -317,75 +323,80 @@ static void check_option(int argc, char *argv[], int option_index, char *totalvi
                 exit(EXIT_FAILURE);
             }
 
-        }
-        break;
-    case PARAM_LEGACY:
-        legacy_startup = 1;
-        break;
-    case PARAM_STARTEDBYTV:
-        /* -startedByTv */
-        use_totalview = 1;
-        debug_on = 1;
-        break;
-    case PARAM_SPAWNFILE:
-        using_slurm = 0;
-        using_pbs = 0;
-        spawnfile = strdup(optarg);
-        DBG(fprintf(stderr, "spawn spec file = %s\n", spawnfile));
-        break;
-    case PARAM_DPM:
-        dpm = 1;
-        break;
-    case PARAM_FASTSSH:
+        } break;
+        case PARAM_LEGACY:
+            legacy_startup = 1;
+            break;
+        case PARAM_STARTEDBYTV:
+            /* -startedByTv */
+            use_totalview = 1;
+            debug_on = 1;
+            break;
+        case PARAM_SPAWNFILE:
+            using_slurm = 0;
+            using_pbs = 0;
+            spawnfile = strdup(optarg);
+            DBG(fprintf(stderr, "spawn spec file = %s\n", spawnfile));
+            break;
+        case PARAM_DPM:
+            dpm = 1;
+            break;
+        case PARAM_FASTSSH:
 #if !defined(CR_FTB)
-        /* disable hierarchical SSH if migration is enabled */
-        USE_LINEAR_SSH = 0;
+            /* disable hierarchical SSH if migration is enabled */
+            USE_LINEAR_SSH = 0;
 #endif
-        break;
-        //With this option the user want to activate the mpmd
-    case PARAM_CONFIG:
-        configfile_on = 1;
-        using_slurm = 0;
-        using_pbs = 0;
-        strncpy(configfile, optarg, CONFILE_LEN);
-        if (strlen(optarg) >= CONFILE_LEN - 1)
-            configfile[CONFILE_LEN] = '\0';
-        break;
-    case PARAM_DPMSPAWN:
-        spinf.totspawns = atoi(optarg);
-        break;
-    case PARAM_SG:
-        /* sg: change the active group */
-        change_group = optarg;
-        DBG(printf("Group change requested: '%s'\n", change_group));
-        break;
-    case PARAM_ENV:
-        /* -env */
-        if (mpispawn_param_env) {
-            tmp = mkstr("%s MPISPAWN_GENERIC_NAME_%d=%s" " MPISPAWN_GENERIC_VALUE_%d=%s", mpispawn_param_env, param_count, argv[optind - 1], param_count, argv[optind]);
+            break;
+            // With this option the user want to activate the mpmd
+        case PARAM_CONFIG:
+            configfile_on = 1;
+            using_slurm = 0;
+            using_pbs = 0;
+            strncpy(configfile, optarg, CONFILE_LEN);
+            if (strlen(optarg) >= CONFILE_LEN - 1)
+                configfile[CONFILE_LEN] = '\0';
+            break;
+        case PARAM_DPMSPAWN:
+            spinf.totspawns = atoi(optarg);
+            break;
+        case PARAM_SG:
+            /* sg: change the active group */
+            change_group = optarg;
+            DBG(printf("Group change requested: '%s'\n", change_group));
+            break;
+        case PARAM_ENV:
+            /* -env */
+            if (mpispawn_param_env) {
+                tmp = mkstr("%s MPISPAWN_GENERIC_NAME_%d=%s"
+                            " MPISPAWN_GENERIC_VALUE_%d=%s",
+                            mpispawn_param_env, param_count, argv[optind - 1],
+                            param_count, argv[optind]);
 
-            free(mpispawn_param_env);
-        } else {
-            tmp = mkstr("MPISPAWN_GENERIC_NAME_%d=%s" " MPISPAWN_GENERIC_VALUE_%d=%s", param_count, argv[optind - 1], param_count, argv[optind]);
-        }
+                free(mpispawn_param_env);
+            } else {
+                tmp = mkstr("MPISPAWN_GENERIC_NAME_%d=%s"
+                            " MPISPAWN_GENERIC_VALUE_%d=%s",
+                            param_count, argv[optind - 1], param_count,
+                            argv[optind]);
+            }
 
-        if (tmp) {
-            mpispawn_param_env = tmp;
-            param_count++;
-        } else {
-            fprintf(stderr, "malloc failed in read_param_file\n");
+            if (tmp) {
+                mpispawn_param_env = tmp;
+                param_count++;
+            } else {
+                fprintf(stderr, "malloc failed in read_param_file\n");
+                exit(EXIT_FAILURE);
+            }
+            optind++;
+            break;
+        case PARAM_EXPORT_ALL:
+            enable_send_environ(1);
+            break;
+        default:
+            fprintf(stderr, "Unknown option\n");
+            usage(argv[0]);
             exit(EXIT_FAILURE);
-        }
-        optind++;
-        break;
-    case PARAM_EXPORT_ALL:
-        enable_send_environ(1);
-        break;
-    default:
-        fprintf(stderr, "Unknown option\n");
-        usage(argv[0]);
-        exit(EXIT_FAILURE);
-        break;
+            break;
     }
 }
 
@@ -404,7 +415,7 @@ void commandLine(int argc, char *argv[], char *totalview_cmd, char **env)
     if (check_for_slurm()) {
         using_slurm = 1;
     }
-    
+
     else if (check_for_pbs()) {
         using_pbs = 1;
     }
@@ -412,28 +423,28 @@ void commandLine(int argc, char *argv[], char *totalview_cmd, char **env)
     do {
         c = getopt_long_only(argc, argv, "+", option_table, &option_index);
         switch (c) {
-        case '?':
-        case ':':
-            usage(argv[0]);
-            exit(EXIT_FAILURE);
-            break;
-        case EOF:
-            break;
-        case 0:
-            check_option(argc, argv, option_index, totalview_cmd);
-            break;
-        default:
-            fprintf(stderr, "Unreachable statement!\n");
-            usage(argv[0]);
-            exit(EXIT_FAILURE);
-            break;
+            case '?':
+            case ':':
+                usage(argv[0]);
+                exit(EXIT_FAILURE);
+                break;
+            case EOF:
+                break;
+            case 0:
+                check_option(argc, argv, option_index, totalview_cmd);
+                break;
+            default:
+                fprintf(stderr, "Unreachable statement!\n");
+                usage(argv[0]);
+                exit(EXIT_FAILURE);
+                break;
         }
     } while (c != EOF);
 
     aout_index = optind;
 
     if (using_slurm && !nprocs) {
-       nprocs = slurm_nprocs(); 
+        nprocs = slurm_nprocs();
     }
 
     if (!(nprocs || configfile_on)) {
@@ -446,14 +457,13 @@ void commandLine(int argc, char *argv[], char *totalview_cmd, char **env)
         use_dirname = 0;
     }
 
-    //If the mpmd is active we need to parse the configuration file
+    // If the mpmd is active we need to parse the configuration file
     if (configfile_on) {
-        /*TODO In the future the user can add the nprocs on the command line. Now the
-         * number of processes is defined in the configfile */
+        /*TODO In the future the user can add the nprocs on the command line.
+         * Now the number of processes is defined in the configfile */
         nprocs = 0;
         plist = parse_config(configfile, &nprocs);
         DBG(fprintf(stderr, "PARSED CONFIG FILE\n"));
-
     }
 
     /*
@@ -483,14 +493,13 @@ void commandLine(int argc, char *argv[], char *totalview_cmd, char **env)
             plist[i].device = NULL;
             plist[i].port = -1;
             plist[i].remote_pid = 0;
-            //TODO ADD EXECNAME AND ARGS
-
+            // TODO ADD EXECNAME AND ARGS
         }
     }
 
     /*
      * Populate plist
-     */ 
+     */
     if (hostfile_on) {
         read_hostfile(hostfile, 0);
     }
@@ -524,24 +533,38 @@ void commandLine(int argc, char *argv[], char *totalview_cmd, char **env)
     }
 }
 
-void usage (char const * arg0)
+void usage(char const *arg0)
 {
-    char * path = strdup(arg0);
+    char *path = strdup(arg0);
 
-    fprintf(stderr, "usage: %s [-v] [-sg group] [-launcher rsh|ssh|srun] " "[-gdb] -[tv] [-xterm] [-show] [-legacy] [-export-all] -n N" "[-machinefile hfile | -f hfile] a.out args | -config configfile\n", basename(path));
+    fprintf(stderr,
+            "usage: %s [-v] [-sg group] [-launcher rsh|ssh|srun] "
+            "[-gdb] -[tv] [-xterm] [-show] [-legacy] [-export-all] -n N"
+            "[-machinefile hfile | -f hfile] a.out args | -config configfile\n",
+            basename(path));
     fprintf(stderr, "Where:\n");
-    fprintf(stderr, "\tsg         =>  execute the processes as different group ID\n");
-    fprintf(stderr, "\tlauncher   => " "one of rsh, ssh, or srun for connecing\n"); 
-    fprintf(stderr, "\tgdb        =>  run each process under the control of gdb\n");
-    fprintf(stderr, "\ttv         =>  run each process under the control of TotalView\n");
+    fprintf(stderr,
+            "\tsg         =>  execute the processes as different group ID\n");
+    fprintf(stderr, "\tlauncher   => "
+                    "one of rsh, ssh, or srun for connecing\n");
+    fprintf(stderr,
+            "\tgdb        =>  run each process under the control of gdb\n");
+    fprintf(
+        stderr,
+        "\ttv         =>  run each process under the control of TotalView\n");
     fprintf(stderr, "\txterm      =>  run remote processes under xterm\n");
-    fprintf(stderr, "\tshow       =>  show command for remote execution but don't run it\n");
-    fprintf(stderr, "\tlegacy     =>  use old startup method (1 ssh/process)\n");
+    fprintf(stderr, "\tshow       =>  show command for remote execution but "
+                    "don't run it\n");
+    fprintf(stderr,
+            "\tlegacy     =>  use old startup method (1 ssh/process)\n");
     fprintf(stderr, "\tnp         =>  specify the number of processes\n");
-    fprintf(stderr, "\thfile      =>  name of file containing hosts, one per line\n");
+    fprintf(stderr,
+            "\thfile      =>  name of file containing hosts, one per line\n");
     fprintf(stderr, "\ta.out      =>  name of MPI binary\n");
     fprintf(stderr, "\targs       =>  arguments for MPI binary\n");
-    fprintf(stderr, "\tconfig     =>  name of file containing the exe information: each line has the form -n numProc : exe args\n");
+    fprintf(stderr,
+            "\tconfig     =>  name of file containing the exe information: "
+            "each line has the form -n numProc : exe args\n");
     fprintf(stderr, "\n");
 
     free(path);

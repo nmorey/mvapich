@@ -289,7 +289,7 @@ AC_ARG_WITH(ch4-shmmods,
                           gpudirect    - Enable GPU Direct IPC (requires posix)
                  ],
                  [with_ch4_shmmods=$withval],
-                 [with_ch4_shmmods=auto])
+                 [with_ch4_shmmods=none])
 # shmmod0,shmmod1,... format
 # (posix is always enabled thus ch4_shm is not checked in posix module)
 ch4_shm="`echo $with_ch4_shmmods | sed -e 's/,/ /g'`"
@@ -460,38 +460,6 @@ src/mpid/ch4/include/netmodpre.h
 # we have to define it here to cover ch3 build
 AM_CONDITIONAL([BUILD_CH4_SHM],[test "${with_ch4_shmmods}" != "none" -a "${with_ch4_shmmods}" != "no"])
 AM_CONDITIONAL([BUILD_CH4_COLL_TUNING],[test -e "$srcdir/src/mpid/ch4/src/ch4_coll_globals.c"])
-
-# BEING: MV2 specific macros - may need to make these togglable
-AM_COND_IF([BUILD_CH4],[
-    with_mv2="yes"
-    AM_CONDITIONAL([BUILD_OSU_MVAPICH],[test "x${with_mv2}" != "xno"])
-    if test "x$with_mv2" != "xno"; then
-        build_osu_mvapich="yes"
-        AC_DEFINE([_OSU_MVAPICH_], [1], [Define to enable MVAPICH2 customizations])
-        AC_DEFINE([_OSU_COLLECTIVES_], [1],
-                  [Define to enable the use of MVAPICH2 implementation of collectives])
-        AC_DEFINE([_MV2_CH4_OVERRIDE_], [1],
-                  [Define to enable the use of MVAPICH2 ch4 override layer])
-        ch4_mv2_pre_include="#include \"../netmod/mv2/mv2_pre.h\""
-        ch4_nets_func_decl="MPIDI_NM_mv2_funcs"
-        ch4_nets_native_func_decl="MPIDI_NM_mv2_native_funcs"
-        ch4_nets_func_array="MPIDI_NM_mv2_funcs"
-        ch4_nets_native_func_array="MPIDI_NM_mv2_native_funcs"
-        ch4_mv2_fallback_func_id=`echo "$ch4_netmods" | tr '[[:lower:]]' '[[:upper:]]'`
-        AC_SUBST(ch4_mv2_pre_include)
-        AC_SUBST(ch4_nets_func_decl)
-        AC_SUBST(ch4_nets_native_func_decl)
-        AC_SUBST(ch4_nets_func_array)
-        AC_SUBST(ch4_nets_native_func_array)
-        AC_SUBST(ch4_mv2_fallback_func_id)
-        AC_CONFIG_FILES([
-            src/mpid/ch4/netmod/mv2/mv2_noinline_override.h
-        ])
-    else
-        ch4_mv2_pre_include=""
-        AC_SUBST(ch4_mv2_pre_include)
-    fi
-])
 
 ])dnl end _BODY
 

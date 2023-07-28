@@ -1,12 +1,12 @@
-/* Copyright (c) 2001-2022, The Ohio State University. All rights
+/* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -23,8 +23,8 @@
  *
  * History: Jul 15 2007 Launch
  *
- *          Feb 27 2009 Modified by Karthik Gopalakrishnan (gopalakk@cse.ohio-state.edu)
- *                                  Jonathan Perkins       (perkinjo@cse.ohio-state.edu)
+ *          Feb 27 2009 Modified by Karthik Gopalakrishnan
+ * (gopalakk@cse.ohio-state.edu) Jonathan Perkins (perkinjo@cse.ohio-state.edu)
  */
 
 #ifndef _LIMIC_INTERNAL_H_INCLUDED_
@@ -49,10 +49,9 @@
 #define LIMIC_TXW     0x1c04
 
 typedef struct limic_request {
-    void *buf;       /* user buffer */
-    size_t len;         /* buffer length */
-    limic_user *lu;  /* shandle or rhandle */
+    void *buf;      /* user buffer */
+    size_t len;     /* buffer length */
+    limic_user *lu; /* shandle or rhandle */
 } limic_request;
 
 #endif
-
