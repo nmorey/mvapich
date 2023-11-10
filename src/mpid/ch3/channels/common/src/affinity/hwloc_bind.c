@@ -2245,7 +2245,7 @@ int smpi_identify_free_cores(hwloc_cpuset_t *sock_cpuset,
         for (i = 0; i < g_smpi.num_local_nodes; ++i) {
             hwloc_bitmap_clr(*free_sock_cpuset, local_core_ids[i]);
         }
-        hwloc_bitmap_snprintf(cpu_str, 128, *free_sock_cpuset);
+        hwloc_bitmap_snprintf(cpu_str, sizeof(cpu_str), *free_sock_cpuset);
         PRINT_DEBUG(DEBUG_INIT_verbose, "Free sock_cpuset = %s\n", cpu_str);
     }
 
@@ -3386,12 +3386,12 @@ static int mvp_generate_implicit_cpu_mapping(int local_procs,
         for (i = 0; i < local_procs; i++) {
             curr = count;
             for (k = 0; k < num_app_threads; k++) {
-                j += snprintf(mapping + j, _POSIX2_LINE_MAX, "%d,",
+                j += snprintf(mapping + j, sizeof(mapping)-j, "%d,",
                               mvp_core_map[curr]);
                 curr = (curr + 1) % num_pu;
             }
             mapping[--j] = '\0';
-            j += snprintf(mapping + j, _POSIX2_LINE_MAX, ":");
+            j += snprintf(mapping + j, sizeof(mapping)-j, ":");
             count = (count + hw_threads_per_core) % num_pu;
         }
     } else if (mvp_hybrid_binding_policy == HYBRID_LINEAR) {
@@ -3400,7 +3400,7 @@ static int mvp_generate_implicit_cpu_mapping(int local_procs,
          * physical resources  */
         for (i = 0; i < local_procs; i++) {
             for (k = 0; k < num_app_threads; k++) {
-                j += snprintf(mapping + j, _POSIX2_LINE_MAX, "%d,",
+                j += snprintf(mapping + j, sizeof(mapping)-j, "%d,",
                               mvp_core_map[curr]);
 
                 curr = ((curr + hw_threads_per_core) >= num_pu) ?
@@ -3408,7 +3408,7 @@ static int mvp_generate_implicit_cpu_mapping(int local_procs,
                            (curr + hw_threads_per_core) % num_pu;
             }
             mapping[--j] = '\0';
-            j += snprintf(mapping + j, _POSIX2_LINE_MAX, ":");
+            j += snprintf(mapping + j,  sizeof(mapping)-j, ":");
         }
     } else if (mvp_hybrid_binding_policy == HYBRID_SPREAD) {
 #if defined(CHANNEL_MRAIL)
@@ -3432,12 +3432,12 @@ static int mvp_generate_implicit_cpu_mapping(int local_procs,
                 for (k = curr; k < curr + chunk; k++) {
                     for (l = 0; l < hw_threads_per_core; l++) {
                         j +=
-                            snprintf(mapping + j, _POSIX2_LINE_MAX, "%d,",
+                            snprintf(mapping + j, sizeof(mapping)-j, "%d,",
                                      mvp_core_map[k * hw_threads_per_core + l]);
                     }
                 }
                 mapping[--j] = '\0';
-                j += snprintf(mapping + j, _POSIX2_LINE_MAX, ":");
+                j += snprintf(mapping + j, sizeof(mapping)-j, ":");
                 curr = (curr + chunk) % size;
             }
         } else {
@@ -3454,11 +3454,11 @@ static int mvp_generate_implicit_cpu_mapping(int local_procs,
                 for (k = curr; k < curr + ranks_per_sock; k++) {
                     for (l = 0; l < hw_threads_per_core; l++) {
                         j +=
-                            snprintf(mapping + j, _POSIX2_LINE_MAX, "%d,",
+                            snprintf(mapping + j, sizeof(mapping)-j, "%d,",
                                      mvp_core_map[k * hw_threads_per_core + l]);
                     }
                     mapping[--j] = '\0';
-                    j += snprintf(mapping + j, _POSIX2_LINE_MAX, ":");
+                    j += snprintf(mapping + j, sizeof(mapping)-j, ":");
                 }
                 curr = (curr +
                         ((num_pu_per_socket / hw_threads_per_core) * chunk)) %
@@ -3470,12 +3470,12 @@ static int mvp_generate_implicit_cpu_mapping(int local_procs,
          * socket followed by second secket */
         for (i = 0; i < local_procs; i++) {
             for (l = 0; l < num_app_threads; l++) {
-                j += snprintf(mapping + j, _POSIX2_LINE_MAX, "%d,",
+                j += snprintf(mapping + j, sizeof(mapping)-j, "%d,",
                               mvp_core_map[k]);
                 k = (k + hw_threads_per_core) % size;
             }
             mapping[--j] = '\0';
-            j += snprintf(mapping + j, _POSIX2_LINE_MAX, ":");
+            j += snprintf(mapping + j, sizeof(mapping)-j, ":");
         }
     } else if (mvp_hybrid_binding_policy == HYBRID_SCATTER) {
 #if defined(CHANNEL_MRAIL)
@@ -3495,11 +3495,11 @@ static int mvp_generate_implicit_cpu_mapping(int local_procs,
         }
         for (i = 0; i < local_procs; i++) {
             for (l = 0; l < num_app_threads; l++) {
-                j += snprintf(mapping + j, _POSIX2_LINE_MAX, "%d,",
+                j += snprintf(mapping + j, sizeof(mapping)-j, "%d,",
                               mvp_core_map[node_base_pu + node_offset + l]);
             }
             mapping[--j] = '\0';
-            j += snprintf(mapping + j, _POSIX2_LINE_MAX, ":");
+            j += snprintf(mapping + j, sizeof(mapping)-j, ":");
             node_base_pu = (node_base_pu + num_pu_per_socket) % size;
             /*
              * when wrapping around to the first socket, advance the offset
@@ -3541,11 +3541,11 @@ static int mvp_generate_implicit_cpu_mapping(int local_procs,
         for (i = 0; i < local_procs; i++) {
             for (l = 0; l < num_app_threads; l++) {
                 j += snprintf(
-                    mapping + j, _POSIX2_LINE_MAX, "%d,",
+                    mapping + j, sizeof(mapping)-j, "%d,",
                     mvp_core_map_per_numa[node_base_pu + node_offset + l]);
             }
             mapping[--j] = '\0';
-            j += snprintf(mapping + j, _POSIX2_LINE_MAX, ":");
+            j += snprintf(mapping + j, sizeof(mapping)-j, ":");
             node_base_pu = (node_base_pu + num_pu_per_numanode) % size;
             /*
              * when wrapping around to the first numa, advance the offset
