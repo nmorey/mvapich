@@ -19,7 +19,8 @@ int MPIR_Allgatherv_Ring_MVP(const void *sendbuf, int sendcount,
 
     /* User has not forced algorthitm selection and non-block allocation is used
      */
-    if (mvp_user_allgatherv_inter == NULL &&
+    if (MVP_ALLGATHERV_COLLECTIVE_ALGORITHM_UNSET ==
+            MVP_ALLGATHERV_COLLECTIVE_ALGORITHM &&
         comm_ptr->dev.ch.rank_list != NULL &&
         comm_ptr->dev.ch.is_blocked != 1) {
         return MPIR_Allgatherv_Ring_Cyclic_MVP(sendbuf, sendcount, sendtype,
@@ -55,18 +56,6 @@ int MPIR_Allgatherv_Ring_MVP(const void *sendbuf, int sendcount,
                            recvcounts[rank], recvtype);
         MPIR_ERR_CHECK(mpi_errno);
     }
-#ifdef _ENABLE_CUDA_
-    /* This synchronization is needed because MPIR_Localcopy calls cudamemcpy
-     * on the default stream (0) but subsequent MPI_Isend/Irecv calls access
-     * GPU buffers using non-default streams which don't wait for the initial
-     * local copy to complete*/
-    if (mvp_enable_device && mvp_device_initialized &&
-        mvp_device_nonblocking_streams) {
-        MVP_MPID_Device_EventRecord(cuda_nbstream_sync_event, 0);
-        MVP_MPID_Device_StreamWaitEvent(stream_d2h, cuda_nbstream_sync_event,
-                                        0);
-    }
-#endif
 
     left = (comm_size + rank - 1) % comm_size;
     right = (rank + 1) % comm_size;
@@ -232,18 +221,6 @@ int MPIR_Allgatherv_Ring_Cyclic_MVP(const void *sendbuf, int sendcount,
                            recvcounts[rank], recvtype);
         MPIR_ERR_CHECK(mpi_errno);
     }
-#ifdef _ENABLE_CUDA_
-    /* This synchronization is needed because MPIR_Localcopy calls cudamemcpy
-     * on the default stream (0) but subsequent MPI_Isend/Irecv calls access
-     * GPU buffers using non-default streams which don't wait for the initial
-     * local copy to complete*/
-    if (mvp_enable_device && mvp_device_initialized &&
-        mvp_device_nonblocking_streams) {
-        MVP_MPID_Device_EventRecord(cuda_nbstream_sync_event, 0);
-        MVP_MPID_Device_StreamWaitEvent(stream_d2h, cuda_nbstream_sync_event,
-                                        0);
-    }
-#endif
 
     /* lookup our index in the rank list */
     int rank_index = comm_ptr->dev.ch.rank_list_index;

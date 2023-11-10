@@ -102,11 +102,11 @@ do
  source $HOME/miniconda3/bin/activate
  conda activate tuning-suite
 
- python main.py --report pt2pt-intra-intrasock pt2pt-intra-intrasock-cma pt2pt-intra-intersock pt2pt-intra-intersock-cma pt2pt-inter 1-nodes 2-nodes
+ python main.py --report pt2pt-intra-intrasock pt2pt-intra-intersock pt2pt-inter 1-nodes 2-nodes
 
  #copy artifacts to proper location
-
- cp /home/gitlab-runner/merges/tuning-suite/regression/report-${CLUSTER_ABBREV}-${channel}-${CI_COMMIT_SHA}.html $CI_PROJECT_DIR
+ HTML_REPORT=/home/gitlab-runner/merges/tuning-suite/regression/report-${CLUSTER_ABBREV}-${channel}-${CI_COMMIT_SHA}.html
+ cp $HTML_REPORT $CI_PROJECT_DIR
 
  cp /home/gitlab-runner/merges/tuning-suite/regression/slurm-* $CI_PROJECT_DIR
 
@@ -116,10 +116,15 @@ do
  conda deactivate
 
  #check the HTML report for errors, custom exit code will signal without having to check the logs
- if grep -q "version failed to run" /home/gitlab-runner/merges/tuning-suite/regression/report-${CLUSTER_ABBREV}-${channel}-${CI_COMMIT_SHA}.html; then
+ if grep -q "version failed to run" $HTML_REPORT; then
         echo "There may have been an error running the regressions, please check the following report in this job's artifacts:"
-	echo "/home/gitlab-runner/merges/tuning-suite/regression/report-${CLUSTER_ABBREV}-${channel}-${CI_COMMIT_SHA}.html"
+        echo "$HTML_REPORT"
         REPORT_FAILURES=true
+        # If new version, fail pipeline
+        if grep -q "The new version failed to run" $HTML_REPORT; then
+            echo "One or more benchmarks of the new version failed to run"
+            exit 1
+        fi
  fi
 
  for i in $(ls | egrep -i 'slurm-*' ); do
@@ -136,7 +141,7 @@ do
 
  rm -f /home/gitlab-runner/merges/tuning-suite/regression/negatives.txt
 
- grep -o '\-[0-9]*.[0-9]*%' /home/gitlab-runner/merges/tuning-suite/regression/report-${CLUSTER_ABBREV}-${channel}-${CI_COMMIT_SHA}.html | grep -o '\-[0-9]*' > /home/gitlab-runner/merges/tuning-suite/regression/negatives.txt
+ grep -o '\-[0-9]*.[0-9]*%' $HTML_REPORT | grep -o '\-[0-9]*' > /home/gitlab-runner/merges/tuning-suite/regression/negatives.txt
 
  #Check number of degredations at or above 10%
  NUMBAD=$(awk '{ if($0 < -9) print $0;}' /home/gitlab-runner/merges/tuning-suite/regression/negatives.txt | wc -l)

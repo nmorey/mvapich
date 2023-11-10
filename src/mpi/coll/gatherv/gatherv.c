@@ -139,76 +139,6 @@ int MPIR_Gatherv_impl(const void *sendbuf, int sendcount,
 {
     int mpi_errno = MPI_SUCCESS;
 
-    /* TODO-merge: can this be moved somewhere MVP specific? */
-#if defined(_ENABLE_CUDA_)
-    int i, rank, comm_size;
-    int sendbuf_on_device = 0, recvbuf_on_device = 0;
-    MPI_Aint sendtype_extent = 0, recvtype_extent = 0, total_count = 0;
-    MPI_Aint total_size = 0, total_msgs = 0, avg_size = 0;
-    int *send_displs;
-
-    if (mvp_enable_device) {
-        rank = comm_ptr->rank;
-        if (comm_ptr->comm_kind == MPIR_COMM_KIND__INTRACOMM) {
-            comm_size = comm_ptr->local_size;
-        } else {
-            comm_size = comm_ptr->remote_size;
-        }
-
-        if (sendbuf != MPI_IN_PLACE) {
-            sendbuf_on_device = is_device_buffer(sendbuf);
-            MPIR_Datatype_get_extent_macro(sendtype, sendtype_extent);
-            total_size = sendcount * sendtype_extent;
-            total_msgs = 1;
-        }
-
-        if (((comm_ptr->comm_kind == MPIR_COMM_KIND__INTRACOMM) && (root == rank)) ||
-            ((comm_ptr->comm_kind == MPIR_COMM_KIND__INTERCOMM) && (root == MPI_ROOT))) {
-            recvbuf_on_device = is_device_buffer(recvbuf);
-            MPIR_Datatype_get_extent_macro(recvtype, recvtype_extent);
-            for (i = 0; i < comm_size; i++) {
-                total_count += recvcounts[i];
-            }
-            total_size += total_count * recvtype_extent;
-            total_msgs += comm_size;
-        } 
-
-        avg_size = total_size / total_msgs;
-
-        if ((sendbuf_on_device || recvbuf_on_device) &&
-             mvp_device_coll_use_stage &&
-             avg_size <= mvp_device_gatherv_stage_limit) {
-
-            send_displs = (int *) MPL_malloc(sizeof(int));
-            if (send_displs == NULL) {
-                mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPI_ERR_OTHER,
-                   FCNAME, __LINE__, MPI_ERR_OTHER, "**fail", "%s: %s",
-                   "memory allocation failed", strerror(errno));
-                MPIR_ERR_POP(mpi_errno);
-            }
-            send_displs[0] = 0;
-
-            if (((comm_ptr->comm_kind == MPIR_COMM_KIND__INTRACOMM) && (root == rank)) ||
-                ((comm_ptr->comm_kind == MPIR_COMM_KIND__INTERCOMM) && (root == MPI_ROOT))) {
-                mpi_errno = device_stage_alloc_v ((void **)&sendbuf, &sendcount, sendtype,
-                         &send_displs, 1,
-                         &recvbuf, (int *)recvcounts, recvtype,
-                         (int **)&displs, comm_size,
-                         sendbuf_on_device, recvbuf_on_device,
-                         rank);
-            } else {
-                mpi_errno = device_stage_alloc_v ((void **)&sendbuf, &sendcount, sendtype,
-                         &send_displs, 1,
-                         NULL, NULL, recvtype,
-                         NULL, 0,
-                         sendbuf_on_device, recvbuf_on_device,
-                         rank); 
-            }
-            MPIR_ERR_CHECK(mpi_errno);
-        }
-    }
-#endif
-
     if (comm_ptr->comm_kind == MPIR_COMM_KIND__INTRACOMM) {
         switch (MPIR_CVAR_GATHERV_INTRA_ALGORITHM) {
             case MPIR_CVAR_GATHERV_INTRA_ALGORITHM_linear:
@@ -251,34 +181,6 @@ int MPIR_Gatherv_impl(const void *sendbuf, int sendcount,
         }
     }
     MPIR_ERR_CHECK(mpi_errno);
-
-#if defined(_ENABLE_CUDA_)
-    if (mvp_enable_device) {
-        if ((sendbuf_on_device || recvbuf_on_device) &&
-             mvp_device_coll_use_stage &&
-             avg_size <= mvp_device_gatherv_stage_limit) {
-
-            if (((comm_ptr->comm_kind == MPIR_COMM_KIND__INTRACOMM) && (root == rank)) ||
-                ((comm_ptr->comm_kind == MPIR_COMM_KIND__INTERCOMM) && (root == MPI_ROOT))) {
-                device_stage_free_v ((void **)&sendbuf, &sendcount, sendtype,
-                         &send_displs, 1,
-                         &recvbuf, (int *)recvcounts, recvtype,
-                         (int **)&displs, comm_size,
-                         sendbuf_on_device, recvbuf_on_device,
-                         rank);
-            } else {
-                device_stage_free_v ((void **)&sendbuf, &sendcount, sendtype,
-                         &send_displs, 1,
-                         NULL, NULL, recvtype,
-                         NULL, 0,
-                         sendbuf_on_device, recvbuf_on_device,
-                         rank);
-            }
-            MPL_free(send_displs);
-        }
-    }
-#endif
-
 
   fn_exit:
     if (*errflag != MPIR_ERR_NONE)

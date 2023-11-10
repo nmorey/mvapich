@@ -1,4 +1,4 @@
-#define GEN2__RI__4PPN                                                         \
+#define GEN2__INTEL_XEON_E5630_8__MLX_CX_QDR__4PPN                             \
     {                                                                          \
         {                                                                      \
             4, {0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, 16,           \
@@ -23,3 +23,4 @@
             }                                                                  \
         }                                                                      \
     }
+#define GEN2__INTEL_XEON_E5630_8__MLX_CX_QDR__4PPN_CNT 1

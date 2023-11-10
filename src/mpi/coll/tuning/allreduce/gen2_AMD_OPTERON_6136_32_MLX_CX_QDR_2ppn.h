@@ -1,15 +1,3 @@
-/*
- * Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- */
-
 #define GEN2__AMD_OPTERON_6136_32__MLX_CX_QDR__2PPN                            \
     {{8,                                                                       \
       0,                                                                       \
@@ -142,3 +130,4 @@
        {65536, &MPIR_Allreduce_reduce_p2p_MVP},                                \
        {131072, &MPIR_Allreduce_reduce_p2p_MVP},                               \
        {262144, &MPIR_Allreduce_reduce_p2p_MVP}}}};
+#define GEN2__AMD_OPTERON_6136_32__MLX_CX_QDR__2PPN_CNT 3

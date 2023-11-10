@@ -1,16 +1,4 @@
-/*
- * Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- */
-
-#define PSM__INTEL_XEON_X5650_12__MVP_HCA_QLGIC_QIB__12PPN                     \
+#define PSM__INTEL_XEON_X5650_12__QLGIC_QIB__12PPN                             \
     {{24,                                                                      \
       20,                                                                      \
       {{1, &MPIR_Scatter_MVP_Binomial},    {2, &MPIR_Scatter_MVP_Binomial},    \
@@ -219,3 +207,4 @@
        {131072, &MPIR_Scatter_MVP_Direct},                                     \
        {262144, &MPIR_Scatter_MVP_Direct},                                     \
        {524288, &MPIR_Scatter_MVP_Direct}}}};
+#define PSM__INTEL_XEON_X5650_12__QLGIC_QIB__12PPN_CNT 6

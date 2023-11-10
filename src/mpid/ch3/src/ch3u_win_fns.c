@@ -262,13 +262,17 @@ int MPIDI_CH3U_Win_shared_query(MPIR_Win * win_ptr, int target_rank, MPI_Aint * 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3U_WIN_SHARED_QUERY);
     MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPIDI_CH3U_WIN_SHARED_QUERY);
 
-    *(void **) baseptr = win_ptr->basic_info_table[target_rank].base_addr;
-    *size = win_ptr->basic_info_table[target_rank].size;
-    *disp_unit = win_ptr->basic_info_table[target_rank].disp_unit;
+    *(void **)baseptr = win_ptr->base;
+    *size = win_ptr->size;
+    *disp_unit = win_ptr->disp_unit;
 
   fn_exit:
     MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPIDI_CH3U_WIN_SHARED_QUERY);
     return mpi_errno;
+    /* --BEGIN ERROR HANDLING-- */
+  fn_fail:
+      goto fn_exit;
+      /* -- END_ERROR HANDLING-- */
 }
 
 

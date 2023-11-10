@@ -1,4 +1,4 @@
-#define GEN2__IBM_POWER9_MLX_CX_EDR__2PPN                                      \
+#define GEN2__IBM_POWER9__MLX_CX_EDR__2PPN                                     \
     {                                                                          \
         {2,                                                                    \
          8192,                                                                 \
@@ -21,7 +21,7 @@
           {4096, &MPIR_Pipelined_Bcast_Zcpy_MVP, 8},                           \
           {8192, &MPIR_Bcast_binomial_MVP, -1},                                \
           {16384, &MPIR_Pipelined_Bcast_Zcpy_MVP, 2},                          \
-          {32768, &MPIR_Bcast_scatter_doubling_allgather_MVP, -1},             \
+          {32768, &MPIR_Knomial_Bcast_inter_node_wrapper_MVP, -1},             \
           {65536, &MPIR_Pipelined_Bcast_MVP, -1},                              \
           {131072, &MPIR_Bcast_scatter_ring_allgather_shm_MVP, -1},            \
           {262144, &MPIR_Bcast_scatter_ring_allgather_MVP, -1},                \
@@ -249,3 +249,4 @@
             }                                                                  \
         }                                                                      \
     }
+#define GEN2__IBM_POWER9__MLX_CX_EDR__2PPN_CNT 5

@@ -1,10 +1,10 @@
 /*
  * Copyright (c) 2001-2023, The Ohio State University. All rights reserved.
- * This file is part of the MVAPICH2 software package developed by the team
+ * This file is part of the MVAPICH software package developed by the team
  * members of The Ohio State University's Network-Based Computing Laboratory
  * (NBCL), headed by Professor Dhabaleswar K. (DK) Panda. For detailed
  * copyright and licensing information, please refer to the copyright file
- * COPYRIGHT in the top level MVAPICH2 directory.
+ * COPYRIGHT in the top level MVAPICH directory.
  */
 
 #include "mvp_smp_impl.h"
@@ -80,8 +80,7 @@ int MPIDI_MVP_smp_mpi_send(const void *buf, MPI_Aint count,
                             dt_true_lb);
 
     if (likely(!vc->force_rndv) &&
-        (data_sz + sizeof(MPIDI_MVP_Pkt_eager_send_t) <=
-         vc->eager_max_msg_sz)) {
+        (data_sz + sizeof(MPIDI_MVP_Pkt_eager_send_t) <= MVP_SMP_EAGERSIZE)) {
         /* eager send */
         mpi_errno = MPIDI_MVP_smp_eager_send(vc, buf, count, datatype, data_sz,
                                              dt_contig, dt_true_lb, rank, tag,

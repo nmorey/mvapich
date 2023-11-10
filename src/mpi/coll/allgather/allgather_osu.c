@@ -376,65 +376,6 @@ int MPIR_Allgather_index_tuned_intra_MVP(const void *sendbuf, int sendcount,
     MPI_Aint recvtype_extent;
     MPIR_Datatype_get_extent_macro(recvtype, recvtype_extent);
     rank = MPIR_Comm_rank(comm_ptr);
-#ifdef _ENABLE_CUDA_
-    int send_mem_type = 0;
-    int recv_mem_type = 0;
-    MPI_Aint snbytes = INT_MAX;
-    MPI_Aint sendtype_extent;
-    if (mvp_enable_device) {
-        send_mem_type = is_device_buffer(sendbuf);
-        recv_mem_type = is_device_buffer(recvbuf);
-    }
-
-    /*Handling Non-contig datatypes */
-    if (mvp_enable_device && (send_mem_type || recv_mem_type)) {
-        device_coll_pack((void **)&sendbuf, &sendcount, &sendtype, &recvbuf,
-                         &recvcount, &recvtype,
-                         rank * recvcount * recvtype_extent, 1, comm_size);
-    }
-
-    MPIR_Datatype_get_extent_macro(sendtype, sendtype_extent);
-    MPIR_Datatype_get_extent_macro(recvtype, recvtype_extent);
-    if (sendbuf != MPI_IN_PLACE) {
-        snbytes = sendtype_extent * sendcount;
-    }
-    MPIR_Datatype_get_size_macro(recvtype, recvtype_size);
-    nbytes = recvtype_size * recvcount;
-
-    if (mvp_enable_device && mvp_device_use_allgather_fgp && send_mem_type &&
-        recv_mem_type &&
-        snbytes > mvp_device_allgather_stage_limit /
-                      (FGP_SWITCH_FACTOR * comm_size) &&
-        nbytes > mvp_device_allgather_stage_limit /
-                     (FGP_SWITCH_FACTOR * comm_size)) {
-        if (sendbuf != MPI_IN_PLACE) {
-            mpi_errno = MPIR_Allgather_cuda_intra_MVP(
-                sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype,
-                comm_ptr, errflag);
-        } else {
-            mpi_errno = MPIR_Allgather_cuda_intra_MVP(
-                recvbuf + rank * recvcount * recvtype_extent, recvcount,
-                recvtype, recvbuf, recvcount, recvtype, comm_ptr, errflag);
-        }
-        MPIR_ERR_CHECK(mpi_errno);
-        goto fn_exit;
-    } else if (mvp_enable_device && (send_mem_type || recv_mem_type) &&
-               mvp_device_coll_use_stage &&
-               (nbytes <= mvp_device_allgather_stage_limit)) {
-        if (sendbuf != MPI_IN_PLACE) {
-            mpi_errno = device_stage_alloc(
-                (void **)&sendbuf, sendcount * sendtype_extent, &recvbuf,
-                recvcount * recvtype_extent * comm_size, send_mem_type,
-                recv_mem_type, 0);
-        } else {
-            mpi_errno = device_stage_alloc(
-                (void **)&sendbuf, recvcount * recvtype_extent, &recvbuf,
-                recvcount * recvtype_extent * comm_size, send_mem_type,
-                recv_mem_type, rank * recvcount * recvtype_extent);
-        }
-        MPIR_ERR_CHECK(mpi_errno);
-    }
-#endif /*#ifdef _ENABLE_CUDA_ */
 
     if (MVP_USE_OLD_ALLGATHER) {
         MPIR_Allgather_intra_MVP(sendbuf, sendcount, sendtype, recvbuf,
@@ -462,7 +403,7 @@ int MPIR_Allgather_index_tuned_intra_MVP(const void *sendbuf, int sendcount,
             mpi_errno = MPIR_2lvl_Allgather_Ring_nonblocked_MVP(
                 sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype,
                 comm_ptr, errflag);
-            goto fn_cuda_exit;
+            goto fn_exit;
         }
 
         FIND_PPN_INDEX(allgather, local_size, conf_index, partial_sub_ok)
@@ -575,27 +516,9 @@ conf_check_end:
             MPIR_Allgather_allcomm_auto(sendbuf, sendcount, sendtype, recvbuf,
                                         recvcount, recvtype, comm_ptr, errflag);
     }
-
-fn_cuda_exit:
-#ifdef _ENABLE_CUDA_
-    if (mvp_enable_device && ((send_mem_type == 1) || (recv_mem_type == 1)) &&
-        mvp_device_coll_use_stage &&
-        (nbytes <= mvp_device_allgather_stage_limit)) {
-        device_stage_free((void **)&sendbuf, &recvbuf,
-                          recvcount * recvtype_extent * comm_size,
-                          send_mem_type, recv_mem_type);
-    }
-#endif /*#ifdef _ENABLE_CUDA_ */
-
     MPIR_ERR_CHECK(mpi_errno);
 
 fn_exit:
-#ifdef _ENABLE_CUDA_
-    /*Handling Non-Contig datatypes */
-    if (mvp_enable_device && (send_mem_type || recv_mem_type)) {
-        device_coll_unpack(&recvcount, comm_size);
-    }
-#endif /*#ifdef _ENABLE_CUDA_ */
     return mpi_errno;
 fn_fail:
     goto fn_exit;
@@ -606,7 +529,15 @@ int MPIR_Allgather_MVP(const void *sendbuf, int sendcount,
                        MPI_Datatype recvtype, MPIR_Comm *comm_ptr,
                        MPIR_Errflag_t *errflag)
 {
-        return MPIR_Allgather_index_tuned_intra_MVP(
-            sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype,
-            comm_ptr, errflag);
+    int mpi_errno = MPI_SUCCESS;
+
+    mpi_errno = MPIR_Allgather_index_tuned_intra_MVP(
+        sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm_ptr,
+        errflag);
+    MPIR_ERR_CHECK(mpi_errno);
+
+fn_exit:
+    return mpi_errno;
+fn_fail:
+    goto fn_exit;
 }

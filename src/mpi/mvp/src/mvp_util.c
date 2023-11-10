@@ -45,5 +45,6 @@ void MPIR_MVP_print_cvars(int level)
             }
         }
     }
+    fprintf(stderr, "--------------------------------------------------\n");
     fflush(stderr);
 }

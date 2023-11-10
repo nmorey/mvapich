@@ -17,20 +17,6 @@
 
 #define NMATCH (3 + 1)
 
-/* Allgatherv tuning flags
- * recursive doubling: MVP_INTER_ALLGATHERV_TUNING=1
- * bruck:              MVP_INTER_ALLGATHERV_TUNING=2
- * ring:               MVP_INTER_ALLGATHERV_TUNING=3
- * ring_cyclic:        MVP_INTER_ALLGATHERV_TUNING=4
- * Regular expression example:
- *   MVP_INTER_ALLGATHERV_TUNING=2:0-1024,1:1024-8192,3:8192-+
- *   meaning: use bruck for 0 byte to 1024 bytes
- *            use recursive doubling for 1024 byte to 8192 bytes
- *            use ring since 8192 bytes
- */
-
-extern const char *mvp_user_allgatherv_inter;
-
 extern MPIR_T_pvar_timer_t PVAR_TIMER_mvp_coll_timer_allgatherv_rec_doubling;
 extern MPIR_T_pvar_timer_t PVAR_TIMER_mvp_coll_timer_allgatherv_bruck;
 extern MPIR_T_pvar_timer_t PVAR_TIMER_mvp_coll_timer_allgatherv_ring;
@@ -62,15 +48,16 @@ extern unsigned long long PVAR_COUNTER_mvp_coll_allgatherv_bytes_recv;
 extern unsigned long long PVAR_COUNTER_mvp_coll_allgatherv_count_send;
 extern unsigned long long PVAR_COUNTER_mvp_coll_allgatherv_count_recv;
 
+typedef int (*MVP_Allgatherv_fn_t)(const void *sendbuf, int sendcount,
+                                   MPI_Datatype sendtype, void *recvbuf,
+                                   const int *recvcounts, const int *displs,
+                                   MPI_Datatype recvtype, MPIR_Comm *comm_ptr,
+                                   MPIR_Errflag_t *errflag);
+
 typedef struct {
     int min;
     int max;
-    int (*MVP_pt_Allgatherv_function)(const void *sendbuf, int sendcount,
-                                      MPI_Datatype sendtype, void *recvbuf,
-                                      const int *recvcounts, const int *displs,
-                                      MPI_Datatype recvtype,
-                                      MPIR_Comm *comm_ptr,
-                                      MPIR_Errflag_t *errflag);
+    MVP_Allgatherv_fn_t allgatherv_fn;
 } mvp_allgatherv_tuning_element;
 
 typedef struct {
@@ -111,6 +98,4 @@ int MVP_set_allgatherv_tuning_table(int heterogeneity,
 /* Function to clean free memory allocated by allgatherv tuning table*/
 void MVP_cleanup_allgatherv_tuning_table();
 
-/* Function used inside ch3_shmem_coll.c to tune allgatherv thresholds */
-int MVP_internode_Allgatherv_is_define(const char *mvp_user_allgatherv_inter);
 #endif

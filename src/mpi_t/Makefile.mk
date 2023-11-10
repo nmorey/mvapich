@@ -38,5 +38,4 @@ mpi_sources +=                \
 
 
 mpi_core_sources += src/mpi_t/mpit.c
-mpi_core_sources += src/mpi_t/mvp_mpit.c
 

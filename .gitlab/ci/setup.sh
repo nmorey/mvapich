@@ -32,6 +32,13 @@ case $BRANCH in
         mkdir .buildbot
         echo 'try_builders = ["MR_mrail_nvidia_gdr", "MR_mrail_amd_gdr", "MR_sock_gdr", "REG_gdr"]' > .buildbot/options
         ;;
+    "plus" | "master-plus" )
+        export BRANCH="master-plus"
+        export BUILDER="MR_ucx_nvidia_plus"
+        mkdir .buildbot
+        echo 'try_builders = ["MR_ucx_nvidia_plus", "MR_ucx_amd_plus","MR_ofi_nvidia_plus", "MR_ofi_amd_plus", "MR_sock_plus"]' > .buildbot/options
+        ;;
+
     * ) 
         export BRANCH="invalid"
         export BUILDER="invalid"

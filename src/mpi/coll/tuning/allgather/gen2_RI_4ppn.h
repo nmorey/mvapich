@@ -1,11 +1,10 @@
-#define GEN2__RI__4PPN                                                         \
+#define GEN2__INTEL_XEON_E5630_8__MLX_CX_QDR__4PPN                             \
     {                                                                          \
         {                                                                      \
             4, 21,                                                             \
             {                                                                  \
-                {1, &MPIR_Allgather_RD_MVP}, {2, &MPIR_Allgather_Bruck_MVP},   \
-                    {4, &MPIR_Allgather_RD_MVP},                               \
-                    {8, &MPIR_Allgather_Bruck_MVP},                            \
+                {1, &MPIR_Allgather_RD_MVP}, {2, &MPIR_Allgather_RD_MVP},      \
+                    {4, &MPIR_Allgather_RD_MVP}, {8, &MPIR_Allgather_RD_MVP},  \
                     {16, &MPIR_Allgather_RD_MVP},                              \
                     {32, &MPIR_Allgather_RD_MVP},                              \
                     {64, &MPIR_Allgather_RD_MVP},                              \
@@ -28,3 +27,4 @@
             }                                                                  \
         }                                                                      \
     }
+#define GEN2__INTEL_XEON_E5630_8__MLX_CX_QDR__4PPN_CNT 1

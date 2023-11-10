@@ -12,7 +12,7 @@
 #ifndef _COMMON_TUNING_
 #define _COMMON_TUNING_
 
-#include "mpichconf.h"
+#include "mpiimpl.h"
 
 #define MVP_COLL_TUNING_SETUP_TABLE(_cname)                                    \
     int *mvp_##_cname##_table_ppn_conf = NULL;                                 \
@@ -110,6 +110,133 @@
         } while (i < mvp_##_cname##_indexed_num_ppn_conf);                     \
     }
 
+/* standard powers of 2 */
+#define MVP_COLL_TUNING_ADD_ARCH_CONF_1(_archid, _coll)                        \
+    MVP_COLL_TUNING_ADD_CONF(_coll, 1, _archid##__1PPN_CNT, _archid##__1PPN)
+#define MVP_COLL_TUNING_ADD_ARCH_CONF_2(_archid, _coll)                        \
+    MVP_COLL_TUNING_ADD_ARCH_CONF_1(_archid, _coll)                            \
+    MVP_COLL_TUNING_ADD_CONF(_coll, 2, _archid##__2PPN_CNT, _archid##__2PPN)
+#define MVP_COLL_TUNING_ADD_ARCH_CONF_4(_archid, _coll)                        \
+    MVP_COLL_TUNING_ADD_ARCH_CONF_2(_archid, _coll)                            \
+    MVP_COLL_TUNING_ADD_CONF(_coll, 4, _archid##__4PPN_CNT, _archid##__4PPN)
+#define MVP_COLL_TUNING_ADD_ARCH_CONF_8(_archid, _coll)                        \
+    MVP_COLL_TUNING_ADD_ARCH_CONF_4(_archid, _coll)                            \
+    MVP_COLL_TUNING_ADD_CONF(_coll, 8, _archid##__8PPN_CNT, _archid##__8PPN)
+#define MVP_COLL_TUNING_ADD_ARCH_CONF_16(_archid, _coll)                       \
+    MVP_COLL_TUNING_ADD_ARCH_CONF_8(_archid, _coll)                            \
+    MVP_COLL_TUNING_ADD_CONF(_coll, 16, _archid##__16PPN_CNT, _archid##__16PPN)
+#define MVP_COLL_TUNING_ADD_ARCH_CONF_32(_archid, _coll)                       \
+    MVP_COLL_TUNING_ADD_ARCH_CONF_16(_archid, _coll)                           \
+    MVP_COLL_TUNING_ADD_CONF(_coll, 32, _archid##__32PPN_CNT, _archid##__32PPN)
+#define MVP_COLL_TUNING_ADD_ARCH_CONF_64(_archid, _coll)                       \
+    MVP_COLL_TUNING_ADD_ARCH_CONF_32(_archid, _coll)                           \
+    MVP_COLL_TUNING_ADD_CONF(_coll, 64, _archid##__64PPN_CNT, _archid##__64PPN)
+#define MVP_COLL_TUNING_ADD_ARCH_CONF_128(_archid, _coll)                      \
+    MVP_COLL_TUNING_ADD_ARCH_CONF_64(_archid, _coll)                           \
+    MVP_COLL_TUNING_ADD_CONF(_coll, 128, _archid##__128PPN_CNT,                \
+                             _archid##__128PPN)
+#define MVP_COLL_TUNING_ADD_ARCH_CONF_256(_archid, _coll)                      \
+    MVP_COLL_TUNING_ADD_ARCH_CONF_128(_archid, _coll)                          \
+    MVP_COLL_TUNING_ADD_CONF(_coll, 256, _archid##__256PPN_CNT,                \
+                             _archid##__256PPN)
+
+/* non-standard, arch specific version of these macros, usually include
+ * half sub */
+#define MVP_COLL_TUNING_ADD_ARCH_CONF_12(_archid, _coll)                       \
+    MVP_COLL_TUNING_ADD_ARCH_CONF_1(_archid, _coll)                            \
+    MVP_COLL_TUNING_ADD_CONF(_coll, 12, _archid##__12PPN_CNT, _archid##__12PPN)
+#define MVP_COLL_TUNING_ADD_ARCH_CONF_20(_archid, _coll)                       \
+    MVP_COLL_TUNING_ADD_ARCH_CONF_16(_archid, _coll)                           \
+    MVP_COLL_TUNING_ADD_CONF(_coll, 20, _archid##__20PPN_CNT, _archid##__20PPN)
+#define MVP_COLL_TUNING_ADD_ARCH_CONF_22(_archid, _coll)                       \
+    MVP_COLL_TUNING_ADD_ARCH_CONF_16(_archid, _coll)                           \
+    MVP_COLL_TUNING_ADD_CONF(_coll, 22, _archid##__22PPN_CNT, _archid##__22PPN)
+#define MVP_COLL_TUNING_ADD_ARCH_CONF_24(_archid, _coll)                       \
+    MVP_COLL_TUNING_ADD_ARCH_CONF_16(_archid, _coll)                           \
+    MVP_COLL_TUNING_ADD_CONF(_coll, 24, _archid##__24PPN_CNT, _archid##__24PPN)
+#define MVP_COLL_TUNING_ADD_ARCH_CONF_28(_archid, _coll)                       \
+    MVP_COLL_TUNING_ADD_ARCH_CONF_16(_archid, _coll)                           \
+    MVP_COLL_TUNING_ADD_CONF(_coll, 28, _archid##__28PPN_CNT, _archid##__28PPN)
+#define MVP_COLL_TUNING_ADD_ARCH_CONF_36(_archid, _coll)                       \
+    MVP_COLL_TUNING_ADD_ARCH_CONF_16(_archid, _coll)                           \
+    MVP_COLL_TUNING_ADD_CONF(_coll, 36, _archid##__36PPN_CNT, _archid##__36PPN)
+#define MVP_COLL_TUNING_ADD_ARCH_CONF_40(_archid, _coll)                       \
+    MVP_COLL_TUNING_ADD_ARCH_CONF_32(_archid, _coll)                           \
+    MVP_COLL_TUNING_ADD_CONF(_coll, 40, _archid##__40PPN_CNT, _archid##__40PPN)
+#define MVP_COLL_TUNING_ADD_ARCH_CONF_44(_archid, _coll)                       \
+    MVP_COLL_TUNING_ADD_ARCH_CONF_22(_archid, _coll)                           \
+    MVP_COLL_TUNING_ADD_CONF(_coll, 32, _archid##__32PPN_CNT,                  \
+                             _archid##__32PPN)                                 \
+    MVP_COLL_TUNING_ADD_CONF(_coll, 44, _archid##__44PPN_CNT, _archid##__44PPN)
+#define MVP_COLL_TUNING_ADD_ARCH_CONF_48(_archid, _coll)                       \
+    MVP_COLL_TUNING_ADD_ARCH_CONF_32(_archid, _coll)                           \
+    MVP_COLL_TUNING_ADD_CONF(_coll, 48, _archid##__48PPN_CNT, _archid##__48PPN)
+#define MVP_COLL_TUNING_ADD_ARCH_CONF_52(_archid, _coll)                       \
+    MVP_COLL_TUNING_ADD_ARCH_CONF_32(_archid, _coll)                           \
+    MVP_COLL_TUNING_ADD_CONF(_coll, 52, _archid##__52PPN_CNT, _archid##__52PPN)
+#define MVP_COLL_TUNING_ADD_ARCH_CONF_56(_archid, _coll)                       \
+    MVP_COLL_TUNING_ADD_ARCH_CONF_28(_archid, _coll)                           \
+    MVP_COLL_TUNING_ADD_CONF(_coll, 32, _archid##__32PPN_CNT,                  \
+                             _archid##__32PPN)                                 \
+    MVP_COLL_TUNING_ADD_CONF(_coll, 56, _archid##__56PPN_CNT, _archid##__56PPN)
+
+/* alternate version - heterogeneity need not be checked everytime, this can be
+ * a case*/
+#define MVP_SET_TABLE_BY_ARCH(_archid, _coll, _count, _maxppn)                 \
+    MVP_COLL_TUNING_START_TABLE(_coll, _count)                                 \
+    MVP_COLL_TUNING_ADD_ARCH_CONF_##_maxppn(_archid, _coll)                    \
+        MVP_COLL_TUNING_FINISH_TABLE(_coll)
+
+/* should cover autogeneration of most ARCH/HCA ids */
+#define MVP_ARCH_HCA_ID_STRING(_net, _arch, _hca) _net##__##_arch##__##_hca
+#define MVP_ARCH_HCA_ID_STRING_STRING(_net, _arch, _hca)                       \
+#_net "__" #_arch "__" #_hca
+
+#define MVP_ARCH_HCA_ID(_arch, _hca) (_arch << 16) | _hca
+
+/* fallback cases */
+/* has the added benefit of revealing bad tuning tables with duplicates, but
+ * only does fallback support for the ARCH. There are many more architectures
+ * than HCAs. And it makes very little sense to pick a random arch for a
+ * specific HCA */
+/* requires that NET and COLLECTIVE be defined before a set of these are
+ * established */
+#define MVP_ARCH_FALLBACK_CASE(_arch)                                          \
+    case MVP_ARCH_HCA_ID(MVP_ARCH_##_arch, MVP_HCA_ANY):
+
+#define MVP_HCA_FALLBACK_CASE(_hca)                                            \
+    case MVP_ARCH_HCA_ID(MVP_ARCH_ANY, MVP_HCA_##_hca):
+
+#define MVP_ARCH_HCA_CASE(_arch, _hca)                                         \
+    case MVP_ARCH_HCA_ID(MVP_ARCH_##_arch, MVP_HCA_##_hca):
+
+/* exclusively the primary match cases for a given arch/hca combo */
+/* has the added benefit of revealing bad tuning tables with duplicates */
+/* requires that NET and COLLECTIVE be defined before a set of these are
+ * established */
+#define MVP_ARCH_HCA_CASE_SETX(_net, _arch, _hca, _count, _maxppn)             \
+    MVP_ARCH_HCA_CASE(_arch, _hca)                                             \
+    MVP_SET_TABLE_BY_ARCH(MVP_ARCH_HCA_ID_STRING(_net, _arch, _hca),           \
+                          COLLECTIVE, _count, _maxppn)                         \
+    break;
+
+/* the generalized case, specific and arch fallback */
+#define MVP_ARCH_HCA_CASE_SET(_net, _arch, _hca, _count, _maxppn)              \
+    MVP_ARCH_FALLBACK_CASE(_arch)                                              \
+    MVP_ARCH_HCA_CASE_SETX(_net, _arch, _hca, _count, _maxppn)
+
+/* architecture fallbacks */
+enum mvp_arch_defaults {
+    MVP_ARCH_DEFAULT__INTEL =
+        MVP_ARCH_HCA_ID(MVP_ARCH_INTEL_PLATINUM_8280_2S_56, MVP_HCA_MLX_CX_EDR),
+    MVP_ARCH_DEFAULT__AMD =
+        MVP_ARCH_HCA_ID(MVP_ARCH_AMD_EPYC_7763_128, MVP_HCA_MLX_CX_EDR),
+    MVP_ARCH_DEFAULT__IBM =
+        MVP_ARCH_HCA_ID(MVP_ARCH_IBM_POWER9, MVP_HCA_MLX_CX_EDR),
+    MVP_ARCH_DEFAULT__ARM =
+        MVP_ARCH_HCA_ID(MVP_ARCH_ARM_CAVIUM_V8_2S_32, MVP_HCA_MLX_CX_EDR),
+};
+
 /* defined enum for right hand side values used in mvp collective algorithms
  selection. */
 enum mvp_bcast_tuning {
@@ -166,14 +293,6 @@ enum {
     RED_SCAT_PAIRWISE,
     RED_SCAT_RING,
     RED_SCAT_RING_2LVL,
-};
-
-enum mvp_alltoall_tuning {
-    ALLTOALL_BRUCK_MVP,
-    ALLTOALL_RD_MVP,
-    ALLTOALL_SCATTER_DEST_MVP,
-    ALLTOALL_PAIRWISE_MVP,
-    ALLTOALL_INPLACE_MVP
 };
 
 enum mvp_alltoallv_tuning {

@@ -595,21 +595,21 @@ typedef struct pvar_bucket
 #define QUOTE(name) #name
 
 #if ENABLE_PVAR_MVP
-#define MPIR_T_PVAR_COMM_COUNTER_INC_impl(name_, inc_,comm) \
-    do { \
-    name2index_hash_t *hash_entry;\
-    pvar_table_entry_t *pvar;\
-    int pvar_idx;\
-    int seq = MPI_T_PVAR_CLASS_COUNTER - MPIR_T_PVAR_CLASS_FIRST;\
-    char *name = QUOTE(name_);\
-    HASH_FIND_STR(pvar_hashs[seq],name, hash_entry);\
-    if (hash_entry != NULL) {\
-        pvar_idx = hash_entry->idx;\
-        pvar = (pvar_table_entry_t *)utarray_eltptr(pvar_table, pvar_idx);\
-        if(comm->sub_comm_counters!=NULL)\
-           comm->sub_comm_counters[pvar->sub_comm_index]+=inc_;\
-    }\
-    } while(0)  
+#define MPIR_T_PVAR_COMM_COUNTER_INC_impl(name_, inc_, comm)                   \
+    do {                                                                       \
+        name2index_hash_t *hash_entry;                                         \
+        pvar_table_entry_t *pvar;                                              \
+        int pvar_idx;                                                          \
+        int seq = MPI_T_PVAR_CLASS_COUNTER - MPIR_T_PVAR_CLASS_FIRST;          \
+        char *name = QUOTE(name_);                                             \
+        HASH_FIND_STR(pvar_hashs[seq], name, hash_entry);                      \
+        if (hash_entry != NULL) {                                              \
+            pvar_idx = hash_entry->idx;                                        \
+            pvar = (pvar_table_entry_t *)utarray_eltptr(pvar_table, pvar_idx); \
+            if (comm->dev.ch.sub_comm_counters != NULL)                        \
+                comm->dev.ch.sub_comm_counters[pvar->sub_comm_index] += inc_;  \
+        }                                                                      \
+    } while (0)
 #else
    #define MPIR_T_PVAR_COMM_COUNTER_INC_impl(name_, inc_,comm)
 #endif
@@ -630,11 +630,12 @@ typedef struct pvar_bucket
                 pvar_idx = hash_entry->idx;                                    \
                 pvar = (pvar_table_entry_t *)utarray_eltptr(pvar_table,        \
                                                             pvar_idx);         \
-                if (comm->sub_comm_timers != NULL) {                           \
-                    MPID_Wtime(                                                \
-                        &((comm->sub_comm_timers[pvar->sub_comm_timer_index])  \
+                if (comm->dev.ch.sub_comm_timers != NULL) {                    \
+                    MPL_wtime(                                                 \
+                        &((comm->dev.ch                                        \
+                               .sub_comm_timers[pvar->sub_comm_timer_index])   \
                               .curstart));                                     \
-                    (comm->sub_comm_timers[pvar->sub_comm_timer_index])        \
+                    (comm->dev.ch.sub_comm_timers[pvar->sub_comm_timer_index]) \
                         .count++;                                              \
                 }                                                              \
             }                                                                  \
@@ -643,8 +644,8 @@ typedef struct pvar_bucket
                 pvar_idx = hash_entry->idx;                                    \
                 pvar = (pvar_table_entry_t *)utarray_eltptr(pvar_table,        \
                                                             pvar_idx);         \
-                if (comm->sub_comm_counters != NULL) {                         \
-                    comm->sub_comm_counters[pvar->sub_comm_index] += 1;        \
+                if (comm->dev.ch.sub_comm_counters != NULL) {                  \
+                    comm->dev.ch.sub_comm_counters[pvar->sub_comm_index] += 1; \
                 }                                                              \
             }                                                                  \
         }                                                                      \
@@ -662,15 +663,17 @@ typedef struct pvar_bucket
                 pvar_idx = hash_entry->idx;                                    \
                 pvar = (pvar_table_entry_t *)utarray_eltptr(pvar_table,        \
                                                             pvar_idx);         \
-                if (comm->sub_comm_timers != NULL &&                           \
-                    comm->sub_comm_counters != NULL) {                         \
-                    MPID_Time_t tmp;                                           \
-                    MPID_Wtime(&tmp);                                          \
-                    MPID_Wtime_acc(                                            \
-                        &((comm->sub_comm_timers[pvar->sub_comm_timer_index])  \
+                if (comm->dev.ch.sub_comm_timers != NULL &&                    \
+                    comm->dev.ch.sub_comm_counters != NULL) {                  \
+                    MPL_time_t tmp;                                            \
+                    MPL_wtime(&tmp);                                           \
+                    MPL_wtime_acc(                                             \
+                        &((comm->dev.ch                                        \
+                               .sub_comm_timers[pvar->sub_comm_timer_index])   \
                               .curstart),                                      \
                         &tmp,                                                  \
-                        &((comm->sub_comm_timers[pvar->sub_comm_timer_index])  \
+                        &((comm->dev.ch                                        \
+                               .sub_comm_timers[pvar->sub_comm_timer_index])   \
                               .total));                                        \
                 }                                                              \
             }                                                                  \
@@ -1330,18 +1333,22 @@ static inline int MPIR_T_is_initialized(void)
 
 /* Helper function to update count and volume of send and recv messages for PVARS */
 #if ENABLE_PVAR_MVP
-    #define MPIR_PVAR_INC(_mpicoll, _algo, _operation, _count, _datatype)                        \
-    do {                                                                                         \
-        int _pSize = 0;                                                                          \
-        MPIR_Datatype_get_size_macro(_datatype, _pSize);                                         \
-        int _size = _count * _pSize;                                                             \
-        if (_size < 0) {                                                                         \
-            _size = 0;                                                                           \
-        }                                                                                        \
-        MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_##_mpicoll##_##_algo##_bytes_##_operation, _size); \
-        MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_##_mpicoll##_##_algo##_count_##_operation, 1);     \
-        MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_##_mpicoll##_bytes_##_operation, _size);           \
-        MPIR_T_PVAR_COUNTER_INC(MVP, mvp_coll_##_mpicoll##_count_##_operation, 1);               \
+#define MPIR_PVAR_INC(_mpicoll, _algo, _operation, _count, _datatype)          \
+    do {                                                                       \
+        int _pSize = 0;                                                        \
+        MPIR_Datatype_get_size_macro(_datatype, _pSize);                       \
+        int _size = _count * _pSize;                                           \
+        if (_size < 0) {                                                       \
+            _size = 0;                                                         \
+        }                                                                      \
+        MPIR_T_PVAR_COUNTER_INC(                                               \
+            MVP, mvp_coll_##_mpicoll##_##_algo##_bytes_##_operation, _size);   \
+        MPIR_T_PVAR_COUNTER_INC(                                               \
+            MVP, mvp_coll_##_mpicoll##_##_algo##_count_##_operation, 1);       \
+        /* MPIR_T_PVAR_COUNTER_INC(MVP,                                        \
+         * mvp_coll_##_mpicoll##_bytes_##_operation, _size);*/                 \
+        /* MPIR_T_PVAR_COUNTER_INC(MVP,                                        \
+         * mvp_coll_##_mpicoll##_count_##_operation, 1); */                    \
     } while (0)
 #else /*ENABLE_PVAR_MVP*/
     #define MPIR_PVAR_INC(_mpicoll, _algo, _operation, _count, _datatype)

@@ -95,14 +95,15 @@ extern int *mvp_scatter_table_ppn_conf;
 /* Indicates total number of configurations */
 extern int mvp_scatter_num_ppn_conf;
 
+typedef int (*MVP_Scatter_fn_t)(const void *sendbuf, int sendcnt,
+                                MPI_Datatype sendtype, void *recvbuf,
+                                int recvcnt, MPI_Datatype recvtype, int root,
+                                MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag);
+
 typedef struct {
     int min;
     int max;
-    int (*MVP_pt_Scatter_function)(const void *sendbuf, int sendcnt,
-                                   MPI_Datatype sendtype, void *recvbuf,
-                                   int recvcnt, MPI_Datatype recvtype, int root,
-                                   MPIR_Comm *comm_ptr,
-                                   MPIR_Errflag_t *errflag);
+    MVP_Scatter_fn_t scatter_fn;
 } mvp_scatter_tuning_element;
 
 typedef struct {
@@ -119,11 +120,7 @@ extern mvp_scatter_tuning_table **mvp_scatter_thresholds_table;
 /*Entries related to indexed tuning table*/
 typedef struct {
     int msg_sz;
-    int (*MVP_pt_Scatter_function)(const void *sendbuf, int sendcnt,
-                                   MPI_Datatype sendtype, void *recvbuf,
-                                   int recvcnt, MPI_Datatype recvtype, int root,
-                                   MPIR_Comm *comm_ptr,
-                                   MPIR_Errflag_t *errflag);
+    MVP_Scatter_fn_t scatter_fn;
 } mvp_scatter_indexed_tuning_element;
 
 typedef struct {
@@ -184,11 +181,7 @@ extern int MPIR_Scatter_MVP_two_level_Direct(const void *sendbuf, int sendcnt,
                                              MPIR_Comm *comm_ptr,
                                              MPIR_Errflag_t *errflag);
 
-extern int (*MVP_Scatter_intra_function)(const void *sendbuf, int sendcount,
-                                         MPI_Datatype sendtype, void *recvbuf,
-                                         int recvcount, MPI_Datatype recvtype,
-                                         int root, MPIR_Comm *comm_ptr,
-                                         MPIR_Errflag_t *errflag);
+extern MVP_Scatter_fn_t MVP_Scatter_intra_function;
 
 #if defined(_SHARP_SUPPORT_)
 int MPIR_Sharp_Scatter_MVP(const void *sendbuf, int sendcount,
@@ -203,10 +196,5 @@ int MVP_set_scatter_tuning_table(int heterogeneity,
 
 /* Function to clean free memory allocated by scatter tuning table*/
 void MVP_cleanup_scatter_tuning_table();
-
-/* Function used inside ch3_shmem_coll.c to tune scatter thresholds */
-int MVP_internode_Scatter_is_define(const char *mvp_user_scatter_inter,
-                                    const char *mvp_user_scatter_intra);
-int MVP_intranode_Scatter_is_define(const char *mvp_user_scatter_intra);
 
 #endif

@@ -6,6 +6,10 @@
 #ifndef MVP_COMM_OVERRIDE_H
 #define MVP_COMM_OVERRIDE_H
 
+#if ENABLE_PVAR_MVP
+#include "mpitimpl.h"
+#endif /* ENABLE_PVAR_MVP */
+
 #ifdef _OSU_MVAPICH_
 typedef struct {
     MPI_Comm leader_comm;
@@ -58,6 +62,10 @@ typedef struct {
 #if defined(_MCST_SUPPORT_)
     int is_mcast_ok;
     void *bcast_info;
+#endif
+#if ENABLE_PVAR_MVP
+    MPIR_T_pvar_timer_t *sub_comm_timers;
+    unsigned long long *sub_comm_counters;
 #endif
 #if defined(_SHARP_SUPPORT_)
     int is_sharp_ok;

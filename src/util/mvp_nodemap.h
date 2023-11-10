@@ -20,7 +20,7 @@ static inline int MPIR_NODEMAP_MVP_build_nodemap(int sz, int *out_nodemap,
                                                  int *out_max_node_id,
                                                  int myrank)
 {
-    int mpi_errno;
+    int mpi_errno = MPI_ERR_UNKNOWN;
     char *value, *mapping;
     int did_map;
 
@@ -42,6 +42,7 @@ static inline int MPIR_NODEMAP_MVP_build_nodemap(int sz, int *out_nodemap,
                 MPIR_ERR_POP(mpi_errno);
             }
         }
+        mpi_errno = MPI_SUCCESS;
     }
 
 fn_exit:

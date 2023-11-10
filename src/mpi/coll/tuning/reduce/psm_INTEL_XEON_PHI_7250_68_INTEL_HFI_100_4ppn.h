@@ -1,4 +1,4 @@
-#define PSM__INTEL_XEON_PHI_7250_68_INTEL_HFI_100__4PPN                        \
+#define PSM__INTEL_XEON_PHI_7250__INTEL_HFI_100__4PPN                          \
     {                                                                          \
         {4,                                                                    \
          4,                                                                    \
@@ -267,3 +267,4 @@
             }                                                                  \
         }                                                                      \
     }
+#define PSM__INTEL_XEON_PHI_7250__INTEL_HFI_100__4PPN_CNT 6

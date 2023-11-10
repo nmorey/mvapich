@@ -185,7 +185,7 @@ int MPIR_Alltoallv_intra_MVP(const void *sendbuf, const int *sendcnts,
     }
 fn_exit:
     MPIR_TIMER_END(coll, alltoallv, intra);
-    return (mpi_errno);
+    return mpi_errno;
 
 fn_fail:
     goto fn_exit;
@@ -199,9 +199,15 @@ int MPIR_Alltoallv_MVP(const void *sendbuf, const int *sendcnts,
                        MPI_Datatype recvtype, MPIR_Comm *comm_ptr,
                        MPIR_Errflag_t *errflag)
 {
-    return MPIR_Alltoallv_index_tuned_intra_MVP(
+    int mpi_errno = MPI_SUCCESS;
+
+    mpi_errno = MPIR_Alltoallv_index_tuned_intra_MVP(
         sendbuf, sendcnts, sdispls, sendtype, recvbuf, recvcnts, rdispls,
         recvtype, comm_ptr, errflag);
+fn_exit:
+    return mpi_errno;
+fn_fail:
+    goto fn_exit;
 }
 
 int MPIR_Alltoallv_index_tuned_intra_MVP(

@@ -3,7 +3,7 @@ Copyright (C) by Argonne National Laboratory
 
 Automatically generated
   by:   ./maint/extractmvpcvars
-  at:   Wed May 10 15:29:59 2023 UTC
+  at:   Wed Nov  8 18:45:55 2023 UTC
 DO NOT EDIT!!!
 
 This file lists the various environment variables available to change the
@@ -86,6 +86,21 @@ MVP_ALLGATHER_TUNING_IS_TWO_LEVEL
              MV2_ALLGATHER_TUNING_IS_TWO_LEVEL
     Description: TODO-DESC
     Default: 0
+
+MVP_ALLGATHERV_COLLECTIVE_ALGORITHM
+    Aliases: UCR_ALLGATHERV_COLLECTIVE_ALGORITHM
+             MV2_ALLGATHERV_COLLECTIVE_ALGORITHM
+    Description: Variable to select the allgatherv collective algorithm.
+        UNSET           - Internal algorithm selection.
+        RD              - Pairs of processes exchange data in a doubling
+        pattern.
+        BRUCK           - A communication-efficient algorithm based on a
+        generalized butterfly network.
+        RING            - Data is passed around a virtual ring in a fixed
+        pattern.
+        RING_CYCLIC     - Data is passed around a virtual ring in a cyclic
+        pattern.
+    Default: MVP_ALLGATHERV_COLLECTIVE_ALGORITHM_UNSET
 
 MVP_ALLREDUCE_2LEVEL_MSG
     Aliases: UCR_ALLREDUCE_2LEVEL_MSG
@@ -224,6 +239,19 @@ MVP_ALLREDUCE_INTRA_NODE_TUNING_ALGO
         allreduce.
         SHMEM       - Intra-node shm reduce as the first reduce in
         allreduce.
+        P2P_RD      - This algorithm uses a peer-to-peer recursive doubling
+        approach to perform the allreduce operation among nodes.
+        The process starts with each node sending its data to its
+        "peer" node, which then combines the data and sends it to
+        its peer, and so on until all nodes have received the
+        combined data.
+        P2P_RSA     - This algorithm uses a peer-to-peer recursive scatter
+        and
+        allgather approach to perform the allreduce operation among
+        nodes. The process starts with each node recursively
+        splitting its data into smaller subsets and sending them to
+        its peers, and then receiving and combining the subsets
+        received from peers until all nodes have the combined data.
     Default: MVP_ALLREDUCE_INTRA_NODE_TUNING_ALGO_UNSET
 
 MVP_ALLREDUCE_TUNING_IS_TWO_LEVEL
@@ -267,6 +295,36 @@ MVP_USE_XOR_ALLTOALL
              MV2_USE_XOR_ALLTOALL
     Description: TODO-DESC
     Default: 1
+
+MVP_ALLTOALL_COLLECTIVE_ALGORITHM
+    Aliases: UCR_ALLTOALL_COLLECTIVE_ALGORITHM
+             MV2_ALLTOALL_COLLECTIVE_ALGORITHM
+    Description: This CVAR selects proper collective algorithm for the
+        all-to-all
+        operation.
+        UNSET           - No algorithm selected.
+        BRUCK           - Uses an algorithm based on Bruck's algorithm,
+        which
+        exchanges messages between neighboring processes in a
+        hypercube-like topology.
+        RD              - Performs a recurisve doubling alltoall, where
+        each
+        process sends all its data at each step along with data
+        it received in previous steps.
+        SCATTER_DEST    - Uses a scatter and gather approach, where each
+        process
+        scatters its data to all other processes, with each
+        process specifying the destination buffer to scatter to.
+        PAIRWISE        - Uses pairwise communication between processes,
+        where
+        each process exchanges data with every other process
+        using point-to-point communication.
+        INPLACE         - Performs an in-place all-to-all operation, where
+        each
+        process sends its data to every other process and
+        receives data from every other process in the same
+        buffer.
+    Default: MVP_ALLTOALL_COLLECTIVE_ALGORITHM_UNSET
 
 MVP_ALLTOALLV_COLLECTIVE_ALGORITHM
     Aliases: UCR_ALLTOALLV_COLLECTIVE_ALGORITHM
@@ -756,26 +814,74 @@ MVP_USE_TWO_LEVEL_SCATTER
         the two-level algorithm will not be invoked.
     Default: 1
 
+MVP_SCATTER_COLLECTIVE_ALGORITHM
+    Aliases: UCR_SCATTER_COLLECTIVE_ALGORITHM
+             MV2_SCATTER_COLLECTIVE_ALGORITHM
+    Description: This CVAR selects proper collective algorithm for inter
+        and intra node
+        scatter operations. (NOTE: This will override
+        MVP_SCATTER_INTER_NODE_TUNING_ALGO and
+        MVP_SCATTER_INTRA_NODE_TUNING_ALGO).
+        UNSET       - No algorithm selected, will default to algo selected
+        by
+        CVARs MVP_SCATTER_INTER_NODE_TUNING_ALGO and
+        MVP_SCATTER_INTRA_NODE_TUNING_ALGO.
+        BINOMIAL    - Set both inter and intra node scatter tuning to
+        binomial.
+        DIRECT      - Set both inter and intra node scatter tuning to
+        binomial.
+    Default: MVP_SCATTER_COLLECTIVE_ALGORITHM_UNSET
+
+MVP_SCATTER_INTER_NODE_TUNING_ALGO
+    Aliases: UCR_SCATTER_INTER_NODE_TUNING_ALGO
+             MV2_SCATTER_INTER_NODE_TUNING_ALGO
+    Description: Variable to select the inter node scatter algorithm. To
+        use the two
+        level algorithms MVP_USE_TWO_LEVEL_SCATTER must be set to 1
+        (default).
+        (This CVAR can be overriden by MVP_SCATTER_COLLECTIVE_ALGORITHM).
+        UNSET           - Default to internal algorithm selection.
+        BINOMIAL        - Scatter data using a binomial tree algorithm that
+        divides data equally among processes.
+        DIRECT          - Scatter data by directly sending it from the root
+        to
+        all processes.
+        2LVL_BINOMIAL   - Scatter data using a two-level binomial tree,
+        where
+        processes within each node communicate with each other
+        before communicating across nodes.
+        2LVL_DIRECT     - Scatter data using a two-level direct
+        send-receive,
+        where processes within each node communicate with each
+        other before communicating across nodes.
+        MCAST           - Scatter data using a multicast algorithm that
+        sends
+        data to all processes at once. Also make sure to set
+        MVP_USE_MCAST_SCATTER=1 MVP_USE_MCAST_PIPELINE_SHM=1
+        MVP_USE_MCAST=1.
+    Default: MVP_SCATTER_INTER_NODE_TUNING_ALGO_UNSET
+
+MVP_SCATTER_INTRA_NODE_TUNING_ALGO
+    Aliases: UCR_SCATTER_INTRA_NODE_TUNING_ALGO
+             MV2_SCATTER_INTRA_NODE_TUNING_ALGO
+    Description: Variable to select the intra node scatter algorithm. (This
+        CVAR can be
+        overriden by MVP_SCATTER_COLLECTIVE_ALGORITHM).
+        UNSET       - Default to internal algorithm selection.
+        DIRECT      - Scatter data by directly sending it from the root to
+        all
+        processes within a node.
+        BINOMIAL    - Scatter data using a binomial tree algorithm that
+        divides
+        data equally among processes within a node
+    Default: MVP_SCATTER_INTRA_NODE_TUNING_ALGO_UNSET
+
 MVP_SHMEM_DIR
     Aliases: UCR_SHMEM_DIR
              MV2_SHMEM_DIR
     Description: This parameter can be used to specify the path to the
         shared memory files for intra-node communication.
     Default: NULL
-
-MVP_ALLTOALL_COLLECTIVE_ALGORITHM
-    Aliases: UCR_ALLTOALL_COLLECTIVE_ALGORITHM
-             MV2_ALLTOALL_COLLECTIVE_ALGORITHM
-    Description: This CVAR selects proper collective algorithm for alltoall
-        operation.
-    Default: -1
-
-MVP_SCATTER_COLLECTIVE_ALGORITHM
-    Aliases: UCR_SCATTER_COLLECTIVE_ALGORITHM
-             MV2_SCATTER_COLLECTIVE_ALGORITHM
-    Description: This CVAR selects proper collective algorithm for scatter
-        operation.
-    Default: -1
 
 MVP_KNOMIAL_INTER_LEADER_THRESHOLD
     Aliases: UCR_KNOMIAL_INTER_LEADER_THRESHOLD
@@ -1270,24 +1376,6 @@ MVP_INTER_IBCAST_TUNING
 MVP_INTER_IGATHER_TUNING
     Aliases: UCR_INTER_IGATHER_TUNING
              MV2_INTER_IGATHER_TUNING
-    Description: TODO-DESC
-    Default: NULL
-
-MVP_ALLTOALL_TUNING
-    Aliases: UCR_ALLTOALL_TUNING
-             MV2_ALLTOALL_TUNING
-    Description: TODO-DESC
-    Default: NULL
-
-MVP_INTRA_SCATTER_TUNING
-    Aliases: UCR_INTRA_SCATTER_TUNING
-             MV2_INTRA_SCATTER_TUNING
-    Description: TODO-DESC
-    Default: NULL
-
-MVP_INTER_SCATTER_TUNING
-    Aliases: UCR_INTER_SCATTER_TUNING
-             MV2_INTER_SCATTER_TUNING
     Description: TODO-DESC
     Default: NULL
 

@@ -288,8 +288,8 @@ int MPII_Comm_init(MPIR_Comm * comm_p)
     comm_p->dev.ch.global_sock_leader_comm=MPI_COMM_NULL;
 
 #if ENABLE_PVAR_MVP
-    comm_p->sub_comm_counters = NULL;
-    comm_p->sub_comm_timers = NULL;
+    comm_p->dev.ch.sub_comm_counters = NULL;
+    comm_p->dev.ch.sub_comm_timers = NULL;
 #endif
 
 #endif /* _OSU_MVAPICH_ */
@@ -760,19 +760,22 @@ int MPIR_Comm_commit(MPIR_Comm * comm)
 #if ENABLE_PVAR_MVP
     extern int sub_comm_counter_idx;
     extern int sub_comm_timer_idx;
-    comm->sub_comm_counters = (unsigned long long *)MPL_malloc(sub_comm_counter_idx * sizeof(unsigned long long));
-    comm->sub_comm_timers = (pvar_timer_t *)MPL_malloc(sub_comm_timer_idx * sizeof(pvar_timer_t));
+    comm->dev.ch.sub_comm_counters = (unsigned long long *)MPL_malloc(
+        sub_comm_counter_idx * sizeof(unsigned long long), MPL_MEM_MPIT);
+    comm->dev.ch.sub_comm_timers = (MPIR_T_pvar_timer_t *)MPL_malloc(
+        sub_comm_timer_idx * sizeof(MPIR_T_pvar_timer_t), MPL_MEM_MPIT);
     int i = 0;
 
     for(i = 0; i < sub_comm_counter_idx; i++)
     {
-        comm->sub_comm_counters[i] = 0;    
+        comm->dev.ch.sub_comm_counters[i] = 0;
     }
 
     for(i = 0; i < sub_comm_timer_idx; i++)
     {
-        memset(&((comm->sub_comm_timers[i]).total), 0, sizeof(MPID_Time_t));
-        (comm->sub_comm_timers[i]).count = 0;
+        memset(&((comm->dev.ch.sub_comm_timers[i]).total), 0,
+               sizeof(MPL_time_t));
+        (comm->dev.ch.sub_comm_timers[i]).count = 0;
     }
 #endif
 
@@ -1121,16 +1124,14 @@ int MPIR_Comm_delete_internal(MPIR_Comm * comm_ptr)
  
         /* Free sub-communicator counters */
         #if ENABLE_PVAR_MVP
-        if(comm_ptr->sub_comm_counters)
-        {
-           MPL_free(comm_ptr->sub_comm_counters);
+        if (comm_ptr->dev.ch.sub_comm_counters) {
+            MPL_free(comm_ptr->dev.ch.sub_comm_counters);
         }
-        if(comm_ptr->sub_comm_timers)
-        {
-            MPL_free(comm_ptr->sub_comm_timers);
-        } 
-        #endif
- 
+        if (comm_ptr->dev.ch.sub_comm_timers) {
+            MPL_free(comm_ptr->dev.ch.sub_comm_timers);
+        }
+#endif
+
         /* free the intra/inter-node communicators, if they exist */
 #if defined(CHANNEL_MRAIL) || defined(_MVP_CH4_OVERRIDE_)
         if( comm_ptr->dev.ch.shmem_coll_ok == 1) { 

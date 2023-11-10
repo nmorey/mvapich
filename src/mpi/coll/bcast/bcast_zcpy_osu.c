@@ -271,4 +271,12 @@ fn_exit:
 fn_fail:
     goto fn_exit;
 }
+#else
+int MPIR_Pipelined_Bcast_Zcpy_MVP(void *buffer, int count,
+                                  MPI_Datatype datatype, int root,
+                                  MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag)
+{
+    return MPIR_Bcast_binomial_MVP(buffer, count, datatype, root, comm_ptr,
+                                   errflag);
+}
 #endif /* CHANNEL_MRAIL_GEN2 */

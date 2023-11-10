@@ -119,20 +119,74 @@ cvars:
         MPI_Scatter operation. If this parameter is set to 0 at
         run-time, the two-level algorithm will not be invoked.
 
+    - name        : MVP_SCATTER_COLLECTIVE_ALGORITHM
+      category    : COLLECTIVE
+      type        : enum
+      default     : UNSET
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : |-
+        This CVAR selects proper collective algorithm for inter and intra node
+        scatter operations. (NOTE: This will override
+        MVP_SCATTER_INTER_NODE_TUNING_ALGO and
+        MVP_SCATTER_INTRA_NODE_TUNING_ALGO).
+        UNSET       - No algorithm selected, will default to algo selected by
+                    CVARs MVP_SCATTER_INTER_NODE_TUNING_ALGO and
+                    MVP_SCATTER_INTRA_NODE_TUNING_ALGO.
+        BINOMIAL    - Set both inter and intra node scatter tuning to binomial.
+        DIRECT      - Set both inter and intra node scatter tuning to binomial.
+
+    - name        : MVP_SCATTER_INTER_NODE_TUNING_ALGO
+      alias       : MVP_INTER_SCATTER_TUNING
+      category    : COLLECTIVE
+      type        : enum
+      default     : UNSET
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : |-
+        Variable to select the inter node scatter algorithm. To use the two
+        level algorithms MVP_USE_TWO_LEVEL_SCATTER must be set to 1 (default).
+        (This CVAR can be overriden by MVP_SCATTER_COLLECTIVE_ALGORITHM).
+        UNSET           - Default to internal algorithm selection.
+        BINOMIAL        - Scatter data using a binomial tree algorithm that
+                        divides data equally among processes.
+        DIRECT          - Scatter data by directly sending it from the root to
+                        all processes.
+        2LVL_BINOMIAL   - Scatter data using a two-level binomial tree, where
+                        processes within each node communicate with each other
+                        before communicating across nodes.
+        2LVL_DIRECT     - Scatter data using a two-level direct send-receive,
+                        where processes within each node communicate with each
+                        other before communicating across nodes.
+        MCAST           - Scatter data using a multicast algorithm that sends
+                        data to all processes at once. Also make sure to set
+                        MVP_USE_MCAST_SCATTER=1 MVP_USE_MCAST_PIPELINE_SHM=1
+                        MVP_USE_MCAST=1.
+
+    - name        : MVP_SCATTER_INTRA_NODE_TUNING_ALGO
+      alias       : MVP_INTRA_SCATTER_TUNING
+      category    : COLLECTIVE
+      type        : enum
+      default     : UNSET
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : |-
+        Variable to select the intra node scatter algorithm. (This CVAR can be
+        overriden by MVP_SCATTER_COLLECTIVE_ALGORITHM).
+        UNSET       - Default to internal algorithm selection.
+        DIRECT      - Scatter data by directly sending it from the root to all
+                    processes within a node.
+        BINOMIAL    - Scatter data using a binomial tree algorithm that divides
+                    data equally among processes within a node
+
 === END_MPI_T_MVP_CVAR_INFO_BLOCK ===
 */
 
-int (*MVP_Scatter_function)(const void *sendbuf, int sendcount,
-                            MPI_Datatype sendtype, void *recvbuf, int recvcount,
-                            MPI_Datatype recvtype, int root,
-                            MPIR_Comm *comm_ptr,
-                            MPIR_Errflag_t *errflag) = NULL;
-
-int (*MVP_Scatter_intra_function)(const void *sendbuf, int sendcount,
-                                  MPI_Datatype sendtype, void *recvbuf,
-                                  int recvcount, MPI_Datatype recvtype,
-                                  int root, MPIR_Comm *comm_ptr,
-                                  MPIR_Errflag_t *errflag) = NULL;
+MVP_Scatter_fn_t MVP_Scatter_function = NULL;
+MVP_Scatter_fn_t MVP_Scatter_intra_function = NULL;
 
 /* This is the default implementation of scatter. The algorithm is:
 
@@ -334,7 +388,7 @@ conf_check_end:
     MVP_Scatter_function =
         mvp_scatter_indexed_thresholds_table[conf_index][comm_size_index]
             .inter_leader[inter_node_algo_index]
-            .MVP_pt_Scatter_function;
+            .scatter_fn;
 
     if (MVP_Scatter_function == &MPIR_Scatter_mcst_wrap_MVP) {
 #if defined(_MCST_SUPPORT_)
@@ -347,12 +401,12 @@ conf_check_end:
             if (mvp_scatter_indexed_thresholds_table
                     [conf_index][comm_size_index]
                         .inter_leader[inter_node_algo_index + 1]
-                        .MVP_pt_Scatter_function != NULL) {
+                        .scatter_fn != NULL) {
                 MVP_Scatter_function =
                     mvp_scatter_indexed_thresholds_table
                         [conf_index][comm_size_index]
                             .inter_leader[inter_node_algo_index + 1]
-                            .MVP_pt_Scatter_function;
+                            .scatter_fn;
             } else {
                 /* Fallback! */
                 MVP_Scatter_function = &MPIR_Scatter_MVP_Binomial;
@@ -368,7 +422,7 @@ conf_check_end:
                 mvp_scatter_indexed_thresholds_table
                     [conf_index][comm_size_index]
                         .intra_node[intra_node_algo_index]
-                        .MVP_pt_Scatter_function;
+                        .scatter_fn;
 
             mpi_errno = MVP_Scatter_function(sendbuf, sendcnt, sendtype,
                                              recvbuf, recvcnt, recvtype, root,
@@ -486,7 +540,7 @@ conf_check_end:
 
     MVP_Scatter_function = mvp_scatter_thresholds_table[conf_index][range]
                                .inter_leader[range_threshold]
-                               .MVP_pt_Scatter_function;
+                               .scatter_fn;
 
     if (MVP_Scatter_function == &MPIR_Scatter_mcst_wrap_MVP) {
 #if defined(_MCST_SUPPORT_)
@@ -498,11 +552,11 @@ conf_check_end:
         {
             if (mvp_scatter_thresholds_table[conf_index][range]
                     .inter_leader[range_threshold + 1]
-                    .MVP_pt_Scatter_function != NULL) {
+                    .scatter_fn != NULL) {
                 MVP_Scatter_function =
                     mvp_scatter_thresholds_table[conf_index][range]
                         .inter_leader[range_threshold + 1]
-                        .MVP_pt_Scatter_function;
+                        .scatter_fn;
             } else {
                 /* Fallback! */
                 MVP_Scatter_function = &MPIR_Scatter_MVP_Binomial;
@@ -517,7 +571,7 @@ conf_check_end:
             MVP_Scatter_intra_function =
                 mvp_scatter_thresholds_table[conf_index][range]
                     .intra_node[range_threshold_intra]
-                    .MVP_pt_Scatter_function;
+                    .scatter_fn;
 
             mpi_errno = MVP_Scatter_function(sendbuf, sendcnt, sendtype,
                                              recvbuf, recvcnt, recvtype, root,
@@ -787,43 +841,6 @@ int MPIR_Scatter_MVP(const void *sendbuf, int sendcnt, MPI_Datatype sendtype,
 {
     int mpi_errno = MPI_SUCCESS;
 
-#ifdef _ENABLE_CUDA_
-    MPI_Aint sendtype_extent, recvtype_extent;
-    MPIR_Datatype_get_extent_macro(sendtype, sendtype_extent);
-    MPIR_Datatype_get_extent_macro(recvtype, recvtype_extent);
-    MPI_Aint nbytes = recvtype_extent * recvcnt;
-    int send_mem_type = 0;
-    int recv_mem_type = 0;
-    int comm_size = comm_ptr->local_size;
-    int rank = comm_ptr->rank;
-    if (mvp_enable_device) {
-        send_mem_type = is_device_buffer(sendbuf);
-        recv_mem_type = is_device_buffer(recvbuf);
-    }
-
-    if (mvp_enable_device && (send_mem_type || recv_mem_type) &&
-        mvp_device_coll_use_stage &&
-        (nbytes <= mvp_device_scatter_stage_limit * comm_size)) {
-        if (sendbuf != MPI_IN_PLACE) {
-            if (rank == root) {
-                mpi_errno = device_stage_alloc(
-                    (void **)&sendbuf, sendcnt * sendtype_extent * comm_size,
-                    NULL, 0, send_mem_type, 0, 0);
-            } else {
-                mpi_errno = device_stage_alloc(NULL, 0, &recvbuf,
-                                               recvcnt * recvtype_extent, 0,
-                                               recv_mem_type, 0);
-            }
-        } else {
-            mpi_errno = device_stage_alloc(
-                (void **)&sendbuf, recvcnt * recvtype_extent * comm_size,
-                &recvbuf, recvcnt * recvtype_extent, 0, recv_mem_type,
-                rank * recvcnt * recvtype_extent);
-        }
-        MPIR_ERR_CHECK(mpi_errno);
-    }
-#endif /*#ifdef _ENABLE_CUDA_*/
-
     if (MVP_USE_OLD_SCATTER) {
         mpi_errno =
             MPIR_Scatter_intra_MVP(sendbuf, sendcnt, sendtype, recvbuf, recvcnt,
@@ -834,19 +851,6 @@ int MPIR_Scatter_MVP(const void *sendbuf, int sendcnt, MPI_Datatype sendtype,
                 comm_ptr, errflag);
     }
 
-#ifdef _ENABLE_CUDA_
-    if (mvp_enable_device && (send_mem_type || recv_mem_type) &&
-        mvp_device_coll_use_stage &&
-        (nbytes <= mvp_device_scatter_stage_limit * comm_size)) {
-        if (rank == root) {
-            device_stage_free((void **)&sendbuf, &recvbuf, 0, send_mem_type,
-                              recv_mem_type);
-        } else {
-            device_stage_free(NULL, &recvbuf, recvcnt * recvtype_extent,
-                              send_mem_type, recv_mem_type);
-        }
-    }
-#endif /*#ifdef _ENABLE_CUDA_*/
     comm_ptr->dev.ch.intra_node_done = 0;
     MPIR_ERR_CHECK(mpi_errno);
 

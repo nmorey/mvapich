@@ -17,14 +17,6 @@
 
 #define NMATCH (3 + 1)
 
-/* Alltoall tuning flags
- *  BRUCK: MVP_ALLTOALL_TUNING=0
- *  RD: MVP_ALLTOALL_TUNING=1
- *  SCATTER_DEST: MVP_ALLTOALL_TUNING=2
- *  PAIRWISE: MVP_ALLTOALL_TUNING=3
- *  INPLACE: MVP_ALLTOALL_TUNING=4
- */
-
 /* Indicates number of processes per node */
 extern int *mvp_alltoall_table_ppn_conf;
 /* Indicates total number of configurations */
@@ -67,14 +59,15 @@ extern unsigned long long PVAR_COUNTER_mvp_coll_alltoall_bytes_recv;
 extern unsigned long long PVAR_COUNTER_mvp_coll_alltoall_count_send;
 extern unsigned long long PVAR_COUNTER_mvp_coll_alltoall_count_recv;
 
+typedef int (*MVP_Alltoall_fn_t)(const void *sendbuf, int sendcount,
+                                 MPI_Datatype sendtype, void *recvbuf,
+                                 int recvcount, MPI_Datatype recvtype,
+                                 MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag);
+
 typedef struct {
     int min;
     int max;
-    int (*MVP_pt_Alltoall_function)(const void *sendbuf, int sendcount,
-                                    MPI_Datatype sendtype, void *recvbuf,
-                                    int recvcount, MPI_Datatype recvtype,
-                                    MPIR_Comm *comm_ptr,
-                                    MPIR_Errflag_t *errflag);
+    MVP_Alltoall_fn_t alltoall_fn;
 } mvp_alltoall_tuning_element;
 
 typedef struct {
@@ -89,11 +82,7 @@ extern mvp_alltoall_tuning_table **mvp_alltoall_thresholds_table;
 
 typedef struct {
     int msg_sz;
-    int (*MVP_pt_Alltoall_function)(const void *sendbuf, int sendcount,
-                                    MPI_Datatype sendtype, void *recvbuf,
-                                    int recvcount, MPI_Datatype recvtype,
-                                    MPIR_Comm *comm_ptr,
-                                    MPIR_Errflag_t *errflag);
+    MVP_Alltoall_fn_t alltoall_fn;
 } mvp_alltoall_indexed_tuning_element;
 
 typedef struct {
@@ -151,8 +140,5 @@ int MVP_set_alltoall_tuning_table(int heterogeneity,
 
 /* Function to clean free memory allocated by bcast tuning table*/
 void MVP_cleanup_alltoall_tuning_table();
-
-/* Function used inside ch3_shmem_coll.c to tune bcast thresholds */
-int MVP_Alltoall_is_define(const char *mvp_user_alltoall);
 
 #endif

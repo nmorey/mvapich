@@ -1,4 +1,4 @@
-#define PSM__INTEL_PLATINUM_8170_2S_52_INTEL_HFI_100__26PPN                    \
+#define PSM__INTEL_PLATINUM_8170_2S_52__INTEL_HFI_100__26PPN                   \
     {                                                                          \
         {26, 21, {{1, &MPIR_Allgather_Bruck_MVP},                              \
                   {2, &MPIR_Allgather_Bruck_MVP},                              \
@@ -96,3 +96,4 @@
             }                                                                  \
         }                                                                      \
     }
+#define PSM__INTEL_PLATINUM_8170_2S_52__INTEL_HFI_100__26PPN_CNT 4

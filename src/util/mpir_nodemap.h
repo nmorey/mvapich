@@ -352,8 +352,11 @@ static inline int MPIR_NODEMAP_build_nodemap_fallback(int sz, int myrank, int *o
 #ifdef _OSU_MVAPICH_
     mpi_errno = MPIR_NODEMAP_MVP_build_nodemap(sz, out_nodemap, out_max_node_id,
                                                myrank);
-    MPIR_ERR_CHECK(mpi_errno);
-    goto fn_exit;
+    if (mpi_errno != MPI_ERR_UNKNOWN) {
+        /* an unknown error means we couldn't do an mpirun_rsh setup */
+        MPIR_ERR_CHECK(mpi_errno);
+        goto fn_exit;
+    }
 #endif
 
     for (int i = 0; i < sz; ++i) {

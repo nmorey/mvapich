@@ -5,6 +5,7 @@ int MPIR_Reduce_allreduce_MVP(const void *sendbuf, void *recvbuf, int count,
                               MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag)
 {
     MPIR_TIMER_START(coll, reduce, allreduce);
+    MPIR_RECURSION_GUARD_DECL(MVP_Reduce_fn_t, &MPIR_Reduce_binomial_MVP);
     int mpi_errno = MPI_SUCCESS;
     int mpi_errno_ret = MPI_SUCCESS;
     int rank;
@@ -12,6 +13,9 @@ int MPIR_Reduce_allreduce_MVP(const void *sendbuf, void *recvbuf, int count,
     void *tmp_buf = NULL;
     size_t recvbuf_size = 0;
     int using_comm_buf = 0;
+
+    MPIR_RECURSION_GUARD_ENTER(sendbuf, recvbuf, count, datatype, op, root,
+                               comm_ptr, errflag);
 
     if (count == 0) {
         MPIR_TIMER_END(coll, reduce, allreduce);
@@ -53,6 +57,7 @@ int MPIR_Reduce_allreduce_MVP(const void *sendbuf, void *recvbuf, int count,
     }
 
 fn_exit:
+    MPIR_RECURSION_GUARD_EXIT;
     if (mpi_errno_ret)
         mpi_errno = mpi_errno_ret;
     else if (*errflag)

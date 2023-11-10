@@ -30,32 +30,7 @@ int MPIT_memalign(void **, size_t, size_t, int, char const *);
 #endif
 
 #include "mpl.h"
-
-#undef MPL_malloc
-#undef MPL_calloc
-#undef MPL_free
-#undef MPL_strdup
-#undef MPL_realloc
-#undef MPL_aligned_alloc
-
-/* use the MPIT versions of memory management functions.
- * These are implemented using the MPICH MPL functions/macros and will behave
- * similarly but with the addition of the mpi_t memory management
- */
-#define MPL_malloc(a, b)     MPIT_malloc((a), (b), __LINE__, __FILE__)
-#define MPL_calloc(a, b, c)  MPIT_calloc((a), (b), (c), __LINE__, __FILE__)
-#define MPL_free(a)          MPIT_free(a, __LINE__, __FILE__)
-#define MPL_realloc(a, b, c) MPIT_realloc((a), (b), (c), __LINE__, __FILE__)
-#define MPL_aligned_alloc(a, b, c)                                             \
-    MPIT_aligned_alloc((a), (b), (c), __LINE__, __FILE__)
-
-#define MPL_strdup(a)              MPIT_strdup(a, __LINE__, __FILE__)
-#define MPL_realloc(a, b)          MPIT_realloc(a, b, __LINE__, __FILE__)
-#define MPL_aligned_alloc(a, b, c) MPIT_memalign(a, b, c, __LINE__, __FILE__)
-/* compatability macro */
-#define MPL_memalign(a, b, c) MPIT_memalign(a, b, c, __LINE__, __FILE__)
-#define MPL_memalign_Free(a)  MPIT_memalign_free(a, __LINE__, __FILE__)
-#define MPL_shmdt(a)          MPIT_shmdt(a, __LINE__, __FILE__)
+/* TODO: Bring in MPIT versions of memory management functions. */
 
 #else /* ENABLE_PVAR_MEM */
 /*

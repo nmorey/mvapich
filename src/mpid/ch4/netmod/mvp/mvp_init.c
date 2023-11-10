@@ -442,7 +442,6 @@ int MPIDI_MVP_post_init(void)
     /* print cvars before we get started */
     if (MVP_SHOW_ENV_INFO && !MPIR_Process.rank) {
         MPIR_MVP_print_cvars(MVP_SHOW_ENV_INFO);
-        fprintf(stderr, "--------------------------------------------------\n");
     }
 
     mpi_errno = smpi_unlink_hwloc_topology_file();

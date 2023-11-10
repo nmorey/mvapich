@@ -161,9 +161,6 @@ static void MPIR_T_pvar_env_finalize(void)
 
 void MPIR_T_env_finalize(void)
 {
-#ifdef _OSU_MVAPICH_
-    MPIT_FREE_MVP_VARIABLES();
-#endif
     MPIR_T_enum_env_finalize();
     MPIR_T_cvar_env_finalize();
     MPIR_T_pvar_env_finalize();

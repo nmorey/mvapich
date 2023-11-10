@@ -1,4 +1,4 @@
-#define GEN2__AMD_EPYC__1PPN                                                   \
+#define GEN2__AMD_EPYC_7551_64__MLX_CX_HDR__1PPN                               \
     {                                                                          \
         {2,                                                                    \
          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},                     \
@@ -16,7 +16,7 @@
           {1024, &MPIR_Alltoall_pairwise_MVP},                                 \
           {2048, &MPIR_Alltoall_pairwise_MVP},                                 \
           {4096, &MPIR_Alltoall_pairwise_MVP},                                 \
-          {8192, &MPIR_Alltoall_Scatter_dest_MVP},                             \
+          {8192, &MPIR_Alltoall_pairwise_MVP},                                 \
           {16384, &MPIR_Alltoall_pairwise_MVP},                                \
           {32768, &MPIR_Alltoall_pairwise_MVP}}},                              \
             {4,                                                                \
@@ -62,3 +62,4 @@
             }                                                                  \
         }                                                                      \
     }
+#define GEN2__AMD_EPYC_7551_64__MLX_CX_HDR__1PPN_CNT 3

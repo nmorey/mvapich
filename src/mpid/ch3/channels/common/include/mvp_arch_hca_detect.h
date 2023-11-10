@@ -85,7 +85,7 @@ typedef enum {
 
     /* Intel Cards */
     MVP_HCA_INTEL_START,
-    MVP_HCA_INTEL_HFI1,
+    MVP_HCA_INTEL_HFI_100,
     MVP_HCA_INTEL_END,
 
     /* Marvel Cards */

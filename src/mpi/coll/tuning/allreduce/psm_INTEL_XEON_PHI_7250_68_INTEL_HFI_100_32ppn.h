@@ -1,4 +1,4 @@
-#define PSM__INTEL_XEON_PHI_7250_68_INTEL_HFI_100__32PPN                       \
+#define PSM__INTEL_XEON_PHI_7250__INTEL_HFI_100__32PPN                         \
     {                                                                          \
         {32,                                                                   \
          0,                                                                    \
@@ -219,3 +219,4 @@
             }                                                                  \
         }                                                                      \
     }
+#define PSM__INTEL_XEON_PHI_7250__INTEL_HFI_100__32PPN_CNT 5

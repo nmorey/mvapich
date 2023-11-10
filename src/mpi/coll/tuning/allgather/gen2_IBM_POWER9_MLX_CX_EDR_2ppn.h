@@ -1,4 +1,4 @@
-#define GEN2__IBM_POWER9_MLX_CX_EDR__2PPN                                      \
+#define GEN2__IBM_POWER9__MLX_CX_EDR__2PPN                                     \
     {                                                                          \
         {2, 21, {{1, &MPIR_Allgather_Ring_MVP},                                \
                  {2, &MPIR_Allgather_RD_MVP},                                  \
@@ -113,3 +113,4 @@
             }                                                                  \
         }                                                                      \
     }
+#define GEN2__IBM_POWER9__MLX_CX_EDR__2PPN_CNT 5

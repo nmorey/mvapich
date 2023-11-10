@@ -4,7 +4,7 @@
  */
 /* automatically generated
  *   by:   ./maint/extractmvpcvars
- *   at:   Wed May 10 15:29:59 2023 UTC
+ *   at:   Wed Nov  8 18:45:55 2023 UTC
  *
  * DO NOT EDIT!!!
  */
@@ -17,6 +17,7 @@ int MVP_ALLGATHER_RD_THRESHOLD;
 int MVP_ALLGATHER_REVERSE_RANKING;
 int MVP_ALLGATHER_COLLECTIVE_ALGORITHM;
 int MVP_ALLGATHER_TUNING_IS_TWO_LEVEL;
+int MVP_ALLGATHERV_COLLECTIVE_ALGORITHM;
 int MVP_ALLREDUCE_2LEVEL_MSG;
 int MVP_ALLREDUCE_SHORT_MSG;
 int MVP_SHMEM_ALLREDUCE_MSG;
@@ -35,6 +36,7 @@ int MVP_ALLTOALL_THROTTLE_FACTOR;
 int MVP_ALLTOALL_INTRA_THROTTLE_FACTOR;
 int MVP_ALLTOALL_LARGE_MSG_THROTTLE_FACTOR;
 int MVP_USE_XOR_ALLTOALL;
+int MVP_ALLTOALL_COLLECTIVE_ALGORITHM;
 int MVP_ALLTOALLV_COLLECTIVE_ALGORITHM;
 int MVP_USE_SHMEM_BARRIER;
 int MVP_USE_SOCKET_AWARE_BARRIER;
@@ -89,9 +91,10 @@ int MVP_USE_DIRECT_SCATTER;
 int MVP_USE_SCATTER_RD_INTER_LEADER_BCAST;
 int MVP_USE_SCATTER_RING_INTER_LEADER_BCAST;
 int MVP_USE_TWO_LEVEL_SCATTER;
-const char * MVP_SHMEM_DIR;
-int MVP_ALLTOALL_COLLECTIVE_ALGORITHM;
 int MVP_SCATTER_COLLECTIVE_ALGORITHM;
+int MVP_SCATTER_INTER_NODE_TUNING_ALGO;
+int MVP_SCATTER_INTRA_NODE_TUNING_ALGO;
+const char * MVP_SHMEM_DIR;
 int MVP_KNOMIAL_INTER_LEADER_THRESHOLD;
 int MVP_KNOMIAL_INTER_NODE_FACTOR;
 int MVP_KNOMIAL_INTRA_NODE_FACTOR;
@@ -172,9 +175,6 @@ const char * MVP_INTRA_IBCAST_TUNING;
 const char * MVP_INTRA_IGATHER_TUNING;
 const char * MVP_INTER_IBCAST_TUNING;
 const char * MVP_INTER_IGATHER_TUNING;
-const char * MVP_ALLTOALL_TUNING;
-const char * MVP_INTRA_SCATTER_TUNING;
-const char * MVP_INTER_SCATTER_TUNING;
 const char * MVP_INTRA_ISCATTER_TUNING;
 const char * MVP_INTER_ISCATTER_TUNING;
 const char * MVP_INTRA_IALLREDUCE_TUNING;
@@ -534,7 +534,7 @@ int MPIR_T_MVP_cvar_init(void)
         return MPI_SUCCESS;
     initialized = TRUE;
 
-    /* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
+    /* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
     MPIR_T_cat_add_desc("COLLECTIVE-OFFLOAD",
         "CVARs controlling MVAPICH collective offloading mechanisms including Mellanox SHArP");
 
@@ -718,6 +718,54 @@ for the first level of communication.");
     rc = MPL_env2int("MVP_ALLGATHER_TUNING_IS_TWO_LEVEL", &(MVP_ALLGATHER_TUNING_IS_TWO_LEVEL));
     if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_ALLGATHER_TUNING_IS_TWO_LEVEL);}
     MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MVP_ALLGATHER_TUNING_IS_TWO_LEVEL");
+
+    defaultval.d = MVP_ALLGATHERV_COLLECTIVE_ALGORITHM_UNSET;
+    MPIR_T_CVAR_REGISTER_STATIC(
+        MPI_INT,
+        MVP_ALLGATHERV_COLLECTIVE_ALGORITHM, /* name */
+        &MVP_ALLGATHERV_COLLECTIVE_ALGORITHM, /* address */
+        1, /* count */
+        MPI_T_VERBOSITY_USER_BASIC,
+        MPI_T_SCOPE_ALL_EQ,
+        defaultval,
+        "COLLECTIVE", /* category */
+        "Variable to select the allgatherv collective algorithm.\
+UNSET           - Internal algorithm selection.\
+RD              - Pairs of processes exchange data in a doubling\
+pattern.\
+BRUCK           - A communication-efficient algorithm based on a\
+generalized butterfly network.\
+RING            - Data is passed around a virtual ring in a fixed\
+pattern.\
+RING_CYCLIC     - Data is passed around a virtual ring in a cyclic\
+pattern.");
+    MVP_ALLGATHERV_COLLECTIVE_ALGORITHM = defaultval.d;
+    tmp_str=NULL;
+    rc = MPL_env2str("MV2_ALLGATHERV_COLLECTIVE_ALGORITHM", &tmp_str);
+    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_ALLGATHERV_COLLECTIVE_ALGORITHM);}
+    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MV2_ALLGATHERV_COLLECTIVE_ALGORITHM");
+    rc = MPL_env2str("UCR_ALLGATHERV_COLLECTIVE_ALGORITHM", &tmp_str);
+    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_ALLGATHERV_COLLECTIVE_ALGORITHM);}
+    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","UCR_ALLGATHERV_COLLECTIVE_ALGORITHM");
+    rc = MPL_env2str("MVP_ALLGATHERV_COLLECTIVE_ALGORITHM", &tmp_str);
+    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_ALLGATHERV_COLLECTIVE_ALGORITHM);}
+    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MVP_ALLGATHERV_COLLECTIVE_ALGORITHM");
+    if (tmp_str != NULL) {
+        if (0 == mvp_stricmp(tmp_str, "UNSET"))
+            MVP_ALLGATHERV_COLLECTIVE_ALGORITHM = MVP_ALLGATHERV_COLLECTIVE_ALGORITHM_UNSET;
+        else if (0 == mvp_stricmp(tmp_str, "RD"))
+            MVP_ALLGATHERV_COLLECTIVE_ALGORITHM = MVP_ALLGATHERV_COLLECTIVE_ALGORITHM_RD;
+        else if (0 == mvp_stricmp(tmp_str, "BRUCK"))
+            MVP_ALLGATHERV_COLLECTIVE_ALGORITHM = MVP_ALLGATHERV_COLLECTIVE_ALGORITHM_BRUCK;
+        else if (0 == mvp_stricmp(tmp_str, "RING"))
+            MVP_ALLGATHERV_COLLECTIVE_ALGORITHM = MVP_ALLGATHERV_COLLECTIVE_ALGORITHM_RING;
+        else if (0 == mvp_stricmp(tmp_str, "RING_CYCLIC"))
+            MVP_ALLGATHERV_COLLECTIVE_ALGORITHM = MVP_ALLGATHERV_COLLECTIVE_ALGORITHM_RING_CYCLIC;
+        else {
+            mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, __func__, __LINE__,MPI_ERR_OTHER, "**cvar_val", "**cvar_val %s %s", "MVP_ALLGATHERV_COLLECTIVE_ALGORITHM", tmp_str);
+            goto fn_fail;
+        }
+    }
 
     defaultval.d = (1 << 18);
     MPIR_T_CVAR_REGISTER_STATIC(
@@ -1035,7 +1083,19 @@ inter-socket communication required.");
 overriden by MVP_ALLREDUCE_COLLECTIVE_ALGORITHM)\
 UNSET       - Default to internal algorithm selection.\
 P2P         - Intra-node p2p reduce as the first reduce in allreduce.\
-SHMEM       - Intra-node shm reduce as the first reduce in allreduce.");
+SHMEM       - Intra-node shm reduce as the first reduce in allreduce.\
+P2P_RD      - This algorithm uses a peer-to-peer recursive doubling\
+approach to perform the allreduce operation among nodes.\
+The process starts with each node sending its data to its\
+\"peer\" node, which then combines the data and sends it to\
+its peer, and so on until all nodes have received the\
+combined data.\
+P2P_RSA     - This algorithm uses a peer-to-peer recursive scatter and\
+allgather approach to perform the allreduce operation among\
+nodes. The process starts with each node recursively\
+splitting its data into smaller subsets and sending them to\
+its peers, and then receiving and combining the subsets\
+received from peers until all nodes have the combined data.");
     MVP_ALLREDUCE_INTRA_NODE_TUNING_ALGO = defaultval.d;
     tmp_str=NULL;
     rc = MPL_env2str("MV2_ALLREDUCE_INTRA_NODE_TUNING_ALGO", &tmp_str);
@@ -1054,6 +1114,10 @@ SHMEM       - Intra-node shm reduce as the first reduce in allreduce.");
             MVP_ALLREDUCE_INTRA_NODE_TUNING_ALGO = MVP_ALLREDUCE_INTRA_NODE_TUNING_ALGO_P2P;
         else if (0 == mvp_stricmp(tmp_str, "SHMEM"))
             MVP_ALLREDUCE_INTRA_NODE_TUNING_ALGO = MVP_ALLREDUCE_INTRA_NODE_TUNING_ALGO_SHMEM;
+        else if (0 == mvp_stricmp(tmp_str, "P2P_RD"))
+            MVP_ALLREDUCE_INTRA_NODE_TUNING_ALGO = MVP_ALLREDUCE_INTRA_NODE_TUNING_ALGO_P2P_RD;
+        else if (0 == mvp_stricmp(tmp_str, "P2P_RSA"))
+            MVP_ALLREDUCE_INTRA_NODE_TUNING_ALGO = MVP_ALLREDUCE_INTRA_NODE_TUNING_ALGO_P2P_RSA;
         else {
             mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, __func__, __LINE__,MPI_ERR_OTHER, "**cvar_val", "**cvar_val %s %s", "MVP_ALLREDUCE_INTRA_NODE_TUNING_ALGO", tmp_str);
             goto fn_fail;
@@ -1213,6 +1277,65 @@ SHMEM       - Intra-node shm reduce as the first reduce in allreduce.");
     rc = MPL_env2int("MVP_USE_XOR_ALLTOALL", &(MVP_USE_XOR_ALLTOALL));
     if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_USE_XOR_ALLTOALL);}
     MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MVP_USE_XOR_ALLTOALL");
+
+    defaultval.d = MVP_ALLTOALL_COLLECTIVE_ALGORITHM_UNSET;
+    MPIR_T_CVAR_REGISTER_STATIC(
+        MPI_INT,
+        MVP_ALLTOALL_COLLECTIVE_ALGORITHM, /* name */
+        &MVP_ALLTOALL_COLLECTIVE_ALGORITHM, /* address */
+        1, /* count */
+        MPI_T_VERBOSITY_USER_BASIC,
+        MPI_T_SCOPE_ALL_EQ,
+        defaultval,
+        "COLLECTIVE", /* category */
+        "This CVAR selects proper collective algorithm for the all-to-all\
+operation.\
+UNSET           - No algorithm selected.\
+BRUCK           - Uses an algorithm based on Bruck's algorithm, which\
+exchanges messages between neighboring processes in a\
+hypercube-like topology.\
+RD              - Performs a recurisve doubling alltoall, where each\
+process sends all its data at each step along with data\
+it received in previous steps.\
+SCATTER_DEST    - Uses a scatter and gather approach, where each process\
+scatters its data to all other processes, with each\
+process specifying the destination buffer to scatter to.\
+PAIRWISE        - Uses pairwise communication between processes, where\
+each process exchanges data with every other process\
+using point-to-point communication.\
+INPLACE         - Performs an in-place all-to-all operation, where each\
+process sends its data to every other process and\
+receives data from every other process in the same\
+buffer.");
+    MVP_ALLTOALL_COLLECTIVE_ALGORITHM = defaultval.d;
+    tmp_str=NULL;
+    rc = MPL_env2str("MV2_ALLTOALL_COLLECTIVE_ALGORITHM", &tmp_str);
+    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_ALLTOALL_COLLECTIVE_ALGORITHM);}
+    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MV2_ALLTOALL_COLLECTIVE_ALGORITHM");
+    rc = MPL_env2str("UCR_ALLTOALL_COLLECTIVE_ALGORITHM", &tmp_str);
+    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_ALLTOALL_COLLECTIVE_ALGORITHM);}
+    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","UCR_ALLTOALL_COLLECTIVE_ALGORITHM");
+    rc = MPL_env2str("MVP_ALLTOALL_COLLECTIVE_ALGORITHM", &tmp_str);
+    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_ALLTOALL_COLLECTIVE_ALGORITHM);}
+    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MVP_ALLTOALL_COLLECTIVE_ALGORITHM");
+    if (tmp_str != NULL) {
+        if (0 == mvp_stricmp(tmp_str, "UNSET"))
+            MVP_ALLTOALL_COLLECTIVE_ALGORITHM = MVP_ALLTOALL_COLLECTIVE_ALGORITHM_UNSET;
+        else if (0 == mvp_stricmp(tmp_str, "BRUCK"))
+            MVP_ALLTOALL_COLLECTIVE_ALGORITHM = MVP_ALLTOALL_COLLECTIVE_ALGORITHM_BRUCK;
+        else if (0 == mvp_stricmp(tmp_str, "RD"))
+            MVP_ALLTOALL_COLLECTIVE_ALGORITHM = MVP_ALLTOALL_COLLECTIVE_ALGORITHM_RD;
+        else if (0 == mvp_stricmp(tmp_str, "SCATTER_DEST"))
+            MVP_ALLTOALL_COLLECTIVE_ALGORITHM = MVP_ALLTOALL_COLLECTIVE_ALGORITHM_SCATTER_DEST;
+        else if (0 == mvp_stricmp(tmp_str, "PAIRWISE"))
+            MVP_ALLTOALL_COLLECTIVE_ALGORITHM = MVP_ALLTOALL_COLLECTIVE_ALGORITHM_PAIRWISE;
+        else if (0 == mvp_stricmp(tmp_str, "INPLACE"))
+            MVP_ALLTOALL_COLLECTIVE_ALGORITHM = MVP_ALLTOALL_COLLECTIVE_ALGORITHM_INPLACE;
+        else {
+            mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, __func__, __LINE__,MPI_ERR_OTHER, "**cvar_val", "**cvar_val %s %s", "MVP_ALLTOALL_COLLECTIVE_ALGORITHM", tmp_str);
+            goto fn_fail;
+        }
+    }
 
     defaultval.d = MVP_ALLTOALLV_COLLECTIVE_ALGORITHM_UNSET;
     MPIR_T_CVAR_REGISTER_STATIC(
@@ -2650,6 +2773,148 @@ single node and uses shared memory for data transfer.");
     if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_USE_TWO_LEVEL_SCATTER);}
     MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MVP_USE_TWO_LEVEL_SCATTER");
 
+    defaultval.d = MVP_SCATTER_COLLECTIVE_ALGORITHM_UNSET;
+    MPIR_T_CVAR_REGISTER_STATIC(
+        MPI_INT,
+        MVP_SCATTER_COLLECTIVE_ALGORITHM, /* name */
+        &MVP_SCATTER_COLLECTIVE_ALGORITHM, /* address */
+        1, /* count */
+        MPI_T_VERBOSITY_USER_BASIC,
+        MPI_T_SCOPE_ALL_EQ,
+        defaultval,
+        "COLLECTIVE", /* category */
+        "This CVAR selects proper collective algorithm for inter and intra node\
+scatter operations. (NOTE: This will override\
+MVP_SCATTER_INTER_NODE_TUNING_ALGO and\
+MVP_SCATTER_INTRA_NODE_TUNING_ALGO).\
+UNSET       - No algorithm selected, will default to algo selected by\
+CVARs MVP_SCATTER_INTER_NODE_TUNING_ALGO and\
+MVP_SCATTER_INTRA_NODE_TUNING_ALGO.\
+BINOMIAL    - Set both inter and intra node scatter tuning to binomial.\
+DIRECT      - Set both inter and intra node scatter tuning to binomial.");
+    MVP_SCATTER_COLLECTIVE_ALGORITHM = defaultval.d;
+    tmp_str=NULL;
+    rc = MPL_env2str("MV2_SCATTER_COLLECTIVE_ALGORITHM", &tmp_str);
+    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_SCATTER_COLLECTIVE_ALGORITHM);}
+    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MV2_SCATTER_COLLECTIVE_ALGORITHM");
+    rc = MPL_env2str("UCR_SCATTER_COLLECTIVE_ALGORITHM", &tmp_str);
+    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_SCATTER_COLLECTIVE_ALGORITHM);}
+    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","UCR_SCATTER_COLLECTIVE_ALGORITHM");
+    rc = MPL_env2str("MVP_SCATTER_COLLECTIVE_ALGORITHM", &tmp_str);
+    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_SCATTER_COLLECTIVE_ALGORITHM);}
+    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MVP_SCATTER_COLLECTIVE_ALGORITHM");
+    if (tmp_str != NULL) {
+        if (0 == mvp_stricmp(tmp_str, "UNSET"))
+            MVP_SCATTER_COLLECTIVE_ALGORITHM = MVP_SCATTER_COLLECTIVE_ALGORITHM_UNSET;
+        else if (0 == mvp_stricmp(tmp_str, "BINOMIAL"))
+            MVP_SCATTER_COLLECTIVE_ALGORITHM = MVP_SCATTER_COLLECTIVE_ALGORITHM_BINOMIAL;
+        else if (0 == mvp_stricmp(tmp_str, "DIRECT"))
+            MVP_SCATTER_COLLECTIVE_ALGORITHM = MVP_SCATTER_COLLECTIVE_ALGORITHM_DIRECT;
+        else {
+            mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, __func__, __LINE__,MPI_ERR_OTHER, "**cvar_val", "**cvar_val %s %s", "MVP_SCATTER_COLLECTIVE_ALGORITHM", tmp_str);
+            goto fn_fail;
+        }
+    }
+
+    defaultval.d = MVP_SCATTER_INTER_NODE_TUNING_ALGO_UNSET;
+    MPIR_T_CVAR_REGISTER_STATIC(
+        MPI_INT,
+        MVP_SCATTER_INTER_NODE_TUNING_ALGO, /* name */
+        &MVP_SCATTER_INTER_NODE_TUNING_ALGO, /* address */
+        1, /* count */
+        MPI_T_VERBOSITY_USER_BASIC,
+        MPI_T_SCOPE_ALL_EQ,
+        defaultval,
+        "COLLECTIVE", /* category */
+        "Variable to select the inter node scatter algorithm. To use the two\
+level algorithms MVP_USE_TWO_LEVEL_SCATTER must be set to 1 (default).\
+(This CVAR can be overriden by MVP_SCATTER_COLLECTIVE_ALGORITHM).\
+UNSET           - Default to internal algorithm selection.\
+BINOMIAL        - Scatter data using a binomial tree algorithm that\
+divides data equally among processes.\
+DIRECT          - Scatter data by directly sending it from the root to\
+all processes.\
+2LVL_BINOMIAL   - Scatter data using a two-level binomial tree, where\
+processes within each node communicate with each other\
+before communicating across nodes.\
+2LVL_DIRECT     - Scatter data using a two-level direct send-receive,\
+where processes within each node communicate with each\
+other before communicating across nodes.\
+MCAST           - Scatter data using a multicast algorithm that sends\
+data to all processes at once. Also make sure to set\
+MVP_USE_MCAST_SCATTER=1 MVP_USE_MCAST_PIPELINE_SHM=1\
+MVP_USE_MCAST=1.");
+    MVP_SCATTER_INTER_NODE_TUNING_ALGO = defaultval.d;
+    tmp_str=NULL;
+    rc = MPL_env2str("MV2_SCATTER_INTER_NODE_TUNING_ALGO", &tmp_str);
+    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_SCATTER_INTER_NODE_TUNING_ALGO);}
+    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MV2_SCATTER_INTER_NODE_TUNING_ALGO");
+    rc = MPL_env2str("UCR_SCATTER_INTER_NODE_TUNING_ALGO", &tmp_str);
+    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_SCATTER_INTER_NODE_TUNING_ALGO);}
+    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","UCR_SCATTER_INTER_NODE_TUNING_ALGO");
+    rc = MPL_env2str("MVP_SCATTER_INTER_NODE_TUNING_ALGO", &tmp_str);
+    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_SCATTER_INTER_NODE_TUNING_ALGO);}
+    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MVP_SCATTER_INTER_NODE_TUNING_ALGO");
+    if (tmp_str != NULL) {
+        if (0 == mvp_stricmp(tmp_str, "UNSET"))
+            MVP_SCATTER_INTER_NODE_TUNING_ALGO = MVP_SCATTER_INTER_NODE_TUNING_ALGO_UNSET;
+        else if (0 == mvp_stricmp(tmp_str, "BINOMIAL"))
+            MVP_SCATTER_INTER_NODE_TUNING_ALGO = MVP_SCATTER_INTER_NODE_TUNING_ALGO_BINOMIAL;
+        else if (0 == mvp_stricmp(tmp_str, "DIRECT"))
+            MVP_SCATTER_INTER_NODE_TUNING_ALGO = MVP_SCATTER_INTER_NODE_TUNING_ALGO_DIRECT;
+        else if (0 == mvp_stricmp(tmp_str, "2LVL_BINOMIAL"))
+            MVP_SCATTER_INTER_NODE_TUNING_ALGO = MVP_SCATTER_INTER_NODE_TUNING_ALGO_2LVL_BINOMIAL;
+        else if (0 == mvp_stricmp(tmp_str, "2LVL_DIRECT"))
+            MVP_SCATTER_INTER_NODE_TUNING_ALGO = MVP_SCATTER_INTER_NODE_TUNING_ALGO_2LVL_DIRECT;
+        else if (0 == mvp_stricmp(tmp_str, "MCAST"))
+            MVP_SCATTER_INTER_NODE_TUNING_ALGO = MVP_SCATTER_INTER_NODE_TUNING_ALGO_MCAST;
+        else {
+            mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, __func__, __LINE__,MPI_ERR_OTHER, "**cvar_val", "**cvar_val %s %s", "MVP_SCATTER_INTER_NODE_TUNING_ALGO", tmp_str);
+            goto fn_fail;
+        }
+    }
+
+    defaultval.d = MVP_SCATTER_INTRA_NODE_TUNING_ALGO_UNSET;
+    MPIR_T_CVAR_REGISTER_STATIC(
+        MPI_INT,
+        MVP_SCATTER_INTRA_NODE_TUNING_ALGO, /* name */
+        &MVP_SCATTER_INTRA_NODE_TUNING_ALGO, /* address */
+        1, /* count */
+        MPI_T_VERBOSITY_USER_BASIC,
+        MPI_T_SCOPE_ALL_EQ,
+        defaultval,
+        "COLLECTIVE", /* category */
+        "Variable to select the intra node scatter algorithm. (This CVAR can be\
+overriden by MVP_SCATTER_COLLECTIVE_ALGORITHM).\
+UNSET       - Default to internal algorithm selection.\
+DIRECT      - Scatter data by directly sending it from the root to all\
+processes within a node.\
+BINOMIAL    - Scatter data using a binomial tree algorithm that divides\
+data equally among processes within a node");
+    MVP_SCATTER_INTRA_NODE_TUNING_ALGO = defaultval.d;
+    tmp_str=NULL;
+    rc = MPL_env2str("MV2_SCATTER_INTRA_NODE_TUNING_ALGO", &tmp_str);
+    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_SCATTER_INTRA_NODE_TUNING_ALGO);}
+    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MV2_SCATTER_INTRA_NODE_TUNING_ALGO");
+    rc = MPL_env2str("UCR_SCATTER_INTRA_NODE_TUNING_ALGO", &tmp_str);
+    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_SCATTER_INTRA_NODE_TUNING_ALGO);}
+    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","UCR_SCATTER_INTRA_NODE_TUNING_ALGO");
+    rc = MPL_env2str("MVP_SCATTER_INTRA_NODE_TUNING_ALGO", &tmp_str);
+    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_SCATTER_INTRA_NODE_TUNING_ALGO);}
+    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MVP_SCATTER_INTRA_NODE_TUNING_ALGO");
+    if (tmp_str != NULL) {
+        if (0 == mvp_stricmp(tmp_str, "UNSET"))
+            MVP_SCATTER_INTRA_NODE_TUNING_ALGO = MVP_SCATTER_INTRA_NODE_TUNING_ALGO_UNSET;
+        else if (0 == mvp_stricmp(tmp_str, "DIRECT"))
+            MVP_SCATTER_INTRA_NODE_TUNING_ALGO = MVP_SCATTER_INTRA_NODE_TUNING_ALGO_DIRECT;
+        else if (0 == mvp_stricmp(tmp_str, "BINOMIAL"))
+            MVP_SCATTER_INTRA_NODE_TUNING_ALGO = MVP_SCATTER_INTRA_NODE_TUNING_ALGO_BINOMIAL;
+        else {
+            mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, __func__, __LINE__,MPI_ERR_OTHER, "**cvar_val", "**cvar_val %s %s", "MVP_SCATTER_INTRA_NODE_TUNING_ALGO", tmp_str);
+            goto fn_fail;
+        }
+    }
+
     defaultval.str = (const char *) NULL;
     MPIR_T_CVAR_REGISTER_STATIC(
         MPI_CHAR,
@@ -2682,50 +2947,6 @@ single node and uses shared memory for data transfer.");
     else {
         MVP_SHMEM_DIR = NULL;
     }
-
-    defaultval.d = -1;
-    MPIR_T_CVAR_REGISTER_STATIC(
-        MPI_INT,
-        MVP_ALLTOALL_COLLECTIVE_ALGORITHM, /* name */
-        &MVP_ALLTOALL_COLLECTIVE_ALGORITHM, /* address */
-        1, /* count */
-        MPI_T_VERBOSITY_USER_BASIC,
-        MPI_T_SCOPE_ALL_EQ,
-        defaultval,
-        "CH3", /* category */
-        "This CVAR selects proper collective algorithm for alltoall operation.");
-    MVP_ALLTOALL_COLLECTIVE_ALGORITHM = defaultval.d;
-    rc = MPL_env2int("MV2_ALLTOALL_COLLECTIVE_ALGORITHM", &(MVP_ALLTOALL_COLLECTIVE_ALGORITHM));
-    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_ALLTOALL_COLLECTIVE_ALGORITHM);}
-    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MV2_ALLTOALL_COLLECTIVE_ALGORITHM");
-    rc = MPL_env2int("UCR_ALLTOALL_COLLECTIVE_ALGORITHM", &(MVP_ALLTOALL_COLLECTIVE_ALGORITHM));
-    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_ALLTOALL_COLLECTIVE_ALGORITHM);}
-    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","UCR_ALLTOALL_COLLECTIVE_ALGORITHM");
-    rc = MPL_env2int("MVP_ALLTOALL_COLLECTIVE_ALGORITHM", &(MVP_ALLTOALL_COLLECTIVE_ALGORITHM));
-    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_ALLTOALL_COLLECTIVE_ALGORITHM);}
-    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MVP_ALLTOALL_COLLECTIVE_ALGORITHM");
-
-    defaultval.d = -1;
-    MPIR_T_CVAR_REGISTER_STATIC(
-        MPI_INT,
-        MVP_SCATTER_COLLECTIVE_ALGORITHM, /* name */
-        &MVP_SCATTER_COLLECTIVE_ALGORITHM, /* address */
-        1, /* count */
-        MPI_T_VERBOSITY_USER_BASIC,
-        MPI_T_SCOPE_ALL_EQ,
-        defaultval,
-        "CH3", /* category */
-        "This CVAR selects proper collective algorithm for scatter operation.");
-    MVP_SCATTER_COLLECTIVE_ALGORITHM = defaultval.d;
-    rc = MPL_env2int("MV2_SCATTER_COLLECTIVE_ALGORITHM", &(MVP_SCATTER_COLLECTIVE_ALGORITHM));
-    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_SCATTER_COLLECTIVE_ALGORITHM);}
-    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MV2_SCATTER_COLLECTIVE_ALGORITHM");
-    rc = MPL_env2int("UCR_SCATTER_COLLECTIVE_ALGORITHM", &(MVP_SCATTER_COLLECTIVE_ALGORITHM));
-    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_SCATTER_COLLECTIVE_ALGORITHM);}
-    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","UCR_SCATTER_COLLECTIVE_ALGORITHM");
-    rc = MPL_env2int("MVP_SCATTER_COLLECTIVE_ALGORITHM", &(MVP_SCATTER_COLLECTIVE_ALGORITHM));
-    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_SCATTER_COLLECTIVE_ALGORITHM);}
-    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MVP_SCATTER_COLLECTIVE_ALGORITHM");
 
     defaultval.d = (64 * 1024);
     MPIR_T_CVAR_REGISTER_STATIC(
@@ -4540,105 +4761,6 @@ single node and uses shared memory for data transfer.");
     }
     else {
         MVP_INTER_IGATHER_TUNING = NULL;
-    }
-
-    defaultval.str = (const char *) NULL;
-    MPIR_T_CVAR_REGISTER_STATIC(
-        MPI_CHAR,
-        MVP_ALLTOALL_TUNING, /* name */
-        &MVP_ALLTOALL_TUNING, /* address */
-        MVP_MAX_STRLEN, /* count */
-        MPI_T_VERBOSITY_USER_BASIC,
-        MPI_T_SCOPE_ALL_EQ,
-        defaultval,
-        "COLLECTIVE", /* category */
-        "TODO-DESC");
-    tmp_str = defaultval.str;
-    rc = MPL_env2str("MV2_ALLTOALL_TUNING", &tmp_str);
-    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_ALLTOALL_TUNING);}
-    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MV2_ALLTOALL_TUNING");
-    rc = MPL_env2str("UCR_ALLTOALL_TUNING", &tmp_str);
-    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_ALLTOALL_TUNING);}
-    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","UCR_ALLTOALL_TUNING");
-    rc = MPL_env2str("MVP_ALLTOALL_TUNING", &tmp_str);
-    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_ALLTOALL_TUNING);}
-    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MVP_ALLTOALL_TUNING");
-    if (tmp_str != NULL) {
-        MVP_ALLTOALL_TUNING = MPL_strdup(tmp_str);
-        MVP_assert(MVP_ALLTOALL_TUNING);
-        if (MVP_ALLTOALL_TUNING == NULL) {
-            MPIR_CHKMEM_SETERR(mpi_errno, strlen(tmp_str), "dup of string for MVP_ALLTOALL_TUNING");
-            goto fn_fail;
-        }
-    }
-    else {
-        MVP_ALLTOALL_TUNING = NULL;
-    }
-
-    defaultval.str = (const char *) NULL;
-    MPIR_T_CVAR_REGISTER_STATIC(
-        MPI_CHAR,
-        MVP_INTRA_SCATTER_TUNING, /* name */
-        &MVP_INTRA_SCATTER_TUNING, /* address */
-        MVP_MAX_STRLEN, /* count */
-        MPI_T_VERBOSITY_USER_BASIC,
-        MPI_T_SCOPE_ALL_EQ,
-        defaultval,
-        "COLLECTIVE", /* category */
-        "TODO-DESC");
-    tmp_str = defaultval.str;
-    rc = MPL_env2str("MV2_INTRA_SCATTER_TUNING", &tmp_str);
-    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_INTRA_SCATTER_TUNING);}
-    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MV2_INTRA_SCATTER_TUNING");
-    rc = MPL_env2str("UCR_INTRA_SCATTER_TUNING", &tmp_str);
-    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_INTRA_SCATTER_TUNING);}
-    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","UCR_INTRA_SCATTER_TUNING");
-    rc = MPL_env2str("MVP_INTRA_SCATTER_TUNING", &tmp_str);
-    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_INTRA_SCATTER_TUNING);}
-    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MVP_INTRA_SCATTER_TUNING");
-    if (tmp_str != NULL) {
-        MVP_INTRA_SCATTER_TUNING = MPL_strdup(tmp_str);
-        MVP_assert(MVP_INTRA_SCATTER_TUNING);
-        if (MVP_INTRA_SCATTER_TUNING == NULL) {
-            MPIR_CHKMEM_SETERR(mpi_errno, strlen(tmp_str), "dup of string for MVP_INTRA_SCATTER_TUNING");
-            goto fn_fail;
-        }
-    }
-    else {
-        MVP_INTRA_SCATTER_TUNING = NULL;
-    }
-
-    defaultval.str = (const char *) NULL;
-    MPIR_T_CVAR_REGISTER_STATIC(
-        MPI_CHAR,
-        MVP_INTER_SCATTER_TUNING, /* name */
-        &MVP_INTER_SCATTER_TUNING, /* address */
-        MVP_MAX_STRLEN, /* count */
-        MPI_T_VERBOSITY_USER_BASIC,
-        MPI_T_SCOPE_ALL_EQ,
-        defaultval,
-        "COLLECTIVE", /* category */
-        "TODO-DESC");
-    tmp_str = defaultval.str;
-    rc = MPL_env2str("MV2_INTER_SCATTER_TUNING", &tmp_str);
-    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_INTER_SCATTER_TUNING);}
-    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MV2_INTER_SCATTER_TUNING");
-    rc = MPL_env2str("UCR_INTER_SCATTER_TUNING", &tmp_str);
-    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_INTER_SCATTER_TUNING);}
-    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","UCR_INTER_SCATTER_TUNING");
-    rc = MPL_env2str("MVP_INTER_SCATTER_TUNING", &tmp_str);
-    if (1 == rc) {MVP_CVAR_SET_USER_SET_FLAG(MVP_INTER_SCATTER_TUNING);}
-    MPIR_ERR_CHKANDJUMP1((-1 == rc),mpi_errno,MPI_ERR_OTHER,"**envvarparse","**envvarparse %s","MVP_INTER_SCATTER_TUNING");
-    if (tmp_str != NULL) {
-        MVP_INTER_SCATTER_TUNING = MPL_strdup(tmp_str);
-        MVP_assert(MVP_INTER_SCATTER_TUNING);
-        if (MVP_INTER_SCATTER_TUNING == NULL) {
-            MPIR_CHKMEM_SETERR(mpi_errno, strlen(tmp_str), "dup of string for MVP_INTER_SCATTER_TUNING");
-            goto fn_fail;
-        }
-    }
-    else {
-        MVP_INTER_SCATTER_TUNING = NULL;
     }
 
     defaultval.str = (const char *) NULL;
@@ -12427,15 +12549,6 @@ int MPIR_T_MVP_cvar_finalize(void)
 
     MPL_free((char *)MVP_INTER_IGATHER_TUNING);
     MVP_INTER_IGATHER_TUNING = NULL;
-
-    MPL_free((char *)MVP_ALLTOALL_TUNING);
-    MVP_ALLTOALL_TUNING = NULL;
-
-    MPL_free((char *)MVP_INTRA_SCATTER_TUNING);
-    MVP_INTRA_SCATTER_TUNING = NULL;
-
-    MPL_free((char *)MVP_INTER_SCATTER_TUNING);
-    MVP_INTER_SCATTER_TUNING = NULL;
 
     MPL_free((char *)MVP_INTRA_ISCATTER_TUNING);
     MVP_INTRA_ISCATTER_TUNING = NULL;

@@ -207,6 +207,18 @@ cvars:
         UNSET       - Default to internal algorithm selection.
         P2P         - Intra-node p2p reduce as the first reduce in allreduce.
         SHMEM       - Intra-node shm reduce as the first reduce in allreduce.
+        P2P_RD      - This algorithm uses a peer-to-peer recursive doubling
+                    approach to perform the allreduce operation among nodes.
+                    The process starts with each node sending its data to its
+                    "peer" node, which then combines the data and sends it to
+                    its peer, and so on until all nodes have received the
+                    combined data.
+        P2P_RSA     - This algorithm uses a peer-to-peer recursive scatter and
+                    allgather approach to perform the allreduce operation among
+                    nodes. The process starts with each node recursively
+                    splitting its data into smaller subsets and sending them to
+                    its peers, and then receiving and combining the subsets
+                    received from peers until all nodes have the combined data.
 
     - name        : MVP_ALLREDUCE_TUNING_IS_TWO_LEVEL
       alias       : MVP_INTER_ALLREDUCE_TUNING_TWO_LEVEL
@@ -802,40 +814,6 @@ int MPIR_Allreduce_new_MVP(const void *sendbuf, void *recvbuf, int count,
         }
     }
 
-#ifdef _ENABLE_CUDA_
-    MPI_Aint extent;
-    MPIR_Datatype_get_extent_macro(datatype, extent);
-    int stride = 0;
-    stride = count * MPL_MAX(extent, true_extent);
-    int recv_mem_type = 0;
-    int send_mem_type = 0;
-    char *recv_host_buf = NULL;
-    char *send_host_buf = NULL;
-    char *temp_recvbuf = recvbuf;
-    const char *temp_sendbuf = sendbuf;
-
-    if (mvp_enable_device) {
-        recv_mem_type = is_device_buffer(recvbuf);
-        if (sendbuf != MPI_IN_PLACE) {
-            send_mem_type = is_device_buffer(sendbuf);
-        }
-    }
-
-    if (mvp_enable_device && send_mem_type) {
-        send_host_buf = (char *)MPL_malloc(stride);
-        MVP_MPID_Memcpy_Device((void *)send_host_buf, (void *)sendbuf, stride,
-                               deviceMemcpyDeviceToHost);
-        sendbuf = send_host_buf;
-    }
-
-    if (mvp_enable_device && recv_mem_type) {
-        recv_host_buf = (char *)MPL_malloc(stride);
-        MVP_MPID_Memcpy_Device((void *)recv_host_buf, (void *)recvbuf, stride,
-                               deviceMemcpyDeviceToHost);
-        recvbuf = recv_host_buf;
-    }
-#endif
-
 #ifdef MPID_HAS_HETERO
     if (comm_ptr->is_hetero) {
         is_homogeneous = 0;
@@ -966,26 +944,6 @@ int MPIR_Allreduce_new_MVP(const void *sendbuf, void *recvbuf, int count,
         }
     }
 
-#ifdef _ENABLE_CUDA_
-    if (mvp_enable_device && recv_mem_type) {
-        recvbuf = temp_recvbuf;
-        MVP_MPID_Memcpy_Device((void *)recvbuf, (void *)recv_host_buf, stride,
-                               deviceMemcpyHostToDevice);
-    }
-    if (mvp_enable_device && recv_mem_type) {
-        if (recv_host_buf) {
-            MPL_free(recv_host_buf);
-            recv_host_buf = NULL;
-        }
-    }
-    if (mvp_enable_device && send_mem_type) {
-        sendbuf = temp_sendbuf;
-        if (send_host_buf) {
-            MPL_free(send_host_buf);
-            send_host_buf = NULL;
-        }
-    }
-#endif
     comm_ptr->dev.ch.intra_node_done = 0;
 
     MPIR_ERR_CHECK(mpi_errno);
@@ -1077,39 +1035,6 @@ int MPIR_Allreduce_index_tuned_intra_MVP(const void *sendbuf, void *recvbuf,
             is_commutative = 1;
         }
     }
-
-#ifdef _ENABLE_CUDA_
-    MPI_Aint extent;
-    MPIR_Datatype_get_extent_macro(datatype, extent);
-    int stride = 0;
-    stride = count * MPL_MAX(extent, true_extent);
-    int recv_mem_type = 0;
-    int send_mem_type = 0;
-    char *recv_host_buf = NULL;
-    char *send_host_buf = NULL;
-    char *temp_recvbuf = recvbuf;
-
-    if (mvp_enable_device) {
-        recv_mem_type = is_device_buffer(recvbuf);
-        if (sendbuf != MPI_IN_PLACE) {
-            send_mem_type = is_device_buffer(sendbuf);
-        }
-    }
-
-    if (mvp_enable_device && send_mem_type) {
-        send_host_buf = (char *)MPL_malloc(stride);
-        MVP_MPID_Memcpy_Device((void *)send_host_buf, (void *)sendbuf, stride,
-                               deviceMemcpyDeviceToHost);
-        sendbuf = send_host_buf;
-    }
-
-    if (mvp_enable_device && recv_mem_type) {
-        recv_host_buf = (char *)MPL_malloc(stride);
-        MVP_MPID_Memcpy_Device((void *)recv_host_buf, (void *)recvbuf, stride,
-                               deviceMemcpyDeviceToHost);
-        recvbuf = recv_host_buf;
-    }
-#endif
 
     if (comm_ptr->dev.ch.shmem_coll_ok == 1 && comm_ptr->dev.ch.is_uniform) {
         shmem_comm = comm_ptr->dev.ch.shmem_comm;
@@ -1375,25 +1300,6 @@ conf_check_end:
         }
     }
 
-#ifdef _ENABLE_CUDA_
-    if (mvp_enable_device && recv_mem_type) {
-        recvbuf = temp_recvbuf;
-        MVP_MPID_Memcpy_Device((void *)recvbuf, (void *)recv_host_buf, stride,
-                               deviceMemcpyHostToDevice);
-    }
-    if (mvp_enable_device && recv_mem_type) {
-        if (recv_host_buf) {
-            MPL_free(recv_host_buf);
-            recv_host_buf = NULL;
-        }
-    }
-    if (mvp_enable_device && send_mem_type) {
-        if (send_host_buf) {
-            MPL_free(send_host_buf);
-            send_host_buf = NULL;
-        }
-    }
-#endif
     comm_ptr->dev.ch.intra_node_done = 0;
 
     MPIR_ERR_CHECK(mpi_errno);
@@ -1434,36 +1340,6 @@ int MPIR_Allreduce_old_MVP(const void *sendbuf, void *recvbuf, int count,
         }
     }
 
-#ifdef _ENABLE_CUDA_
-    int recv_mem_type = 0;
-    int send_mem_type = 0;
-    char *recv_host_buf = NULL;
-    char *send_host_buf = NULL;
-    char *temp_recvbuf = recvbuf;
-    const char *temp_sendbuf = sendbuf;
-
-    if (mvp_enable_device) {
-        recv_mem_type = is_device_buffer(recvbuf);
-        if (sendbuf != MPI_IN_PLACE) {
-            send_mem_type = is_device_buffer(sendbuf);
-        }
-    }
-
-    if (mvp_enable_device && send_mem_type) {
-        send_host_buf = (char *)MPL_malloc(stride);
-        MVP_MPID_Memcpy_Device((void *)send_host_buf, (void *)sendbuf, stride,
-                               deviceMemcpyDeviceToHost);
-        sendbuf = send_host_buf;
-    }
-
-    if (mvp_enable_device && recv_mem_type) {
-        recv_host_buf = (char *)MPL_malloc(stride);
-        MVP_MPID_Memcpy_Device((void *)recv_host_buf, (void *)recvbuf, stride,
-                               deviceMemcpyDeviceToHost);
-        recvbuf = recv_host_buf;
-    }
-#endif
-
 #if defined(_MCST_SUPPORT_)
     if (comm_ptr->dev.ch.is_mcast_ok == 1 &&
         comm_ptr->dev.ch.shmem_coll_ok == 1 && MVP_USE_MCAST_ALLREDUCE &&
@@ -1486,26 +1362,6 @@ int MPIR_Allreduce_old_MVP(const void *sendbuf, void *recvbuf, int count,
         }
     }
 
-#ifdef _ENABLE_CUDA_
-    if (mvp_enable_device && recv_mem_type) {
-        recvbuf = temp_recvbuf;
-        MVP_MPID_Memcpy_Device((void *)recvbuf, (void *)recv_host_buf, stride,
-                               deviceMemcpyHostToDevice);
-    }
-    if (mvp_enable_device && recv_mem_type) {
-        if (recv_host_buf) {
-            MPL_free(recv_host_buf);
-            recv_host_buf = NULL;
-        }
-    }
-    if (mvp_enable_device && send_mem_type) {
-        sendbuf = temp_sendbuf;
-        if (send_host_buf) {
-            MPL_free(send_host_buf);
-            send_host_buf = NULL;
-        }
-    }
-#endif
     comm_ptr->dev.ch.intra_node_done = 0;
 
     MPIR_ERR_CHECK(mpi_errno);

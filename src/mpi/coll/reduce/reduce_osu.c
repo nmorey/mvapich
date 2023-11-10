@@ -276,41 +276,6 @@ int MPIR_Reduce_index_tuned_intra_MVP(const void *sendbuf, void *recvbuf,
     /* find nearest power-of-two less than or equal to comm_size */
     pof2 = comm_ptr->dev.ch.gpof2;
 
-#ifdef _ENABLE_CUDA_
-    int rank = 0, stride = 0;
-    MPI_Aint true_lb, true_extent, extent;
-    MPIR_Type_get_true_extent_impl(datatype, &true_lb, &true_extent);
-    MPIR_Datatype_get_extent_macro(datatype, extent);
-    stride = count * MPL_MAX(extent, true_extent);
-    int recv_mem_type = 0;
-    int send_mem_type = 0;
-    char *recv_host_buf = NULL;
-    char *send_host_buf = NULL;
-    char *temp_recvbuf = recvbuf;
-
-    rank = comm_ptr->rank;
-
-    if (mvp_enable_device) {
-        recv_mem_type = is_device_buffer(recvbuf);
-        if (sendbuf != MPI_IN_PLACE) {
-            send_mem_type = is_device_buffer(sendbuf);
-        }
-    }
-    if (mvp_enable_device && send_mem_type) {
-        send_host_buf = (char *)MPL_malloc(stride, MPL_MEM_COLL);
-        MVP_MPID_Memcpy_Device((void *)send_host_buf, (void *)sendbuf, stride,
-                               deviceMemcpyDeviceToHost);
-        sendbuf = send_host_buf;
-    }
-
-    if (mvp_enable_device && recv_mem_type) {
-        recv_host_buf = (char *)MPL_malloc(stride, MPL_MEM_COLL);
-        MVP_MPID_Memcpy_Device((void *)recv_host_buf, (void *)recvbuf, stride,
-                               deviceMemcpyDeviceToHost);
-        recvbuf = recv_host_buf;
-    }
-#endif
-
     /* check if safe to use partial subscription mode */
     if (comm_ptr->dev.ch.shmem_coll_ok == 1 && comm_ptr->dev.ch.is_uniform) {
         shmem_comm = comm_ptr->dev.ch.shmem_comm;
@@ -531,25 +496,7 @@ skip_tuning_tables:
         MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
     }
     MPIR_ERR_CHECK(mpi_errno);
-#ifdef _ENABLE_CUDA_
-    if (mvp_enable_device && recv_mem_type && (rank == root)) {
-        recvbuf = temp_recvbuf;
-        MVP_MPID_Memcpy_Device((void *)recvbuf, (void *)recv_host_buf, stride,
-                               deviceMemcpyHostToDevice);
-    }
-    if (mvp_enable_device && recv_mem_type) {
-        if (recv_host_buf) {
-            MPL_free(recv_host_buf);
-            recv_host_buf = NULL;
-        }
-    }
-    if (mvp_enable_device && send_mem_type) {
-        if (send_host_buf) {
-            MPL_free(send_host_buf);
-            send_host_buf = NULL;
-        }
-    }
-#endif
+
     if (mpi_errno_ret) {
         mpi_errno = mpi_errno_ret;
     } else if (*errflag) {
@@ -568,8 +515,15 @@ int MPIR_Reduce_MVP(const void *sendbuf, void *recvbuf, int count,
                     MPI_Datatype datatype, MPI_Op op, int root,
                     MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag)
 {
+    int mpi_errno = MPI_SUCCESS;
+
     MPIR_T_PVAR_COMM_COUNTER_INC(MVP, mvp_coll_reduce_subcomm, 1, comm_ptr);
 
-    return MPIR_Reduce_index_tuned_intra_MVP(sendbuf, recvbuf, count, datatype,
-                                             op, root, comm_ptr, errflag);
+    mpi_errno = MPIR_Reduce_index_tuned_intra_MVP(
+        sendbuf, recvbuf, count, datatype, op, root, comm_ptr, errflag);
+
+fn_exit:
+    return mpi_errno;
+fn_fail:
+    goto fn_exit;
 }

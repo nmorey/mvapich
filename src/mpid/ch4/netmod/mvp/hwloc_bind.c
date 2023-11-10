@@ -3515,7 +3515,7 @@ int MPIDI_MVP_CH4_set_affinity(int rank, int size)
     int my_local_id;
     int num_local_procs;
     long N_CPUs_online;
-    mvp_arch_type arch_type;
+    mvp_arch_t arch_type;
 
     MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPIDI_MVP_CH4_set_affinity);
     MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPIDI_MVP_CH4_set_affinity);
@@ -3692,8 +3692,9 @@ int MPIDI_MVP_CH4_set_affinity(int rank, int size)
     }
 
     /* generate implicit mapping string based on hybrid binding policy */
-    if (MVP_ENABLE_AFFINITY && 
-        MVP_CPU_BINDING_POLICY_HYBRID == MVP_CPU_BINDING_POLICY) {
+    if (MVP_ENABLE_AFFINITY &&
+        MVP_CPU_BINDING_POLICY_HYBRID == MVP_CPU_BINDING_POLICY &&
+        !MVP_CPU_MAPPING) {
         mpi_errno = mvp_generate_implicit_cpu_mapping(num_local_procs,
                                                       MVP_THREADS_PER_PROCESS);
         if (mpi_errno != MPI_SUCCESS) {

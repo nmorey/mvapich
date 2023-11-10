@@ -121,4 +121,12 @@ int MPIR_Reduce_Zcpy_MVP(const void *sendbuf, void *recvbuf, int count,
     MPIR_TIMER_END(coll, reduce, zcpy);
     return mpi_errno;
 }
+#else
+int MPIR_Reduce_Zcpy_MVP(const void *sendbuf, void *recvbuf, int count,
+                         MPI_Datatype datatype, MPI_Op op, int root,
+                         MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag)
+{
+    return MPIR_Reduce_inter_knomial_wrapper_MVP(
+        sendbuf, recvbuf, count, datatype, op, root, comm_ptr, errflag);
+}
 #endif /* CHANNEL_MRAIL_GEN2 */

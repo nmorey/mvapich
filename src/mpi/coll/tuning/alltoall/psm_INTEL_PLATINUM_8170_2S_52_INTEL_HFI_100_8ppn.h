@@ -1,4 +1,4 @@
-#define PSM__INTEL_PLATINUM_8170_2S_52_INTEL_HFI_100__8PPN                     \
+#define PSM__INTEL_PLATINUM_8170_2S_52__INTEL_HFI_100__8PPN                    \
     {                                                                          \
         {8,                                                                    \
          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1},                     \
@@ -99,3 +99,4 @@
             }                                                                  \
         }                                                                      \
     }
+#define PSM__INTEL_PLATINUM_8170_2S_52__INTEL_HFI_100__8PPN_CNT 5

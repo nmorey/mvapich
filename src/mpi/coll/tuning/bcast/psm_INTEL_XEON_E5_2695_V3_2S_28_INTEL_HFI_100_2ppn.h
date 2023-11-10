@@ -1,16 +1,4 @@
-/*
- * Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- */
-
-#define PSM__INTEL_XEON_E5_2695_V3_2S_28_INTEL_HFI_100__2PPN                   \
+#define PSM__INTEL_XEON_E5_2695_V3_2S_28__INTEL_HFI_100__2PPN                  \
     {                                                                          \
         {2,                                                                    \
          8192,                                                                 \
@@ -22,7 +10,7 @@
           {2, &MPIR_Bcast_scatter_ring_allgather_MVP, -1},                     \
           {4, &MPIR_Bcast_binomial_MVP, -1},                                   \
           {8, &MPIR_Bcast_scatter_ring_allgather_MVP, -1},                     \
-          {16, &MPIR_Bcast_scatter_doubling_allgather_MVP, -1},                \
+          {16, &MPIR_Knomial_Bcast_inter_node_wrapper_MVP, -1},                \
           {32, &MPIR_Bcast_binomial_MVP, -1},                                  \
           {64, &MPIR_Bcast_binomial_MVP, -1},                                  \
           {128, &MPIR_Bcast_binomial_MVP, -1},                                 \
@@ -31,7 +19,7 @@
           {1024, &MPIR_Bcast_binomial_MVP, -1},                                \
           {2048, &MPIR_Bcast_scatter_ring_allgather_MVP, -1},                  \
           {4096, &MPIR_Bcast_scatter_ring_allgather_MVP, -1},                  \
-          {8192, &MPIR_Bcast_scatter_doubling_allgather_MVP, -1},              \
+          {8192, &MPIR_Knomial_Bcast_inter_node_wrapper_MVP, -1},              \
           {16384, &MPIR_Bcast_binomial_MVP, -1},                               \
           {32768, &MPIR_Bcast_binomial_MVP, -1},                               \
           {65536, &MPIR_Knomial_Bcast_inter_node_wrapper_MVP, -1},             \
@@ -261,3 +249,4 @@
             }                                                                  \
         }                                                                      \
     }
+#define PSM__INTEL_XEON_E5_2695_V3_2S_28__INTEL_HFI_100__2PPN_CNT 5

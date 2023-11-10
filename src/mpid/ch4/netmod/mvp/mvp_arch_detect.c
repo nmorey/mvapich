@@ -56,10 +56,10 @@ static int numcores_persocket[SOCKETS] = {0};
 
 int g_mvp_num_cpus = -1;
 static int g_mvp_cpu_model = -1;
-static mvp_cpu_family_type g_mvp_cpu_family_type = MVP_CPU_FAMILY_NONE;
+static int mvp_cpu_arch_make = MVP_CPU_ARCH_MAKE__NONE;
 
-mvp_arch_type table_arch_tmp;
-mvp_hca_type table_hca_tmp;
+mvp_arch_t table_arch_tmp;
+mvp_hca_t table_hca_tmp;
 
 /* global rdma structure for the local process */
 mvp_arch_hca_info_t my_arch_info;
@@ -152,13 +152,16 @@ mvp_arch_hca_info_t my_arch_info;
 
 #define AMD_EPYC_GENERAL_MODEL_NAME "AMD EPYC"
 #define AMD_EPYC_7601_MODEL_NAME    "AMD EPYC 7601 32-Core Processor"
+#define AMD_EPYC_7643_MODEL_NAME    "AMD EPYC 7643 48-Core Processor"
 #define AMD_EPYC_7401_MODEL_NAME    "AMD EPYC 7401 24-Core Processor"
 #define AMD_EPYC_7V12_MODEL_NAME    "AMD EPYC 7V12 64-Core Processor"
+#define AMD_EPYC_7A53_MODEL_NAME    "AMD EPYC 7A53 64-Core Processor"
 #define AMD_EPYC_7763_MODEL_NAME                                               \
     "AMD EPYC 7763 64-Core Processor" /* Lonestar-6 */
 #define AMD_EPYC_7713_MODEL_NAME                                               \
     "AMD EPYC 7713 64-Core Processor" /* Lonestar-6 */
 #define AMD_EPYC_7662_MODEL_NAME "AMD EPYC 7662 64-Core Processor" /* Spock */
+#define AMD_EPYC_9124_MODEL_NAME "AMD EPYC 9124 16-Core Processor" /* Genoa */
 
 typedef struct _mvp_arch_types_log_t {
     uint64_t arch_type;
@@ -242,8 +245,12 @@ static mvp_arch_types_log_t mvp_arch_types_log[] = {
     {MVP_ARCH_AMD_EPYC_7763_64, "MVP_ARCH_AMD_EPYC_7763_64"},
     {MVP_ARCH_AMD_EPYC_7763_128, "MVP_ARCH_AMD_EPYC_7763_128"},
     {MVP_ARCH_AMD_EPYC_7601_64, "MVP_ARCH_AMD_EPYC_7601_64"},
+    {MVP_ARCH_AMD_EPYC_7643_96, "MVP_ARCH_AMD_EPYC_7643_96"},
     {MVP_ARCH_AMD_EPYC_7742_128, "MVP_ARCH_AMD_EPYC_7742_128"},
     {MVP_ARCH_AMD_EPYC_7662_64, "MVP_ARCH_AMD_EPYC_7662_64"},
+    {MVP_ARCH_AMD_EPYC_7A53_64, "MVP_ARCH_AMD_EPYC_7A53_64"},
+    {MVP_ARCH_AMD_EPYC_9124_16, "MVP_ARCH_AMD_EPYC_9124_16"},
+    {MVP_ARCH_AMD_EPYC_7A53_56, "MVP_ARCH_AMD_EPYC_7A53_56"},
 
     /* IBM Architectures */
     {MVP_ARCH_IBM_PPC, "MVP_ARCH_IBM_PPC"},
@@ -261,24 +268,24 @@ static mvp_arch_types_log_t mvp_arch_types_log[] = {
 };
 
 typedef struct _mvp_cpu_family_types_log_t {
-    mvp_cpu_family_type family_type;
+    int family_type;
     char *cpu_family_name;
 } mvp_cpu_family_types_log_t;
 
 static mvp_cpu_family_types_log_t mvp_cpu_family_types_log[] = {
-    {MVP_CPU_FAMILY_NONE, "MVP_CPU_FAMILY_NONE"},
-    {MVP_CPU_FAMILY_INTEL, "MVP_CPU_FAMILY_INTEL"},
-    {MVP_CPU_FAMILY_AMD, "MVP_CPU_FAMILY_AMD"},
-    {MVP_CPU_FAMILY_POWER, "MVP_CPU_FAMILY_POWER"},
-    {MVP_CPU_FAMILY_ARM, "MVP_CPU_FAMILY_ARM"},
+    {MVP_CPU_ARCH_MAKE__NONE, "MVP_CPU_ARCH_MAKE__NONE"},
+    {MVP_CPU_ARCH_MAKE__INTEL, "MVP_CPU_ARCH_MAKE__INTEL"},
+    {MVP_CPU_ARCH_MAKE__AMD, "MVP_CPU_ARCH_MAKE__AMD"},
+    {MVP_CPU_ARCH_MAKE__IBM, "MVP_CPU_ARCH_MAKE__IBM"},
+    {MVP_CPU_ARCH_MAKE__ARM, "MVP_CPU_ARCH_MAKE__ARM"},
 };
 
-char *mvp_get_cpu_family_name(mvp_cpu_family_type cpu_family_type)
+char *mvp_get_cpu_family_name(int cpu_family_type)
 {
     return mvp_cpu_family_types_log[cpu_family_type].cpu_family_name;
 }
 
-char *mvp_get_arch_name(mvp_arch_type arch_type)
+char *mvp_get_arch_name(mvp_arch_t arch_type)
 {
     int i = 0;
     while (mvp_arch_types_log[i].arch_type != MVP_ARCH_LAST_ENTRY) {
@@ -290,13 +297,13 @@ char *mvp_get_arch_name(mvp_arch_type arch_type)
     return ("MVP_ARCH_UNKWN");
 }
 
-int mvp_check_proc_arch(mvp_arch_type type, int rank)
+int mvp_check_proc_arch(mvp_arch_t type, int rank)
 {
-    if (type <= MVP_ARCH_LIST_START || type >= MVP_ARCH_LIST_END ||
-        type == MVP_ARCH_INTEL_START || type == MVP_ARCH_INTEL_END ||
-        type == MVP_ARCH_AMD_START || type == MVP_ARCH_AMD_END ||
-        type == MVP_ARCH_IBM_START || type == MVP_ARCH_IBM_END ||
-        type == MVP_ARCH_ARM_START || type == MVP_ARCH_ARM_END) {
+    if (type < 0 || type >= MVP_ARCH_LIST_END || type == MVP_ARCH_INTEL_START ||
+        type == MVP_ARCH_INTEL_END || type == MVP_ARCH_AMD_START ||
+        type == MVP_ARCH_AMD_END || type == MVP_ARCH_IBM_START ||
+        type == MVP_ARCH_IBM_END || type == MVP_ARCH_ARM_START ||
+        type == MVP_ARCH_ARM_END) {
         PRINT_INFO((rank == 0),
                    "Wrong value specified for MVP_FORCE_ARCH_TYPE\n");
         PRINT_INFO((rank == 0),
@@ -323,10 +330,10 @@ int mvp_check_proc_arch(mvp_arch_type type, int rank)
     return 0;
 }
 
-mvp_arch_type mvp_get_intel_arch_type(char *model_name, int num_sockets,
-                                      int num_cpus)
+mvp_arch_t mvp_get_intel_arch_type(char *model_name, int num_sockets,
+                                   int num_cpus)
 {
-    mvp_arch_type arch_type = MVP_ARCH_UNKWN;
+    mvp_arch_t arch_type = MVP_ARCH_UNKWN;
     arch_type = MVP_ARCH_INTEL_GENERIC;
 
     if (1 == num_sockets) {
@@ -464,6 +471,10 @@ mvp_arch_type mvp_get_intel_arch_type(char *model_name, int num_sockets,
             if (NULL != strstr(model_name, INTEL_PLATINUM_8280_MODEL_NAME)) {
                 arch_type = MVP_ARCH_INTEL_PLATINUM_8280_2S_56;
             }
+            /* Stampede2 */
+            if (NULL != strstr(model_name, INTEL_PLATINUM_8160_MODEL_NAME)) {
+                arch_type = MVP_ARCH_INTEL_PLATINUM_8160_2S_48;
+            }
             /* Pitzer */
             if (NULL != strstr(model_name, INTEL_PLATINUM_8268_MODEL_NAME)) {
                 arch_type = MVP_ARCH_INTEL_PLATINUM_8268_2S_48;
@@ -491,12 +502,12 @@ mvp_arch_type mvp_get_intel_arch_type(char *model_name, int num_sockets,
 }
 
 /* Identify architecture type */
-mvp_arch_type mvp_get_arch_type()
+mvp_arch_t mvp_get_arch_type()
 {
     int my_rank = -1;
     char *value = NULL;
 
-    UPMI_GET_RANK(&my_rank);
+    my_rank = MPIR_Process.rank;
 
     if (MVP_ARCH_UNKWN != MVP_FORCE_ARCH_TYPE) {
         PRINT_DEBUG(DEBUG_INIT_verbose, "Attempting to force ARCH %s\n",
@@ -511,21 +522,21 @@ mvp_arch_type mvp_get_arch_type()
              * computation is not affected. Since th value of g_mvp_num_cpus is
              * not used anywhere, it should be fine. */
             g_mvp_num_cpus = MVP_STUB_NUM_CPUS;
-            /* Set g_mvp_cpu_family_type appropriately when forcing arch */
+            /* Set mvp_cpu_arch_make appropriately when forcing arch */
             if (MVP_FORCE_ARCH_TYPE >= MVP_ARCH_INTEL_START &&
                 MVP_FORCE_ARCH_TYPE <= MVP_ARCH_INTEL_END) {
-                g_mvp_cpu_family_type = MVP_CPU_FAMILY_INTEL;
+                mvp_cpu_arch_make = MVP_CPU_ARCH_MAKE__INTEL;
             } else if (MVP_FORCE_ARCH_TYPE >= MVP_ARCH_AMD_START &&
                        MVP_FORCE_ARCH_TYPE <= MVP_ARCH_AMD_END) {
-                g_mvp_cpu_family_type = MVP_CPU_FAMILY_AMD;
+                mvp_cpu_arch_make = MVP_CPU_ARCH_MAKE__AMD;
             } else if (MVP_FORCE_ARCH_TYPE >= MVP_ARCH_IBM_START &&
                        MVP_FORCE_ARCH_TYPE <= MVP_ARCH_IBM_END) {
-                g_mvp_cpu_family_type = MVP_CPU_FAMILY_POWER;
+                mvp_cpu_arch_make = MVP_CPU_ARCH_MAKE__IBM;
             } else if (MVP_FORCE_ARCH_TYPE >= MVP_ARCH_ARM_START &&
                        MVP_FORCE_ARCH_TYPE <= MVP_ARCH_ARM_END) {
-                g_mvp_cpu_family_type = MVP_CPU_FAMILY_ARM;
+                mvp_cpu_arch_make = MVP_CPU_ARCH_MAKE__ARM;
             } else {
-                g_mvp_cpu_family_type = MVP_CPU_FAMILY_NONE;
+                mvp_cpu_arch_make = MVP_CPU_ARCH_MAKE__NONE;
             }
         }
     }
@@ -538,8 +549,11 @@ mvp_arch_type mvp_get_arch_type()
         char line[MAX_LINE_LENGTH], *tmp, *key;
         char model_name[MAX_NAME_LENGTH] = {0};
 
-        mvp_arch_type arch_type = MVP_ARCH_UNKWN;
+        mvp_arch_t arch_type = MVP_ARCH_UNKWN;
         if (smpi_load_hwloc_topology()) {
+            return MPI_ERR_INTERN;
+        }
+        if (smpi_load_hwloc_topology_whole()) {
             return MPI_ERR_INTERN;
         }
 
@@ -561,7 +575,8 @@ mvp_arch_type mvp_get_arch_type()
                     __func__);
             return arch_type;
         }
-        if (!(num_cpus = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_CORE))) {
+        if (!(num_cpus =
+                  hwloc_get_nbobjs_by_type(topology_whole, HWLOC_OBJ_CORE))) {
             fprintf(stderr,
                     "Warning: %s: Failed to determine number of processors.\n",
                     __func__);
@@ -597,10 +612,10 @@ mvp_arch_type mvp_get_arch_type()
 
                     if (!strncmp(tmp, MVP_STR_AUTH_AMD,
                                  strlen(MVP_STR_AUTH_AMD))) {
-                        g_mvp_cpu_family_type = MVP_CPU_FAMILY_AMD;
+                        mvp_cpu_arch_make = MVP_CPU_ARCH_MAKE__AMD;
 
                     } else {
-                        g_mvp_cpu_family_type = MVP_CPU_FAMILY_INTEL;
+                        mvp_cpu_arch_make = MVP_CPU_ARCH_MAKE__INTEL;
                     }
                     continue;
                 }
@@ -611,12 +626,12 @@ mvp_arch_type mvp_get_arch_type()
                     tmp = strtok(NULL, MVP_STR_WS);
                     if (!strncmp(tmp, MVP_STR_POWER8_ID,
                                  strlen(MVP_STR_POWER8_ID))) {
-                        g_mvp_cpu_family_type = MVP_CPU_FAMILY_POWER;
+                        mvp_cpu_arch_make = MVP_CPU_ARCH_MAKE__IBM;
                         arch_type = MVP_ARCH_IBM_POWER8;
                         continue;
                     } else if (!strncmp(tmp, MVP_STR_POWER9_ID,
                                         strlen(MVP_STR_POWER9_ID))) {
-                        g_mvp_cpu_family_type = MVP_CPU_FAMILY_POWER;
+                        mvp_cpu_arch_make = MVP_CPU_ARCH_MAKE__IBM;
                         arch_type = MVP_ARCH_IBM_POWER9;
                         continue;
                     }
@@ -631,7 +646,7 @@ mvp_arch_type mvp_get_arch_type()
                                   strlen(MVP_STR_CAVIUM_ID))) ||
                         (!strncmp(tmp, MVP_STR_FUJITSU_ID,
                                   strlen(MVP_STR_FUJITSU_ID)))) {
-                        g_mvp_cpu_family_type = MVP_CPU_FAMILY_ARM;
+                        mvp_cpu_arch_make = MVP_CPU_ARCH_MAKE__ARM;
                         if (num_cpus == 48) {
                             arch_type = MVP_ARCH_ARM_FUJITSU_V0_4S_48;
                             g_mvp_cpu_model = MVP_ARM_FUJITSU_V0_MODEL;
@@ -667,20 +682,33 @@ mvp_arch_type mvp_get_arch_type()
             }
             fclose(fp);
 
-            if (MVP_CPU_FAMILY_INTEL == g_mvp_cpu_family_type) {
+            if (MVP_CPU_ARCH_MAKE__INTEL == mvp_cpu_arch_make) {
                 arch_type =
                     mvp_get_intel_arch_type(model_name, num_sockets, num_cpus);
-            } else if (MVP_CPU_FAMILY_AMD == g_mvp_cpu_family_type) {
+            } else if (MVP_CPU_ARCH_MAKE__AMD == mvp_cpu_arch_make) {
                 if (NULL != strstr(model_name, AMD_EPYC_GENERAL_MODEL_NAME)) {
                     arch_type = MVP_ARCH_AMD_EPYC_GENERIC;
                 } else {
                     arch_type = MVP_ARCH_AMD_GENERIC;
                 }
                 if (1 == num_sockets) {
-                    if (64 == num_cpus) { /* Spock */
+                    if (16 == num_cpus) {
+                        if (NULL !=
+                            strstr(model_name, AMD_EPYC_9124_MODEL_NAME)) {
+                            arch_type = MVP_ARCH_AMD_EPYC_9124_16;
+                        }
+                    } else if (56 == num_cpus) { /* Frontier */
+                        if (NULL !=
+                            strstr(model_name, AMD_EPYC_7A53_MODEL_NAME)) {
+                            arch_type = MVP_ARCH_AMD_EPYC_7A53_56;
+                        }
+                    } else if (64 == num_cpus) { /* Spock */
                         if (NULL !=
                             strstr(model_name, AMD_EPYC_7662_MODEL_NAME)) {
                             arch_type = MVP_ARCH_AMD_EPYC_7662_64;
+                        } else if (NULL != strstr(model_name,
+                                                  AMD_EPYC_7A53_MODEL_NAME)) {
+                            arch_type = MVP_ARCH_AMD_EPYC_7A53_64;
                         }
                     }
                 }
@@ -703,6 +731,11 @@ mvp_arch_type mvp_get_arch_type()
                             arch_type = MVP_ARCH_AMD_EPYC_7V12_64;
                         } else {
                             arch_type = MVP_ARCH_AMD_EPYC_7551_64;
+                        }
+                    } else if (96 == num_cpus) {
+                        if (NULL !=
+                            strstr(model_name, AMD_EPYC_7643_MODEL_NAME)) {
+                            arch_type = MVP_ARCH_AMD_EPYC_7643_96;
                         }
                     } else if (128 == num_cpus) { /* expanse and ls6 */
                         if (NULL !=
@@ -776,22 +809,23 @@ int mvp_get_cpu_model()
 }
 
 /* Get CPU family */
-mvp_cpu_family_type mvp_get_cpu_family()
+int mvp_get_cpu_family()
 {
     /* Check if cpu family is already identified */
-    if (MVP_CPU_FAMILY_NONE == g_mvp_cpu_family_type) {
+    if (MVP_CPU_ARCH_MAKE__NONE == mvp_cpu_arch_make) {
         MVP_FORCE_ARCH_TYPE = mvp_get_arch_type();
     }
-    return g_mvp_cpu_family_type;
+    return mvp_cpu_arch_make;
 }
 
 /* Check arch-hca type */
-int mvp_is_arch_hca_type(mvp_arch_hca_type arch_hca_type,
-                         mvp_arch_type arch_type, mvp_hca_type hca_type)
+int mvp_is_arch_hca_type(mvp_arch_hca_info_t arch_hca_info,
+                         mvp_arch_t arch_type, mvp_hca_t hca_type)
 {
     int ret;
     uint16_t my_arch_type, my_hca_type;
     uint64_t mask = UINT16_MAX;
+    uint32_t arch_hca_type = arch_hca_info.parts.arch_hca_id.full;
     arch_hca_type >>= 16;
     my_hca_type = arch_hca_type & mask;
     arch_hca_type >>= 16;
@@ -1158,17 +1192,15 @@ int get_numa_bound_info(int *numa_bound, int *num_numas, int *num_cores_numa,
     return err;
 }
 
-mvp_arch_hca_type MVP_get_arch_hca_type()
+mvp_arch_hca_info_t MVP_get_arch_hca_type()
 {
     mvp_arch_hca_info_t *proc = &my_arch_info;
-    if (!proc->arch_hca_type) {
-        proc->arch_type = mvp_get_arch_type();
-        proc->hca_type = MVP_HCA_ANY;
-        proc->arch_hca_type = proc->arch_type;
-        proc->arch_hca_type <<= 16;
-        proc->arch_hca_type |= proc->hca_type;
-        proc->arch_hca_type <<= 16;
-        proc->arch_hca_type |= g_mvp_num_cpus;
+    if (!proc->arch_hca_info) {
+        proc->parts.arch_hca_id.parts.arch_type = mvp_get_arch_type();
+        proc->parts.arch_hca_id.parts.hca_type = MVP_HCA_ANY;
+        proc->parts.cores = g_mvp_num_cpus;
+        proc->parts.reserved = 0x0;
     }
-    return proc->arch_hca_type;
+
+    return *proc;
 }

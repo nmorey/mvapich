@@ -5,7 +5,7 @@
 
 /* Automatically generated
  *   by:   ./maint/extractmvpcvars
- *   on:   Wed May 10 15:29:59 2023 UTC
+ *   on:   Wed Nov  8 18:45:55 2023 UTC
  *
  * DO NOT EDIT!!!
  */
@@ -20,15 +20,15 @@ int MPIR_T_MVP_cvar_init(void);
 int MPIR_T_MVP_cvar_finalize(void);
 
 /* Extern declarations for each cvar
- * (definitions in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/util/mvp_cvars.c) */
+ * (definitions in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/util/mvp_cvars.c) */
 
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/allgather/allgather_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/allgather/allgather_osu.c */
 extern int MVP_ALLGATHER_BRUCK_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/allgather/allgather_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/allgather/allgather_osu.c */
 extern int MVP_ALLGATHER_RD_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/allgather/allgather_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/allgather/allgather_osu.c */
 extern int MVP_ALLGATHER_REVERSE_RANKING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/allgather/allgather_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/allgather/allgather_osu.c */
 extern int MVP_ALLGATHER_COLLECTIVE_ALGORITHM;
 enum ALLGATHER_COLLECTIVE_ALGORITHM_choice {
     MVP_ALLGATHER_COLLECTIVE_ALGORITHM_UNSET,
@@ -44,30 +44,39 @@ enum ALLGATHER_COLLECTIVE_ALGORITHM_choice {
     MVP_ALLGATHER_COLLECTIVE_ALGORITHM_2LVL_DIRECT,
     MVP_ALLGATHER_COLLECTIVE_ALGORITHM_2LVL_RING
 };
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/allgather/allgather_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/allgather/allgather_osu.c */
 extern int MVP_ALLGATHER_TUNING_IS_TWO_LEVEL;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/allreduce/allreduce_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/allgatherv/allgatherv_osu.c */
+extern int MVP_ALLGATHERV_COLLECTIVE_ALGORITHM;
+enum ALLGATHERV_COLLECTIVE_ALGORITHM_choice {
+    MVP_ALLGATHERV_COLLECTIVE_ALGORITHM_UNSET,
+    MVP_ALLGATHERV_COLLECTIVE_ALGORITHM_RD,
+    MVP_ALLGATHERV_COLLECTIVE_ALGORITHM_BRUCK,
+    MVP_ALLGATHERV_COLLECTIVE_ALGORITHM_RING,
+    MVP_ALLGATHERV_COLLECTIVE_ALGORITHM_RING_CYCLIC
+};
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/allreduce/allreduce_osu.c */
 extern int MVP_ALLREDUCE_2LEVEL_MSG;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/allreduce/allreduce_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/allreduce/allreduce_osu.c */
 extern int MVP_ALLREDUCE_SHORT_MSG;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/allreduce/allreduce_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/allreduce/allreduce_osu.c */
 extern int MVP_SHMEM_ALLREDUCE_MSG;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/allreduce/allreduce_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/allreduce/allreduce_osu.c */
 extern int MVP_USE_SHMEM_ALLREDUCE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/allreduce/allreduce_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/allreduce/allreduce_osu.c */
 extern int MVP_USE_SOCKET_AWARE_ALLREDUCE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/allreduce/allreduce_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/allreduce/allreduce_osu.c */
 extern int MVP_USE_SOCKET_AWARE_SHARP_ALLREDUCE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/allreduce/allreduce_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/allreduce/allreduce_osu.c */
 extern int MVP_SOCKET_AWARE_ALLREDUCE_MAX_MSG;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/allreduce/allreduce_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/allreduce/allreduce_osu.c */
 extern int MVP_SOCKET_AWARE_ALLREDUCE_MIN_MSG;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/allreduce/allreduce_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/allreduce/allreduce_osu.c */
 extern int MVP_ALLREDUCE_COLLECTIVE_ALGORITHM;
 enum ALLREDUCE_COLLECTIVE_ALGORITHM_choice {
     MVP_ALLREDUCE_COLLECTIVE_ALGORITHM_UNSET
 };
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/allreduce/allreduce_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/allreduce/allreduce_osu.c */
 extern int MVP_ALLREDUCE_INTER_NODE_TUNING_ALGO;
 enum ALLREDUCE_INTER_NODE_TUNING_ALGO_choice {
     MVP_ALLREDUCE_INTER_NODE_TUNING_ALGO_UNSET,
@@ -79,59 +88,71 @@ enum ALLREDUCE_INTER_NODE_TUNING_ALGO_choice {
     MVP_ALLREDUCE_INTER_NODE_TUNING_ALGO_RING,
     MVP_ALLREDUCE_INTER_NODE_TUNING_ALGO_SOCK_AWARE
 };
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/allreduce/allreduce_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/allreduce/allreduce_osu.c */
 extern int MVP_ALLREDUCE_INTRA_NODE_TUNING_ALGO;
 enum ALLREDUCE_INTRA_NODE_TUNING_ALGO_choice {
     MVP_ALLREDUCE_INTRA_NODE_TUNING_ALGO_UNSET,
     MVP_ALLREDUCE_INTRA_NODE_TUNING_ALGO_P2P,
-    MVP_ALLREDUCE_INTRA_NODE_TUNING_ALGO_SHMEM
+    MVP_ALLREDUCE_INTRA_NODE_TUNING_ALGO_SHMEM,
+    MVP_ALLREDUCE_INTRA_NODE_TUNING_ALGO_P2P_RD,
+    MVP_ALLREDUCE_INTRA_NODE_TUNING_ALGO_P2P_RSA
 };
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/allreduce/allreduce_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/allreduce/allreduce_osu.c */
 extern int MVP_ALLREDUCE_TUNING_IS_TWO_LEVEL;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/alltoall/alltoall_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/alltoall/alltoall_osu.c */
 extern int MVP_ALLTOALL_MEDIUM_MSG;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/alltoall/alltoall_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/alltoall/alltoall_osu.c */
 extern int MVP_ALLTOALL_SMALL_MSG;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/alltoall/alltoall_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/alltoall/alltoall_osu.c */
 extern int MVP_ALLTOALL_THROTTLE_FACTOR;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/alltoall/alltoall_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/alltoall/alltoall_osu.c */
 extern int MVP_ALLTOALL_INTRA_THROTTLE_FACTOR;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/alltoall/alltoall_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/alltoall/alltoall_osu.c */
 extern int MVP_ALLTOALL_LARGE_MSG_THROTTLE_FACTOR;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/alltoall/alltoall_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/alltoall/alltoall_osu.c */
 extern int MVP_USE_XOR_ALLTOALL;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/alltoallv/alltoallv_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/alltoall/alltoall_osu.c */
+extern int MVP_ALLTOALL_COLLECTIVE_ALGORITHM;
+enum ALLTOALL_COLLECTIVE_ALGORITHM_choice {
+    MVP_ALLTOALL_COLLECTIVE_ALGORITHM_UNSET,
+    MVP_ALLTOALL_COLLECTIVE_ALGORITHM_BRUCK,
+    MVP_ALLTOALL_COLLECTIVE_ALGORITHM_RD,
+    MVP_ALLTOALL_COLLECTIVE_ALGORITHM_SCATTER_DEST,
+    MVP_ALLTOALL_COLLECTIVE_ALGORITHM_PAIRWISE,
+    MVP_ALLTOALL_COLLECTIVE_ALGORITHM_INPLACE
+};
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/alltoallv/alltoallv_osu.c */
 extern int MVP_ALLTOALLV_COLLECTIVE_ALGORITHM;
 enum ALLTOALLV_COLLECTIVE_ALGORITHM_choice {
     MVP_ALLTOALLV_COLLECTIVE_ALGORITHM_UNSET,
     MVP_ALLTOALLV_COLLECTIVE_ALGORITHM_SCATTER,
     MVP_ALLTOALLV_COLLECTIVE_ALGORITHM_INTRA
 };
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/barrier/barrier_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/barrier/barrier_osu.c */
 extern int MVP_USE_SHMEM_BARRIER;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/barrier/barrier_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/barrier/barrier_osu.c */
 extern int MVP_USE_SOCKET_AWARE_BARRIER;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/bcast/bcast_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/bcast/bcast_osu.c */
 extern int MVP_BCAST_TWO_LEVEL_SYSTEM_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/bcast/bcast_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/bcast/bcast_osu.c */
 extern int MVP_KNOMIAL_2LEVEL_BCAST_MESSAGE_SIZE_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/bcast/bcast_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/bcast/bcast_osu.c */
 extern int MVP_KNOMIAL_2LEVEL_BCAST_SYSTEM_SIZE_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/bcast/bcast_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/bcast/bcast_osu.c */
 extern int MVP_BCAST_SHORT_MSG;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/bcast/bcast_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/bcast/bcast_osu.c */
 extern int MVP_USE_KNOMIAL_2LEVEL_BCAST;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/bcast/bcast_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/bcast/bcast_osu.c */
 extern int MVP_USE_KNOMIAL_INTER_LEADER_BCAST;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/bcast/bcast_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/bcast/bcast_osu.c */
 extern int MVP_USE_SHMEM_BCAST;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/bcast/bcast_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/bcast/bcast_osu.c */
 extern int MVP_BCAST_COLLECTIVE_ALGORITHM;
 enum BCAST_COLLECTIVE_ALGORITHM_choice {
     MVP_BCAST_COLLECTIVE_ALGORITHM_UNSET,
     MVP_BCAST_COLLECTIVE_ALGORITHM_KNOMIAL
 };
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/bcast/bcast_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/bcast/bcast_osu.c */
 extern int MVP_BCAST_INTER_NODE_TUNING_ALGO;
 enum BCAST_INTER_NODE_TUNING_ALGO_choice {
     MVP_BCAST_INTER_NODE_TUNING_ALGO_UNSET,
@@ -142,33 +163,33 @@ enum BCAST_INTER_NODE_TUNING_ALGO_choice {
     MVP_BCAST_INTER_NODE_TUNING_ALGO_KNOMIAL,
     MVP_BCAST_INTER_NODE_TUNING_ALGO_PIPELINED
 };
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/bcast/bcast_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/bcast/bcast_osu.c */
 extern int MVP_BCAST_INTRA_NODE_TUNING_ALGO;
 enum BCAST_INTRA_NODE_TUNING_ALGO_choice {
     MVP_BCAST_INTRA_NODE_TUNING_ALGO_UNSET,
     MVP_BCAST_INTRA_NODE_TUNING_ALGO_SHMEM,
     MVP_BCAST_INTRA_NODE_TUNING_ALGO_KNOMIAL
 };
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/bcast/bcast_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/bcast/bcast_osu.c */
 extern int MVP_BCAST_TUNING_IS_TWO_LEVEL;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/gather/gather_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/gather/gather_osu.c */
 extern int MVP_GATHER_SWITCH_PT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/gather/gather_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/gather/gather_osu.c */
 extern int MVP_USE_DIRECT_GATHER;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/gather/gather_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/gather/gather_osu.c */
 extern int MVP_USE_DIRECT_GATHER_SYSTEM_SIZE_MEDIUM;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/gather/gather_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/gather/gather_osu.c */
 extern int MVP_USE_DIRECT_GATHER_SYSTEM_SIZE_SMALL;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/gather/gather_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/gather/gather_osu.c */
 extern int MVP_USE_TWO_LEVEL_GATHER;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/gather/gather_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/gather/gather_osu.c */
 extern int MVP_GATHER_COLLECTIVE_ALGORITHM;
 enum GATHER_COLLECTIVE_ALGORITHM_choice {
     MVP_GATHER_COLLECTIVE_ALGORITHM_UNSET,
     MVP_GATHER_COLLECTIVE_ALGORITHM_BINOMIAL,
     MVP_GATHER_COLLECTIVE_ALGORITHM_DIRECT
 };
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/gather/gather_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/gather/gather_osu.c */
 extern int MVP_GATHER_INTER_NODE_TUNING_ALGO;
 enum GATHER_INTER_NODE_TUNING_ALGO_choice {
     MVP_GATHER_INTER_NODE_TUNING_ALGO_UNSET,
@@ -176,61 +197,61 @@ enum GATHER_INTER_NODE_TUNING_ALGO_choice {
     MVP_GATHER_INTER_NODE_TUNING_ALGO_DIRECT,
     MVP_GATHER_INTER_NODE_TUNING_ALGO_2LVL_DIRECT
 };
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/gather/gather_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/gather/gather_osu.c */
 extern int MVP_GATHER_INTRA_NODE_TUNING_ALGO;
 enum GATHER_INTRA_NODE_TUNING_ALGO_choice {
     MVP_GATHER_INTRA_NODE_TUNING_ALGO_UNSET,
     MVP_GATHER_INTRA_NODE_TUNING_ALGO_BINOMIAL,
     MVP_GATHER_INTRA_NODE_TUNING_ALGO_DIRECT
 };
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
 extern int MVP_ENABLE_SHARP;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
 extern int MVP_SHARP_MAX_MSG_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
 extern int MVP_SHARP_PORT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
 extern const char * MVP_SHARP_HCA_NAME;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
 extern int MVP_SHARP_MIN_NODE_COUNT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
 extern int MVP_ENABLE_SHARP_ALLREDUCE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
 extern int MVP_ENABLE_SHARP_BARRIER;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
 extern int MVP_ENABLE_SHARP_BCAST;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
 extern int MVP_ENABLE_SHARP_REDUCE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
 extern int MVP_ENABLE_SHARP_SCATTER;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
 extern int MVP_ENABLE_SHARP_SCATTERV;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
 extern int MVP_ENABLE_SHARP_IALLREDUCE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
 extern int MVP_ENABLE_SHARP_IREDUCE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
 extern int MVP_ENABLE_SHARP_IBCAST;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/offload/sharp/mvp_sharp.c */
 extern int MVP_ENABLE_SHARP_IBARRIER;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/reduce/reduce_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/reduce/reduce_osu.c */
 extern int MVP_INTRA_SHMEM_REDUCE_MSG;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/reduce/reduce_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/reduce/reduce_osu.c */
 extern int MVP_REDUCE_2LEVEL_MSG;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/reduce/reduce_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/reduce/reduce_osu.c */
 extern int MVP_REDUCE_SHORT_MSG;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/reduce/reduce_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/reduce/reduce_osu.c */
 extern int MVP_SHMEM_REDUCE_MSG;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/reduce/reduce_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/reduce/reduce_osu.c */
 extern int MVP_USE_SHMEM_REDUCE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/reduce/reduce_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/reduce/reduce_osu.c */
 extern int MVP_REDUCE_COLLECTIVE_ALGORITHM;
 enum REDUCE_COLLECTIVE_ALGORITHM_choice {
     MVP_REDUCE_COLLECTIVE_ALGORITHM_UNSET,
     MVP_REDUCE_COLLECTIVE_ALGORITHM_BINOMIAL,
     MVP_REDUCE_COLLECTIVE_ALGORITHM_KNOMIAL
 };
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/reduce/reduce_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/reduce/reduce_osu.c */
 extern int MVP_REDUCE_INTER_NODE_TUNING_ALGO;
 enum REDUCE_INTER_NODE_TUNING_ALGO_choice {
     MVP_REDUCE_INTER_NODE_TUNING_ALGO_UNSET,
@@ -239,7 +260,7 @@ enum REDUCE_INTER_NODE_TUNING_ALGO_choice {
     MVP_REDUCE_INTER_NODE_TUNING_ALGO_RED_SCAT_GATHER,
     MVP_REDUCE_INTER_NODE_TUNING_ALGO_ALLREDUCE
 };
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/reduce/reduce_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/reduce/reduce_osu.c */
 extern int MVP_REDUCE_INTRA_NODE_TUNING_ALGO;
 enum REDUCE_INTRA_NODE_TUNING_ALGO_choice {
     MVP_REDUCE_INTRA_NODE_TUNING_ALGO_UNSET,
@@ -247,841 +268,855 @@ enum REDUCE_INTRA_NODE_TUNING_ALGO_choice {
     MVP_REDUCE_INTRA_NODE_TUNING_ALGO_SHMEM,
     MVP_REDUCE_INTRA_NODE_TUNING_ALGO_BINOMIAL
 };
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/reduce/reduce_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/reduce/reduce_osu.c */
 extern int MVP_REDUCE_TUNING_IS_TWO_LEVEL;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/scatter/scatter_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/scatter/scatter_osu.c */
 extern int MVP_RED_SCAT_LARGE_MSG;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/scatter/scatter_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/scatter/scatter_osu.c */
 extern int MVP_RED_SCAT_SHORT_MSG;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/scatter/scatter_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/scatter/scatter_osu.c */
 extern int MVP_SCATTER_MEDIUM_MSG;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/scatter/scatter_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/scatter/scatter_osu.c */
 extern int MVP_SCATTER_SMALL_MSG;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/scatter/scatter_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/scatter/scatter_osu.c */
 extern int MVP_USE_DIRECT_SCATTER;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/scatter/scatter_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/scatter/scatter_osu.c */
 extern int MVP_USE_SCATTER_RD_INTER_LEADER_BCAST;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/scatter/scatter_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/scatter/scatter_osu.c */
 extern int MVP_USE_SCATTER_RING_INTER_LEADER_BCAST;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/scatter/scatter_osu.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/scatter/scatter_osu.c */
 extern int MVP_USE_TWO_LEVEL_SCATTER;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
-extern const char * MVP_SHMEM_DIR;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
-extern int MVP_ALLTOALL_COLLECTIVE_ALGORITHM;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/scatter/scatter_osu.c */
 extern int MVP_SCATTER_COLLECTIVE_ALGORITHM;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+enum SCATTER_COLLECTIVE_ALGORITHM_choice {
+    MVP_SCATTER_COLLECTIVE_ALGORITHM_UNSET,
+    MVP_SCATTER_COLLECTIVE_ALGORITHM_BINOMIAL,
+    MVP_SCATTER_COLLECTIVE_ALGORITHM_DIRECT
+};
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/scatter/scatter_osu.c */
+extern int MVP_SCATTER_INTER_NODE_TUNING_ALGO;
+enum SCATTER_INTER_NODE_TUNING_ALGO_choice {
+    MVP_SCATTER_INTER_NODE_TUNING_ALGO_UNSET,
+    MVP_SCATTER_INTER_NODE_TUNING_ALGO_BINOMIAL,
+    MVP_SCATTER_INTER_NODE_TUNING_ALGO_DIRECT,
+    MVP_SCATTER_INTER_NODE_TUNING_ALGO_2LVL_BINOMIAL,
+    MVP_SCATTER_INTER_NODE_TUNING_ALGO_2LVL_DIRECT,
+    MVP_SCATTER_INTER_NODE_TUNING_ALGO_MCAST
+};
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/scatter/scatter_osu.c */
+extern int MVP_SCATTER_INTRA_NODE_TUNING_ALGO;
+enum SCATTER_INTRA_NODE_TUNING_ALGO_choice {
+    MVP_SCATTER_INTRA_NODE_TUNING_ALGO_UNSET,
+    MVP_SCATTER_INTRA_NODE_TUNING_ALGO_DIRECT,
+    MVP_SCATTER_INTRA_NODE_TUNING_ALGO_BINOMIAL
+};
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+extern const char * MVP_SHMEM_DIR;
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_KNOMIAL_INTER_LEADER_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_KNOMIAL_INTER_NODE_FACTOR;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_KNOMIAL_INTRA_NODE_FACTOR;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_KNOMIAL_INTRA_NODE_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_SHMEM_COLL_MAX_MSG_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_SHMEM_COLL_NUM_COMM;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_SHMEM_COLL_NUM_PROCS;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_SHMEM_COLL_SPIN_COUNT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_OSU_COLLECTIVES;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_OSU_NB_COLLECTIVES;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_SHMEM_COLL;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_ENABLE_SOCKET_AWARE_COLLECTIVES;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_BLOCKING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_SHARED_MEM;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_ENABLE_TOPO_AWARE_COLLECTIVES;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_TOPO_AWARE_ALLREDUCE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_TOPO_AWARE_REDUCE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_TOPO_AWARE_BCAST;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_OPTIMIZED_RELEASE_ALLREDUCE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_SHMEM_TREE_ENABLE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_SHMEM_TREE_MIN_MESSAGE_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_SHMEM_TREE_MAX_MESSAGE_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_SHMEM_NUM_TREES;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_COLL_TMP_BUF_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_TOPO_AWARE_BARRIER;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_TOPO_AWARE_ALLREDUCE_MAX_MSG;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_TOPO_AWARE_ALLREDUCE_MIN_MSG;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_TOPO_AWARE_REDUCE_MAX_MSG;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_TOPO_AWARE_REDUCE_MIN_MSG;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_TOPO_AWARE_BCAST_MAX_MSG;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_TOPO_AWARE_BCAST_MIN_MSG;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_TOPO_AWARE_REDUCE_PPN_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_TOPO_AWARE_BCAST_PPN_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_TOPO_AWARE_BCAST_NODE_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_TOPO_AWARE_REDUCE_NODE_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_GATHERV_SSEND_MIN_PROCS;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_MCAST_ALLREDUCE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_MCAST_ALLREDUCE_SMALL_MSG_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_MCAST_ALLREDUCE_LARGE_MSG_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_MCAST_SCATTER;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_MCAST_SCATTER_MSG_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_MCAST_SCATTER_SMALL_SYS_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_MCAST_SCATTER_LARGE_SYS_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_BITONIC_COMM_SPLIT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_BITONIC_COMM_SPLIT_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_ENABLE_SKIP_TUNING_TABLE_SEARCH;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_COLL_SKIP_TABLE_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_INDEXED_ALLGATHER_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_INDEXED_ALLTOALL_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_INDEXED_ALLTOALLV_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_IBCAST_ENABLE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_IGATHER_ENABLE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_ISCATTER_ENABLE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_IALLGATHER_ENABLE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_IREDUCE_ENABLE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_IALLREDUCE_ENABLE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_IREDUCE_SCATTER_ENABLE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_IALLTOALL_ENABLE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_IALLTOALLV_ENABLE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_IALLGATHERV_ENABLE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_IBARRIER_ENABLE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_SHMEM_COLL_MAX_NUM_EMPTY_PROGRESS_POLLS;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_KNOMIAL_REDUCE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_REDUCE_INTER_KNOMIAL_FACTOR;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_REDUCE_ZCOPY_INTER_KNOMIAL_FACTOR;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_REDUCE_INTRA_KNOMIAL_FACTOR;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTRA_MULTI_LEVEL_GATHER_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_OLD_BCAST;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_ALLRED_USE_RING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_OLD_ALLGATHER;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_OLD_SCATTER;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_OLD_ALLREDUCE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_OLD_REDUCE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_OLD_ALLTOALL;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_ALLTOALL_INPLACE_OLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_ALLTOALL_RD_MAX_MSG_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTRA_IBCAST_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTRA_IGATHER_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTER_IBCAST_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTER_IGATHER_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
-extern const char * MVP_ALLTOALL_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
-extern const char * MVP_INTRA_SCATTER_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
-extern const char * MVP_INTER_SCATTER_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTRA_ISCATTER_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTER_ISCATTER_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTRA_IALLREDUCE_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTER_IALLREDUCE_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTRA_IREDUCE_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTER_IREDUCE_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTRA_IREDUCE_SCATTER_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTER_IREDUCE_SCATTER_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTER_IALLGATHER_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTRA_IALLGATHER_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTRA_IALLTOALL_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTER_IALLTOALL_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTRA_IALLTOALLV_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTER_IALLTOALLV_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTER_IALLGATHERV_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTRA_IALLGATHERV_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTRA_IBARRIER_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTER_IBARRIER_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTER_RED_SCAT_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTER_RED_SCAT_BLOCK_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern const char * MVP_INTER_ALLGATHERV_TUNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_SCATTER_DEST_ALLTOALLV;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_PIPELINED_ZCPY_BCAST_KNOMIAL_FACTOR;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_ZCOPY_BCAST;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_ZCOPY_REDUCE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_GATHERV_SSEND_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_ALLREDUCE_RING_ALGO_PPN_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_ALLREDUCE_RING_ALGO_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_ALLREDUCE_RED_SCAT_ALLGATHER_ALGO_PPN_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_ALLREDUCE_RED_SCAT_ALLGATHER_ALGO_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_ALLGATHER_RING_ALGO_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_ALLTOALLV_INTERMEDIATE_WAIT_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_ALLGATHER_CYCLIC_ALGO_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_ALLREDUCE_CYCLIC_ALGO_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_REDSCAT_CYCLIC_ALGO_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_RED_SCAT_RING_ALGO_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_BCAST_SCATTER_RING_OVERLAP;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_BCAST_SCATTER_RING_OVERLAP_MSG_UPPERBOUND;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_BCAST_SCATTER_RING_OVERLAP_CORES_LOWERBOUND;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_PIPELINE_BCAST;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_BCAST_SEGMENT_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_LIMIC_GATHER;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_2LEVEL_ALLGATHER;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_SHMEM_COLL_WINDOW_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_SHMEM_REDUCE_TREE_DEGREE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_SHMEM_COLL_SLOT_LEN;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_SLOT_SHMEM_COLL;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_SLOT_SHMEM_BCAST;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_USE_MCAST_PIPELINE_SHM;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_TWO_LEVEL_COMM_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_TWO_LEVEL_COMM_EARLY_INIT_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_ENABLE_PVAR_TIMER;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_ENABLE_ALLREDUCE_ALL_COMPUTE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_GATHER_STATUS_ALIGNMENT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_BCAST_STATUS_ALIGNMENT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_ENABLE_ALLREDUCE_SKIP_LARGE_MESSAGE_TUNING_TABLE_SEARCH;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_ENABLE_ALLREDUCE_SKIP_SMALL_MESSAGE_TUNING_TABLE_SEARCH;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/coll/shmem/mvp_shmem_coll.c */
 extern int MVP_SOCKET_AWARE_ALLREDUCE_PPN_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/common/src/affinity/hwloc_bind.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/common/src/affinity/hwloc_bind.c */
 extern const char * MVP_CPU_BINDING_LEVEL;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/common/src/affinity/hwloc_bind.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/common/src/affinity/hwloc_bind.c */
 extern const char * MVP_CPU_MAPPING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/common/src/affinity/hwloc_bind.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/common/src/affinity/hwloc_bind.c */
 extern int MVP_ENABLE_AFFINITY;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/common/src/affinity/hwloc_bind.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/common/src/affinity/hwloc_bind.c */
 extern int MVP_ENABLE_LEASTLOAD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/common/src/cm/cm.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/common/src/cm/cm.c */
 extern int MVP_CM_MAX_SPIN_COUNT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/common/src/cm/cm.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/common/src/cm/cm.c */
 extern int MVP_CM_RECV_BUFFERS;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/common/src/cm/cm.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/common/src/cm/cm.c */
 extern int MVP_CM_SEND_DEPTH;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/common/src/cm/cm.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/common/src/cm/cm.c */
 extern int MVP_CM_TIMEOUT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/common/src/cm/cm.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/common/src/cm/cm.c */
 extern int MVP_CM_UD_PSN;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/common/src/cm/cm.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/common/src/cm/cm.c */
 extern int MVP_CM_THREAD_STACKSIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/common/src/detect/hca/mvp_hca_detect.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/common/src/detect/hca/mvp_hca_detect.c */
 extern int MVP_FORCE_HCA_TYPE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/common/src/detect/hca/mvp_hca_detect.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/common/src/detect/hca/mvp_hca_detect.c */
 extern int MVP_HCA_AWARE_PROCESS_MAPPING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/common/src/rdma_cm/rdma_cm.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/common/src/rdma_cm/rdma_cm.c */
 extern int MVP_RDMA_CM_ARP_TIMEOUT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/common/src/rdma_cm/rdma_cm.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/common/src/rdma_cm/rdma_cm.c */
 extern int MVP_RDMA_CM_PORT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/common/src/rdma_cm/rdma_cm.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/common/src/rdma_cm/rdma_cm.c */
 extern int MVP_RDMA_CM_MAX_PORT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/common/src/rdma_cm/rdma_cm.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/common/src/rdma_cm/rdma_cm.c */
 extern int MVP_RDMA_CM_MIN_PORT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_EAGER_CUDAHOST_REG;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_VECTOR_OPT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_KERNEL_OPT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_KERNEL_VECTOR_TIDBLK_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_KERNEL_VECTOR_YSIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_KERNEL_SUBARR_TIDBLK_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_KERNEL_SUBARR_XDIM;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_KERNEL_SUBARR_YDIM;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_KERNEL_SUBARR_ZDIM;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_NUM_EVENTS;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_INIT_CONTEXT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_USE_NAIVE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_ALLTOALL_DYNAMIC;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_REGISTER_NAIVE_BUF;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_GATHER_NAIVE_LIMIT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_SCATTER_NAIVE_LIMIT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_ALLTOALL_NAIVE_LIMIT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_ALLTOALLV_NAIVE_LIMIT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_ALLGATHER_NAIVE_LIMIT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_ALLGATHERV_NAIVE_LIMIT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_BCAST_NAIVE_LIMIT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_GATHERV_NAIVE_LIMIT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_SCATTERV_NAIVE_LIMIT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_ALLGATHER_RD_LIMIT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_ALLGATHER_FGP;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_IPC;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_IPC_SHARE_GPU;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_SMP_IPC;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_ENABLE_IPC_CACHE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_IPC_MAX_CACHE_ENTRIES;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_IPC_NUM_STAGE_BUFFERS;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_IPC_STAGE_BUF_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_IPC_BUFFERED;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_IPC_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_IPC_BUFFERED_LIMIT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_IPC_SYNC_LIMIT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_DYNAMIC_INIT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_cuda_util.c */
 extern int MVP_CUDA_NONBLOCKING_STREAMS;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_SMP_EAGERSIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern const char * MVP_IBA_HCA;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_SMP_USE_CMA;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_SMP_USE_LIMIC2;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_SMP_POLLING_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_SMP_CMA_MAX_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_SMP_LIMIC2_MAX_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_SMP_QUEUE_LENGTH;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_LIMIC_PUT_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_LIMIC_GET_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_R3_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_INTRA_NODE_R3_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_INTER_NODE_R3_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_R3_NOCACHE_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_MAX_R3_PENDING_DATA;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_LIMIC2_COLL;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_SMP_USE_MAX_SWITCH;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_CUDA_SMP_PIPELINE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_SMP_DELAY_SHMEM_POOL_INIT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_SMP_PRIORITY_POLLING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_SMP_NUM_SEND_BUFFER;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_SMP_BATCH_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_SMP_SEND_BUF_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_OPT_EAGER_RECV;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_NUM_NODES_IN_JOB;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_MCAST;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_RDMA_CM_MCAST;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_QOS;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_3DTORUS_SUPPORT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_PATH_SL_QUERY;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_NUM_SLS;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_NUM_SA_QUERY_RETRIES;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_MAX_RDMA_CONNECT_ATTEMPTS;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_RDMA_CM_CONNECT_RETRY_INTERVAL;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_HSAM;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_APM;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_APM_TEST;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_IWARP_MODE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_RDMA_CM;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_RDMA_CM_MULTI_SUBNET_SUPPORT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_ON_DEMAND_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_XRC;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_SRQ;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_IWARP_MULTIPLE_CQ_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_LAZY_MEM_UNREGISTER;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_RMA_FAST_PATH;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_FORCE_IB_ATOMIC;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_RDMA_ONE_SIDED;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_RNDV_EXT_SENDQ_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_RDMA_NUM_EXTRA_POLLS;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_COALESCE_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_COALESCE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_SPIN_COUNT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern const char * MVP_PROCESS_TO_RAIL_MAPPING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern const char * MVP_SM_SCHEDULING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern const char * MVP_SMALL_MSG_RAIL_SHARING_POLICY;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern const char * MVP_MED_MSG_RAIL_SHARING_POLICY;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern const char * MVP_RAIL_SHARING_POLICY;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_SUPPRESS_JOB_STARTUP_PERFORMANCE_WARNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_RDMA_FAST_PATH;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_RDMA_FAST_PATH_BUF_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_POLLING_SET_LIMIT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_POLLING_SET_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_RDMA_EAGER_LIMIT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_NUM_RDMA_BUFFER;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_RDMA_FAST_PATH_PREALLOCATE_BUFFERS;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_SYSREPORT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern const char * MVP_DEFAULT_MTU;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_NUM_CQES_PER_POLL;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_NUM_PORTS;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_NUM_QP_PER_PORT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_PIN_POOL_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_DEFAULT_MAX_CQ_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_IBA_EAGER_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_STRIPING_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_RAIL_SHARING_MED_MSG_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_RAIL_SHARING_LARGE_MSG_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_DEFAULT_PUT_GET_LIST_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_EAGERSIZE_1SC;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_PUT_FALLBACK_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_GET_FALLBACK_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_DEFAULT_QP_OUS_RD_ATOM;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_DEFAULT_MAX_RDMA_DST_OPS;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_DEFAULT_PSN;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern const char * MVP_DEFAULT_PKEY;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern const char * MVP_DEFAULT_QKEY;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_DEFAULT_MIN_RNR_TIMER;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_DEFAULT_SERVICE_LEVEL;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_DEFAULT_TIME_OUT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_DEFAULT_STATIC_RATE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_DEFAULT_SRC_PATH_BITS;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_DEFAULT_RETRY_COUNT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_DEFAULT_RNR_RETRY;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_DEFAULT_MAX_SG_LIST;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_DEFAULT_MAX_SEND_WQE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_CM_WAIT_TIME;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_UD_HYBRID;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_UD_MTU;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_HYBRID_MAX_RC_CONN;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_UD_NUM_MSG_LIMIT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_UD_SENDWINDOW_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_UD_RECVWINDOW_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_UD_RETRY_TIMEOUT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_UD_MAX_RETRY_TIMEOUT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_UD_PROGRESS_SPIN;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_UD_RETRY_COUNT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_UD_PROGRESS_TIMEOUT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_UD_MAX_SEND_WQE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_UD_MAX_RECV_WQE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_UD_SRQ;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_UD_VBUF_POOL_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_UD_MAX_ACK_PENDING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_SHMEM_BACKED_UD_CM;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_UD_ZCOPY;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_UD_ZCOPY_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_UD_NUM_ZCOPY_RNDV_QPS;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_UD_ZCOPY_RQ_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_UD_ZCOPY_NUM_RETRY;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_UD_ZCOPY_ENABLE_POLLING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_UD_ZCOPY_PUSH_SEGMENT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_UD_DROP_PACKET_RATE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_MCAST_ENABLE_REL;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_MCAST_USE_MCAST_NACK;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_MCAST_NUM_NODES_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_MCAST_MAX_RECV_WQE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_MCAST_WINDOW_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_MCAST_DROP_PACKET_RATE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_MCAST_RETRY_TIMEOUT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_MCAST_MAX_RETRY_TIMEOUT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_MCAST_NSPIN_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_MCAST_COMM_INIT_TIMEOUT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_MCAST_COMM_INIT_RETRIES;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_MCAST_SKIP_LOOPBACK;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_MCAST_BCAST_MIN_MSG;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_MCAST_BCAST_MAX_MSG;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_DEFAULT_MAX_RECV_WQE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_NDREG_ENTRIES_MAX;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_NDREG_ENTRIES;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_DREG_CACHE_LIMIT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_HWLOC_CPU_BINDING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_THREAD_YIELD_SPIN_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_THREAD_YIELD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_NUM_SPINS_BEFORE_LOCK;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_ASYNC_THREAD_STACK_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_HUGEPAGES;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_MEMORY_OPTIMIZATION;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_SRQ_MAX_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_SRQ_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_SRQ_LIMIT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_UD_SRQ_MAX_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_UD_SRQ_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_UD_SRQ_LIMIT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_MAX_NUM_UD_VBUFS;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_MAX_INLINE_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_VBUF_TOTAL_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_VBUF_MAX;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_INITIAL_PREPOST_DEPTH;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_PREPOST_DEPTH;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_VBUF_POOL_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_MAX_NUM_VBUFS;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_VBUF_SECONDARY_POOL_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_CUDA_BLOCK_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_CUDA_NUM_RNDV_BLOCKS;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_MPIRUN_RSH_LAUNCH;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_ROCE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_ROCE_MODE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_RING_STARTUP;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_ON_DEMAND_UD_INFO_EXCHANGE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_PMI_IBARRIER;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_USE_PMI_IALLGATHER;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_NUM_HCAS;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ibv_param.c */
 extern int MVP_HOMOGENEOUS_CLUSTER;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ofed_abstraction.h */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ofed_abstraction.h */
 extern const char * MVP_LIBIBVERBS_PATH;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ofed_abstraction.h */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ofed_abstraction.h */
 extern const char * MVP_LIBIBMAD_PATH;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ofed_abstraction.h */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ofed_abstraction.h */
 extern const char * MVP_LIBIBUMAD_PATH;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ofed_abstraction.h */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ofed_abstraction.h */
 extern const char * MVP_LIBRDMACM_PATH;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ofed_abstraction.h */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ofed_abstraction.h */
 extern const char * MVP_LIBSHARP_PATH;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/rdma_iba_priv.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/rdma_iba_priv.c */
 extern int MVP_ALLOW_HETEROGENEOUS_HCA_SELECTION;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/rdma_iba_priv.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/rdma_iba_priv.c */
 extern int MVP_PROCESS_PLACEMENT_AWARE_HCA_MAPPING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ring_startup.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ring_startup.c */
 extern int MVP_DEFAULT_PORT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/gen2/ring_startup.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/gen2/ring_startup.c */
 extern int MVP_DEFAULT_GID_INDEX;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
 extern int MVP_IOV_DENSITY_MIN;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
 extern int MVP_ENABLE_EAGER_THRESHOLD_REDUCTION;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
 extern int MVP_USE_EAGER_FAST_SEND;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
 extern int MVP_SUPPORT_FORK_SAFETY;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
 extern int MVP_RDMA_MAX_TRANSFER_SIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
 extern int MVP_RNDV_IMMEDIATE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
 extern int MVP_CHECK_CACHE_ALIGNMENT;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
 extern int MVP_HYBRID_ENABLE_THRESHOLD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
 extern int MVP_USE_ONLY_UD;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
 extern int MVP_SHOW_ENV_INFO;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
 extern const char * MVP_DEBUG_CORESIZE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
 extern int MVP_DEBUG_SHOW_BACKTRACE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_init.c */
 extern int MVP_USE_THREAD_WARNING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_progress.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_progress.c */
 extern int MVP_POLLING_LEVEL;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_smp_progress.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_smp_progress.c */
 extern int MVP_WALK_SHARED_PAGES;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_smp_progress.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_smp_progress.c */
 extern int MVP_SMP_PRIORITY_FACTOR;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_smp_progress.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/channels/mrail/src/rdma/ch3_smp_progress.c */
 extern int MVP_USE_PT2PT_SHMEM;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch3/src/mpid_abort.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch3/src/mpid_abort.c */
 extern int MVP_ABORT_SLEEP_SECONDS;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
 extern int MVP_SHOW_CPU_BINDING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
 extern int MVP_SHOW_HCA_BINDING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
 extern int MVP_SHOW_HW_BINDING;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
 extern int MVP_REPORT_LOAD_IMBALANCE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
 extern int MVP_BCAST_HWLOC_TOPOLOGY;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
 extern int MVP_SUPPORT_DPM;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
 extern int MVP_PIVOT_CORE_ID;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
 extern int MVP_FORCE_ARCH_TYPE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
 extern int MVP_THREADS_PER_PROCESS;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
 extern int MVP_SHOW_RUNLOG_INFO;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
 extern int MVP_USE_ALIGNED_ALLOC;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
 extern int MVP_HYBRID_BINDING_POLICY;
 enum HYBRID_BINDING_POLICY_choice {
     MVP_HYBRID_BINDING_POLICY_LINEAR,
@@ -1091,25 +1126,25 @@ enum HYBRID_BINDING_POLICY_choice {
     MVP_HYBRID_BINDING_POLICY_SCATTER,
     MVP_HYBRID_BINDING_POLICY_NUMA
 };
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
 extern int MVP_CPU_BINDING_POLICY;
 enum CPU_BINDING_POLICY_choice {
     MVP_CPU_BINDING_POLICY_BUNCH,
     MVP_CPU_BINDING_POLICY_SCATTER,
     MVP_CPU_BINDING_POLICY_HYBRID
 };
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
 extern int MVP_ENABLE_PVAR_MEM;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
 extern const char * MVP_USE_BUCKET_FILE;
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
 extern int MVP_RNDV_PROTOCOL;
 enum RNDV_PROTOCOL_choice {
     MVP_RNDV_PROTOCOL_R3 = 2,
     MVP_RNDV_PROTOCOL_RPUT = 3,
     MVP_RNDV_PROTOCOL_RGET = 4
 };
-/* declared in /tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
+/* declared in /tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpid/ch4/netmod/mvp/mvp_init.c */
 extern int MVP_SMP_RNDV_PROTOCOL;
 enum SMP_RNDV_PROTOCOL_choice {
     MVP_SMP_RNDV_PROTOCOL_R3 = 2,
@@ -1122,6 +1157,7 @@ enum {
     MVP_ALLGATHER_REVERSE_RANKING_ID,
     MVP_ALLGATHER_COLLECTIVE_ALGORITHM_ID,
     MVP_ALLGATHER_TUNING_IS_TWO_LEVEL_ID,
+    MVP_ALLGATHERV_COLLECTIVE_ALGORITHM_ID,
     MVP_ALLREDUCE_2LEVEL_MSG_ID,
     MVP_ALLREDUCE_SHORT_MSG_ID,
     MVP_SHMEM_ALLREDUCE_MSG_ID,
@@ -1140,6 +1176,7 @@ enum {
     MVP_ALLTOALL_INTRA_THROTTLE_FACTOR_ID,
     MVP_ALLTOALL_LARGE_MSG_THROTTLE_FACTOR_ID,
     MVP_USE_XOR_ALLTOALL_ID,
+    MVP_ALLTOALL_COLLECTIVE_ALGORITHM_ID,
     MVP_ALLTOALLV_COLLECTIVE_ALGORITHM_ID,
     MVP_USE_SHMEM_BARRIER_ID,
     MVP_USE_SOCKET_AWARE_BARRIER_ID,
@@ -1194,9 +1231,10 @@ enum {
     MVP_USE_SCATTER_RD_INTER_LEADER_BCAST_ID,
     MVP_USE_SCATTER_RING_INTER_LEADER_BCAST_ID,
     MVP_USE_TWO_LEVEL_SCATTER_ID,
-    MVP_SHMEM_DIR_ID,
-    MVP_ALLTOALL_COLLECTIVE_ALGORITHM_ID,
     MVP_SCATTER_COLLECTIVE_ALGORITHM_ID,
+    MVP_SCATTER_INTER_NODE_TUNING_ALGO_ID,
+    MVP_SCATTER_INTRA_NODE_TUNING_ALGO_ID,
+    MVP_SHMEM_DIR_ID,
     MVP_KNOMIAL_INTER_LEADER_THRESHOLD_ID,
     MVP_KNOMIAL_INTER_NODE_FACTOR_ID,
     MVP_KNOMIAL_INTRA_NODE_FACTOR_ID,
@@ -1277,9 +1315,6 @@ enum {
     MVP_INTRA_IGATHER_TUNING_ID,
     MVP_INTER_IBCAST_TUNING_ID,
     MVP_INTER_IGATHER_TUNING_ID,
-    MVP_ALLTOALL_TUNING_ID,
-    MVP_INTRA_SCATTER_TUNING_ID,
-    MVP_INTER_SCATTER_TUNING_ID,
     MVP_INTRA_ISCATTER_TUNING_ID,
     MVP_INTER_ISCATTER_TUNING_ID,
     MVP_INTRA_IALLREDUCE_TUNING_ID,
@@ -1614,8 +1649,11 @@ enum {
 extern u_int8_t MVP_CVAR_USER_SET_FLAGS[(MVP_CVAR_COUNT + 7) >> 3];
 
 /* Evaluates to 1 if the CVAR was explicitly defined by the user else 0 */
-#define MVP_CVAR_IS_SET_BY_USER(cvar)                                          \
-    (1 & MVP_CVAR_USER_SET_FLAGS[cvar##_ID >> 3] >> (cvar##_ID & 7))
+#define MVP_CVAR_IS_SET_BY_USER(_cvar)                                      \
+    (1 & MVP_CVAR_USER_SET_FLAGS[_cvar##_ID >> 3] >> (_cvar##_ID & 7))
+
+#define MVP_CVAR_SOFT_SET(_cvar, _val)                                      \
+    if (!(MVP_CVAR_IS_SET_BY_USER(_cvar))) { _cvar = _val; }
 
 /* TODO: this should be defined elsewhere */
 #define MVP_assert MPIR_Assert

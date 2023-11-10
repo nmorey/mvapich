@@ -1,4 +1,4 @@
-#define GEN2__IBM_POWER9_MLX_CX_EDR__2PPN                                      \
+#define GEN2__IBM_POWER9__MLX_CX_EDR__2PPN                                     \
     {                                                                          \
         {2,                                                                    \
          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},                     \
@@ -96,3 +96,4 @@
             }                                                                  \
         }                                                                      \
     }
+#define GEN2__IBM_POWER9__MLX_CX_EDR__2PPN_CNT 5

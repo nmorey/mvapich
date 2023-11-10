@@ -1,4 +1,4 @@
-#define GEN2__AMD_EPYC__1PPN                                                   \
+#define GEN2__AMD_EPYC_7551_64__MLX_CX_HDR__1PPN                               \
     {                                                                          \
         {2,                                                                    \
          21,                                                                   \
@@ -9,14 +9,14 @@
           {16, &MPIR_Scatter_MVP_Binomial},                                    \
           {32, &MPIR_Scatter_MVP_Binomial},                                    \
           {64, &MPIR_Scatter_MVP_Binomial},                                    \
-          {128, &MPIR_Scatter_MVP_Binomial},                                   \
+          {128, &MPIR_Scatter_MVP_Direct},                                     \
           {256, &MPIR_Scatter_MVP_Binomial},                                   \
-          {512, &MPIR_Scatter_MVP_Binomial},                                   \
+          {512, &MPIR_Scatter_MVP_Direct},                                     \
           {1024, &MPIR_Scatter_MVP_Direct},                                    \
           {2048, &MPIR_Scatter_MVP_Direct},                                    \
           {4096, &MPIR_Scatter_MVP_Binomial},                                  \
           {8192, &MPIR_Scatter_MVP_Direct},                                    \
-          {16384, &MPIR_Scatter_MVP_Binomial},                                 \
+          {16384, &MPIR_Scatter_MVP_Direct},                                   \
           {32768, &MPIR_Scatter_MVP_Binomial},                                 \
           {65536, &MPIR_Scatter_MVP_Binomial},                                 \
           {131072, &MPIR_Scatter_MVP_Binomial},                                \
@@ -50,13 +50,13 @@
              {{1, &MPIR_Scatter_MVP_Direct},                                   \
               {2, &MPIR_Scatter_MVP_Direct},                                   \
               {4, &MPIR_Scatter_MVP_Direct},                                   \
-              {8, &MPIR_Scatter_MVP_two_level_Direct},                         \
+              {8, &MPIR_Scatter_MVP_Direct},                                   \
               {16, &MPIR_Scatter_MVP_Direct},                                  \
-              {32, &MPIR_Scatter_MVP_two_level_Direct},                        \
+              {32, &MPIR_Scatter_MVP_Direct},                                  \
               {64, &MPIR_Scatter_MVP_two_level_Direct},                        \
-              {128, &MPIR_Scatter_MVP_two_level_Direct},                       \
+              {128, &MPIR_Scatter_MVP_Direct},                                 \
               {256, &MPIR_Scatter_MVP_Direct},                                 \
-              {512, &MPIR_Scatter_MVP_Direct},                                 \
+              {512, &MPIR_Scatter_MVP_two_level_Direct},                       \
               {1024, &MPIR_Scatter_MVP_Direct},                                \
               {2048, &MPIR_Scatter_MVP_Direct},                                \
               {4096, &MPIR_Scatter_MVP_Direct},                                \
@@ -72,13 +72,13 @@
              {{1, &MPIR_Scatter_MVP_Direct},                                   \
               {2, &MPIR_Scatter_MVP_Direct},                                   \
               {4, &MPIR_Scatter_MVP_Direct},                                   \
-              {8, &MPIR_Scatter_MVP_Binomial},                                 \
+              {8, &MPIR_Scatter_MVP_Direct},                                   \
               {16, &MPIR_Scatter_MVP_Direct},                                  \
-              {32, &MPIR_Scatter_MVP_Binomial},                                \
+              {32, &MPIR_Scatter_MVP_Direct},                                  \
               {64, &MPIR_Scatter_MVP_Binomial},                                \
-              {128, &MPIR_Scatter_MVP_Binomial},                               \
+              {128, &MPIR_Scatter_MVP_Direct},                                 \
               {256, &MPIR_Scatter_MVP_Direct},                                 \
-              {512, &MPIR_Scatter_MVP_Direct},                                 \
+              {512, &MPIR_Scatter_MVP_Binomial},                               \
               {1024, &MPIR_Scatter_MVP_Direct},                                \
               {2048, &MPIR_Scatter_MVP_Direct},                                \
               {4096, &MPIR_Scatter_MVP_Direct},                                \
@@ -94,19 +94,19 @@
             8, 21,                                                             \
                 {{1, &MPIR_Scatter_MVP_two_level_Direct},                      \
                  {2, &MPIR_Scatter_MVP_Direct},                                \
-                 {4, &MPIR_Scatter_MVP_two_level_Direct},                      \
+                 {4, &MPIR_Scatter_MVP_Direct},                                \
                  {8, &MPIR_Scatter_MVP_two_level_Direct},                      \
                  {16, &MPIR_Scatter_MVP_two_level_Direct},                     \
-                 {32, &MPIR_Scatter_MVP_two_level_Direct},                     \
+                 {32, &MPIR_Scatter_MVP_Direct},                               \
                  {64, &MPIR_Scatter_MVP_Direct},                               \
                  {128, &MPIR_Scatter_MVP_Direct},                              \
-                 {256, &MPIR_Scatter_MVP_two_level_Direct},                    \
+                 {256, &MPIR_Scatter_MVP_Direct},                              \
                  {512, &MPIR_Scatter_MVP_Direct},                              \
-                 {1024, &MPIR_Scatter_MVP_Direct},                             \
-                 {2048, &MPIR_Scatter_MVP_two_level_Direct},                   \
-                 {4096, &MPIR_Scatter_MVP_two_level_Direct},                   \
+                 {1024, &MPIR_Scatter_MVP_two_level_Direct},                   \
+                 {2048, &MPIR_Scatter_MVP_Direct},                             \
+                 {4096, &MPIR_Scatter_MVP_Direct},                             \
                  {8192, &MPIR_Scatter_MVP_two_level_Direct},                   \
-                 {16384, &MPIR_Scatter_MVP_Direct},                            \
+                 {16384, &MPIR_Scatter_MVP_two_level_Direct},                  \
                  {32768, &MPIR_Scatter_MVP_Direct},                            \
                  {65536, &MPIR_Scatter_MVP_Direct},                            \
                  {131072, &MPIR_Scatter_MVP_Direct},                           \
@@ -120,16 +120,16 @@
                     {4, &MPIR_Scatter_MVP_Direct},                             \
                     {8, &MPIR_Scatter_MVP_Binomial},                           \
                     {16, &MPIR_Scatter_MVP_Binomial},                          \
-                    {32, &MPIR_Scatter_MVP_Binomial},                          \
+                    {32, &MPIR_Scatter_MVP_Direct},                            \
                     {64, &MPIR_Scatter_MVP_Direct},                            \
                     {128, &MPIR_Scatter_MVP_Direct},                           \
-                    {256, &MPIR_Scatter_MVP_Binomial},                         \
+                    {256, &MPIR_Scatter_MVP_Direct},                           \
                     {512, &MPIR_Scatter_MVP_Direct},                           \
-                    {1024, &MPIR_Scatter_MVP_Direct},                          \
-                    {2048, &MPIR_Scatter_MVP_Binomial},                        \
-                    {4096, &MPIR_Scatter_MVP_Binomial},                        \
+                    {1024, &MPIR_Scatter_MVP_Binomial},                        \
+                    {2048, &MPIR_Scatter_MVP_Direct},                          \
+                    {4096, &MPIR_Scatter_MVP_Direct},                          \
                     {8192, &MPIR_Scatter_MVP_Binomial},                        \
-                    {16384, &MPIR_Scatter_MVP_Direct},                         \
+                    {16384, &MPIR_Scatter_MVP_Binomial},                       \
                     {32768, &MPIR_Scatter_MVP_Direct},                         \
                     {65536, &MPIR_Scatter_MVP_Direct},                         \
                     {131072, &MPIR_Scatter_MVP_Direct},                        \
@@ -141,3 +141,4 @@
             }                                                                  \
         }                                                                      \
     }
+#define GEN2__AMD_EPYC_7551_64__MLX_CX_HDR__1PPN_CNT 3

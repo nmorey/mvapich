@@ -4,6 +4,7 @@ This file briefly describes the changes to the MVAPICH software
 package.  The logs are arranged in the "most recent first" order.
 
 MVAPICH 3.0
+(3.0rc released 11/09/2023)
 (3.0b released 05/10/2023)
 (3.0a released 08/15/2022)
 
@@ -28,6 +29,13 @@ MVAPICH 3.0
     - Unified MVAPICH environment variables with the MPICH CVAR interface
     - Disabled ch3:mrail device
     - Removed ch3:psm device
+    - Re-implemented MPI_T PVAR support
+
+* Bug Fixes (since 2.3.7):
+    - Fixed error in Slurm startup using PMI1
+        - Thanks to Christof Köhler @Universitaet Bremen for the report
+    - Fixed segfault in bespoke CPU mapping
+        - Thanks to Brian Smith and James Erwin @Cornelis for the report
 
 MVAPICH2 2.3.7 (03/02/2022)
 

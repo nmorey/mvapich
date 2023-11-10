@@ -1,15 +1,3 @@
-/*
- * Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- */
-
 #define GEN2__INTEL_XEON_E5_2690_V2_2S_20__MLX_CX_CONNIB__1PPN                 \
     {{2,                                                                       \
       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0},         \
@@ -83,3 +71,4 @@
        {262144, &MPIR_Alltoall_Scatter_dest_MVP},                              \
        {524288, &MPIR_Alltoall_Scatter_dest_MVP},                              \
        {1048576, &MPIR_Alltoall_Scatter_dest_MVP}}}};
+#define GEN2__INTEL_XEON_E5_2690_V2_2S_20__MLX_CX_CONNIB__1PPN_CNT 3

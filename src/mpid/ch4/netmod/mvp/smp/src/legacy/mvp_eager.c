@@ -1,10 +1,10 @@
 /*
  * Copyright (c) 2001-2022, The Ohio State University. All rights reserved.
- * This file is part of the MVAPICH2 software package developed by the team
+ * This file is part of the MVAPICH software package developed by the team
  * members of The Ohio State University's Network-Based Computing Laboratory
  * (NBCL), headed by Professor Dhabaleswar K. (DK) Panda. For detailed
  * copyright and licensing information, please refer to the copyright file
- * COPYRIGHT in the top level MVAPICH2 directory.
+ * COPYRIGHT in the top level MVAPICH directory.
  */
 
 #include "mvp_smp_impl.h"
@@ -205,8 +205,7 @@ int MPIDI_MVP_smp_eager_send(MPIDI_MVP_ep_t *vc, const void *buf,
 
     MPIR_Assert(!vc->force_rndv);
     MPIR_Assert(data_sz + sizeof(MPIDI_MVP_Pkt_eager_send_t) <
-                vc->eager_max_msg_sz);
-
+                MVP_SMP_EAGERSIZE);
     /* FIXME: flow control: limit number of outstanding eager messages
        containing data and need to be buffered by the receiver */
 

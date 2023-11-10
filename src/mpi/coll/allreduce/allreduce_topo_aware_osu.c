@@ -5,9 +5,6 @@
 #include "mvp_sharp.h"
 #endif
 
-extern unsigned long long
-    PVAR_COUNTER_mvp_coll_allreduce_topo_aware_hierarchical;
-
 /* Given comm_ptr, MPIR_Allreduce_topo_aware_inter_node_helper_MVP performs an
  * inter-node Allreduce operation using SHARP/rd
  * over leader_comm (in comm_ptr) */

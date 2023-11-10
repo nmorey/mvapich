@@ -22,22 +22,6 @@
 #include <netinet/in.h>
 #endif /* defined(MAC_OSX) */
 
-extern unsigned long PVAR_COUNTER_mvp_smp_eager_sent;
-extern unsigned long PVAR_COUNTER_mvp_smp_rndv_sent;
-extern unsigned long PVAR_COUNTER_mvp_smp_eager_received;
-extern unsigned long PVAR_COUNTER_mvp_smp_rndv_received;
-extern unsigned long PVAR_LEVEL_mvp_smp_eager_total_buffer;
-extern unsigned long PVAR_LEVEL_mvp_smp_rndv_total_buffer;
-extern unsigned long PVAR_LEVEL_mvp_smp_eager_avail_buffer;
-extern unsigned long PVAR_LEVEL_mvp_smp_rndv_avail_buffer;
-extern unsigned long PVAR_LEVEL_mvp_smp_eager_buffer_max_use;
-extern unsigned long PVAR_LEVEL_mvp_smp_rndv_buffer_max_use;
-
-extern unsigned long PVAR_COUNTER_mvp_smp_read_progress_poll;
-extern unsigned long PVAR_COUNTER_mvp_smp_write_progress_poll;
-extern unsigned long PVAR_COUNTER_mvp_smp_read_progress_poll_success;
-extern unsigned long PVAR_COUNTER_mvp_smp_write_progress_poll_success;
-
 int mvp_shmem_pool_init = 0;
 int polling_set_p_head = 0;
 int polling_set_p_tail = 0;
@@ -48,7 +32,7 @@ mvp_smp_poll_t *polling_set_c = NULL;
 int *polling_counters;
 extern int mvp_is_fair_polling;
 
-int rdma_set_smp_parameters();
+int mvp_set_smp_tuning_parameters();
 
 #define SMP_EXIT_ERR -1
 #define smp_error_abort(code, message) do {                     \
@@ -370,7 +354,7 @@ int MPIDI_MVP_smp_shmem_init()
     volatile char tmpchar ATTRIBUTE((unused));
 #endif /* defined(__x86_64__) */
 
-    rdma_set_smp_parameters();
+    mvp_set_smp_tuning_parameters();
 
     if (MVP_USE_BLOCKING) {
         /* blocking is enabled, so

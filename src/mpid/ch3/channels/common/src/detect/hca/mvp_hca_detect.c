@@ -127,7 +127,7 @@ static mvp_hca_types_log_t mvp_hca_types_log[] = {
     {MVP_HCA_IBM_EHCA, "MVP_HCA_IBM_EHCA"},
 
     /* Intel Cards */
-    {MVP_HCA_INTEL_HFI1, "MVP_HCA_INTEL_HFI1"},
+    {MVP_HCA_INTEL_HFI_100, "MVP_HCA_INTEL_HFI_100"},
 
     /* Chelsio Cards */
     {MVP_HCA_CHELSIO_T3, "MVP_HCA_CHELSIO_T3"},
@@ -425,7 +425,7 @@ mvp_hca_type mvp_new_get_hca_type(struct ibv_context *ctx,
         hca_type = MVP_HCA_QLGIC_QIB;
 
     } else if (!strncmp(dev_name, MVP_STR_HFI1, 4)) {
-        hca_type = MVP_HCA_INTEL_HFI1;
+        hca_type = MVP_HCA_INTEL_HFI_100;
 
     } else if (!strncmp(dev_name, MVP_STR_EHCA, 4)) {
         hca_type = MVP_HCA_IBM_EHCA;
@@ -658,7 +658,7 @@ mvp_hca_type mvp_get_hca_type(struct ibv_device *dev)
         hca_type = MVP_HCA_QLGIC_QIB;
 
     } else if (!strncmp(dev_name, MVP_STR_HFI1, 4)) {
-        hca_type = MVP_HCA_INTEL_HFI1;
+        hca_type = MVP_HCA_INTEL_HFI_100;
 
     } else if (!strncmp(dev_name, MVP_STR_EHCA, 4)) {
         hca_type = MVP_HCA_IBM_EHCA;
@@ -723,7 +723,7 @@ mvp_hca_type mvp_get_hca_type(void *dev)
     }
 
 #ifdef HAVE_LIBPSM2
-    hca_type = MVP_HCA_INTEL_HFI1;
+    hca_type = MVP_HCA_INTEL_HFI_100;
 #elif HAVE_LIBPSM_INFINIPATH
     hca_type = MVP_HCA_QLGIC_QIB;
 #else

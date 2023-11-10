@@ -1,16 +1,4 @@
-/*
- * Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- */
-
-#define PSM__INTEL_XEON_E5_2695_V3_2S_28_INTEL_HFI_100__28PPN                  \
+#define PSM__INTEL_XEON_E5_2695_V3_2S_28__INTEL_HFI_100__28PPN                 \
     {                                                                          \
         {28,                                                                   \
          21,                                                                   \
@@ -243,3 +231,4 @@
             }                                                                  \
         }                                                                      \
     }
+#define PSM__INTEL_XEON_E5_2695_V3_2S_28__INTEL_HFI_100__28PPN_CNT 5

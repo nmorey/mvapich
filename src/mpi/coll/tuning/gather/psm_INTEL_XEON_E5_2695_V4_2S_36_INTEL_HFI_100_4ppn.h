@@ -1,4 +1,4 @@
-#define PSM__INTEL_XEON_E5_2695_V4_2S_36_INTEL_HFI_100__4PPN                   \
+#define PSM__INTEL_XEON_E5_2695_V4_2S_36__INTEL_HFI_100__4PPN                  \
     {                                                                          \
         {                                                                      \
             4,                                                                 \
@@ -231,3 +231,4 @@
             }                                                                  \
         }                                                                      \
     }
+#define PSM__INTEL_XEON_E5_2695_V4_2S_36__INTEL_HFI_100__4PPN_CNT 5

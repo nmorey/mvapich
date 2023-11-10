@@ -89,9 +89,9 @@ int MPIR_T_pvar_handle_alloc_impl(MPI_T_pvar_session session, int pvar_index,
     if(info->bind == MPI_T_BIND_MPI_COMM)
     {
         int is_mpi_initialized = 1;
-        if(MPL_atomic_load_int(&MPIR_Process.mpich_state) != MPICH_POST_INIT)
-        {
-            is_mpi_initialized = 0;    
+        if (MPL_atomic_load_int(&MPIR_Process.mpich_state) !=
+            MPICH_MPI_STATE__POST_INIT) {
+            is_mpi_initialized = 0;
         }
         if(!is_mpi_initialized)
         {
@@ -136,7 +136,8 @@ int MPIR_T_pvar_handle_alloc_impl(MPI_T_pvar_session session, int pvar_index,
                             "MPI_COMM_WORLD as default since invalid obj_handle is "
                             "specified in MPI_T_pvar_handle_alloc\n", info->name);
                 }
-                hnd->addr = &(comm->sub_comm_counters[info->sub_comm_index]);
+                hnd->addr =
+                    &(comm->dev.ch.sub_comm_counters[info->sub_comm_index]);
             }
             else if(info->varclass == MPI_T_PVAR_CLASS_TIMER)
             {
@@ -146,7 +147,8 @@ int MPIR_T_pvar_handle_alloc_impl(MPI_T_pvar_session session, int pvar_index,
                             "MPI_COMM_WORLD as default since invalid obj_handle is "
                             "specified in MPI_T_pvar_handle_alloc\n", info->name);
                 }
-                hnd->addr = &(comm->sub_comm_timers[info->sub_comm_timer_index]);
+                hnd->addr =
+                    &(comm->dev.ch.sub_comm_timers[info->sub_comm_timer_index]);
             }
         }
     }

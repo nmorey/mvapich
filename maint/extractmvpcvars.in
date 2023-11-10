@@ -221,8 +221,11 @@ print OUTPUT_H <<EOT;
 extern u_int8_t MVP_CVAR_USER_SET_FLAGS[(MVP_CVAR_COUNT + 7) >> 3];
 
 /* Evaluates to 1 if the CVAR was explicitly defined by the user else 0 */
-#define MVP_CVAR_IS_SET_BY_USER(cvar)                                          \\
-    (1 & MVP_CVAR_USER_SET_FLAGS[cvar##_ID >> 3] >> (cvar##_ID & 7))
+#define MVP_CVAR_IS_SET_BY_USER(_cvar)                                      \\
+    (1 & MVP_CVAR_USER_SET_FLAGS[_cvar##_ID >> 3] >> (_cvar##_ID & 7))
+
+#define MVP_CVAR_SOFT_SET(_cvar, _val)                                      \\
+    if (!(MVP_CVAR_IS_SET_BY_USER(_cvar))) { _cvar = _val; }
 
 /* TODO: this should be defined elsewhere */
 #define ${ns}_assert MPIR_Assert

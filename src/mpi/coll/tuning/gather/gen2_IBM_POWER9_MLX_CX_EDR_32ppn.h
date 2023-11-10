@@ -1,4 +1,4 @@
-#define GEN2__IBM_POWER9_MLX_CX_EDR__32PPN                                     \
+#define GEN2__IBM_POWER9__MLX_CX_EDR__32PPN                                    \
     {                                                                          \
         {                                                                      \
             32,                                                                \
@@ -16,14 +16,14 @@
              {1024, &MPIR_Gather_MVP_Direct},                                  \
              {2048, &MPIR_Gather_MVP_Direct},                                  \
              {4096, &MPIR_Gather_MVP_Direct},                                  \
-             {8192, &MPIR_Gather_MVP_two_level_Direct},                        \
+             {8192, &MPIR_Gather_MVP_Direct},                                  \
              {16384, &MPIR_Gather_MVP_Direct},                                 \
              {32768, &MPIR_Gather_MVP_Direct},                                 \
-             {65536, &MPIR_Gather_MVP_Direct},                                 \
+             {65536, &MPIR_Gather_intra_binomial},                             \
              {131072, &MPIR_Gather_intra_binomial},                            \
-             {262144, &MPIR_Gather_MVP_Direct},                                \
-             {524288, &MPIR_Gather_MVP_Direct},                                \
-             {1048576, &MPIR_Gather_MVP_Direct}},                              \
+             {262144, &MPIR_Gather_intra_binomial},                            \
+             {524288, &MPIR_Gather_intra_binomial},                            \
+             {1048576, &MPIR_Gather_intra_binomial}},                          \
             21,                                                                \
             {{1, &MPIR_Gather_MVP_Direct},                                     \
              {2, &MPIR_Gather_MVP_Direct},                                     \
@@ -59,15 +59,15 @@
               {256, &MPIR_Gather_MVP_two_level_Direct},                        \
               {512, &MPIR_Gather_MVP_two_level_Direct},                        \
               {1024, &MPIR_Gather_MVP_two_level_Direct},                       \
-              {2048, &MPIR_Gather_MVP_two_level_Direct},                       \
+              {2048, &MPIR_Gather_MVP_Direct},                                 \
               {4096, &MPIR_Gather_MVP_two_level_Direct},                       \
               {8192, &MPIR_Gather_MVP_Direct},                                 \
               {16384, &MPIR_Gather_MVP_Direct},                                \
               {32768, &MPIR_Gather_MVP_two_level_Direct},                      \
-              {65536, &MPIR_Gather_MVP_two_level_Direct},                      \
-              {131072, &MPIR_Gather_MVP_two_level_Direct},                     \
-              {262144, &MPIR_Gather_MVP_two_level_Direct},                     \
-              {524288, &MPIR_Gather_MVP_two_level_Direct},                     \
+              {65536, &MPIR_Gather_intra_binomial},                            \
+              {131072, &MPIR_Gather_intra_binomial},                           \
+              {262144, &MPIR_Gather_intra_binomial},                           \
+              {524288, &MPIR_Gather_intra_binomial},                           \
               {1048576, &MPIR_Gather_MVP_two_level_Direct}},                   \
              21,                                                               \
              {{1, &MPIR_Gather_MVP_Direct},                                    \
@@ -90,7 +90,7 @@
               {131072, &MPIR_Gather_MVP_Direct},                               \
               {262144, &MPIR_Gather_MVP_Direct},                               \
               {524288, &MPIR_Gather_MVP_Direct},                               \
-              {1048576, &MPIR_Gather_MVP_Direct}}},                            \
+              {1048576, &MPIR_Gather_intra_binomial}}},                        \
             {128,                                                              \
              21,                                                               \
              {{1, &MPIR_Gather_MVP_two_level_Direct},                          \
@@ -131,11 +131,11 @@
               {8192, &MPIR_Gather_MVP_Direct},                                 \
               {16384, &MPIR_Gather_MVP_Direct},                                \
               {32768, &MPIR_Gather_MVP_Direct},                                \
-              {65536, &MPIR_Gather_MVP_Direct},                                \
+              {65536, &MPIR_Gather_intra_binomial},                            \
               {131072, &MPIR_Gather_intra_binomial},                           \
-              {262144, &MPIR_Gather_MVP_Direct},                               \
-              {524288, &MPIR_Gather_MVP_Direct},                               \
-              {1048576, &MPIR_Gather_MVP_Direct}}},                            \
+              {262144, &MPIR_Gather_intra_binomial},                           \
+              {524288, &MPIR_Gather_intra_binomial},                           \
+              {1048576, &MPIR_Gather_intra_binomial}}},                        \
             {256,                                                              \
              21,                                                               \
              {{1, &MPIR_Gather_MVP_two_level_Direct},                          \
@@ -149,7 +149,7 @@
               {256, &MPIR_Gather_MVP_two_level_Direct},                        \
               {512, &MPIR_Gather_MVP_two_level_Direct},                        \
               {1024, &MPIR_Gather_MVP_two_level_Direct},                       \
-              {2048, &MPIR_Gather_MVP_two_level_Direct},                       \
+              {2048, &MPIR_Gather_MVP_Direct},                                 \
               {4096, &MPIR_Gather_MVP_Direct},                                 \
               {8192, &MPIR_Gather_MVP_Direct},                                 \
               {16384, &MPIR_Gather_MVP_Direct},                                \
@@ -176,11 +176,11 @@
               {8192, &MPIR_Gather_MVP_Direct},                                 \
               {16384, &MPIR_Gather_MVP_Direct},                                \
               {32768, &MPIR_Gather_MVP_Direct},                                \
-              {65536, &MPIR_Gather_MVP_Direct},                                \
-              {131072, &MPIR_Gather_MVP_Direct},                               \
-              {262144, &MPIR_Gather_MVP_Direct},                               \
-              {524288, &MPIR_Gather_MVP_Direct},                               \
-              {1048576, &MPIR_Gather_MVP_Direct}}},                            \
+              {65536, &MPIR_Gather_intra_binomial},                            \
+              {131072, &MPIR_Gather_intra_binomial},                           \
+              {262144, &MPIR_Gather_intra_binomial},                           \
+              {524288, &MPIR_Gather_intra_binomial},                           \
+              {1048576, &MPIR_Gather_intra_binomial}}},                        \
         {                                                                      \
             512, 21,                                                           \
                 {{1, &MPIR_Gather_MVP_two_level_Direct},                       \
@@ -194,7 +194,7 @@
                  {256, &MPIR_Gather_MVP_two_level_Direct},                     \
                  {512, &MPIR_Gather_MVP_two_level_Direct},                     \
                  {1024, &MPIR_Gather_MVP_two_level_Direct},                    \
-                 {2048, &MPIR_Gather_MVP_two_level_Direct},                    \
+                 {2048, &MPIR_Gather_MVP_Direct},                              \
                  {4096, &MPIR_Gather_MVP_Direct},                              \
                  {8192, &MPIR_Gather_MVP_Direct},                              \
                  {16384, &MPIR_Gather_MVP_Direct},                             \
@@ -221,13 +221,14 @@
                     {8192, &MPIR_Gather_MVP_Direct},                           \
                     {16384, &MPIR_Gather_MVP_Direct},                          \
                     {32768, &MPIR_Gather_MVP_Direct},                          \
-                    {65536, &MPIR_Gather_MVP_Direct},                          \
-                    {131072, &MPIR_Gather_MVP_Direct},                         \
-                    {262144, &MPIR_Gather_MVP_Direct},                         \
-                    {524288, &MPIR_Gather_MVP_Direct},                         \
+                    {65536, &MPIR_Gather_intra_binomial},                      \
+                    {131072, &MPIR_Gather_intra_binomial},                     \
+                    {262144, &MPIR_Gather_intra_binomial},                     \
+                    {524288, &MPIR_Gather_intra_binomial},                     \
                 {                                                              \
-                    1048576, &MPIR_Gather_MVP_Direct                           \
+                    1048576, &MPIR_Gather_intra_binomial                       \
                 }                                                              \
             }                                                                  \
         }                                                                      \
     }
+#define GEN2__IBM_POWER9__MLX_CX_EDR__32PPN_CNT 5

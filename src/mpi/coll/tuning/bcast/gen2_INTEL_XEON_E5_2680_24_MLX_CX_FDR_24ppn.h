@@ -1,15 +1,4 @@
-/* Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- */
-
-#define GEN2__INTEL_XEON_E5_2680_24__MLX_CX_FDR__24PPN                         \
+#define GEN2__INTEL_XEON_E5_2680_V3_2S_24__MLX_CX_FDR__1PPN                    \
     {                                                                          \
         {48,                                                                   \
          8192,                                                                 \
@@ -17,7 +6,7 @@
          4,                                                                    \
          {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},      \
          20,                                                                   \
-         {{1, &MPIR_Bcast_scatter_doubling_allgather_MVP, -1},                 \
+         {{1, &MPIR_Knomial_Bcast_inter_node_wrapper_MVP, -1},                 \
           {2, &MPIR_Bcast_binomial_MVP, -1},                                   \
           {4, &MPIR_Bcast_binomial_MVP, -1},                                   \
           {8, &MPIR_Bcast_binomial_MVP, -1},                                   \
@@ -66,7 +55,7 @@
              4,                                                                \
              {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},  \
              20,                                                               \
-             {{1, &MPIR_Bcast_scatter_doubling_allgather_MVP, -1},             \
+             {{1, &MPIR_Knomial_Bcast_inter_node_wrapper_MVP, -1},             \
               {2, &MPIR_Knomial_Bcast_inter_node_wrapper_MVP, -1},             \
               {4, &MPIR_Knomial_Bcast_inter_node_wrapper_MVP, -1},             \
               {8, &MPIR_Knomial_Bcast_inter_node_wrapper_MVP, -1},             \
@@ -115,7 +104,7 @@
              4,                                                                \
              {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},  \
              20,                                                               \
-             {{1, &MPIR_Bcast_scatter_doubling_allgather_MVP, -1},             \
+             {{1, &MPIR_Knomial_Bcast_inter_node_wrapper_MVP, -1},             \
               {2, &MPIR_Knomial_Bcast_inter_node_wrapper_MVP, -1},             \
               {4, &MPIR_Knomial_Bcast_inter_node_wrapper_MVP, -1},             \
               {8, &MPIR_Knomial_Bcast_inter_node_wrapper_MVP, -1},             \
@@ -164,7 +153,7 @@
              4,                                                                \
              {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},  \
              20,                                                               \
-             {{1, &MPIR_Bcast_scatter_doubling_allgather_MVP, -1},             \
+             {{1, &MPIR_Knomial_Bcast_inter_node_wrapper_MVP, -1},             \
               {2, &MPIR_Knomial_Bcast_inter_node_wrapper_MVP, -1},             \
               {4, &MPIR_Knomial_Bcast_inter_node_wrapper_MVP, -1},             \
               {8, &MPIR_Knomial_Bcast_inter_node_wrapper_MVP, -1},             \
@@ -213,7 +202,7 @@
              4,                                                                \
              {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},  \
              20,                                                               \
-             {{1, &MPIR_Bcast_scatter_doubling_allgather_MVP, -1},             \
+             {{1, &MPIR_Knomial_Bcast_inter_node_wrapper_MVP, -1},             \
               {2, &MPIR_Knomial_Bcast_inter_node_wrapper_MVP, -1},             \
               {4, &MPIR_Knomial_Bcast_inter_node_wrapper_MVP, -1},             \
               {8, &MPIR_Knomial_Bcast_inter_node_wrapper_MVP, -1},             \
@@ -309,3 +298,4 @@
             }                                                                  \
         }                                                                      \
     }
+#define GEN2__INTEL_XEON_E5_2680_V3_2S_24__MLX_CX_FDR__1PPN_CNT 6

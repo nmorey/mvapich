@@ -46,12 +46,6 @@
 #include <netinet/in.h>
 #endif
 
-#if defined(CHANNEL_MRAIL)
-#include "mvp_utils.h"
-#include "rdma_impl.h"
-#include "mvp_arch_hca_detect.h"
-#endif
-
 #include "mvp_common_tuning.h"
 #include "mvp_shmem_bar.h"
 #include "mvp_coll_shmem.h"
@@ -104,25 +98,6 @@ cvars:
         This parameter can be used to specify the path to the shared memory
         files for intra-node communication.
 
-    - name        : MVP_ALLTOALL_COLLECTIVE_ALGORITHM
-      category    : CH3
-      type        : int
-      default     : -1
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        This CVAR selects proper collective algorithm for alltoall operation.
-
-    - name        : MVP_SCATTER_COLLECTIVE_ALGORITHM
-      category    : CH3
-      type        : int
-      default     : -1
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        This CVAR selects proper collective algorithm for scatter operation.
 
     - name        : MVP_KNOMIAL_INTER_LEADER_THRESHOLD
       category    : COLLECTIVE
@@ -945,35 +920,6 @@ cvars:
         TODO-DESC
 
 
-    - name        : MVP_ALLTOALL_TUNING
-      category    : COLLECTIVE
-      type        : string
-      default     : NULL
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        TODO-DESC
-
-    - name        : MVP_INTRA_SCATTER_TUNING
-      category    : COLLECTIVE
-      type        : string
-      default     : NULL
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        TODO-DESC
-
-    - name        : MVP_INTER_SCATTER_TUNING
-      category    : COLLECTIVE
-      type        : string
-      default     : NULL
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        TODO-DESC
 
     - name        : MVP_INTRA_ISCATTER_TUNING
       category    : COLLECTIVE
@@ -1621,7 +1567,6 @@ const char *mvp_user_igather_intra = NULL;
 const char *mvp_user_igather_inter = NULL;
 
 /* runtime flag for alltoall tuning  */
-const char *mvp_user_alltoall = NULL;
 const char *mvp_user_ialltoall_intra = NULL;
 const char *mvp_user_ialltoall_inter = NULL;
 int ialltoall_segment_size = 8192;
@@ -1636,8 +1581,6 @@ const char *mvp_user_ibcast_intra = NULL;
 const char *mvp_user_ibcast_inter = NULL;
 
 /* Runtime threshold for scatter */
-const char *mvp_user_scatter_intra = NULL;
-const char *mvp_user_scatter_inter = NULL;
 const char *mvp_user_iscatter_intra = NULL;
 const char *mvp_user_iscatter_inter = NULL;
 int iscatter_segment_size = 8192;
@@ -1681,9 +1624,6 @@ const char *mvp_user_red_scat_inter = NULL;
 
 /* Runtime threshold for red_scat_block */
 const char *mvp_user_red_scat_block_inter = NULL;
-
-/* Runtime threshold for allgatherv */
-const char *mvp_user_allgatherv_inter = NULL;
 
 int mvp_bcast_large_msg = MPIR_BCAST_LARGE_MSG;
 
@@ -1732,6 +1672,8 @@ static inline void mvp_set_reduce_collective_algorithm();
 static inline void mvp_set_gather_collective_algorithm();
 static inline void mvp_set_bcast_collective_algorithm();
 
+static inline void mvp_set_scatter_collective_algorithm();
+
 int MVP_collectives_arch_init(int heterogeneity,
                               struct coll_info *colls_arch_hca)
 {
@@ -1741,7 +1683,7 @@ int MVP_collectives_arch_init(int heterogeneity,
     /* tune the shmem size based on different architecture */
     if (MVP_IS_ARCH_HCA_TYPE(MVP_get_arch_hca_type(),
                              MVP_ARCH_INTEL_XEON_PHI_7250,
-                             MVP_HCA_INTEL_HFI1) &&
+                             MVP_HCA_INTEL_HFI_100) &&
         !heterogeneity) {
         /* TACC KNL */
         if (MPIR_Process.local_size <= 64) {
@@ -1812,15 +1754,7 @@ int MVP_collectives_arch_init(int heterogeneity,
         mvp_set_gather_collective_algorithm();
         mvp_set_bcast_collective_algorithm();
         mvp_set_reduce_collective_algorithm();
-
-        mpi_errno = mvp_set_alltoall_collective_algorithm();
-        if (mpi_errno != MPI_SUCCESS) {
-            MPIR_ERR_POP(mpi_errno);
-        }
-        mpi_errno = mvp_set_scatter_collective_algorithm();
-        if (mpi_errno != MPI_SUCCESS) {
-            MPIR_ERR_POP(mpi_errno);
-        }
+        mvp_set_scatter_collective_algorithm();
     }
 
 fn_exit:
@@ -1865,31 +1799,6 @@ static inline int tuning_runtime_init()
                 MVP_GATHER_SWITCH_PT;
         }
     }
-
-    /* If MVP_INTRA_SCATTER_TUNING is define && MVP_INTER_SCATTER_TUNING is not
-       define */
-    if (mvp_user_scatter_intra != NULL && mvp_user_scatter_inter == NULL) {
-        MVP_intranode_Scatter_is_define(mvp_user_scatter_intra);
-    }
-
-    /* if MVP_INTER_SCATTER_TUNING is define with/without
-     * MVP_INTRA_SCATTER_TUNING */
-    if (mvp_user_scatter_inter != NULL) {
-        MVP_internode_Scatter_is_define(mvp_user_scatter_inter,
-                                        mvp_user_scatter_intra);
-    }
-
-    /* if MVP_INTER_ALLGATHERV_TUNING is define */
-    if (mvp_user_allgatherv_inter != NULL) {
-        MVP_internode_Allgatherv_is_define(mvp_user_allgatherv_inter);
-    }
-
-    /* If MVP_ALLTOALL_TUNING is define  */
-    if (mvp_user_alltoall != NULL) {
-        MVP_Alltoall_is_define(mvp_user_alltoall);
-    }
-
-    return 0;
 }
 
 void MVP_collectives_arch_finalize()
@@ -1923,50 +1832,23 @@ static inline void mvp_set_bcast_collective_algorithm()
     }
 }
 
-int mvp_set_scatter_collective_algorithm()
+static inline void mvp_set_scatter_collective_algorithm()
 {
-    int mpi_errno = MPI_SUCCESS;
-
-    /* Choose algorithm based on CVAR */
-    if (MVP_SCATTER_COLLECTIVE_ALGORITHM != -1) {
-        switch (MVP_SCATTER_COLLECTIVE_ALGORITHM) {
-            case MVP_SCATTER_BINOMIAL:
-                mvp_user_scatter_inter = MVP_SCATTER_BINOMIAL_RHS;
-                break;
-            case MVP_SCATTER_DIRECT:
-                mvp_user_scatter_inter = MVP_SCATTER_DIRECT_RHS;
-                break;
-            case MVP_SCATTER_BINOMIAL_AND_BINOMIAL_INTRA:
-                mvp_user_scatter_inter = MVP_SCATTER_TWO_LEVEL_BINOMIAL;
-                mvp_user_scatter_intra = MVP_SCATTER_BINOMIAL_RHS;
-                break;
-            case MVP_SCATTER_BINOMIAL_AND_DIRECT_INTRA:
-                mvp_user_scatter_inter = MVP_SCATTER_TWO_LEVEL_BINOMIAL;
-                mvp_user_scatter_intra = MVP_SCATTER_DIRECT_RHS;
-                break;
-            case MVP_SCATTER_DIRECT_AND_BINOMIAL_INTRA:
-                mvp_user_scatter_inter = MVP_SCATTER_TWO_LEVEL_DIRECT;
-                mvp_user_scatter_intra = MVP_SCATTER_BINOMIAL_RHS;
-                break;
-            case MVP_SCATTER_DIRECT_AND_DIRECT_INTRA:
-                mvp_user_scatter_inter = MVP_SCATTER_TWO_LEVEL_DIRECT;
-                mvp_user_scatter_intra = MVP_SCATTER_DIRECT_RHS;
-                break;
-            default:
-                PRINT_INFO(MPIR_Process.local_rank == 0,
-                           "\nSelected value of CVAR:"
-                           " MVP_SCATTER_COLLECTIVE_ALGORITHM is not valid. "
-                           "Valid values"
-                           " are natural numbers less than %d\n",
-                           MVP_MAX_NUM_SCATTER_FUNCS);
-                mpi_errno = MPI_ERR_INTERN;
-                MPIR_ERR_POP(mpi_errno);
-                break;
-        }
+    switch (MVP_SCATTER_COLLECTIVE_ALGORITHM) {
+        case MVP_SCATTER_COLLECTIVE_ALGORITHM_BINOMIAL:
+            MVP_SCATTER_INTER_NODE_TUNING_ALGO =
+                MVP_SCATTER_INTER_NODE_TUNING_ALGO_BINOMIAL;
+            MVP_SCATTER_INTRA_NODE_TUNING_ALGO =
+                MVP_SCATTER_INTRA_NODE_TUNING_ALGO_BINOMIAL;
+            break;
+        case MVP_SCATTER_COLLECTIVE_ALGORITHM_DIRECT:
+            MVP_SCATTER_INTER_NODE_TUNING_ALGO =
+                MVP_SCATTER_INTER_NODE_TUNING_ALGO_DIRECT;
+            MVP_SCATTER_INTRA_NODE_TUNING_ALGO =
+                MVP_SCATTER_INTRA_NODE_TUNING_ALGO_DIRECT;
+        case MVP_SCATTER_COLLECTIVE_ALGORITHM_UNSET:
+        default:;
     }
-fn_fail:
-fn_exit:
-    return mpi_errno;
 }
 
 static inline void mvp_set_gather_collective_algorithm()
@@ -2009,44 +1891,6 @@ static inline void mvp_set_reduce_collective_algorithm()
     }
 }
 
-int mvp_set_alltoall_collective_algorithm()
-{
-    int mpi_errno = MPI_SUCCESS;
-
-    /* Choose algorithm based on CVAR */
-    if (MVP_ALLTOALL_COLLECTIVE_ALGORITHM != -1) {
-        switch (MVP_ALLTOALL_COLLECTIVE_ALGORITHM) {
-            case MVP_BRUCK_ALLTOALL:
-                mvp_user_alltoall = MVP_ALLTOALL_BRUCK_MVP;
-                break;
-            case MVP_RD_ALLTOALL:
-                mvp_user_alltoall = MVP_ALLTOALL_RD_MVP;
-                break;
-            case MVP_SCATTER_DESTINATION_ALLTOALL:
-                mvp_user_alltoall = MVP_ALLTOALL_SCATTER_DEST_MVP;
-                break;
-            case MVP_PAIRWISE_ALLTOALL:
-                mvp_user_alltoall = MVP_ALLTOALL_PAIRWISE_MVP;
-                break;
-            case MVP_INPLACE_ALLTOALL:
-                mvp_user_alltoall = MVP_ALLTOALL_INPLACE_MVP;
-                break;
-            default:
-                PRINT_INFO(
-                    MPIR_Process.local_rank == 0,
-                    "\nSelected value of "
-                    "CVAR MVP_ALLTOALL_COLLECTIVE_ALGORITHM is not valid. "
-                    " Valid values are natural numbers less than %d\n",
-                    MVP_MAX_NUM_ALLTOALL_FUNCS);
-                mpi_errno = MPI_ERR_INTERN;
-                MPIR_ERR_POP(mpi_errno);
-                break;
-        }
-    }
-fn_fail:
-fn_exit:
-    return mpi_errno;
-}
 
 #ifdef CKPT
 #if defined(CHANNEL_MRAIL_GEN2) || defined(CHANNEL_NEMESIS_IB)
@@ -2110,16 +1954,6 @@ void MVP_Read_env_vars(void)
     if (MVP_INTER_IGATHER_TUNING != NULL) {
         mvp_user_igather_inter = MVP_INTER_IGATHER_TUNING;
     }
-    if (MVP_ALLTOALL_TUNING != NULL) {
-        mvp_user_alltoall = MVP_ALLTOALL_TUNING;
-    }
-    if (MVP_INTRA_SCATTER_TUNING != NULL) {
-        mvp_user_scatter_intra = MVP_INTRA_SCATTER_TUNING;
-    }
-    if (MVP_INTER_SCATTER_TUNING != NULL) {
-        mvp_user_scatter_inter = MVP_INTER_SCATTER_TUNING;
-    }
-
     if (MVP_INTRA_ISCATTER_TUNING != NULL) {
         mvp_user_iscatter_intra = MVP_INTRA_ISCATTER_TUNING;
     }
@@ -2191,10 +2025,6 @@ void MVP_Read_env_vars(void)
 
     if (MVP_INTER_RED_SCAT_BLOCK_TUNING != NULL) {
         mvp_user_red_scat_block_inter = MVP_INTER_RED_SCAT_BLOCK_TUNING;
-    }
-
-    if (MVP_INTER_ALLGATHERV_TUNING != NULL) {
-        mvp_user_allgatherv_inter = MVP_INTER_ALLGATHERV_TUNING;
     }
 
     if (MVP_KNOMIAL_INTRA_NODE_FACTOR < MVP_INTRA_NODE_KNOMIAL_FACTOR_MIN) {

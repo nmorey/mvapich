@@ -402,8 +402,10 @@ static int MPIR_Bcast_inter_node_helper_MVP(void *buffer, int count,
 
             } else if (local_rank == 0) {
                 if (MVP_USE_SCATTER_RD_INTER_LEADER_BCAST) {
-                    mpi_errno = MPIR_Bcast_scatter_doubling_allgather_MVP(
-                        buffer, count, datatype, root, leader_commptr, errflag);
+                    mpi_errno =
+                        MPIR_Bcast_intra_scatter_recursive_doubling_allgather(
+                            buffer, count, datatype, root, leader_commptr,
+                            errflag);
                 } else if (MVP_USE_KNOMIAL_INTER_LEADER_BCAST) {
                     mpi_errno = MPIR_Knomial_Bcast_inter_node_wrapper_MVP(
                         buffer, count, datatype, root, comm_ptr, errflag);
@@ -561,8 +563,9 @@ int MPIR_Bcast_intra_MVP(void *buffer, int count, MPI_Datatype datatype,
                 mpi_errno = MPIR_Bcast_scatter_ring_allgather_MVP(
                     buffer, count, datatype, root, comm_ptr, errflag);
             } else {
-                mpi_errno = MPIR_Bcast_scatter_doubling_allgather_MVP(
-                    buffer, count, datatype, root, comm_ptr, errflag);
+                mpi_errno =
+                    MPIR_Bcast_intra_scatter_recursive_doubling_allgather(
+                        buffer, count, datatype, root, comm_ptr, errflag);
             }
         }
         if (mpi_errno) {
@@ -1203,29 +1206,6 @@ int MPIR_Bcast_MVP(void *buf, int count, MPI_Datatype datatype, int root,
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_T_PVAR_COMM_COUNTER_INC(MVP, mvp_coll_bcast_subcomm, 1, comm_ptr);
-#ifdef _ENABLE_CUDA_
-    MPI_Aint datatype_extent;
-    MPIR_Datatype_get_extent_macro(datatype, datatype_extent);
-    intptr_t nbytes = 0;
-    nbytes = (intptr_t)(count) * (datatype_extent);
-    int mem_type = 0;
-    int rank = comm_ptr->rank;
-    if (mvp_enable_device) {
-        mem_type = is_device_buffer(buf);
-    }
-
-    if (mvp_enable_device && mem_type && mvp_device_coll_use_stage &&
-        (nbytes <= mvp_device_bcast_stage_limit)) {
-        if (rank == root) {
-            mpi_errno = device_stage_alloc(&buf, count * datatype_extent, NULL,
-                                           0, mem_type, 0, 0);
-        } else {
-            mpi_errno = device_stage_alloc(NULL, 0, &buf,
-                                           count * datatype_extent, 0, 1, 0);
-        }
-        MPIR_ERR_CHECK(mpi_errno);
-    }
-#endif /*#ifdef _ENABLE_CUDA_ */
     if (!MVP_USE_OLD_BCAST) {
         /* Use the new tuned bcast */
             mpi_errno = MPIR_Bcast_index_tuned_intra_MVP(
@@ -1236,16 +1216,6 @@ int MPIR_Bcast_MVP(void *buf, int count, MPI_Datatype datatype, int root,
             MPIR_Bcast_intra_MVP(buf, count, datatype, root, comm_ptr, errflag);
     }
     comm_ptr->dev.ch.intra_node_done = 0;
-#ifdef _ENABLE_CUDA_
-    if (mvp_enable_device && mem_type && mvp_device_coll_use_stage &&
-        (nbytes <= mvp_device_bcast_stage_limit)) {
-        if (rank == root) {
-            device_stage_free(&buf, NULL, 0, mem_type, 0);
-        } else {
-            device_stage_free(NULL, &buf, count * datatype_extent, 0, mem_type);
-        }
-    }
-#endif /*#ifdef _ENABLE_CUDA_ */
     MPIR_ERR_CHECK(mpi_errno);
 
 fn_exit:

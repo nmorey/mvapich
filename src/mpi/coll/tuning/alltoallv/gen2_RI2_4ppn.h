@@ -43,3 +43,4 @@
             }                                                                  \
         }                                                                      \
     }
+#define test_table_CNT 2

@@ -1,16 +1,4 @@
-/*
- * Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- */
-
-#define PSM__RI__8PPN                                                          \
+#define PSM__INTEL_XEON_E5630_8__MLX_CX_QDR__8PPN                              \
     {{8,                                                                       \
       {0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0},         \
       20,                                                                      \
@@ -83,3 +71,4 @@
        {262144, &MPIR_Alltoall_pairwise_MVP},                                  \
        {524288, &MPIR_Alltoall_pairwise_MVP},                                  \
        {1048576, &MPIR_Alltoall_pairwise_MVP}}}};
+#define PSM__INTEL_XEON_E5630_8__MLX_CX_QDR__8PPN_CNT 3

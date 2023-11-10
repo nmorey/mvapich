@@ -283,7 +283,6 @@ typedef struct MPIDI_MVP_ep {
     int use_smp_eager_fast_fn;
 
     /* eager message threshold */
-    int eager_max_msg_sz;
     int eager_fast_max_msg_sz;
     /* eager message threshold for ready sends.  -1 means there's no limit */
     int ready_eager_max_msg_sz;

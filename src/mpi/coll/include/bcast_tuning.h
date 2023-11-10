@@ -198,12 +198,6 @@ extern int MPIR_Bcast_binomial_MVP(void *buffer, int count,
                                    MPIR_Comm *comm_ptr,
                                    MPIR_Errflag_t *errflag);
 
-extern int MPIR_Bcast_scatter_doubling_allgather_MVP(void *buffer, int count,
-                                                     MPI_Datatype datatype,
-                                                     int root,
-                                                     MPIR_Comm *comm_ptr,
-                                                     MPIR_Errflag_t *errflag);
-
 extern int MPIR_Bcast_scatter_ring_allgather_MVP(void *buffer, int count,
                                                  MPI_Datatype datatype,
                                                  int root, MPIR_Comm *comm_ptr,
@@ -246,12 +240,10 @@ extern int MPIR_Knomial_Bcast_inter_node_trace_MVP(
     int root, int mvp_bcast_knomial_factor, int *src, int *expected_send_count,
     int *expected_recv_count, int **dst_array, MPIR_Comm *comm_ptr);
 
-#if defined(CHANNEL_MRAIL_GEN2) || defined(CHANNEL_NEMESIS_IB)
 extern int MPIR_Pipelined_Bcast_Zcpy_MVP(void *buffer, int count,
                                          MPI_Datatype datatype, int root,
                                          MPIR_Comm *comm_ptr,
                                          MPIR_Errflag_t *errflag);
-#endif
 
 extern int MPIR_Shmem_Bcast_Zcpy_MVP(void *buffer, int count,
                                      MPI_Datatype datatype, int root, int src,

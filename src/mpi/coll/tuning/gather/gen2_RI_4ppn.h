@@ -1,4 +1,4 @@
-#define GEN2__RI__4PPN                                                         \
+#define GEN2__INTEL_XEON_E5630_8__MLX_CX_QDR__4PPN                             \
     {                                                                          \
         {                                                                      \
             4, 21, {{1, &MPIR_Gather_MVP_Direct},                              \
@@ -49,3 +49,4 @@
             }                                                                  \
         }                                                                      \
     }
+#define GEN2__INTEL_XEON_E5630_8__MLX_CX_QDR__4PPN_CNT 1

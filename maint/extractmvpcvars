@@ -14,7 +14,7 @@ use Data::Dumper;
 use Getopt::Long;
 
 # Help perl find the YAML parsing module
-use lib '/tmp/aZh20CBIb9/mvapich-3.0b/maint/local_perl/lib';
+use lib '/tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/local_perl/lib';
 use YAML::Tiny qw();
 
 # To format README file
@@ -45,9 +45,9 @@ my $dep_ns = "MV2";
 # Default :output source files
 # NOTE: it's important to use single quote. abs_srcdir may contain sigils
 #   e.g. /var/lib/jenkins/workspace/hzhou-custom@2/config/ch3-sock/label/centos64
-my $header_file = '/tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/include/mvp_cvars.h';
-my $c_file      = '/tmp/aZh20CBIb9/mvapich-3.0b/maint/../src/util/mvp_cvars.c';
-my $readme_file = '/tmp/aZh20CBIb9/mvapich-3.0b/maint/../README_MVP.envvar';
+my $header_file = '/tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/include/mvp_cvars.h';
+my $c_file      = '/tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/util/mvp_cvars.c';
+my $readme_file = '/tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../README_MVP.envvar';
 
 sub Usage {
     print <<EOT;
@@ -221,8 +221,11 @@ print OUTPUT_H <<EOT;
 extern u_int8_t MVP_CVAR_USER_SET_FLAGS[(MVP_CVAR_COUNT + 7) >> 3];
 
 /* Evaluates to 1 if the CVAR was explicitly defined by the user else 0 */
-#define MVP_CVAR_IS_SET_BY_USER(cvar)                                          \\
-    (1 & MVP_CVAR_USER_SET_FLAGS[cvar##_ID >> 3] >> (cvar##_ID & 7))
+#define MVP_CVAR_IS_SET_BY_USER(_cvar)                                      \\
+    (1 & MVP_CVAR_USER_SET_FLAGS[_cvar##_ID >> 3] >> (_cvar##_ID & 7))
+
+#define MVP_CVAR_SOFT_SET(_cvar, _val)                                      \\
+    if (!(MVP_CVAR_IS_SET_BY_USER(_cvar))) { _cvar = _val; }
 
 /* TODO: this should be defined elsewhere */
 #define ${ns}_assert MPIR_Assert

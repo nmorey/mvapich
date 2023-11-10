@@ -17,7 +17,6 @@
 #error "Requres mvp_smp_impl.h, include that header first"
 #endif
 
-//#include "mvp_arch_hca_detect.h"
 #include "mvp_shmem.h"
 #include "mvp_req_fields.h"
 #include "mvp_req.h"

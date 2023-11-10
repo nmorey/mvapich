@@ -395,13 +395,6 @@ int MPIR_Reduce_scatter_MVP(const void *sendbuf, void *recvbuf,
     int is_commutative = 0;
     MPIR_Op *op_ptr = NULL;
     int *disps = NULL;
-#ifdef _ENABLE_CUDA_
-    int recv_mem_type = 0, send_mem_type = 0, stride = 0;
-    char *recv_host_buf = NULL;
-    char *send_host_buf = NULL;
-    char *temp_recvbuf = recvbuf;
-    int rank = comm_ptr->rank;
-#endif
     MPIR_CHKLMEM_DECL(1);
 
     if (HANDLE_GET_KIND(op) == HANDLE_KIND_BUILTIN) {
@@ -428,39 +421,6 @@ int MPIR_Reduce_scatter_MVP(const void *sendbuf, void *recvbuf,
 
     MPIR_Datatype_get_size_macro(datatype, type_size);
     nbytes = total_count * type_size;
-
-#ifdef _ENABLE_CUDA_
-    MPI_Aint true_lb, true_extent, extent;
-    MPIR_Type_get_true_extent_impl(datatype, &true_lb, &true_extent);
-    MPIR_Datatype_get_extent_macro(datatype, extent);
-    stride = total_count * MPL_MAX(extent, true_extent);
-
-    if (mvp_enable_device) {
-        recv_mem_type = is_device_buffer(recvbuf);
-        if (sendbuf != MPI_IN_PLACE) {
-            send_mem_type = is_device_buffer(sendbuf);
-        }
-    }
-    if (mvp_enable_device && send_mem_type) {
-        send_host_buf = (char *)MPL_malloc(stride, MPL_MEM_COLL);
-        MVP_MPID_Memcpy_Device((void *)send_host_buf, (void *)sendbuf, stride,
-                               deviceMemcpyDeviceToHost);
-        sendbuf = send_host_buf;
-    }
-
-    if (mvp_enable_device && recv_mem_type) {
-        /* recvbuf will be treated as sendbuf if sendbuf is MPI_IN_PLACE */
-        if (sendbuf == MPI_IN_PLACE) {
-            recv_host_buf = (char *)MPL_malloc(stride, MPL_MEM_COLL);
-            MVP_MPID_Memcpy_Device((void *)recv_host_buf, (void *)recvbuf,
-                                   stride, deviceMemcpyDeviceToHost);
-        } else {
-            recv_host_buf =
-                (char *)MPL_malloc(recvcnts[rank] * type_size, MPL_MEM_COLL);
-        }
-        recvbuf = recv_host_buf;
-    }
-#endif
 
     if (is_commutative) {
         if (mvp_red_scat_thresholds_table[0].numproc != 1 &&
@@ -507,29 +467,7 @@ int MPIR_Reduce_scatter_MVP(const void *sendbuf, void *recvbuf,
     MPIR_ERR_CHECK(mpi_errno);
 
 fn_exit:
-#ifdef _ENABLE_CUDA_
-    if (mvp_enable_device && recv_mem_type == 1) {
-        recvbuf = temp_recvbuf;
-        MVP_MPID_Memcpy_Device((void *)recvbuf, (void *)recv_host_buf,
-                               recvcnts[rank] * type_size,
-                               deviceMemcpyHostToDevice);
-    }
-    if (mvp_enable_device && recv_mem_type) {
-        if (recv_host_buf) {
-            MPL_free(recv_host_buf);
-            recv_host_buf = NULL;
-        }
-    }
-    if (mvp_enable_device && send_mem_type) {
-        if (send_host_buf) {
-            MPL_free(send_host_buf);
-            send_host_buf = NULL;
-        }
-    }
-#endif
-
     MPIR_CHKLMEM_FREEALL();
-
     if (mpi_errno_ret)
         mpi_errno = mpi_errno_ret;
     else if (*errflag)

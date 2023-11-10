@@ -300,88 +300,29 @@ conf_check_end:
         }
     }
 
-#ifdef _ENABLE_CUDA_
-    MPI_Aint sendtype_extent;
-    MPIR_Datatype_get_extent_macro(sendtype, sendtype_extent);
-    int recvtype_extent = 0;
-    MPIR_Datatype_get_extent_macro(recvtype, recvtype_extent);
-    int send_mem_type = 0;
-    int recv_mem_type = 0;
-    if (mvp_enable_device) {
-        send_mem_type = is_device_buffer(sendbuf);
-        recv_mem_type = is_device_buffer(recvbuf);
+    if (comm_ptr->dev.ch.rank_list != NULL && MVP_USE_DIRECT_GATHER &&
+        MVP_USE_TWO_LEVEL_GATHER && comm_ptr->dev.ch.shmem_coll_ok == 1 &&
+        comm_ptr->dev.ch.is_blocked == 0) {
+        /* Set intra-node function pt for gather_two_level */
+        MVP_Gather_intra_node_function =
+            mvp_gather_indexed_thresholds_table[conf_index][comm_size_index]
+                .intra_node[intra_node_algo_index]
+                .gather_fn;
+        /* Set inter-leader pt */
+        MVP_Gather_inter_leader_function =
+            mvp_gather_indexed_thresholds_table[conf_index][comm_size_index]
+                .inter_leader[inter_node_algo_index]
+                .gather_fn;
+        /* We call Gather function */
+        mpi_errno = MVP_Gather_inter_leader_function(sendbuf, sendcnt, sendtype,
+                                                     recvbuf, recvcnt, recvtype,
+                                                     root, comm_ptr, errflag);
+
+    } else {
+        mpi_errno = MPIR_Gather_intra_binomial(sendbuf, sendcnt, sendtype,
+                                               recvbuf, recvcnt, recvtype, root,
+                                               comm_ptr, errflag);
     }
-    if (mvp_enable_device && (send_mem_type || recv_mem_type) &&
-        mvp_device_coll_use_stage &&
-        (nbytes <= mvp_device_gather_stage_limit / comm_size)) {
-        if (sendbuf != MPI_IN_PLACE) {
-            if (rank == root) {
-                mpi_errno = device_stage_alloc(
-                    NULL, 0, &recvbuf, recvcnt * recvtype_extent * comm_size, 0,
-                    recv_mem_type, 0);
-            } else {
-                mpi_errno = device_stage_alloc((void **)&sendbuf,
-                                               sendcnt * sendtype_extent, NULL,
-                                               0, send_mem_type, 0, 0);
-            }
-        } else {
-            mpi_errno = device_stage_alloc(
-                (void **)&sendbuf, recvcnt * recvtype_extent, &recvbuf,
-                recvcnt * recvtype_extent * comm_size, 0, recv_mem_type,
-                rank * recvcnt * recvtype_extent);
-        }
-        MPIR_ERR_CHECK(mpi_errno);
-    }
-
-    /* Use Direct algorithm in cuda configuration */
-    if (mvp_enable_device &&
-        (((nbytes > mvp_device_gather_stage_limit / comm_size) &&
-          mvp_device_coll_use_stage) ||
-         !mvp_device_coll_use_stage)) {
-        mpi_errno =
-            MPIR_Gather_MVP_Direct(sendbuf, sendcnt, sendtype, recvbuf, recvcnt,
-                                   recvtype, root, comm_ptr, errflag);
-    } else
-#endif /*_ENABLE_CUDA_*/
-
-        if (comm_ptr->dev.ch.rank_list != NULL && MVP_USE_DIRECT_GATHER &&
-            MVP_USE_TWO_LEVEL_GATHER && comm_ptr->dev.ch.shmem_coll_ok == 1 &&
-            comm_ptr->dev.ch.is_blocked == 0) {
-            /* Set intra-node function pt for gather_two_level */
-            MVP_Gather_intra_node_function =
-                mvp_gather_indexed_thresholds_table[conf_index][comm_size_index]
-                    .intra_node[intra_node_algo_index]
-                    .gather_fn;
-            /* Set inter-leader pt */
-            MVP_Gather_inter_leader_function =
-                mvp_gather_indexed_thresholds_table[conf_index][comm_size_index]
-                    .inter_leader[inter_node_algo_index]
-                    .gather_fn;
-            /* We call Gather function */
-            mpi_errno = MVP_Gather_inter_leader_function(
-                sendbuf, sendcnt, sendtype, recvbuf, recvcnt, recvtype, root,
-                comm_ptr, errflag);
-
-        } else {
-            mpi_errno = MPIR_Gather_intra_binomial(sendbuf, sendcnt, sendtype,
-                                                   recvbuf, recvcnt, recvtype,
-                                                   root, comm_ptr, errflag);
-        }
-
-#ifdef _ENABLE_CUDA_
-    if (mvp_enable_device && (send_mem_type || recv_mem_type) &&
-        mvp_device_coll_use_stage &&
-        (nbytes <= mvp_device_gather_stage_limit / comm_size)) {
-        if (rank == root) {
-            device_stage_free(NULL, &recvbuf,
-                              recvcnt * recvtype_extent * comm_size, 0,
-                              recv_mem_type);
-        } else {
-            device_stage_free((void **)&sendbuf, NULL, 0, send_mem_type, 0);
-        }
-    }
-#endif /*#ifdef _ENABLE_CUDA_*/
-
     MPIR_ERR_CHECK(mpi_errno);
 
 fn_exit:

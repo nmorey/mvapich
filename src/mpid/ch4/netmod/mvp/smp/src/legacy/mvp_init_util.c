@@ -67,8 +67,6 @@ static int MPIDI_MVP_VC_Init(MPIDI_MVP_ep_t *vc)
     vc->ch.unex_finished_next = NULL;
     vc->ch.unex_list = NULL;
 #endif
-    /* It is needed for temp vc */
-    vc->eager_max_msg_sz = MVP_SMP_EAGERSIZE;
 
 fn_fail:
     return mpi_errno;

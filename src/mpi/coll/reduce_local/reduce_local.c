@@ -57,24 +57,20 @@ int MPIR_Reduce_local(const void *inbuf, void *inoutbuf, int count, MPI_Datatype
 
     if (mvp_enable_device) {
         recv_mem_type = is_device_buffer(inoutbuf);
-        if ( inbuf != MPI_IN_PLACE ){
+        if (inbuf != MPI_IN_PLACE) {
             send_mem_type = is_device_buffer(inbuf);
         }
     }
-    if(mvp_enable_device && send_mem_type){
-        send_host_buf = (char*) MPL_malloc(stride);
-        MVP_MPID_Memcpy_Device((void *)send_host_buf,
-                            (void *)inbuf, 
-                            stride,
-                            deviceMemcpyDeviceToHost);
+    if (mvp_enable_device && send_mem_type) {
+        send_host_buf = (char *)MPL_malloc(stride);
+        MVP_MPID_Memcpy_Device((void *)send_host_buf, (void *)inbuf, stride,
+                               deviceMemcpyDeviceToHost);
         inbuf = send_host_buf;
     }
-    if(mvp_enable_device && recv_mem_type){
-        recv_host_buf = (char*) MPL_malloc(stride);
-        MVP_MPID_Memcpy_Device((void *)recv_host_buf,
-                            (void *)inoutbuf, 
-                            stride,
-                            deviceMemcpyDeviceToHost);
+    if (mvp_enable_device && recv_mem_type) {
+        recv_host_buf = (char *)MPL_malloc(stride);
+        MVP_MPID_Memcpy_Device((void *)recv_host_buf, (void *)inoutbuf, stride,
+                               deviceMemcpyDeviceToHost);
         inoutbuf = recv_host_buf;
     }
 #endif
@@ -131,29 +127,27 @@ int MPIR_Reduce_local(const void *inbuf, void *inoutbuf, int count, MPI_Datatype
     }
 
 #ifdef _ENABLE_CUDA_
-    if(mvp_enable_device && recv_mem_type){
+    if (mvp_enable_device && recv_mem_type) {
         inoutbuf = temp_recvbuf;
         inbuf = temp_sendbuf;
-        MVP_MPID_Memcpy_Device((void *)inoutbuf,
-                            (void *)recv_host_buf, 
-                            stride, 
-                            deviceMemcpyHostToDevice);
+        MVP_MPID_Memcpy_Device((void *)inoutbuf, (void *)recv_host_buf, stride,
+                               deviceMemcpyHostToDevice);
     }
-    if(mvp_enable_device && recv_mem_type){
-        if(recv_host_buf){
+    if (mvp_enable_device && recv_mem_type) {
+        if (recv_host_buf) {
             MPL_free(recv_host_buf);
             recv_host_buf = NULL;
         }
     }
-    if(mvp_enable_device && send_mem_type){
-        if(send_host_buf){
+    if (mvp_enable_device && send_mem_type) {
+        if (send_host_buf) {
             MPL_free(send_host_buf);
             send_host_buf = NULL;
         }
     }
 #endif
 
-  fn_exit:
+fn_exit:
     return mpi_errno;
 }
 
@@ -230,12 +224,12 @@ int MPI_Reduce_local(const void *inbuf, void *inoutbuf, int count, MPI_Datatype 
 
     /* ... end of body of routine ... */
 
-  fn_exit:
+fn_exit:
     MPIR_FUNC_TERSE_COLL_EXIT(MPID_STATE_MPI_REDUCE_LOCAL);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 
-  fn_fail:
+fn_fail:
     /* --BEGIN ERROR HANDLING-- */
     {
         mpi_errno =

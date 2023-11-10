@@ -17,8 +17,6 @@
 extern unsigned long long PVAR_COUNTER_mvp_coll_ireduce_sharp;
 extern MPIR_T_pvar_timer_t PVAR_COUNTER_mvp_coll_timer_ireduce_sharp;
 
-#if defined(CHANNEL_MRAIL) || defined(_MVP_CH4_OVERRIDE_)
-
 int (*MVP_Ireduce_function)(const void *sendbuf, void *recvbuf, int count,
                             MPI_Datatype datatype, MPI_Op op, int root,
                             MPIR_Comm *comm_ptr, MPIR_Sched_t s) = NULL;
@@ -183,7 +181,6 @@ int MPIR_Ireduce_intra_MVP(const void *sendbuf, void *recvbuf, int count,
 
     return mpi_errno;
 }
-#endif /*#if defined(CHANNEL_MRAIL) || defined(_MVP_CH4_OVERRIDE_) */
 
 int MPIR_Ireduce_MVP(const void *sendbuf, void *recvbuf, int count,
                      MPI_Datatype datatype, MPI_Op op, int root,

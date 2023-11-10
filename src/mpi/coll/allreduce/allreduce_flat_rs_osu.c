@@ -2,20 +2,6 @@
 #include "mvp_coll_shmem.h"
 #include "allreduce_tuning.h"
 
-extern MPIR_T_pvar_timer_t PVAR_TIMER_mvp_coll_timer_allreduce_shm_rs;
-extern MPIR_T_pvar_timer_t
-    PVAR_TIMER_mvp_coll_timer_allreduce_reduce_scatter_allgather_colls;
-
-extern unsigned long long PVAR_COUNTER_mvp_coll_allreduce_shm_rs;
-extern unsigned long long PVAR_COUNTER_mvp_coll_allreduce_pt2pt_rs_bytes_send;
-extern unsigned long long PVAR_COUNTER_mvp_coll_allreduce_pt2pt_rs_bytes_recv;
-extern unsigned long long PVAR_COUNTER_mvp_coll_allreduce_pt2pt_rs_count_send;
-extern unsigned long long PVAR_COUNTER_mvp_coll_allreduce_pt2pt_rs_count_recv;
-extern unsigned long long PVAR_COUNTER_mvp_coll_allreduce_pt2pt_ring;
-extern unsigned long long PVAR_COUNTER_mvp_coll_allreduce_pt2pt_ring_inplace;
-extern unsigned long long PVAR_COUNTER_mvp_coll_allreduce_pt2pt_ring_wrapper;
-extern unsigned long long
-    PVAR_COUNTER_mvp_coll_allreduce_reduce_scatter_allgather_colls;
 
 /* This function is unnecessary, remove it in the future */
 static int (*MPIR_Rank_list_mapper)(MPIR_Comm *, int) = NULL;

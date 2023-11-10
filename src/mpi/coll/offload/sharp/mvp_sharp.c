@@ -1,12 +1,12 @@
 /* Copyright (c) 2001-2023, The Ohio State University. All rights
  * reserved.
  *
- * This file is part of the MVAPICH2 software package developed by the
+ * This file is part of the MVAPICH software package developed by the
  * team members of The Ohio State University's Network-Based Computing
  * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
  *
  * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH2 directory.
+ * copyright file COPYRIGHT in the top level MVAPICH directory.
  *
  */
 
@@ -421,7 +421,7 @@ int mvp_sharp_get_hca_name_and_port()
     struct ibv_device **dev_list = NULL;
     struct ibv_context *ctx;
     struct ibv_device_attr dev_attr;
-    mvp_hca_type hca_type = 0;
+    mvp_hca_t hca_type = 0;
 
     dev_list = ibv_ops.get_device_list(&num_devices);
     for (i = 0; i < num_devices; i++) {

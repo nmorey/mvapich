@@ -521,7 +521,7 @@ mvp_arch_type mvp_get_arch_type()
                 g_mvp_cpu_family_type = MVP_CPU_FAMILY_POWER;
             } else if (g_mvp_arch_type >= MVP_ARCH_ARM_START &&
                        g_mvp_arch_type <= MVP_ARCH_ARM_END) {
-                g_mvp_cpu_family_type = MVP_CPU_FAMILY_ARM;
+                g_mvp_cpu_family_type = MVP_CPU_ARCH_MAKE__ARM;
             } else {
                 g_mvp_cpu_family_type = MVP_CPU_FAMILY_NONE;
             }

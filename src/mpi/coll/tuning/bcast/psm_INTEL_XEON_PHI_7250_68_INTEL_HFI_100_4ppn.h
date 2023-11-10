@@ -1,4 +1,4 @@
-#define PSM__INTEL_XEON_PHI_7250_68_INTEL_HFI_100__4PPN                        \
+#define PSM__INTEL_XEON_PHI_7250__INTEL_HFI_100__4PPN                          \
     {                                                                          \
         {4,                                                                    \
          8192,                                                                 \
@@ -6,11 +6,11 @@
          4,                                                                    \
          {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},      \
          21,                                                                   \
-         {{1, &MPIR_Bcast_scatter_doubling_allgather_MVP, -1},                 \
+         {{1, &MPIR_Knomial_Bcast_inter_node_wrapper_MVP, -1},                 \
           {2, &MPIR_Bcast_scatter_ring_allgather_MVP, -1},                     \
           {4, &MPIR_Bcast_scatter_ring_allgather_MVP, -1},                     \
           {8, &MPIR_Bcast_binomial_MVP, -1},                                   \
-          {16, &MPIR_Bcast_scatter_doubling_allgather_MVP, -1},                \
+          {16, &MPIR_Knomial_Bcast_inter_node_wrapper_MVP, -1},                \
           {32, &MPIR_Bcast_binomial_MVP, -1},                                  \
           {64, &MPIR_Bcast_scatter_ring_allgather_MVP, -1},                    \
           {128, &MPIR_Bcast_binomial_MVP, -1},                                 \
@@ -298,3 +298,4 @@
             }                                                                  \
         }                                                                      \
     }
+#define PSM__INTEL_XEON_PHI_7250__INTEL_HFI_100__4PPN_CNT 6

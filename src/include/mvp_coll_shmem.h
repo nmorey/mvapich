@@ -18,6 +18,7 @@
 #include "mvp_debug_utils.h"
 #include "mpidimpl.h"
 #include "mvp_load_imbalance.h"
+#include "mvp_pvars.h"
 
 #ifdef CHANNEL_MRAIL
 #include "mvp_arch_hca_detect.h"
@@ -173,35 +174,6 @@ typedef struct bcast_ring_allgather_shm_packet {
 } bcast_ring_allgather_shm_packet;
 
 #define MVP_MAX_NB_THRESHOLDS 32
-
-extern unsigned long long PVAR_COUNTER_mvp_num_shmem_coll_calls;
-
-int mvp_set_scatter_collective_algorithm();
-int mvp_set_alltoall_collective_algorithm();
-
-/* Collective values for scatter */
-#define MVP_SCATTER_BINOMIAL_RHS       "1"
-#define MVP_SCATTER_DIRECT_RHS         "2"
-#define MVP_SCATTER_TWO_LEVEL_BINOMIAL "3"
-#define MVP_SCATTER_TWO_LEVEL_DIRECT   "4"
-#define MVP_SCATTER_MCAST              "5"
-
-/* Collective values for alltoall  */
-#define MVP_ALLTOALL_BRUCK_MVP        "0"
-#define MVP_ALLTOALL_RD_MVP           "1"
-#define MVP_ALLTOALL_SCATTER_DEST_MVP "2"
-#define MVP_ALLTOALL_PAIRWISE_MVP     "3"
-#define MVP_ALLTOALL_INPLACE_MVP      "4"
-
-enum mvp_scatter_coll_funcs {
-    MVP_SCATTER_BINOMIAL,
-    MVP_SCATTER_DIRECT,
-    MVP_SCATTER_BINOMIAL_AND_BINOMIAL_INTRA,
-    MVP_SCATTER_BINOMIAL_AND_DIRECT_INTRA,
-    MVP_SCATTER_DIRECT_AND_BINOMIAL_INTRA,
-    MVP_SCATTER_DIRECT_AND_DIRECT_INTRA,
-    MVP_MAX_NUM_SCATTER_FUNCS
-};
 
 enum mvp_alltoall_coll_funcs {
     MVP_BRUCK_ALLTOALL,

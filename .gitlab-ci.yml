@@ -3,7 +3,7 @@ workflow:
     # for pushes direct to master/next-gdr/master-x - can't use this with the 'try' scheduler because no diff is created
     #- if: $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "master-x" || $CI_COMMIT_BRANCH == "next-gdr"
     # for merges to master/next-gdr/master-x
-    - if: $CI_MERGE_REQUEST_IID && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master-x" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "next-gdr")
+    - if: $CI_MERGE_REQUEST_IID && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master-x" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "next-gdr"|| $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master-plus")
     # for running manually through the Pipelines page
     - if: $CI_PIPELINE_SOURCE == "web" && $PIPELINE_BRANCH_TYPE
 
@@ -91,12 +91,12 @@ Run-Tests:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     # for running manually through the Pipelines page
     - if: $CI_PIPELINE_SOURCE == "web" && $PIPELINE_BRANCH_TYPE
+    # Skip for hotfix branches
+    - if: '$CI_COMMIT_BRANCH !~ $HOTFIX'
   script:
     - echo "TODO launch runbot test here for relevant branches"
     - echo "https://testing.nowlab.cse.ohio-state.edu/mvapich2/grid/MERGES_master/${CI_COMMIT_SHA}/?cluster="
     - ssh -o StrictHostKeyChecking=no runbot@nowlab /home/runbot/bin/queueTests -r $CI_COMMIT_SHA -b $BUILDER -c gcc -B MERGES/$BRANCH -i /home/runbot/mvapich2/merges/${BRANCH}/${BUILDER}/${CI_COMMIT_SHA}/gcc/ -C git --project mvapich2
-  rules:
-    - if: '$CI_COMMIT_BRANCH !~ $HOTFIX'
 
 Clean-Dir:
   stage: clean
@@ -121,6 +121,8 @@ Run-Regressions-MRI-ucx:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     # for running manually through the Pipelines page
     - if: $CI_PIPELINE_SOURCE == "web" && $PIPELINE_BRANCH_TYPE
+    # Skip for hotfix branches
+    - if: '$CI_COMMIT_BRANCH !~ $HOTFIX'
   script:
     - echo $PWD
     - echo "Renaming and creating copy for LATEST_ build"
@@ -134,8 +136,6 @@ Run-Regressions-MRI-ucx:
       - $CI_PROJECT_DIR/slurm-*
   allow_failure:
     exit_codes: 30
-  rules:
-    - if: '$CI_COMMIT_BRANCH !~ $HOTFIX'
 
 .Run-Regressions-RI2-mrail:
   extends: .regression
@@ -146,6 +146,8 @@ Run-Regressions-MRI-ucx:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     # for running manually through the Pipelines page
     - if: $CI_PIPELINE_SOURCE == "web" && $PIPELINE_BRANCH_TYPE
+    # Skip for hotfix branches
+    - if: '$CI_COMMIT_BRANCH !~ $HOTFIX'
   script:
     - echo $PWD
     - echo "Renaming and creating copy for LATEST_ build"
@@ -159,8 +161,6 @@ Run-Regressions-MRI-ucx:
       - $CI_PROJECT_DIR/slurm-*
   allow_failure:
     exit_codes: 30
-  rules:
-    - if: '$CI_COMMIT_BRANCH !~ $HOTFIX'
 
 Run-Regressions-nowlab-ofi:
   extends: .regression
@@ -171,6 +171,8 @@ Run-Regressions-nowlab-ofi:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     # for running manually through the Pipelines page
     - if: $CI_PIPELINE_SOURCE == "web" && $PIPELINE_BRANCH_TYPE
+    # Skip for hotfix branches
+    - if: '$CI_COMMIT_BRANCH !~ $HOTFIX'
   script:
     - echo $PWD
     - echo "Renaming and creating copy for LATEST_ build"
@@ -184,5 +186,3 @@ Run-Regressions-nowlab-ofi:
       - $CI_PROJECT_DIR/slurm-*
   allow_failure:
     exit_codes: 30
-  rules:
-    - if: '$CI_COMMIT_BRANCH !~ $HOTFIX'

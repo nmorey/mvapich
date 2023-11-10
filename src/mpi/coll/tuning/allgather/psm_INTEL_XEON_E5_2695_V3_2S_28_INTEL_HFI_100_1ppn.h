@@ -1,4 +1,4 @@
-#define PSM__INTEL_XEON_E5_2695_V3_2S_28_INTEL_HFI_100__1PPN                   \
+#define PSM__INTEL_XEON_E5_2695_V3_2S_28__INTEL_HFI_100__1PPN                  \
     {                                                                          \
         {2, 21, {{1, &MPIR_Allgather_RD_MVP},                                  \
                  {2, &MPIR_Allgather_RD_MVP},                                  \
@@ -93,3 +93,4 @@
             }                                                                  \
         }                                                                      \
     }
+#define PSM__INTEL_XEON_E5_2695_V3_2S_28__INTEL_HFI_100__1PPN_CNT 4

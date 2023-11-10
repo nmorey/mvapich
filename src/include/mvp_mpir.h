@@ -20,6 +20,7 @@
 #define MVP_MPIR_H_INCLUDED
 
 #include "mvp_err.h"
+#include "mvp_arch_hca.h"
 /*****************************************************************************/
 /***************************** mvp_mpir_coll.h *******************************/
 /*****************************************************************************/
@@ -33,7 +34,7 @@
 time in some alltoall algorithms. Setting
 it to 0 causes all irecvs/isends to be
 posted at once. */
-#define MVP_ALLTOALL_LARGE_MSG           64 * 1024
+#define MVP_ALLTOALL_LARGE_MSG 64 * 1024
 
 #define MPIR_BCAST_LONG_MSG  524288
 #define MPIR_BCAST_MIN_PROCS 8
@@ -42,12 +43,12 @@ posted at once. */
 #define MPIR_ALLTOALL_SMALL_SYSTEM_SIZE 256
 #define MPIR_BCAST_LARGE_MSG            512 * 1024
 #endif /* _OSU_MVAPICH_ */
-#define MVP_ALLGATHER_SHORT_MSG  1024
-#define MVP_ALLGATHER_LONG_MSG   1024
-#define MPIR_GATHER_VSMALL_MSG   1024
-#define MPIR_SCATTER_SHORT_MSG   2048 /* for intercommunicator scatter */
-#define MPIR_GATHER_SHORT_MSG    2048 /* for intercommunicator scatter */
-#define MPIR_GATHERV_MIN_PROCS   32
+#define MVP_ALLGATHER_SHORT_MSG 1024
+#define MVP_ALLGATHER_LONG_MSG  1024
+#define MPIR_GATHER_VSMALL_MSG  1024
+#define MPIR_SCATTER_SHORT_MSG  2048 /* for intercommunicator scatter */
+#define MPIR_GATHER_SHORT_MSG   2048 /* for intercommunicator scatter */
+#define MPIR_GATHERV_MIN_PROCS  32
 
 #ifdef _OSU_MVAPICH_
 
@@ -108,6 +109,17 @@ int MPIR_Exscan_MVP(const void *sendbuf, void *recvbuf, int count,
                     MPI_Datatype datatype, MPI_Op op, MPIR_Comm *comm_ptr,
                     MPIR_Errflag_t *errflag);
 int MPIR_Barrier_MVP(MPIR_Comm *comm_ptr, MPIR_Errflag_t *errflag);
+
+#define MPIR_RECURSION_GUARD_DECL(function_pointer_type, fallback)             \
+    static int in_algo = 0;                                                    \
+    static function_pointer_type fallback_fn = fallback;
+#define MPIR_RECURSION_GUARD_ENTER(...)                                        \
+    if (in_algo) {                                                             \
+        fallback_fn(__VA_ARGS__);                                              \
+        goto fn_exit;                                                          \
+    }                                                                          \
+    in_algo = 1;
+#define MPIR_RECURSION_GUARD_EXIT in_algo = 0;
 
 #if defined(_SHARP_SUPPORT_)
 /* include SHARP functions here */

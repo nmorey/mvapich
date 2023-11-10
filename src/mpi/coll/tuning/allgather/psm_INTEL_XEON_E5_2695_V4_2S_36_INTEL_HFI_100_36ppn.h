@@ -1,4 +1,4 @@
-#define PSM__INTEL_XEON_E5_2695_V4_2S_36_INTEL_HFI_100__36PPN                  \
+#define PSM__INTEL_XEON_E5_2695_V4_2S_36__INTEL_HFI_100__36PPN                 \
     {                                                                          \
         {36, 21, {{1, &MPIR_Allgather_Bruck_MVP},                              \
                   {2, &MPIR_Allgather_RD_Allgather_Comm_MVP},                  \
@@ -120,3 +120,4 @@
             }                                                                  \
         }                                                                      \
     }
+#define PSM__INTEL_XEON_E5_2695_V4_2S_36__INTEL_HFI_100__36PPN_CNT 5

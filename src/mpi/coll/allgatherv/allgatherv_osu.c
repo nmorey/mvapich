@@ -56,11 +56,34 @@
    End Algorithm: MPI_Allgatherv
 */
 
-int (*MVP_Allgatherv_function)(const void *sendbuf, int sendcount,
-                               MPI_Datatype sendtype, void *recvbuf,
-                               const int *recvcounts, const int *displs,
-                               MPI_Datatype recvtype, MPIR_Comm *comm_ptr,
-                               MPIR_Errflag_t *errflag);
+/*
+=== BEGIN_MPI_T_MVP_CVAR_INFO_BLOCK ===
+
+cvars:
+    - name        : MVP_ALLGATHERV_COLLECTIVE_ALGORITHM
+      alias       : MVP_INTER_ALLGATHERV_TUNING
+      category    : COLLECTIVE
+      type        : enum
+      default     : UNSET
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : |-
+        Variable to select the allgatherv collective algorithm.
+        UNSET           - Internal algorithm selection.
+        RD              - Pairs of processes exchange data in a doubling
+                        pattern.
+        BRUCK           - A communication-efficient algorithm based on a
+                        generalized butterfly network.
+        RING            - Data is passed around a virtual ring in a fixed
+                        pattern.
+        RING_CYCLIC     - Data is passed around a virtual ring in a cyclic
+                        pattern.
+
+=== END_MPI_T_MVP_CVAR_INFO_BLOCK ===
+*/
+
+MVP_Allgatherv_fn_t MVP_Allgatherv_function = NULL;
 
 /* MPIR_Allgatherv performs an allgatherv using point-to-point
    messages.  This is intended to be used by device-specific
@@ -111,7 +134,7 @@ int MPIR_Allgatherv_MVP(const void *sendbuf, int sendcount,
     /* Set inter-leader pt */
     MVP_Allgatherv_function = mvp_allgatherv_thresholds_table[range]
                                   .inter_leader[range_threshold]
-                                  .MVP_pt_Allgatherv_function;
+                                  .allgatherv_fn;
 
     if (MVP_Allgatherv_function == &MPIR_Allgatherv_Rec_Doubling_MVP) {
         if (!(comm_size & (comm_size - 1))) {

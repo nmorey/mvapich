@@ -106,6 +106,7 @@ echo "done"
 do_bindings=yes
 do_geterrmsgs=yes
 do_getcvars=yes
+do_getpvars=yes
 do_f77=yes
 do_build_configure=yes
 do_genstates=no
@@ -981,6 +982,21 @@ else
     echo "skipped"
 fi
 # END: MVP CVAR Extraction
+
+# BEGIN: MVP PVAR Extraction
+echo_n "Extracting MVP performance variables (pvar) ... "
+if test -x maint/extractmvppvars -a "$do_getpvars" = "yes" ; then
+    if ./maint/extractmvppvars --dirs="`cat maint/pvardirs`"; then
+        echo "done"
+    else
+        echo "failed"
+        error "unable to extract MVP performance variables"
+        exit 1
+    fi
+else
+    echo "skipped"
+fi
+# END: MVP PVAR Extraction
 
 echo
 echo

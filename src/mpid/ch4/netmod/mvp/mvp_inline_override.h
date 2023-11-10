@@ -15,7 +15,7 @@
 #ifdef _MVP_CH4_OVERRIDE_
 #include "mvp_types.h"
 /* direct access to MVP level request */
-#define MPID_MVP_REQUEST       MPIDI_MVP_REQUEST
+#define MPID_MVP_REQUEST MPIDI_MVP_REQUEST
 /* TODO: changing semantics here, this should be resolved */
 #define MPID_MVP_SHARP_REQUEST MPIDI_MVP_SHARP_REQUEST_FROM_MPICH
 

@@ -1,16 +1,16 @@
-#define GEN2__RI__4PPN                                                         \
+#define GEN2__INTEL_XEON_E5630_8__MLX_CX_QDR__4PPN                             \
     {                                                                          \
         {                                                                      \
             4, 0, {1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},   \
-                19, {{4, &MPIR_Allreduce_pt2pt_rs_MVP},                        \
-                     {8, &MPIR_Allreduce_pt2pt_rs_MVP},                        \
+                19, {{4, &MPIR_Allreduce_pt2pt_rd_MVP},                        \
+                     {8, &MPIR_Allreduce_pt2pt_rd_MVP},                        \
                      {16, &MPIR_Allreduce_pt2pt_rs_MVP},                       \
                      {32, &MPIR_Allreduce_pt2pt_rd_MVP},                       \
                      {64, &MPIR_Allreduce_pt2pt_rd_MVP},                       \
-                     {128, &MPIR_Allreduce_pt2pt_rs_MVP},                      \
+                     {128, &MPIR_Allreduce_pt2pt_rd_MVP},                      \
                      {256, &MPIR_Allreduce_pt2pt_rs_MVP},                      \
                      {512, &MPIR_Allreduce_pt2pt_rs_MVP},                      \
-                     {1024, &MPIR_Allreduce_pt2pt_rd_MVP},                     \
+                     {1024, &MPIR_Allreduce_pt2pt_rs_MVP},                     \
                      {2048, &MPIR_Allreduce_pt2pt_rs_MVP},                     \
                      {4096, &MPIR_Allreduce_pt2pt_rs_MVP},                     \
                      {8192, &MPIR_Allreduce_pt2pt_rs_MVP},                     \
@@ -31,7 +31,7 @@
                     {128, &MPIR_Allreduce_reduce_shmem_MVP},                   \
                     {256, &MPIR_Allreduce_reduce_shmem_MVP},                   \
                     {512, &MPIR_Allreduce_reduce_shmem_MVP},                   \
-                    {1024, &MPIR_Allreduce_reduce_p2p_MVP},                    \
+                    {1024, &MPIR_Allreduce_reduce_shmem_MVP},                  \
                     {2048, &MPIR_Allreduce_reduce_shmem_MVP},                  \
                     {4096, &MPIR_Allreduce_reduce_p2p_MVP},                    \
                     {8192, &MPIR_Allreduce_reduce_p2p_MVP},                    \
@@ -47,3 +47,4 @@
             }                                                                  \
         }                                                                      \
     }
+#define GEN2__INTEL_XEON_E5630_8__MLX_CX_QDR__4PPN_CNT 1
