@@ -1765,7 +1765,7 @@ fn_fail:
 }
 
 /* Change the values set inside the array by the one define by the user */
-static inline int tuning_runtime_init()
+static inline void tuning_runtime_init()
 {
     int i;
 
