@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <search.h>
 #include <stdint.h>
+#include <sys/shm.h>
 
 #ifdef USE_MEMORY_TRACING
 #   define mpit_malloc(a, line, file)           \
