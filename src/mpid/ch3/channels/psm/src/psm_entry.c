@@ -21,6 +21,7 @@
 #include <upmi.h>
 #include "coll_shmem.h"
 extern int g_mv2_num_cpus;
+extern int MPIDI_Get_num_nodes();
 
 volatile unsigned int MPIDI_CH3I_progress_completion_count = 0; //ODOT: what is this ?
 volatile int MPIDI_CH3I_progress_blocked = FALSE;
