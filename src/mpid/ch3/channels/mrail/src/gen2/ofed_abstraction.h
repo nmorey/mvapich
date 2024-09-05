@@ -191,10 +191,11 @@ typedef struct _rdma_ops_t {
     int (*get_cm_event)(struct rdma_event_channel *channel,
               struct rdma_cm_event **event);
     int (*ack_cm_event)(struct rdma_cm_event *event);
-    int (*getaddrinfo) (char *node, char *service, struct rdma_addrinfo *hints,
-                        struct rdma_addrinfo **res);
-    int (*freeaddrinfo)(struct rdma_addrinfo *res);
-    char* (*event_str)(enum rdma_cm_event_type event);
+    int (*getaddrinfo) (const char *node, const char *service,
+			const struct rdma_addrinfo *hints,
+			struct rdma_addrinfo **res);
+    void (*freeaddrinfo)(struct rdma_addrinfo *res);
+    const char* (*event_str)(enum rdma_cm_event_type event);
     struct ibv_context** (*get_devices) (int *num_devices);
     void (*free_devices) (struct ibv_context **list);
 } rdma_ops_t;
@@ -208,13 +209,13 @@ extern void *rdma_dl_handle;
 typedef struct _umad_ops_t {
     int (*init)(void);
     int (*done)(void);
-    int (*get_ca)(char *ca_name, umad_ca_t *ca);
+    int (*get_ca)(const char *ca_name, umad_ca_t *ca);
     int (*release_ca)(umad_ca_t *ca);
     void* (*get_mad)(void *umad);
     int (*send)(int portid, int agentid, void *umad, int length,
                 int timeout_ms, int retries);
     int (*recv)(int portid, void *umad, int *length, int timeout_ms);
-    int (*open_port)(char *ca_name, int portnum);
+    int (*open_port)(const char *ca_name, int portnum);
     int (*close_port)(int portid);
     int (*u_register)(int portid, int mgmt_class, int mgmt_version,
                   uint8_t rmpp_version, long method_mask[16 / sizeof(long)]);
@@ -309,7 +310,7 @@ do {                                                                    \
 #else
 #define MV2_DLSYM(_struct_, _handle_, _prefix_, _function_)             \
 do {                                                                    \
-    _struct_._function_ = _prefix_##_##_function_;                      \
+    _struct_._function_ = (void*)_prefix_##_##_function_;		\
 } while (0)
 #endif
 
