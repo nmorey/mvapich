@@ -1,0 +1,22 @@
+/*D
+   MPI_Group_free - Frees a group
+
+Synopsis:
+.vb
+int MPI_Group_free(MPI_Group *group)
+.ve
+
+Input/Output Parameters:
+. group - group (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_GROUP
+.N MPI_ERR_OTHER
+
+D*/
+

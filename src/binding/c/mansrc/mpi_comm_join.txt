@@ -1,0 +1,31 @@
+/*D
+   MPI_Comm_join - Create a communicator by joining two processes connected by a socket
+
+Synopsis:
+.vb
+int MPI_Comm_join(int fd, MPI_Comm *intercomm)
+.ve
+
+Input Parameters:
+. fd - socket file descriptor (integer)
+
+Output Parameters:
+. intercomm - new inter-communicator (handle)
+
+Notes:
+The socket must be quiescent before 'MPI_COMM_JOIN' is called and after
+'MPI_COMM_JOIN' returns. More specifically, on entry to 'MPI_COMM_JOIN', a
+read on the socket will not read any data that was written to the socket
+before the remote process called 'MPI_COMM_JOIN'.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_OTHER
+
+D*/
+

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) Mellanox Technologies Ltd. 2001-2019.  ALL RIGHTS RESERVED.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2019. ALL RIGHTS RESERVED.
  * See file LICENSE for terms.
  */
 package org.openucx.jucx;
@@ -7,18 +7,21 @@ package org.openucx.jucx;
 import org.junit.Test;
 
 import org.openucx.jucx.ucp.*;
+import org.openucx.jucx.ucs.UcsConstants;
 
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.UUID;
 
 import static java.nio.file.StandardOpenOption.*;
 import static org.junit.Assert.*;
+import static org.junit.Assume.assumeTrue;
 
-public class UcpMemoryTest {
+public class UcpMemoryTest extends UcxTest {
     static int MEM_SIZE = 4096;
     static String RANDOM_TEXT = UUID.randomUUID().toString();
 
@@ -39,7 +42,8 @@ public class UcpMemoryTest {
 
         // 3. Test allocation
         UcpMemory allocatedMemory = context.memoryMap(new UcpMemMapParams()
-            .allocate().setLength(MEM_SIZE).nonBlocking());
+            .allocate().setProtection(UcpConstants.UCP_MEM_MAP_PROT_LOCAL_READ)
+            .setLength(MEM_SIZE).nonBlocking());
         assertEquals(allocatedMemory.getLength(), MEM_SIZE);
 
         allocatedMemory.deregister();
@@ -71,11 +75,41 @@ public class UcpMemoryTest {
         UcpMemory mem = context.registerMemory(buf);
         UcpRemoteKey rkey = endpoint.unpackRemoteKey(mem.getRemoteKeyBuffer());
         assertNotNull(rkey.getNativeId());
-        rkey.close();
-        mem.deregister();
-        endpoint.close();
-        worker1.close();
-        worker2.close();
-        context.close();
+
+        Collections.addAll(resources, context, worker1, worker2, endpoint, mem, rkey);
+        closeResources();
+    }
+
+    @Test
+    public void testExportedMkey() {
+        UcpContext context = new UcpContext(new UcpParams()
+                                 .requestAmFeature().requestExportedMemFeature());
+        ByteBuffer buf = ByteBuffer.allocateDirect(MEM_SIZE);
+        UcpMemory mem = context.registerMemory(buf);
+        ByteBuffer mkeyBuffer = null;
+
+        Collections.addAll(resources, context, mem);
+
+        try {
+            mkeyBuffer = mem.getExportedMkeyBuffer();
+            assertTrue(mkeyBuffer.capacity() > 0);
+            assertTrue(mem.getAddress() > 0);
+        } catch (UcxException exception) {
+            assertEquals(exception.getStatus(),
+                         UcsConstants.STATUS.UCS_ERR_UNSUPPORTED);
+        }
+
+        if (mkeyBuffer != null) {
+            try {
+                UcpMemory impMem = context.importMemory(mkeyBuffer);
+                assertNotNull(impMem.getNativeId());
+                resources.add(impMem);
+            } catch (UcxException exception) {
+                assertEquals(exception.getStatus(),
+                             UcsConstants.STATUS.UCS_ERR_UNREACHABLE);
+            }
+        }
+
+        closeResources();
     }
 }

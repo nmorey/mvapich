@@ -1,6 +1,6 @@
 /**
  * Copyright (c) UT-Battelle, LLC. 2014-2015. ALL RIGHTS RESERVED.
- * Copyright (C) Mellanox Technologies Ltd. 2001-2015.  ALL RIGHTS RESERVED.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2015. ALL RIGHTS RESERVED.
  * See file LICENSE for terms.
  */
 
@@ -10,9 +10,11 @@
 
 #include <uct/sm/mm/base/mm_md.h>
 #include <uct/sm/mm/base/mm_iface.h>
-#include <ucs/debug/memtrack.h>
+#include <ucs/debug/memtrack_int.h>
 #include <ucs/debug/log.h>
 #include <ucs/sys/sys.h>
+#include <ucs/profile/profile.h>
+#include <uct/api/v2/uct_v2.h>
 
 
 #define UCT_MM_SYSV_PERM (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP)
@@ -34,9 +36,16 @@ static ucs_config_field_t uct_sysv_md_config_table[] = {
   {NULL}
 };
 
-static ucs_status_t uct_sysv_md_query(uct_md_h md, uct_md_attr_t *md_attr)
+static ucs_config_field_t uct_sysv_iface_config_table[] = {
+  {"MM_", "RX_GROW_FACTOR=2.0", NULL, ucs_offsetof(uct_mm_iface_config_t, super),
+   UCS_CONFIG_TYPE_TABLE(uct_mm_iface_config_table)},
+
+  {NULL}
+};
+
+static ucs_status_t uct_sysv_md_query(uct_md_h md, uct_md_attr_v2_t *md_attr)
 {
-    uct_mm_md_query(md, md_attr, 1);
+    uct_mm_md_query(md, md_attr, ULONG_MAX);
     md_attr->rkey_packed_size = sizeof(uct_sysv_packed_rkey_t);
     return UCS_OK;
 }
@@ -59,12 +68,17 @@ static ucs_status_t uct_sysv_mem_attach_common(int shmid, void **address_p)
 
 static ucs_status_t
 uct_sysv_mem_alloc(uct_md_h tl_md, size_t *length_p, void **address_p,
-                   unsigned flags, const char *alloc_name, uct_mem_h *memh_p)
+                   ucs_memory_type_t mem_type, unsigned flags,
+                   const char *alloc_name, uct_mem_h *memh_p)
 {
     uct_mm_md_t *md = ucs_derived_of(tl_md, uct_mm_md_t);
     ucs_status_t status;
     uct_mm_seg_t *seg;
     int shmid;
+
+    if (mem_type != UCS_MEMORY_TYPE_HOST) {
+        return UCS_ERR_UNSUPPORTED;
+    }
 
     status = uct_mm_seg_new(*address_p, *length_p, &seg);
     if (status != UCS_OK) {
@@ -124,13 +138,21 @@ static ucs_status_t uct_sysv_mem_free(uct_md_h tl_md, uct_mem_h memh)
 }
 
 static ucs_status_t
-uct_sysv_md_mkey_pack(uct_md_h md, uct_mem_h memh, void *rkey_buffer)
+uct_sysv_md_mkey_pack(uct_md_h md, uct_mem_h memh,
+                      const uct_md_mkey_pack_params_t *params,
+                      void *mkey_buffer)
 {
-    uct_sysv_packed_rkey_t *packed_rkey = rkey_buffer;
+    uct_sysv_packed_rkey_t *packed_rkey = mkey_buffer;
     const uct_mm_seg_t     *seg         = memh;
 
     packed_rkey->shmid     = seg->seg_id;
     packed_rkey->owner_ptr = (uintptr_t)seg->address;
+    return UCS_OK;
+}
+
+static ucs_status_t uct_sysv_query(int *attach_shm_file_p)
+{
+    *attach_shm_file_p = 1;
     return UCS_OK;
 }
 
@@ -146,9 +168,10 @@ static void uct_sysv_mem_detach(uct_mm_md_t *md, const uct_mm_remote_seg_t *rseg
     ucs_sysv_free(rseg->address);
 }
 
-static ucs_status_t
-uct_sysv_rkey_unpack(uct_component_t *component, const void *rkey_buffer,
-                     uct_rkey_t *rkey_p, void **handle_p)
+UCS_PROFILE_FUNC(ucs_status_t, uct_sysv_rkey_unpack,
+                 (component, rkey_buffer, rkey_p, handle_p),
+                 uct_component_t *component, const void *rkey_buffer,
+                 uct_rkey_t *rkey_p, void **handle_p)
 {
     const uct_sysv_packed_rkey_t *packed_rkey = rkey_buffer;
     ucs_status_t status;
@@ -164,35 +187,36 @@ uct_sysv_rkey_unpack(uct_component_t *component, const void *rkey_buffer,
     return UCS_OK;
 }
 
-static ucs_status_t
-uct_sysv_rkey_release(uct_component_t *component, uct_rkey_t rkey, void *handle)
+UCS_PROFILE_FUNC(ucs_status_t, uct_sysv_rkey_release, (component, rkey, handle),
+                 uct_component_t *component, uct_rkey_t rkey, void *handle)
 {
     return ucs_sysv_free(handle);
 }
 
 static uct_mm_md_mapper_ops_t uct_sysv_md_ops = {
-   .super = {
+    .super = {
         .close                  = uct_mm_md_close,
         .query                  = uct_sysv_md_query,
         .mem_alloc              = uct_sysv_mem_alloc,
         .mem_free               = uct_sysv_mem_free,
-        .mem_advise             = (uct_md_mem_advise_func_t)ucs_empty_function_return_unsupported,
-        .mem_reg                = (uct_md_mem_reg_func_t)ucs_empty_function_return_unsupported,
-        .mem_dereg              = (uct_md_mem_dereg_func_t)ucs_empty_function_return_unsupported,
+        .mem_advise             = ucs_empty_function_return_unsupported,
+        .mem_reg                = ucs_empty_function_return_unsupported,
+        .mem_dereg              = ucs_empty_function_return_unsupported,
+        .mem_attach             = ucs_empty_function_return_unsupported,
         .mkey_pack              = uct_sysv_md_mkey_pack,
-        .is_sockaddr_accessible = (uct_md_is_sockaddr_accessible_func_t)ucs_empty_function_return_zero,
-        .detect_memory_type     = (uct_md_detect_memory_type_func_t)ucs_empty_function_return_unsupported
+        .is_sockaddr_accessible = ucs_empty_function_return_zero_int,
+        .detect_memory_type     = ucs_empty_function_return_unsupported
     },
-   .query                       = (uct_mm_mapper_query_func_t)
-                                      ucs_empty_function_return_success,
-   .iface_addr_length           = (uct_mm_mapper_iface_addr_length_func_t)
-                                      ucs_empty_function_return_zero_int64,
-   .iface_addr_pack             = (uct_mm_mapper_iface_addr_pack_func_t)
-                                      ucs_empty_function_return_success,
-   .mem_attach                  = uct_sysv_mem_attach,
-   .mem_detach                  = uct_sysv_mem_detach,
-   .is_reachable                = (uct_mm_mapper_is_reachable_func_t)ucs_empty_function_return_one
+    .query             = uct_sysv_query,
+    .iface_addr_length = ucs_empty_function_return_zero_size_t,
+    .iface_addr_pack   = ucs_empty_function_return_success,
+    .mem_attach        = uct_sysv_mem_attach,
+    .mem_detach        = uct_sysv_mem_detach,
+    .is_reachable      = ucs_empty_function_return_one_int
 };
 
 UCT_MM_TL_DEFINE(sysv, &uct_sysv_md_ops, uct_sysv_rkey_unpack,
-                 uct_sysv_rkey_release, "SYSV_")
+                 uct_sysv_rkey_release, "SYSV_",
+                 uct_sysv_iface_config_table);
+
+UCT_SINGLE_TL_INIT(&uct_sysv_component.super, sysv,,,)

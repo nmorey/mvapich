@@ -103,6 +103,11 @@ static inline void dlist_remove_init(struct dlist_entry *item)
 	dlist_init(item);
 }
 
+#define dlist_first_entry_or_null(head, type, member) ({	\
+	struct dlist_entry *pos = (head)->next;				\
+	pos != (head) ? container_of((pos), type, member) : NULL;	\
+})
+
 #define dlist_pop_front(head, type, container, member)			\
 	do {								\
 		container = container_of((head)->next, type, member);	\
@@ -113,7 +118,7 @@ static inline void dlist_remove_init(struct dlist_entry *item)
 	for ((item) = (head)->next; (item) != (head); (item) = (item)->next)
 
 #define dlist_foreach_reverse(head, item) 					\
-	for ((item) = (head)->prev; (item) != (head); (item) = (item)->prev
+	for ((item) = (head)->prev; (item) != (head); (item) = (item)->prev)
 
 #define dlist_foreach_container(head, type, container, member)			\
 	for ((container) = container_of((head)->next, type, member);		\
@@ -443,7 +448,6 @@ static inline struct slist_entry *slist_remove_head(struct slist *list)
 #define slist_foreach(list, item, prev)				\
 	for ((prev) = NULL, (item) = (list)->head; (item); 	\
 			(prev) = (item), (item) = (item)->next)
-
 
 #define slist_remove_head_container(list, type, container, member)	\
 	do {								\

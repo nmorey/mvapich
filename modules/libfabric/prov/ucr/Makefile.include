@@ -1,0 +1,33 @@
+if HAVE_UCR
+_ucr_files = \
+       prov/ucr/src/ucr_attr.c	\
+       prov/ucr/src/ucr_init.c	\
+       prov/ucr/src/ucr_fabric.c	\
+       prov/ucr/src/ucr_domain.c	\
+       prov/ucr/src/ucr_conn.c	\
+       prov/ucr/src/ucr_ep.c	\
+       prov/ucr/src/ucr_msg.c	\
+       prov/ucr/src/ucr_tagged.c	\
+       prov/ucr/src/ucr_cq.c	\
+       prov/ucr/src/ucr_rma.c	\
+       prov/ucr/src/ucr_atomic.c	\
+       prov/ucr/src/ucr_eq.c	\
+       prov/ucr/src/ucr_hmem.c	\
+       prov/ucr/src/ucr.h
+
+if HAVE_UCR_DL
+pkglib_LTLIBRARIES += libucr-fi.la
+libucr_fi_la_SOURCES = $(_ucr_files) $(common_srcs)
+libucr_fi_la_LIBADD = $(linkback) $(ucr_shm_LIBS)
+libucr_fi_la_LDFLAGS = -module -avoid-version -shared -export-dynamic
+libucr_fi_la_DEPENDENCIES = $(linkback)
+else !HAVE_UCR_DL
+src_libfabric_la_SOURCES += $(_ucr_files)
+src_libfabric_la_LIBADD += $(ucr_shm_LIBS)
+endif !HAVE_UCR_DL
+
+prov_install_man_pages += man/man7/fi_ucr.7
+
+endif HAVE_UCR
+
+prov_dist_man_pages += man/man7/fi_ucr.7

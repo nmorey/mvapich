@@ -1,0 +1,25 @@
+/*D
+   MPI_Status_f2f08 - Convert MPI_Fint array to MPI_F08_status object
+
+Synopsis:
+.vb
+int MPI_Status_f2f08(const MPI_Fint *f_status, MPI_F08_status *f08_status)
+.ve
+
+Input Parameters:
+. f_status - status object declared as array (None)
+
+Output Parameters:
+. f08_status - status object declared as named type (None)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_OTHER
+
+D*/
+

@@ -1,0 +1,28 @@
+/*D
+   MPI_Wait - Waits for an MPI request to complete
+
+Synopsis:
+.vb
+int MPI_Wait(MPI_Request *request, MPI_Status *status)
+.ve
+
+Input/Output Parameters:
+. request - request (handle)
+
+Output Parameters:
+. status - status object (Status)
+
+.N waitstatus
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_REQUEST
+.N MPI_ERR_OTHER
+
+D*/
+

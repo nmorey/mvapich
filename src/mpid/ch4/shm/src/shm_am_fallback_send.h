@@ -6,68 +6,30 @@
 #ifndef SHM_AM_FALLBACK_SEND_H_INCLUDED
 #define SHM_AM_FALLBACK_SEND_H_INCLUDED
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mpi_send(const void *buf,
-                                                MPI_Aint count,
-                                                MPI_Datatype datatype,
-                                                int rank,
-                                                int tag,
-                                                MPIR_Comm * comm, int context_offset,
-                                                MPIDI_av_entry_t * addr, MPIR_Request ** request)
-{
-    return MPIDIG_mpi_send(buf, count, datatype, rank, tag, comm, context_offset, addr, request);
-}
-
-MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mpi_ssend(const void *buf,
-                                                 MPI_Aint count,
-                                                 MPI_Datatype datatype,
-                                                 int rank,
-                                                 int tag,
-                                                 MPIR_Comm * comm, int context_offset,
-                                                 MPIDI_av_entry_t * addr, MPIR_Request ** request)
-{
-    return MPIDIG_mpi_ssend(buf, count, datatype, rank, tag, comm, context_offset, addr, request);
-}
-
 MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mpi_isend(const void *buf,
                                                  MPI_Aint count,
                                                  MPI_Datatype datatype,
                                                  int rank,
                                                  int tag,
-                                                 MPIR_Comm * comm, int context_offset,
+                                                 MPIR_Comm * comm, int attr,
                                                  MPIDI_av_entry_t * addr, MPIR_Request ** request)
 {
-    return MPIDIG_mpi_isend(buf, count, datatype, rank, tag, comm, context_offset, addr, request);
-}
+    int mpi_errno = MPI_SUCCESS;
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mpi_issend(const void *buf,
-                                                  MPI_Aint count,
-                                                  MPI_Datatype datatype,
-                                                  int rank,
-                                                  int tag,
-                                                  MPIR_Comm * comm, int context_offset,
-                                                  MPIDI_av_entry_t * addr, MPIR_Request ** request)
-{
-    return MPIDIG_mpi_issend(buf, count, datatype, rank, tag, comm, context_offset, addr, request);
-}
+    int context_offset = MPIR_PT2PT_ATTR_CONTEXT_OFFSET(attr);
+    MPIR_Errflag_t errflag = MPIR_PT2PT_ATTR_GET_ERRFLAG(attr);
+    bool syncflag = MPIR_PT2PT_ATTR_GET_SYNCFLAG(attr);
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_send_coll(const void *buf, MPI_Aint count,
-                                                 MPI_Datatype datatype, int rank, int tag,
-                                                 MPIR_Comm * comm,
-                                                 int context_offset, MPIDI_av_entry_t * addr,
-                                                 MPIR_Request ** request, MPIR_Errflag_t * errflag)
-{
-    return MPIDIG_send_coll(buf, count, datatype, rank, tag, comm, context_offset, addr, request,
-                            errflag);
-}
+    int vci_src, vci_dst;
+    vci_src = 0;
+    vci_dst = 0;
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_isend_coll(const void *buf, MPI_Aint count,
-                                                  MPI_Datatype datatype, int rank, int tag,
-                                                  MPIR_Comm * comm, int context_offset,
-                                                  MPIDI_av_entry_t * addr, MPIR_Request ** request,
-                                                  MPIR_Errflag_t * errflag)
-{
-    return MPIDIG_isend_coll(buf, count, datatype, rank, tag, comm, context_offset, addr,
-                             request, errflag);
+    MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(vci_src).lock);
+    mpi_errno = MPIDIG_mpi_isend(buf, count, datatype, rank, tag, comm, context_offset, addr,
+                                 vci_src, vci_dst, request, syncflag, errflag);
+    MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(vci_src).lock);
+
+    return mpi_errno;
 }
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mpi_cancel_send(MPIR_Request * sreq)

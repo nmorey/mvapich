@@ -1,0 +1,30 @@
+/*D
+   MPIX_Type_iov - Return contiguous segments starting from an iov offset
+
+Synopsis:
+.vb
+int MPIX_Type_iov(MPI_Datatype datatype, MPI_Count iov_offset, MPIX_Iov *iov,
+                  MPI_Count max_iov_len, MPI_Count *actual_iov_len)
+.ve
+
+Input Parameters:
++ datatype - datatype (handle)
+. iov_offset - number of contiguous segments to skip (integer)
+- max_iov_len - capacity for the segments array (integer)
+
+Output Parameters:
++ iov - contiguous segments array for output (None)
+- actual_iov_len - actual number of segments in output (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

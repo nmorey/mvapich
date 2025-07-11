@@ -1,0 +1,27 @@
+/*D
+   MPI_Session_iflush_buffer - start a nonblocking flush in the session-specific buffer
+
+Synopsis:
+.vb
+int MPI_Session_iflush_buffer(MPI_Session session, MPI_Request *request)
+.ve
+
+Input Parameters:
+. session - session (handle)
+
+Output Parameters:
+. request - communication request (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_SESSION
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Session_flush_buffer
+D*/
+

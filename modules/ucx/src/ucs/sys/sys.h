@@ -1,10 +1,10 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2001-2014.  ALL RIGHTS RESERVED.
-* Copyright (c) UT-Battelle, LLC. 2014-2019. ALL RIGHTS RESERVED.
-* Copyright (C) ARM Ltd. 2016.  ALL RIGHTS RESERVED.
-*
-* See file LICENSE for terms.
-*/
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2014. ALL RIGHTS RESERVED.
+ * Copyright (c) UT-Battelle, LLC. 2014-2019. ALL RIGHTS RESERVED.
+ * Copyright (C) ARM Ltd. 2016.  ALL RIGHTS RESERVED.
+ *
+ * See file LICENSE for terms.
+ */
 
 #ifndef UCS_SYS_H
 #define UCS_SYS_H
@@ -16,15 +16,16 @@
 #include <ucs/sys/compiler.h>
 #include <ucs/type/status.h>
 #include <ucs/type/cpu_set.h>
-#include <ucs/debug/memtrack.h>
+#include <ucs/time/time_def.h>
+#include <ucs/debug/memtrack_int.h>
 #include <ucs/config/types.h>
+#include <ucs/config/parser.h>
 
 #include <errno.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/uio.h>
-#include <sys/fcntl.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/param.h>
@@ -34,10 +35,10 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <assert.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
-#include <signal.h>
 #include <unistd.h>
 #include <inttypes.h>
 #include <limits.h>
@@ -62,6 +63,9 @@ typedef cpuset_t ucs_sys_cpuset_t;
 #error "Port me"
 #endif
 
+#define UCS_SYS_FS_SYSTEM_PATH "/sys/devices/system"
+#define UCS_SYS_FS_CPUS_PATH   UCS_SYS_FS_SYSTEM_PATH "/cpu"
+
 
 BEGIN_C_DECLS
 
@@ -83,16 +87,38 @@ typedef enum {
 } ucs_sys_namespace_type_t;
 
 
+/* virtual memory area flags */
+typedef enum {
+    UCS_SYS_VMA_FLAG_DONTCOPY = UCS_BIT(0),
+} ucs_sys_vma_info_flags_t;
+
+
+/* information about virtual memory area */
+typedef struct {
+    unsigned long start;
+    unsigned long end;
+    size_t        page_size;
+    uint32_t      flags;
+} ucs_sys_vma_info_t;
+
+
+/**
+ * Callback function type used in ucs_sys_iterate_vm.
+ */
+typedef void (*ucs_sys_vma_cb_t)(ucs_sys_vma_info_t *info, void *ctx);
+
+
 /**
  * Callback function type used in ucs_sys_readdir.
  */
-typedef ucs_status_t (*ucs_sys_readdir_cb_t)(struct dirent *entry, void *ctx);
+typedef ucs_status_t (*ucs_sys_readdir_cb_t)(const struct dirent *entry,
+                                             void *arg);
 
 
 /**
  * Callback function type used in ucs_sys_enum_threads.
  */
-typedef ucs_status_t (*ucs_sys_enum_threads_cb_t)(pid_t pid, void *ctx);
+typedef ucs_status_t (*ucs_sys_enum_threads_cb_t)(pid_t pid, void *arg);
 
 
 /**
@@ -101,6 +127,22 @@ typedef ucs_status_t (*ucs_sys_enum_threads_cb_t)(pid_t pid, void *ctx);
 typedef void (*ucs_sys_enum_pfn_cb_t)(unsigned page_number, unsigned long pfn,
                                       void *ctx);
 
+/**
+ * Initialize a buffer with sysfs file contents.
+ *
+ * @param dev_name      Device name of the underlying sysfs_path (eg. 'ib0').
+ * @param sysfs_path    Path to the device system folder.
+ * @param file_name     Specific file to read.
+ * @param output_buffer Filled with contents of the read file.
+ * @param max           Room in "output_buffer".
+ * @param err_level     Error message log level.
+ *
+ * @return UCS_OK if successful, or error code otherwise.
+ */
+ucs_status_t ucs_sys_read_sysfs_file(const char *dev_name,
+                                     const char *sysfs_path,
+                                     const char *file_name, char *output_buffer,
+                                     size_t max, ucs_log_level_t err_level);
 
 /**
  * @return TMPDIR environment variable if set. Otherwise, return "/tmp".
@@ -164,6 +206,16 @@ uint64_t ucs_generate_uuid(uint64_t seed);
 
 
 /**
+ * Returns a value one greater than the maximum file descriptor
+ * number that can be opened by this process. Attempts to exceed
+ * this limit yield the error EMFILE.
+ *
+ * @return The maximal number of files that could be opened simultaneously.
+ */
+int ucs_sys_max_open_files();
+
+
+/**
  * Open an output stream according to user configuration:
  *   - file:<name> - file name, %p, %h, %c are substituted.
  *   - stdout
@@ -179,7 +231,7 @@ uint64_t ucs_generate_uuid(uint64_t seed);
  *                             fclose() should be called to release resources (1)
  *                             or not (0).
  * @param [out] p_next_token   Pointer that is set to remainder of @config_str.
- * @oaram [out] p_filename     Pointer to the variable that is filled with the
+ * @param [out] p_filename     Pointer to the variable that is filled with the
  *                             resulted name of the log file (if it is not NULL).
  *                             Caller is responsible to release memory then.
  *
@@ -189,6 +241,20 @@ ucs_status_t
 ucs_open_output_stream(const char *config_str, ucs_log_level_t err_log_level,
                        FILE **p_fstream, int *p_need_close,
                        const char **p_next_token, char **p_filename);
+
+
+/**
+ * Read file contents into a string. If the size of the data is smaller than the
+ * supplied upper limit (max), a null terminator is appended to the data.
+ *
+ * @param mode            File open mode (same as for fopen (3)).
+ * @param err_log_level   Logging level that should be used for printing errors.
+ * @param filename_fmt    File name printf-like format string.
+ *
+ * @return Handle to the open file, or NULL if failed.
+ */
+FILE *ucs_open_file(const char *mode, ucs_log_level_t err_log_level,
+                    const char *filename_fmt, ...) UCS_F_PRINTF(3, 4);
 
 
 /**
@@ -240,12 +306,24 @@ size_t ucs_get_page_size();
 
 
 /**
- * Get page size of a memory region.
+ * Get info for memory range.
  *
- * @param [in]  address          Memory region start address,
- * @param [in]  size             Memory region size.
- * @param [out] min_page_size_p  Set to the minimal page size in the memory region.
- * @param [out] max_page_size_p  Set to the maximal page size in the memory region.
+ * @param address     Memory range start address,
+ * @param size        Memory range size.
+ * @param cb          Callback function which is called for every vm area.
+ * @param ctx         Context argument passed to @a cb call.
+ */
+void ucs_sys_iterate_vm(void *address, size_t size, ucs_sys_vma_cb_t cb,
+                        void *ctx);
+
+
+/**
+ * Get page size of a memory range.
+ *
+ * @param [in]  address          Memory range start address,
+ * @param [in]  size             Memory range size.
+ * @param [out] min_page_size_p  Set to the minimal page size in the memory range.
+ * @param [out] max_page_size_p  Set to the maximal page size in the memory range.
  */
 void ucs_get_mem_page_size(void *address, size_t size, size_t *min_page_size_p,
                            size_t *max_page_size_p);
@@ -303,7 +381,7 @@ ucs_status_t ucs_sysv_free(void *address);
  * @param flags     Flags to pass to the mmap() system call
  */
 ucs_status_t ucs_mmap_alloc(size_t *size, void **address_p,
-                            int flags UCS_MEMTRACK_ARG);
+                            int flags, const char *alloc_name);
 
 /**
  * Release memory allocated via mmap API.
@@ -471,6 +549,15 @@ int ucs_sys_setaffinity(ucs_sys_cpuset_t *cpuset);
 int ucs_sys_getaffinity(ucs_sys_cpuset_t *cpuset);
 
 /**
+ * Queries affinity for the current thread.
+ *
+ * @param [out] cpuset      Pointer to the cpuset to return result
+ *
+ * @return Error code as defined by @ref ucs_status_t
+ */
+ucs_status_t ucs_sys_pthread_getaffinity(ucs_sys_cpuset_t *cpuset);
+
+/**
  * Copies ucs_sys_cpuset_t to ucs_cpu_set_t.
  *
  * @param [in]  src         Source
@@ -508,7 +595,6 @@ int ucs_sys_ns_is_default(ucs_sys_namespace_type_t name);
  */
 ucs_status_t ucs_sys_get_boot_id(uint64_t *high, uint64_t *low);
 
-
 /**
  * Read directory
  *
@@ -518,7 +604,7 @@ ucs_status_t ucs_sys_get_boot_id(uint64_t *high, uint64_t *low);
  *
  * @return UCS_OK if directory is found and successfully iterated thought all
  *         entries, error code in all other cases, see NOTES.
- * 
+ *
  * @note ucs_sys_readdir function reads directory pointed by @a path argument
  *       and calls @a cb function for every entry in directory, including
  *       '.' and '..'. In case if @a cb function returns value different from
@@ -535,13 +621,74 @@ ucs_status_t ucs_sys_readdir(const char *path, ucs_sys_readdir_cb_t cb, void *ct
  *
  * @return UCS_OK if directory is found and successfully iterated thought all
  *         entries, error code in all other cases, see NOTES.
- * 
+ *
  * @note ucs_sys_enum_threads function enumerates current process threads
  *       and calls @a cb function for every thread. In case if @a cb function
  *       returns value different from UCS_OK then function breaks
  *       immediately and this value is returned from ucs_sys_enum_threads.
  */
-ucs_status_t ucs_sys_enum_threads(ucs_sys_enum_threads_cb_t cb, void *ctx);
+ucs_status_t ucs_sys_enum_threads(ucs_sys_enum_threads_cb_t cb, void *arg);
+
+
+/**
+ * Check the per-process limit on the number of open file descriptors.
+ *
+ * @return UCS_OK if the limit has not been reached. UCS_ERR_EXCEEDS_LIMIT,
+ *         otherwise.
+ */
+ucs_status_t ucs_sys_check_fd_limit_per_process();
+
+
+/*
+ * Create a named thread.
+ *
+ * @param [out] thread_id_p     If successful, set to the new thread id.
+ * @param [in]  start_routine   Thread function.
+ * @param [in]  arg             Custom argument for start_routine.
+ * @param [in]  fmt             Thread name format string.
+ *
+ * @return UCS_OK if successful, or error status if failed.
+ */
+ucs_status_t ucs_pthread_create(pthread_t *thread_id_p,
+                                void *(*start_routine)(void*), void *arg,
+                                const char *fmt, ...) UCS_F_PRINTF(4, 5);
+
+/*
+ * Get number of CPUs.
+ *
+ * @return number of CPUs, or -1 in case of error.
+ */
+long ucs_sys_get_num_cpus();
+
+
+/*
+ * Get process creation time.
+ *
+ * @param [in] pid             Process id to get start time.
+ *
+ * @return The time the process started after system boot or 0 in case of error.
+ */
+unsigned long ucs_sys_get_proc_create_time(pid_t pid);
+
+
+/*
+ * Get effective max locked memory limit (unlimited for privileged user).
+ * In case we can't query the system for capabilities, we fallback to
+ * @ref ucs_sys_get_memlock_rlimit
+ *
+ * @param [out] rlimit_value If successful, set to the current limit value.
+ *
+ * @return UCS_OK if successful, or error status if failed.
+ */
+ucs_status_t ucs_sys_get_effective_memlock_rlimit(size_t *rlimit_value);
+
+
+/*
+ * Check if library is built dynamically (.so module)
+ *
+ * @return 1 if built dynamically, 0 if statically.
+ */
+int ucs_sys_is_dynamic_lib(void);
 
 END_C_DECLS
 

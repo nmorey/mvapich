@@ -1,0 +1,43 @@
+/*D
+   MPI_Get_address - Get the address of a location in memory
+
+Synopsis:
+.vb
+int MPI_Get_address(const void *location, MPI_Aint *address)
+.ve
+
+Input Parameters:
+. location - location in caller memory (choice)
+
+Output Parameters:
+. address - address of location (integer)
+
+Notes:
+This routine is provided for both the Fortran and C programmers.
+On many systems, the address returned by this routine will be the same
+as produced by the C '&' operator, but this is not required in C and
+may not be true of systems with word- rather than byte-oriented
+instructions or systems with segmented address spaces.
+
+.N ThreadSafe
+
+.N Fortran
+
+ In Fortran, the integer type is always signed.  This can cause problems
+ on systems where the address fits into a four byte unsigned integer but
+ the value is larger than the largest signed integer.  For example, a system
+ with more than 2 GBytes of memory may have addresses that do not fit within
+ a four byte signed integer.  Unfortunately, there is no easy solution to
+ this problem, as there is no Fortran datatype that can be used here (using
+ a longer integer type will cause other problems, as well as surprising
+ users when the size of the integer type is larger that the size of a pointer
+ in C).  In this case, it is recommended that you use C to manipulate
+ addresses.
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_OTHER
+
+D*/
+

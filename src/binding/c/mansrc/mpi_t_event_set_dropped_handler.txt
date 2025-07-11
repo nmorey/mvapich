@@ -1,0 +1,23 @@
+/*D
+   MPI_T_event_set_dropped_handler - Registers a function to be called when event information is dropped for the registration handle specified in event_registration
+
+Synopsis:
+.vb
+int MPI_T_event_set_dropped_handler(MPI_T_event_registration event_registration,
+                                    MPI_T_event_dropped_cb_function dropped_cb_function)
+.ve
+
+Input Parameters:
++ event_registration - valid event registration (handle)
+- dropped_cb_function - pointer to user-defined callback function (function)
+
+.N ThreadSafe
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_T_ERR_INVALID_HANDLE
+.N MPI_T_ERR_NOT_INITIALIZED
+.N MPI_ERR_OTHER
+
+D*/
+

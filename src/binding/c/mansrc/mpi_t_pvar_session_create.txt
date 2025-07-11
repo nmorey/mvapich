@@ -1,0 +1,22 @@
+/*D
+   MPI_T_pvar_session_create - Create a new session for accessing performance variables
+
+Synopsis:
+.vb
+int MPI_T_pvar_session_create(MPI_T_pvar_session *session)
+.ve
+
+Output Parameters:
+. session - identifier of performance session (handle)
+
+.N ThreadSafe
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_T_ERR_INVALID
+.N MPI_T_ERR_NOT_INITIALIZED
+.N MPI_T_ERR_OUT_OF_SESSIONS
+.N MPI_ERR_OTHER
+
+D*/
+

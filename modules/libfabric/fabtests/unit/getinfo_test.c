@@ -729,6 +729,31 @@ static int test_caps_regression(char *node, char *service, uint64_t flags,
 	return 0;
 }
 
+/* Check if at least one of FI_LOCAL_COMM and FI_REMOTE_COMM is set */
+static int test_comm_caps(char *node, char *service, uint64_t flags,
+		struct fi_info *hints, struct fi_info **info)
+{
+	uint64_t test_caps[2] = { FI_LOCAL_COMM, FI_REMOTE_COMM };
+	int ret, i;
+
+	for (i = 0; i < 2; i++) {
+		hints->caps &= ~(FI_LOCAL_COMM | FI_REMOTE_COMM);
+		hints->domain_attr->caps &= ~(FI_LOCAL_COMM | FI_REMOTE_COMM);
+		hints->caps |= test_caps[i];
+		hints->domain_attr->caps |= test_caps[i];
+		ret = fi_getinfo(FT_FIVERSION, node, service, flags, hints, info);
+		if (ret == 0) {
+			if (((*info)->caps & test_caps[i]) == test_caps[i] &&
+			    ((*info)->domain_attr->caps & test_caps[i]) == test_caps[i])
+				return 0;
+
+			fi_freeinfo(*info);
+		}
+	}
+
+	FT_DEBUG("Neither FI_LOCAL_COMM nor FI_REMOTE_COMM is set\n");
+	return -FI_EIO;
+}
 
 /*
  * getinfo test
@@ -780,6 +805,15 @@ static int getinfo_unit_test(char *node, char *service, uint64_t flags,
 			break;
 	}
 out:
+	/* If init was called, then there is a chance that the hints were
+	 * modified so that the application now owns some of the memory.
+	 * At the moment, only invalid_dom does this and the domain name
+	 * is the only application owned memory. Free the application owned
+	 * memory so that fi_freeinfo only frees memory that it owns. */
+	if (init) {
+		free(test_hints->domain_attr->name);
+		test_hints->domain_attr->name = NULL;
+	}
 	fi_freeinfo(test_hints);
 	fi_freeinfo(info);
 	return ret;
@@ -927,6 +961,8 @@ getinfo_test(caps, 3, "Test domain capabilities", NULL, NULL, 0,
 	     hints, NULL, validate_domain_caps, NULL, 0)
 getinfo_test(caps, 4, "Test for capability bit regression",
 	     NULL, NULL, 0, hints, NULL, test_caps_regression, NULL, 0)
+getinfo_test(caps, 5, "Test if either FI_LOCAL_COMM or FI_REMOTE_COMM is set",
+	     NULL, NULL, 0, hints, NULL, test_comm_caps, NULL, 0)
 
 
 static void usage(char *name)
@@ -1011,6 +1047,7 @@ int main(int argc, char **argv)
 		TEST_ENTRY_GETINFO(caps2),
 		TEST_ENTRY_GETINFO(caps3),
 		TEST_ENTRY_GETINFO(caps4),
+		TEST_ENTRY_GETINFO(caps5),
 		{ NULL, "" }
 	};
 

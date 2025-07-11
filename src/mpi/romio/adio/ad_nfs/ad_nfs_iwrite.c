@@ -17,7 +17,7 @@
 static MPIX_Grequest_class ADIOI_GEN_greq_class = 0;
 /* this routine is nearly identical to ADIOI_GEN_IwriteContig, except we lock
  * around I/O */
-void ADIOI_NFS_IwriteContig(ADIO_File fd, void *buf, int count,
+void ADIOI_NFS_IwriteContig(ADIO_File fd, void *buf, MPI_Aint count,
                             MPI_Datatype datatype, int file_ptr_type,
                             ADIO_Offset offset, ADIO_Request * request, int *error_code)
 {
@@ -54,7 +54,7 @@ void ADIOI_NFS_IwriteContig(ADIO_File fd, void *buf, int count,
  * Returns 0 on success, -errno on failure.
  */
 #ifdef ROMIO_HAVE_WORKING_AIO
-int ADIOI_NFS_aio(ADIO_File fd, void *buf, int len, ADIO_Offset offset,
+int ADIOI_NFS_aio(ADIO_File fd, void *buf, MPI_Aint len, ADIO_Offset offset,
                   int wr, MPI_Request * request)
 {
     int err = -1, fd_sys;

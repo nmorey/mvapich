@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2001-2019.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2019. ALL RIGHTS RESERVED.
 * Copyright (C) UT-Battelle, LLC. 2015. ALL RIGHTS RESERVED.
 *
 * See file LICENSE for terms.
@@ -32,7 +32,7 @@ UCS_TEST_P(test_ucp_tag_cancel, cancel_exp) {
 
     EXPECT_EQ(UCS_ERR_CANCELED, req->status);
     EXPECT_EQ(0ul, recv_data);
-    request_release(req);
+    request_free(req);
 }
 
 // Test that cancelling already matched (but not yet completed) request does

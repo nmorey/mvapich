@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2001-2017.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2017. ALL RIGHTS RESERVED.
 *
 * See file LICENSE for terms.
 */
@@ -19,8 +19,15 @@ extern "C" {
 
 class test_rc : public uct_test {
 public:
+    typedef struct pending_send_request {
+        uct_pending_req_t uct;
+        int               cb_count;
+        int               purge_count;
+        uct_ep_h          ep;
+    } pending_send_request_t;
+
     virtual void init();
-    void connect();
+    virtual void connect();
 
     uct_rc_iface_t* rc_iface(entity *e) {
         return ucs_derived_of(e->iface(), uct_rc_iface_t);
@@ -129,7 +136,9 @@ public:
 
     void test_general(int wnd, int s_thresh, int h_thresh, bool is_fc_enabled);
 
-    void test_pending_grant(int wnd);
+    virtual void wait_fc_hard_resend(entity *e);
+
+    virtual void test_pending_grant(int16_t wnd);
 
     void test_pending_purge(int wnd, int num_pend_sends);
 

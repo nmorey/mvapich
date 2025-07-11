@@ -1,5 +1,5 @@
 /**
- * Copyright (C) Mellanox Technologies Ltd. 2001-2018.  ALL RIGHTS RESERVED.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2018. ALL RIGHTS RESERVED.
  * Copyright (C) ARM Ltd. 2016-2017.  ALL RIGHTS RESERVED.
  * See file LICENSE for terms.
  */
@@ -18,6 +18,24 @@ typedef struct uct_self_iface_config {
     uct_iface_config_t    super;
     size_t                seg_size;      /* Maximal send size */
 } uct_self_iface_config_t;
+
+
+/**
+ * @brief self device MD descriptor
+ */
+typedef struct uct_self_md {
+    uct_md_t super;
+    size_t   num_devices; /* Number of devices to create */
+} uct_self_md_t;
+
+
+/**
+ * @brief self device MD configuration
+ */
+typedef struct uct_self_md_config {
+    uct_md_config_t super;
+    size_t          num_devices; /* Number of devices to create */
+} uct_self_md_config_t;
 
 
 typedef struct uct_self_iface {

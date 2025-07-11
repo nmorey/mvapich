@@ -1,0 +1,31 @@
+/*D
+   MPI_Type_free - Frees the datatype
+
+Synopsis:
+.vb
+int MPI_Type_free(MPI_Datatype *datatype)
+.ve
+
+Input/Output Parameters:
+. datatype - datatype that is freed (handle)
+
+Predefined types:
+The MPI standard states that (in Opaque Objects)
+.Bqs
+MPI provides certain predefined opaque objects and predefined, static handles
+to these objects. Such objects may not be destroyed.
+.Bqe
+Thus, it is an error to free a predefined datatype.  The same section makes
+it clear that it is an error to free a null datatype.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

@@ -134,8 +134,10 @@ psm2_error_t psm3_ips_proto_init(psm2_ep_t ep,
 			    void *spioc,	                  /* PTL's opaque spio control */
 			    struct ips_proto *proto);	          /* output protocol */
 
-psm2_error_t psm3_ips_proto_fini(struct ips_proto *proto, int force,
+psm2_error_t psm3_ips_proto_disconnect_all(struct ips_proto *proto, int force,
 			   uint64_t timeout);
+
+psm2_error_t psm3_ips_proto_fini(struct ips_proto *proto);
 
 /*
  * Control message structures
@@ -242,9 +244,12 @@ struct ips_proto_stats {
 	uint64_t scb_egr_unavail_cnt;
 	uint64_t unknown_packets;
 	uint64_t stray_packets;
+	uint64_t rcv_revisit;
 #ifdef PSM_SOCKETS
-	uint64_t partial_write_cnt;
+	uint64_t partial_data_write_cnt;
+	uint64_t partial_ctr_write_cnt;
 	uint64_t partial_read_cnt;
+	uint64_t rcv_hol_blocking;
 #endif
 };
 
@@ -307,18 +312,22 @@ struct ips_ibta_compliance_fn {
 
 /* please don't change the flow id order */
 typedef enum ips_epaddr_flow {
-	EP_FLOW_GO_BACK_N_PIO,
-	EP_FLOW_TIDFLOW,	/* Can either pio or dma for tidflow */
+	EP_FLOW_GO_BACK_N_PIO = 0,
 	EP_FLOW_LAST		/* Keep this the last endpoint flow */
 } ips_epaddr_flow_t;
+// number of entries in ips_epaddr.ips_flow[], use this only when
+// sizing array and testing index.  When testing flowid in other
+// places use EP_FLOW_LAST as there could later be special flow types which
+// don't need an entry in ips_flow[]
+#define EP_NUM_FLOW_ENTRIES (EP_FLOW_LAST)
 
 typedef enum psm_transfer_type {
-	PSM_TRANSFER_PIO,
+	PSM_TRANSFER_PIO = 0,
 	PSM_TRANSFER_LAST	/* Keep this the last transfer type */
 } psm_transfer_type_t;
 
 typedef enum psm_protocol_type {
-	PSM_PROTOCOL_GO_BACK_N,
+	PSM_PROTOCOL_GO_BACK_N = 0,
 	PSM_PROTOCOL_TIDFLOW,
 	PSM_PROTOCOL_LAST	/* Keep this the last protocol type */
 } psm_protocol_type_t;
@@ -347,7 +356,7 @@ struct ips_proto {
 	uint32_t iovec_thresh_eager_blocking;
 #endif
 #ifdef PSM_HAVE_REG_MR
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 	uint32_t iovec_gpu_thresh_eager;
 	uint32_t iovec_gpu_thresh_eager_blocking;
 #endif
@@ -418,15 +427,22 @@ struct ips_proto {
 	void *opp_ctxt;
 	struct opp_api opp_fn;
 
-#ifdef PSM_CUDA
-	struct ips_cuda_hostbuf_mpool_cb_context cuda_hostbuf_send_cfg;
-	struct ips_cuda_hostbuf_mpool_cb_context cuda_hostbuf_small_send_cfg;
-	mpool_t cuda_hostbuf_pool_send;
-	mpool_t cuda_hostbuf_pool_small_send;
-	CUstream cudastream_send;
-	unsigned cuda_prefetch_limit;
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
+	struct ips_gpu_hostbuf_mpool_cb_context gpu_hostbuf_send_cfg;
+	struct ips_gpu_hostbuf_mpool_cb_context gpu_hostbuf_small_send_cfg;
+	mpool_t gpu_hostbuf_pool_send;
+	mpool_t gpu_hostbuf_pool_small_send;
 #endif
 
+#ifdef PSM_CUDA
+	CUstream cudastream_send;
+#elif defined(PSM_ONEAPI)
+	ze_command_queue_handle_t cq_send;	// NULL if psm3_oneapi_immed_async_copy
+#endif
+
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
+	unsigned gpu_prefetch_limit;
+#endif
 /*
  * Control message queue for pending messages.
  *
@@ -510,6 +526,10 @@ struct ips_flow {
 #endif
 #ifdef PSM_SOCKETS
 	uint32_t used_snd_buff; // number of bytes in socket send buffer
+	uint32_t send_remaining; // the length of remaining data to send
+	uint8_t* partial_conn_msg; // partial sent connection msg
+	uint16_t partial_conn_msg_size; // size of the partial_conn_msg buffer
+	uint16_t conn_msg_remainder; // the length of remaining connection msg to send
 #endif
 	// We track credits in terms of packets and bytes.
 	// For UD and OPA, packets is sufficient since per pkt buffering.
@@ -549,7 +569,7 @@ struct ips_epaddr {
 
 	struct ips_epaddr *next;	/* linklist */
 
-	struct ips_flow flows[EP_FLOW_LAST - 1];	/* pio and dma */
+	struct ips_flow flows[EP_NUM_FLOW_ENTRIES];	/* pio and dma */
 	ips_path_grp_t *pathgrp;	/* pointer to slid/dlid group in hash */
 
 	uint32_t connidx_outgoing;	/* peer's connection idx */
@@ -639,9 +659,10 @@ struct ips_epaddr {
 			// for UDP the pri_addr is a UDP socket
 			// for TCP the pri_addr is a TCP socket and the
 			// aux_addr is a UDP socket used only for disconnect
-			struct sockaddr_in6 remote_pri_addr;
-			struct sockaddr_in6 remote_aux_addr;
+			psm3_sockaddr_in_t remote_pri_addr;
+			psm3_sockaddr_in_t remote_aux_addr;
 			int tcp_fd;
+			uint8_t connected;
 		} sockets;
 #endif /* PSM_SOCKETS */
 	};
@@ -812,9 +833,9 @@ MOCK_DCL_EPILOGUE(psm3_ips_ibta_init);
 psm2_error_t psm3_ips_ibta_fini(struct ips_proto *proto);
 
 
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 PSMI_ALWAYS_INLINE(
-uint32_t ips_cuda_next_window(uint32_t max_window, uint32_t offset,
+uint32_t ips_gpu_next_window(uint32_t max_window, uint32_t offset,
 			      uint32_t len))
 {
 	uint32_t window_len;

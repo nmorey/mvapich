@@ -1,0 +1,51 @@
+=== BEGIN_MPI_T_MVP_PVAR_INFO_BLOCK ===
+pvars:
+    - type : COUNTER_ARRAY
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_mpic_send_byte_counter_array
+      size: 287
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : barrier-intra Algorithms
+      description : >-
+        Number of bytes passing through MPIC_Send
+
+    - type : COUNTER_ARRAY
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_mpic_recv_byte_counter_array
+      size: 287
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : barrier-intra Algorithms
+      description : >-
+        Number of bytes passing through mpic_send_array
+
+    - type : COUNTER_ARRAY
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_mpic_isend_byte_counter_array
+      size: 287
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : barrier-intra Algorithms
+      description : >-
+        Number of bytes passing through MPIC_Isend_replace
+
+    - type : COUNTER_ARRAY
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_mpic_irecv_byte_counter_array
+      size: 287
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : barrier-intra Algorithms
+      description : >-
+        Number of bytes passing through MPIC_Irecv
+
+=== END_MPI_T_MVP_PVAR_INFO_BLOCK ===

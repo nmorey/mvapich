@@ -1,0 +1,42 @@
+/*D
+   MPI_Recv_init - Create a persistent request for a receive
+
+Synopsis:
+.vb
+int MPI_Recv_init(void *buf, int count, MPI_Datatype datatype, int source,
+                  int tag, MPI_Comm comm, MPI_Request *request)
+.ve
+.vb
+int MPI_Recv_init_c(void *buf, MPI_Count count, MPI_Datatype datatype,
+                    int source, int tag, MPI_Comm comm, MPI_Request *request)
+.ve
+
+Input Parameters:
++ count - number of elements received (non-negative integer)
+. datatype - type of each element (handle)
+. source - rank of source or MPI_ANY_SOURCE (integer)
+. tag - message tag or MPI_ANY_TAG (integer)
+- comm - communicator (handle)
+
+Output Parameters:
++ buf - initial address of receive buffer (choice)
+- request - communication request (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_BUFFER
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_RANK
+.N MPI_ERR_TAG
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Start, MPI_Startall, MPI_Request_free
+D*/
+

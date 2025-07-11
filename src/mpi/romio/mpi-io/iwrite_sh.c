@@ -4,6 +4,8 @@
  */
 
 #include "mpioimpl.h"
+#include <limits.h>
+#include <assert.h>
 
 #ifdef HAVE_WEAK_SYMBOLS
 
@@ -18,6 +20,19 @@
 int MPI_File_iwrite_shared(MPI_File fh, const void *buf, int count, MPI_Datatype datatype,
                            MPIO_Request * request)
     __attribute__ ((weak, alias("PMPI_File_iwrite_shared")));
+#endif
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_File_iwrite_shared_c = PMPI_File_iwrite_shared_c
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_File_iwrite_shared_c MPI_File_iwrite_shared_c
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_File_iwrite_shared_c as PMPI_File_iwrite_shared_c
+/* end of weak pragmas */
+#elif defined(HAVE_WEAK_ATTRIBUTE)
+int MPI_File_iwrite_shared_c(MPI_File fh, const void *buf, MPI_Count count, MPI_Datatype datatype,
+                             MPIO_Request * request)
+    __attribute__ ((weak, alias("PMPI_File_iwrite_shared_c")));
 #endif
 
 /* Include mapping from MPI->PMPI */
@@ -46,6 +61,40 @@ Output Parameters:
 int MPI_File_iwrite_shared(MPI_File fh, ROMIO_CONST void *buf, int count,
                            MPI_Datatype datatype, MPIO_Request * request)
 {
+    return MPIOI_File_iwrite_shared(fh, buf, count, datatype, request);
+}
+
+/* large count function */
+
+
+/*@
+    MPI_File_iwrite_shared_c - Nonblocking write using shared file pointer
+
+Input Parameters:
+. fh - file handle (handle)
+. buf - initial address of buffer (choice)
+. count - number of elements in buffer (nonnegative integer)
+. datatype - datatype of each buffer element (handle)
+
+Output Parameters:
+. request - request object (handle)
+
+.N fortran
+@*/
+#ifdef HAVE_MPI_GREQUEST
+#include "mpiu_greq.h"
+#endif
+
+int MPI_File_iwrite_shared_c(MPI_File fh, ROMIO_CONST void *buf, MPI_Count count,
+                             MPI_Datatype datatype, MPIO_Request * request)
+{
+    return MPIOI_File_iwrite_shared(fh, buf, count, datatype, request);
+}
+
+#ifdef MPIO_BUILD_PROFILING
+int MPIOI_File_iwrite_shared(MPI_File fh, const void *buf, MPI_Aint count,
+                             MPI_Datatype datatype, MPIO_Request * request)
+{
     int error_code, buftype_is_contig, filetype_is_contig;
     ADIO_File adio_fh;
     ADIO_Offset incr, bufsize;
@@ -53,6 +102,9 @@ int MPI_File_iwrite_shared(MPI_File fh, ROMIO_CONST void *buf, int count,
     ADIO_Status status;
     ADIO_Offset off, shared_fp;
     static char myname[] = "MPI_FILE_IWRITE_SHARED";
+    void *e32buf = NULL;
+    const void *xbuf = NULL;
+    void *host_buf = NULL;
 
     ROMIO_THREAD_CS_ENTER();
 
@@ -84,13 +136,27 @@ int MPI_File_iwrite_shared(MPI_File fh, ROMIO_CONST void *buf, int count,
         MPIO_Err_return_file(adio_fh, error_code);
     }
 
+    xbuf = buf;
+    if (adio_fh->is_external32) {
+        error_code = MPIU_external32_buffer_setup(buf, count, datatype, &e32buf);
+        if (error_code != MPI_SUCCESS)
+            goto fn_exit;
+
+        xbuf = e32buf;
+    } else {
+        MPIO_GPU_HOST_SWAP(host_buf, buf, count, datatype);
+        if (host_buf != NULL) {
+            xbuf = host_buf;
+        }
+    }
+
     /* contiguous or strided? */
     if (buftype_is_contig && filetype_is_contig) {
         /* convert sizes to bytes */
         bufsize = datatype_size * count;
         off = adio_fh->disp + adio_fh->etype_size * shared_fp;
         if (!(adio_fh->atomicity))
-            ADIO_IwriteContig(adio_fh, buf, count, datatype, ADIO_EXPLICIT_OFFSET,
+            ADIO_IwriteContig(adio_fh, xbuf, count, datatype, ADIO_EXPLICIT_OFFSET,
                               off, request, &error_code);
         else {
             /* to maintain strict atomicity semantics with other concurrent
@@ -99,7 +165,7 @@ int MPI_File_iwrite_shared(MPI_File fh, ROMIO_CONST void *buf, int count,
             if (adio_fh->file_system != ADIO_NFS)
                 ADIOI_WRITE_LOCK(adio_fh, off, SEEK_SET, bufsize);
 
-            ADIO_WriteContig(adio_fh, buf, count, datatype, ADIO_EXPLICIT_OFFSET,
+            ADIO_WriteContig(adio_fh, xbuf, count, datatype, ADIO_EXPLICIT_OFFSET,
                              off, &status, &error_code);
 
             if (adio_fh->file_system != ADIO_NFS)
@@ -108,11 +174,16 @@ int MPI_File_iwrite_shared(MPI_File fh, ROMIO_CONST void *buf, int count,
             MPIO_Completed_request_create(&adio_fh, bufsize, &error_code, request);
         }
     } else
-        ADIO_IwriteStrided(adio_fh, buf, count, datatype, ADIO_EXPLICIT_OFFSET,
+        ADIO_IwriteStrided(adio_fh, xbuf, count, datatype, ADIO_EXPLICIT_OFFSET,
                            shared_fp, request, &error_code);
 
+    MPIO_GPU_HOST_FREE(host_buf, count, datatype);
+
   fn_exit:
+    if (e32buf != NULL)
+        ADIOI_Free(e32buf);
     ROMIO_THREAD_CS_EXIT();
 
     return error_code;
 }
+#endif

@@ -1,15 +1,4 @@
 #! /bin/sh
-<<<<<<< HEAD
-#
-# Copyright (c) 2001-2022, The Ohio State University. All rights reserved.
-#  
-# This file is part of the MVAPICH software package developed by the team
-# members of The Ohio State University's Network-Based Computing Laboratory
-# (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
-#
-# For detailed copyright and licensing information, please refer to the
-# copyright file COPYRIGHT in the top level MVAPICH directory.
-# 
 ##
 ## Copyright (C) by Argonne National Laboratory
 ##     See COPYRIGHT in top-level directory
@@ -46,9 +35,9 @@ libdir=__LIBDIR_TO_BE_FILLED_AT_INSTALL_TIME__
 
 # Default settings for compiler, flags, and libraries.
 # Determined by a combination of environment variables and tests within
-# configure (e.g., determining whehter -lsocket is needee)
+# configure (e.g., determining whether -lsocket is needed)
 CC="@CC@"
-MVAPICH_VERSION="@MVAPICH_VERSION@"
+MPICH_VERSION="@MPICH_VERSION@"
 
 @cc_shlib_conf@
 
@@ -71,6 +60,7 @@ Show=eval
 #
 # End of initialization of variables
 #---------------------------------------------------------------------
+
 # Environment Variables.
 # The environment variables MPICH_CC may be used to override the 
 # default choices.
@@ -79,8 +69,8 @@ Show=eval
 # (e.g., "cc -64" becomes "cc--64", that file is sources, allowing other
 # changes to the compilation environment.  See the variables used by the 
 # script (defined above)
-# Added MPICH_CC_OLD, MPICH_CC can be used to prefix CC with external utility, 
-# e.g. setenv MPICH_CC 'eval linkcache $MPICH_CC_OLD'
+# Added MPICH_CC_OLD, MPICH_CC can be used to prefix CC
+# with external utility, e.g. setenv MPICH_CC 'eval linkcache $MPICH_CC_OLD'
 if [ -n "$MPICH_CC" ] ; then
     MPICH_CC_OLD="$CC"
     CC="$MPICH_CC"
@@ -98,7 +88,7 @@ fi
 # Argument processing.
 # This is somewhat awkward because of the handling of arguments within
 # the shell.  We want to handle arguments that include spaces without 
-# loosing the spacing (an alternative would be to use a more powerful
+# losing the spacing (an alternative would be to use a more powerful
 # scripting language that would allow us to retain the array of values, 
 # which the basic (rather than enhanced) Bourne shell does not.  
 #
@@ -109,6 +99,9 @@ linking=yes
 allargs=""
 interlib_deps=yes
 static_mpi=no
+showinfo=""
+delay_libs=
+mpi_abi=no
 for arg in "$@" ; do
     # Set addarg to no if this arg should be ignored by the C compiler
     addarg=yes
@@ -143,6 +136,16 @@ for arg in "$@" ; do
     addarg=no
     Show=echo
     ;;
+    -show-compile-info)
+    addarg=no
+    Show=echo
+    show_info=compile
+    ;;
+    -show-link-info)
+    addarg=no
+    Show=echo
+    show_info=link
+    ;;
     -config=*)
     addarg=no
     CCname=`echo A$arg | sed -e 's/A-config=//g'`
@@ -164,7 +167,7 @@ for arg in "$@" ; do
     ;;
     -v)
     # Pass this argument to the compiler as well.
-    echo "mpicc for MVAPICH version $MVAPICH_VERSION"
+    echo "mpicc for MPICH version $MPICH_VERSION"
     # if there is only 1 argument, it must be -v.
     if [ "$#" -eq "1" ] ; then
         linking=no
@@ -183,18 +186,12 @@ for arg in "$@" ; do
     nativelinking=yes
     addarg=no
     ;;
-    -itac)
-    if [ -n "$VT_ROOT" ] ; then
-        if [ -e "$VT_ROOT/bin/itacvars.sh" ] ; then
-            VT_LIB_DIR=`sh -c ". $VT_ROOT/bin/itacvars.sh; echo \\$VT_LIB_DIR"`
-            VT_ADD_LIBS=`sh -c ". $VT_ROOT/bin/itacvars.sh; echo \\$VT_ADD_LIBS"`
-            ITAC_OPTIONS="-L$VT_LIB_DIR -lVT $VT_ADD_LIBS"
-        else
-            echo "Cannot find itacvars.sh in $VT_ROOT/bin. -itac option ignored."
-        fi
-    else
-        echo "VT_ROOT should be set with the root directory of Intel Trace Analyzer and Collector. -itac option ignored."
-    fi
+    -lcuda|-lcudart|-lze_loader)
+    delay_libs="$delay_libs $arg"
+    addarg=no
+    ;;
+    -mpi-abi|-mpi_abi)
+    mpi_abi=yes
     addarg=no
     ;;
     -help)
@@ -214,11 +211,8 @@ for arg in "$@" ; do
 	# Other arguments.  We are careful to handle arguments with 
 	# quotes (we try to quote all arguments in case they include 
 	# any spaces)
-    *\"*) 
-    qarg="'"$arg"'"
-    ;;
     *\'*) 
-    qarg='\"'"$arg"'\"'
+    qarg="'"`echo $arg | sed -e "s/'/'\"'\"'/g"`"'"
     ;;
     *)
     qarg="'$arg'"
@@ -235,6 +229,16 @@ if [ $# -eq 0 ] ; then
     "$0" -help
     exit 1
 fi
+
+# Check recursive situations
+# User mistakes, e.g. setting MPICH_CC=mpicc, may end up recursively running
+# this script. A simple check to bail if that's the case.
+if [ -n "$MPICH_RECURSION_CHECK" ] ; then
+    echo "This script ($0) is being called recursively, check that MPICH_CC does not refer to mpicc."
+    exit 1
+fi
+MPICH_RECURSION_CHECK=1
+export MPICH_RECURSION_CHECK
 
 # -----------------------------------------------------------------------
 # Derived variables.  These are assembled from variables set from the
@@ -264,14 +268,26 @@ final_cppflags="@MPICH_MPICC_CPPFLAGS@ @WRAPPER_CPPFLAGS@"
 final_ldflags="@MPICH_MPICC_LDFLAGS@ @WRAPPER_LDFLAGS@"
 final_libs="@MPICH_MPICC_LIBS@"
 if test "@INTERLIB_DEPS@" = "no" -o "${interlib_deps}" = "no" ; then
-    final_ldflags="${final_ldflags} @LDFLAGS@"
-    final_libs="${final_libs} @LIBS@ @WRAPPER_LIBS@"
+    final_ldflags="${final_ldflags} @WRAPPER_DEPENDENCY_LDFLAGS@"
+    final_libs="${final_libs} __LIBS_TO_BE_FILLED_AT_INSTALL_TIME__"
+fi
+
+if [ "${0%_abi}" != "$0" ] ; then
+    mpi_abi=yes
+fi
+if [ "$mpi_abi" = no ] ; then
+    mpi_libs_shared="-l@MPILIBNAME@ @LPMPILIBNAME@"
+    mpi_libs_static="$libdir/lib@MPILIBNAME@.a @LPMPILIBNAME@"
+else
+    final_cppflags="-DMPI_ABI ${final_cppflags}"
+    mpi_libs_shared="-l@MPIABILIBNAME@ @LPMPIABILIBNAME@"
+    mpi_libs_static="$libdir/lib@MPIABILIBNAME@.a @LPMPIABILIBNAME@"
 fi
 
 # -----------------------------------------------------------------------
 #
 # A temporary statement to invoke the compiler
-# Place the -L before any args incase there are any mpi libraries in there.
+# Place the -L before any args in case there are any mpi libraries in there.
 # Eventually, we'll want to move this after any non-MPI implementation 
 # libraries.
 # We use a single invocation of the compiler.  This will be adequate until
@@ -280,15 +296,27 @@ fi
 # accept any argument; we don't need to know if we've seen a source
 # file or an object file.  Instead, we just check for an option that
 # suppressing linking, such as -c or -M.
-if [ "$linking" = yes ] ; then
+if [ "$show_info" = compile ] ; then
+    echo ${final_cppflags} $PROFILE_INCPATHS ${final_cflags} -I$includedir
+elif [ "$show_info" = link ] ; then
+    if [ "$nativelinking" = yes ] ; then
+        echo ${final_ldflags}
+    else
+        if [ "$static_mpi" = no ] ; then
+            echo ${final_ldflags} -L$libdir $PROFILE_PRELIB $PROFILE_FOO ${wrapper_dl_type_flags} ${mpi_libs_shared} $PROFILE_POSTLIB ${delay_libs} ${final_libs}
+        else
+            echo ${final_ldflags} -L$libdir $PROFILE_PRELIB $PROFILE_FOO ${wrapper_dl_type_flags} ${mpi_libs_static} $PROFILE_POSTLIB ${delay_libs} ${final_libs}
+        fi
+    fi
+elif [ "$linking" = yes ] ; then
     if [ "$nativelinking" = yes ] ; then
         $Show $CC ${final_cppflags} $PROFILE_INCPATHS ${final_cflags} ${final_ldflags} $allargs -I$includedir
         rc=$?
     else
         if [ "$static_mpi" = no ] ; then
-          $Show $CC ${final_cppflags} $PROFILE_INCPATHS ${final_cflags} ${final_ldflags} "${allargs[@]}" -I$includedir -L$libdir $PROFILE_PRELIB $PROFILE_FOO ${wrapper_dl_type_flags} -l@MPILIBNAME@ @LPMPILIBNAME@ $PROFILE_POSTLIB ${final_libs}
+          $Show $CC ${final_cppflags} $PROFILE_INCPATHS ${final_cflags} ${final_ldflags} $allargs -I$includedir -L$libdir $PROFILE_PRELIB $PROFILE_FOO ${wrapper_dl_type_flags} ${mpi_libs_shared} $PROFILE_POSTLIB ${delay_libs} ${final_libs}
         else
-          $Show $CC ${final_cppflags} $PROFILE_INCPATHS ${final_cflags} ${final_ldflags} "${allargs[@]}" -I$includedir -L$libdir $PROFILE_PRELIB $PROFILE_FOO ${wrapper_dl_type_flags} $libdir/lib@MPILIBNAME@.a @LPMPILIBNAME@ $PROFILE_POSTLIB ${final_libs}
+          $Show $CC ${final_cppflags} $PROFILE_INCPATHS ${final_cflags} ${final_ldflags} $allargs -I$includedir -L$libdir $PROFILE_PRELIB $PROFILE_FOO ${wrapper_dl_type_flags} ${mpi_libs_static} $PROFILE_POSTLIB ${delay_libs} ${final_libs}
         fi
         rc=$?
     fi

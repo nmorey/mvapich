@@ -2,26 +2,8 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- *
- */
 
 #include "mpidimpl.h"
-#include "upmi.h"
-
-#if defined (CHANNEL_MRAIL)
-#include "mpidi_ch3_impl.h"
-#endif
-
-#define MAX_JOBID_LEN 1024
 
 /*
 === BEGIN_MPI_T_CVAR_INFO_BLOCK ===
@@ -55,7 +37,7 @@ static MPIDI_PG_t *pg_world = NULL;
 #define MPIDI_MAX_KVS_KEY_LEN      256
 
 int MPIDI_PG_Init(MPIDI_PG_Compare_ids_fn_t compare_ids_fn, 
-          MPIDI_PG_Destroy_fn_t destroy_fn)
+		  MPIDI_PG_Destroy_fn_t destroy_fn)
 {
     int mpi_errno = MPI_SUCCESS;
     
@@ -65,6 +47,7 @@ int MPIDI_PG_Init(MPIDI_PG_Compare_ids_fn_t compare_ids_fn,
     return mpi_errno;
 }
 
+extern int MPIDI_lpid_counter;
 /*@ 
    MPIDI_PG_Finalize - Finalize the process groups, including freeing all
    process group structures
@@ -73,39 +56,32 @@ int MPIDI_PG_Finalize(void)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIDI_PG_t *pg, *pgNext;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_PG_FINALIZE);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_PG_FINALIZE);
+    MPIR_FUNC_ENTER;
 
     /* Print the state of the process groups */
     if (MPIR_CVAR_CH3_PG_VERBOSE) {
-    MPIDI_PG_Printall( stdout );
-    }
-
-    /* FIXME - straighten out the use of UPMI_FINALIZE - no use after 
-       PG_Finalize */
-    if (pg_world->connData) {
-        MPIR_pmi_finalize();
+	MPIU_PG_Printall( stdout );
     }
 
     /* Free the storage associated with the process groups */
     pg = MPIDI_PG_list;
     while (pg) {
-    pgNext = pg->next;
-    
-    /* In finalize, we free all process group information, even if
-       the ref count is not zero.  This can happen if the user
-       fails to use MPI_Comm_disconnect on communicators that
-       were created with the dynamic process routines.*/
+	pgNext = pg->next;
+	
+	/* In finalize, we free all process group information, even if
+	   the ref count is not zero.  This can happen if the user
+	   fails to use MPI_Comm_disconnect on communicators that
+	   were created with the dynamic process routines.*/
         /* XXX DJG FIXME-MT should we be checking this? */
-    if (MPIR_Object_get_ref(pg) == 0 || 1) {
-        if (pg == MPIDI_Process.my_pg)
-        MPIDI_Process.my_pg = NULL;
+	if (MPIR_Object_get_ref(pg) == 0 || 1) {
+	    if (pg == MPIDI_Process.my_pg)
+		MPIDI_Process.my_pg = NULL;
 
-        MPIR_Object_set_ref(pg, 0); /* satisfy assertions in PG_Destroy */
-        MPIDI_PG_Destroy( pg );
-    }
-    pg     = pgNext;
+	    MPIR_Object_set_ref(pg, 0); /* satisfy assertions in PG_Destroy */
+	    MPIDI_PG_Destroy( pg );
+	}
+	pg     = pgNext;
     }
 
     /* If COMM_WORLD is still around (it normally should be), 
@@ -114,10 +90,10 @@ int MPIDI_PG_Finalize(void)
        hence the usual process to free the related VC structures will
        not be invoked. */
     if (MPIDI_Process.my_pg) {
-    MPIDI_PG_Destroy(MPIDI_Process.my_pg);
+	MPIDI_PG_Destroy(MPIDI_Process.my_pg);
     } 
     MPIDI_Process.my_pg = NULL;
-    pg_world = NULL;
+    MPIDI_lpid_counter = 0;
 
     /* ifdefing out this check because the list will not be NULL in 
        Ch3_finalize because
@@ -128,15 +104,15 @@ int MPIDI_PG_Finalize(void)
 #if 0
     if (MPIDI_PG_list != NULL)
     { 
-    
-    /* --BEGIN ERROR HANDLING-- */
-    mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_FATAL, __func__, __LINE__, MPI_ERR_INTERN,
+	
+	/* --BEGIN ERROR HANDLING-- */
+	mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_FATAL, __func__, __LINE__, MPI_ERR_INTERN,
         "**dev|pg_finalize|list_not_empty", NULL); 
-    /* --END ERROR HANDLING-- */
+	/* --END ERROR HANDLING-- */
     }
 #endif
 
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_PG_FINALIZE);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 }
 
@@ -157,17 +133,16 @@ int MPIDI_PG_Create(int vct_sz, void * pg_id, MPIDI_PG_t ** pg_ptr)
     int p;
     int mpi_errno = MPI_SUCCESS;
     MPIR_CHKPMEM_DECL(2);
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_PG_CREATE);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_PG_CREATE);
+    MPIR_FUNC_ENTER;
     
     MPIR_CHKPMEM_MALLOC(pg,MPIDI_PG_t*,sizeof(MPIDI_PG_t),mpi_errno,"pg", MPL_MEM_GROUP);
     MPIR_CHKPMEM_MALLOC(pg->vct,MPIDI_VC_t *,sizeof(MPIDI_VC_t)*vct_sz,
-            mpi_errno,"pg->vct", MPL_MEM_GROUP);
+			mpi_errno,"pg->vct", MPL_MEM_GROUP);
 
     if (MPIR_CVAR_CH3_PG_VERBOSE) {
-    fprintf( stdout, "Creating a process group of size %d\n", vct_sz );
-    fflush(stdout);
+	fprintf( stdout, "Creating a process group of size %d\n", vct_sz );
+	fflush(stdout);
     }
 
     pg->handle = 0;
@@ -189,8 +164,8 @@ int MPIDI_PG_Create(int vct_sz, void * pg_id, MPIDI_PG_t ** pg_ptr)
 
     for (p = 0; p < vct_sz; p++)
     {
-    /* Initialize device fields in the VC object */
-    MPIDI_VC_Init(&pg->vct[p], pg, p);
+	/* Initialize device fields in the VC object */
+	MPIDI_VC_Init(&pg->vct[p], pg, p);
     }
 
     /* We may first need to initialize the channel before calling the channel 
@@ -202,8 +177,8 @@ int MPIDI_PG_Create(int vct_sz, void * pg_id, MPIDI_PG_t ** pg_ptr)
 #if 0
     for (p = 0; p < vct_sz; p++)
     {
-    /* Initialize the channel fields in the VC object */
-    MPIDI_CH3_VC_Init( &pg->vct[p] );
+	/* Initialize the channel fields in the VC object */
+	MPIDI_CH3_VC_Init( &pg->vct[p] );
     }
 #endif
 
@@ -214,21 +189,21 @@ int MPIDI_PG_Create(int vct_sz, void * pg_id, MPIDI_PG_t ** pg_ptr)
     pg->next = 0;
     if (!MPIDI_PG_list)
     {
-    MPIDI_PG_list = pg;
+	MPIDI_PG_list = pg;
     }
     else
     {
-    pgnext = MPIDI_PG_list; 
-    while (pgnext->next)
-    {
-        pgnext = pgnext->next;
-    }
-    pgnext->next = pg;
+	pgnext = MPIDI_PG_list; 
+	while (pgnext->next)
+	{
+	    pgnext = pgnext->next;
+	}
+	pgnext->next = pg;
     }
     *pg_ptr = pg;
     
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_PG_CREATE);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
     
   fn_fail:
@@ -242,9 +217,8 @@ int MPIDI_PG_Destroy(MPIDI_PG_t * pg)
     MPIDI_PG_t * pg_cur;
     int i;
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_PG_DESTROY);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_PG_DESTROY);
+    MPIR_FUNC_ENTER;
 
     MPIR_Assert(MPIR_Object_get_ref(pg) == 0);
 
@@ -252,12 +226,12 @@ int MPIDI_PG_Destroy(MPIDI_PG_t * pg)
     pg_cur = MPIDI_PG_list;
     while(pg_cur != NULL)
     {
-    if (pg_cur == pg)
-    {
-        if (MPIDI_PG_iterator_next == pg)
-        { 
-        MPIDI_PG_iterator_next = MPIDI_PG_iterator_next->next;
-        }
+	if (pg_cur == pg)
+	{
+	    if (MPIDI_PG_iterator_next == pg)
+	    { 
+		MPIDI_PG_iterator_next = MPIDI_PG_iterator_next->next;
+	    }
 
             if (pg_prev == NULL)
                 MPIDI_PG_list = pg->next; 
@@ -273,8 +247,8 @@ int MPIDI_PG_Destroy(MPIDI_PG_t * pg)
                       function doesn't bother to manage all the refcounts
                       because he thinks he knows better.  Annoying, but not
                       strictly a bug.
-              (wdg - actually, that is a bug - managing the ref
-              counts IS required and missing one is a bug.)
+		      (wdg - actually, that is a bug - managing the ref
+		      counts IS required and missing one is a bug.)
                    2) There is a real bug lurking out there somewhere and we
                       just haven't hit it in the tests yet.  */
                 /*MPIR_Assert(MPIR_Object_get_ref(pg->vct[i]) == 0);*/
@@ -285,48 +259,42 @@ int MPIDI_PG_Destroy(MPIDI_PG_t * pg)
                    not the right place to do this.  The VC should only be freed
                    when the PG that it belongs to is freed, not just when the
                    VC's refcount drops to zero. [goodell@ 2008-06-13] */
-        /* In that case, the fact that the VC is in the PG should
-           increment the ref count - reflecting the fact that the
-           use in the PG constitutes a reference-count-incrementing
-           use.  Alternately, if the PG is able to recreate a VC, 
-           and can thus free unused (or idle) VCs, it should be allowed
-           to do so.  [wdg 2008-08-31] */
+		/* In that case, the fact that the VC is in the PG should
+		   increment the ref count - reflecting the fact that the
+		   use in the PG constitutes a reference-count-incrementing
+		   use.  Alternately, if the PG is able to recreate a VC, 
+		   and can thus free unused (or idle) VCs, it should be allowed
+		   to do so.  [wdg 2008-08-31] */
                 mpi_errno = MPIDI_CH3_VC_Destroy(&(pg->vct[i]));
                 if (mpi_errno) { MPIR_ERR_POP(mpi_errno); }
             }
 
-        MPIDI_PG_Destroy_fn(pg);
-#if defined (CHANNEL_MRAIL)
-        for(i = 0; i < pg->size; i++) {
-            MPIDI_CH3I_Cleanup_after_connection(&pg->vct[i]);
-        }
-        MPIDI_CH3I_Cleanup_cqes();
-#endif  
-        MPL_free(pg->vct);
-        if (pg->connData) {
-        if (pg->freeConnInfo) {
-            (*pg->freeConnInfo)( pg );
-        }
-        else {
-            MPL_free(pg->connData);
-        }
-        }
-        mpi_errno = MPIDI_CH3_PG_Destroy(pg);
-        MPL_free(pg);
+	    MPIDI_PG_Destroy_fn(pg);
+	    MPL_free(pg->vct);
+	    if (pg->connData) {
+		if (pg->freeConnInfo) {
+		    (*pg->freeConnInfo)( pg );
+		}
+		else {
+		    MPL_free(pg->connData);
+		}
+	    }
+	    mpi_errno = MPIDI_CH3_PG_Destroy(pg);
+	    MPL_free(pg);
 
-        goto fn_exit;
-    }
+	    goto fn_exit;
+	}
 
-    pg_prev = pg_cur;
-    pg_cur = pg_cur->next;
+	pg_prev = pg_cur;
+	pg_cur = pg_cur->next;
     }
 
     /* PG not found if we got here */
     MPIR_ERR_SET1(mpi_errno,MPI_ERR_OTHER,
-          "**dev|pg_not_found", "**dev|pg_not_found %p", pg);
+		  "**dev|pg_not_found", "**dev|pg_not_found %p", pg);
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_PG_DESTROY);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
   fn_fail:
     goto fn_exit;
@@ -336,26 +304,25 @@ int MPIDI_PG_Find(void * id, MPIDI_PG_t ** pg_ptr)
 {
     MPIDI_PG_t * pg;
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_PG_FIND);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_PG_FIND);
+    MPIR_FUNC_ENTER;
     
     pg = MPIDI_PG_list;
     while (pg != NULL)
     {
-    if (MPIDI_PG_Compare_ids_fn(id, pg->id) != FALSE)
-    {
-        *pg_ptr = pg;
-        goto fn_exit;
-    }
+	if (MPIDI_PG_Compare_ids_fn(id, pg->id) != FALSE)
+	{
+	    *pg_ptr = pg;
+	    goto fn_exit;
+	}
 
-    pg = pg->next;
+	pg = pg->next;
     }
 
     *pg_ptr = NULL;
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_PG_FIND);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 }
 
@@ -399,21 +366,20 @@ int MPIDI_PG_Get_iterator(MPIDI_PG_iterator *iter)
 int MPIDI_PG_To_string(MPIDI_PG_t *pg_ptr, char **str_ptr, int *lenStr)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_PG_TO_STRING);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_PG_TO_STRING);
+    MPIR_FUNC_ENTER;
 
     /* Replace this with the new string */
     if (pg_ptr->connInfoToString) {
-    (*pg_ptr->connInfoToString)( str_ptr, lenStr, pg_ptr );
+	(*pg_ptr->connInfoToString)( str_ptr, lenStr, pg_ptr );
     }
     else {
-    MPIR_ERR_SETANDJUMP(mpi_errno,MPI_ERR_INTERN,"**noConnInfoToString");
+	MPIR_ERR_SETANDJUMP(mpi_errno,MPI_ERR_INTERN,"**noConnInfoToString");
     }
 
     /*printf( "PgToString: Pg string is %s\n", *str_ptr ); fflush(stdout);*/
 fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_PG_TO_STRING);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 fn_fail:
     goto fn_exit;
@@ -428,15 +394,14 @@ fn_fail:
    information in the input string.
 */
 int MPIDI_PG_Create_from_string(const char * str, MPIDI_PG_t ** pg_pptr, 
-                int *flag)
+				int *flag)
 {
     int mpi_errno = MPI_SUCCESS;
     const char *p;
     int vct_sz;
     MPIDI_PG_t *existing_pg, *pg_ptr=0;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_PG_CREATE_FROM_STRING);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_PG_CREATE_FROM_STRING);
+    MPIR_FUNC_ENTER;
 
     /*printf( "PgCreateFromString: Creating pg from %s\n", str ); 
       fflush(stdout); */
@@ -447,11 +412,11 @@ int MPIDI_PG_Create_from_string(const char * str, MPIDI_PG_t ** pg_pptr,
     MPIR_ERR_CHECK(mpi_errno);
 
     if (existing_pg != NULL) {
-    /* return the existing PG */
-    *pg_pptr = existing_pg;
-    *flag = 0;
-    /* Note that the memory for the pg_id is freed in the exit */
-    goto fn_exit;
+	/* return the existing PG */
+	*pg_pptr = existing_pg;
+	*flag = 0;
+	/* Note that the memory for the pg_id is freed in the exit */
+	goto fn_exit;
     }
     *flag = 1;
 
@@ -472,7 +437,7 @@ int MPIDI_PG_Create_from_string(const char * str, MPIDI_PG_t ** pg_pptr,
     (*pg_ptr->connInfoFromString)( str, pg_ptr );
 
 fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_PG_CREATE_FROM_STRING);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 fn_fail:
     goto fn_exit;
@@ -534,38 +499,20 @@ void MPIDI_PG_IdToNum( MPIDI_PG_t *pg, int *id )
 int MPIDI_PG_SetConnInfo( int rank, const char *connString )
 {
     int mpi_errno = MPI_SUCCESS;
-    int pmi_errno;
+
     int len;
-    char key[128];
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_PG_SetConnInfo);
+    char key[40];
+    len = snprintf(key, sizeof(key), "P%d-businesscard", rank);
+    MPIR_ERR_CHKANDJUMP1(len < 0 || len > sizeof(key), mpi_errno, MPI_ERR_OTHER, "**snprintf", "**snprintf %d", len);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_PG_SetConnInfo);
+    mpi_errno = MPIR_pmi_kvs_put(key, connString);
+    MPIR_ERR_CHECK(mpi_errno);
 
-    MPIR_Assert(pg_world->connData);
-    
-    len = MPL_snprintf(key, sizeof(key), "Pbusinesscard-%d", rank);
-    if (len < 0 || len > sizeof(key)) {
-    MPIR_ERR_SETANDJUMP1(mpi_errno,MPI_ERR_OTHER, "**snprintf",
-                 "**snprintf %d", len);
-    }
-    pmi_errno = UPMI_KVS_PUT(pg_world->connData, key, connString );
-    if (pmi_errno != UPMI_SUCCESS) {
-    MPIR_ERR_SETANDJUMP1(mpi_errno,MPI_ERR_OTHER, "**pmi_kvs_put",
-                 "**pmi_kvs_put %d", pmi_errno);
-    }
-    pmi_errno = UPMI_KVS_COMMIT(pg_world->connData);
-    if (pmi_errno != UPMI_SUCCESS) {
-    MPIR_ERR_SETANDJUMP1(mpi_errno,MPI_ERR_OTHER, "**pmi_kvs_commit",
-                 "**pmi_kvs_commit %d", pmi_errno);
-    }
-    
-    pmi_errno = UPMI_BARRIER();
-    if (pmi_errno != UPMI_SUCCESS) {
-    MPIR_ERR_SETANDJUMP1(mpi_errno,MPI_ERR_OTHER, "**pmi_barrier",
-                 "**pmi_barrier %d", pmi_errno);
-    }
+    mpi_errno = MPIR_pmi_barrier();
+    MPIR_ERR_CHECK(mpi_errno);
+
  fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_PG_SetConnInfo);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
  fn_fail:
     goto fn_exit;
@@ -595,24 +542,15 @@ int MPIDI_PG_SetConnInfo( int rank, const char *connString )
    process information */
 static int getConnInfoKVS( int rank, char *buf, int bufsize, MPIDI_PG_t *pg )
 {
-    char key[MPIDI_MAX_KVS_KEY_LEN];
-    int  mpi_errno = MPI_SUCCESS, rc, pmi_errno;
+    int mpi_errno = MPI_SUCCESS;
 
-    rc = MPL_snprintf(key, MPIDI_MAX_KVS_KEY_LEN, "Pbusinesscard-%d", rank );
-    if (rc < 0 || rc > MPIDI_MAX_KVS_KEY_LEN) {
-    MPIR_ERR_SETANDJUMP(mpi_errno,MPI_ERR_OTHER,"**nomem");
-    }
+    int len;
+    char key[40];
+    len = snprintf(key, sizeof(key), "P%d-businesscard", rank);
+    MPIR_ERR_CHKANDJUMP1(len < 0 || len > sizeof(key), mpi_errno, MPI_ERR_OTHER, "**snprintf", "**snprintf %d", len);
 
-    MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_POBJ_PMI_MUTEX);
-    pmi_errno = UPMI_KVS_GET(pg->connData, key, buf, bufsize );
-    if (pmi_errno) {
-    MPIDI_PG_CheckForSingleton();
-    pmi_errno = UPMI_KVS_GET(pg->connData, key, buf, bufsize );
-    }
-    MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_POBJ_PMI_MUTEX);
-    if (pmi_errno) {
-    MPIR_ERR_SETANDJUMP(mpi_errno,MPI_ERR_OTHER,"**pmi_kvs_get");
-    }
+    mpi_errno = MPIR_pmi_kvs_get(rank, key, buf, bufsize);
+    MPIR_ERR_CHECK(mpi_errno);
 
  fn_exit:
     return mpi_errno;
@@ -626,7 +564,7 @@ static int connToStringKVS( char **buf_p, int *slen, MPIDI_PG_t *pg )
 {
     char *string = 0;
     char *pg_idStr = (char *)pg->id;      /* In the PMI/KVS space,
-                         the pg id is a string */
+					     the pg id is a string */
     char   buf[MPIDI_MAX_KVS_VALUE_LEN];
     int    i, j, rc, mpi_errno = MPI_SUCCESS, len;
     size_t vallen, curSlen;
@@ -639,56 +577,56 @@ static int connToStringKVS( char **buf_p, int *slen, MPIDI_PG_t *pg )
 
     /* Start with the id of the pg */
     while (*pg_idStr && len < curSlen) 
-    string[len++] = *pg_idStr++;
+	string[len++] = *pg_idStr++;
     string[len++] = 0;
     
     /* Add the size of the pg */
-    MPL_snprintf( &string[len], curSlen - len, "%d", pg->size );
+    snprintf( &string[len], curSlen - len, "%d", pg->size );
     while (string[len]) len++;
     len++;
 
     for (i=0; i<pg->size; i++) {
-    rc = getConnInfoKVS( i, buf, MPIDI_MAX_KVS_VALUE_LEN, pg );
-    if (rc) {
-        MPL_internal_error_printf( 
-            "Panic: getConnInfoKVS failed for %s (rc=%d)\n", 
-            (char *)pg->id, rc );
-    }
+	rc = getConnInfoKVS( i, buf, MPIDI_MAX_KVS_VALUE_LEN, pg );
+	if (rc) {
+	    MPL_internal_error_printf( 
+		    "Panic: getConnInfoKVS failed for %s (rc=%d)\n", 
+		    (char *)pg->id, rc );
+	}
 #ifndef USE_PERSISTENT_SHARED_MEMORY
-    /* FIXME: This is a hack to avoid including shared-memory 
-       queue names in the business card that may be used
-       by processes that were not part of the same COMM_WORLD. 
-       To fix this, the shared memory channels should look at the
-       returned connection info and decide whether to use 
-       sockets or shared memory by determining whether the
-       process is in the same MPI_COMM_WORLD. */
-    /* FIXME: The more general problem is that the connection information
-       needs to include some information on the range of validity (e.g.,
-       all processes, same comm world, particular ranks), and that
-       representation needs to be scalable */
-/*  printf( "Adding key %s value %s\n", key, val ); */
-    {
-    char *p = strstr( buf, "$shm_host" );
-    if (p) p[1] = 0;
-    /*      printf( "(fixed) Adding key %s value %s\n", key, val ); */
-    }
+	/* FIXME: This is a hack to avoid including shared-memory 
+	   queue names in the business card that may be used
+	   by processes that were not part of the same COMM_WORLD. 
+	   To fix this, the shared memory channels should look at the
+	   returned connection info and decide whether to use 
+	   sockets or shared memory by determining whether the
+	   process is in the same MPI_COMM_WORLD. */
+	/* FIXME: The more general problem is that the connection information
+	   needs to include some information on the range of validity (e.g.,
+	   all processes, same comm world, particular ranks), and that
+	   representation needs to be scalable */
+/*	printf( "Adding key %s value %s\n", key, val ); */
+	{
+	char *p = strstr( buf, "$shm_host" );
+	if (p) p[1] = 0;
+	/*	    printf( "(fixed) Adding key %s value %s\n", key, val ); */
+	}
 #endif
-    /* Add the information to the output buffer */
-    vallen = strlen(buf);
-    /* Check that this will fix in the remaining space */
-    if (len + vallen + 1 >= curSlen) {
-        char *nstring = 0;
+	/* Add the information to the output buffer */
+	vallen = strlen(buf);
+	/* Check that this will fix in the remaining space */
+	if (len + vallen + 1 >= curSlen) {
+	    char *nstring = 0;
             curSlen += (pg->size - i) * (vallen + 1 );
-        nstring = MPL_realloc( string, curSlen, MPL_MEM_STRINGS );
-        if (!nstring) {
-        MPIR_ERR_SETANDJUMP(mpi_errno,MPI_ERR_OTHER,"**nomem");
-        }
-        string = nstring;
-    }
-    /* Append to string */
-    for (j=0; j<vallen+1; j++) {
-        string[len++] = buf[j];
-    }
+	    nstring = MPL_realloc( string, curSlen, MPL_MEM_STRINGS );
+	    if (!nstring) {
+		MPIR_ERR_SETANDJUMP(mpi_errno,MPI_ERR_OTHER,"**nomem");
+	    }
+	    string = nstring;
+	}
+	/* Append to string */
+	for (j=0; j<vallen+1; j++) {
+	    string[len++] = buf[j];
+	}
     }
 
     MPIR_Assert(len <= curSlen);
@@ -702,7 +640,7 @@ static int connToStringKVS( char **buf_p, int *slen, MPIDI_PG_t *pg )
     goto fn_exit;
 }
 static int connFromStringKVS( const char *buf ATTRIBUTE((unused)), 
-                  MPIDI_PG_t *pg ATTRIBUTE((unused)) )
+			      MPIDI_PG_t *pg ATTRIBUTE((unused)) )
 {
     /* Fixme: this should be a failure to call this routine */
     return MPI_SUCCESS;
@@ -716,37 +654,15 @@ static int connFreeKVS( MPIDI_PG_t *pg )
 
 int MPIDI_PG_InitConnKVS( MPIDI_PG_t *pg )
 {
-    int pmi_errno, kvs_name_sz;
     int mpi_errno = MPI_SUCCESS;
 
-    pmi_errno = UPMI_KVS_GET_NAME_LENGTH_MAX( &kvs_name_sz );
-    if (pmi_errno != UPMI_SUCCESS) {
-    MPIR_ERR_SETANDJUMP1(mpi_errno,MPI_ERR_OTHER, 
-                 "**pmi_kvs_get_name_length_max", 
-                 "**pmi_kvs_get_name_length_max %d", pmi_errno);
-    }
-    
-    pg->connData = (char *)MPL_malloc(kvs_name_sz + 1, MPL_MEM_STRINGS);
-    if (pg->connData == NULL) {
-    MPIR_ERR_SETANDJUMP(mpi_errno,MPI_ERR_OTHER, "**nomem");
-    }
-    
-    pmi_errno = UPMI_KVS_GET_MY_NAME(pg->connData, kvs_name_sz);
-    if (pmi_errno != UPMI_SUCCESS) {
-    MPIR_ERR_SETANDJUMP1(mpi_errno,MPI_ERR_OTHER, 
-                 "**pmi_kvs_get_my_name", 
-                 "**pmi_kvs_get_my_name %d", pmi_errno);
-    }
+    pg->connData = MPL_strdup(MPIR_pmi_job_id());
     pg->getConnInfo        = getConnInfoKVS;
     pg->connInfoToString   = connToStringKVS;
     pg->connInfoFromString = connFromStringKVS;
     pg->freeConnInfo       = connFreeKVS;
 
- fn_exit:
     return mpi_errno;
- fn_fail:
-    MPL_free(pg->connData);
-    goto fn_exit;
 }
 
 /* Return the kvsname associated with the MPI_COMM_WORLD of this process. */
@@ -762,7 +678,7 @@ int MPIDI_PG_GetConnKVSname( char ** kvsname )
 typedef struct {
     int     toStringLen;   /* Length needed to encode this connection info */
     char ** connStrings;   /* pointer to an array, indexed by rank, containing
-                  connection information */
+			      connection information */
 } MPIDI_ConnInfo;
 
 static int getConnInfo( int rank, char *buf, int bufsize, MPIDI_PG_t *pg )
@@ -771,14 +687,14 @@ static int getConnInfo( int rank, char *buf, int bufsize, MPIDI_PG_t *pg )
 
     /* printf( "Entering getConnInfo\n" ); fflush(stdout); */
     if (!connInfo || !connInfo->connStrings || !connInfo->connStrings[rank]) {
-    /* FIXME: Turn this into a valid error code create/return */
-    printf( "Fatal error in getConnInfo (rank = %d)\n", rank );
-    printf( "connInfo = %p\n", connInfo );fflush(stdout);
-    if (connInfo) {
-        printf( "connInfo->connStrings = %p\n", connInfo->connStrings );
-    }
-    /* Fatal error.  Connection information missing */
-    fflush(stdout);   
+	/* FIXME: Turn this into a valid error code create/return */
+	printf( "Fatal error in getConnInfo (rank = %d)\n", rank );
+	printf( "connInfo = %p\n", connInfo );fflush(stdout);
+	if (connInfo) {
+	    printf( "connInfo->connStrings = %p\n", connInfo->connStrings );
+	}
+	/* Fatal error.  Connection information missing */
+	fflush(stdout);   
     }
 
     /* printf( "Copying %s to buf\n", connInfo->connStrings[rank] ); fflush(stdout); */
@@ -803,37 +719,24 @@ static int connToString( char **buf_p, int *slen, MPIDI_PG_t *pg )
 #endif
 
     pg_id = pg->id;
-    /* FIXME: This is a hack, and it doesn't even work */
-    /*    MPIDI_PrintConnStrToFile( stdout, __FILE__, __LINE__, 
-      "connToString: pg id is", (char *)pg_id );*/
-    /* This is intended to cause a process to transition from a singleton
-       to a non-singleton. */
-    /* XXX DJG TODO figure out what this little bit is all about. */
-    if (strstr( pg_id, "singinit_kvs" ) == pg_id) {
-#ifdef USE_PMI2_API
-        MPIR_Assertp(0); /* don't know what to do here for pmi2 yet.  DARIUS */
-#else
-    UPMI_KVS_GET_MY_NAME( pg->id, 256 );
-#endif
-    }
     
     while (*pg_id) str[len++] = *pg_id++;
     str[len++] = 0;
     
-    MPL_snprintf( &str[len], 20, "%d", pg->size);
+    snprintf( &str[len], 20, "%d", pg->size);
     /* Skip over the length */
     while (str[len++]);
 
     /* Copy each connection string */
     for (i=0; i<pg->size; i++) {
-    char *p = connInfo->connStrings[i];
-    while (*p) { str[len++] = *p++; }
-    str[len++] = 0;
+	char *p = connInfo->connStrings[i];
+	while (*p) { str[len++] = *p++; }
+	str[len++] = 0;
     }
 
     if (len > connInfo->toStringLen) {
-    *buf_p = 0;
-    *slen  = 0;
+	*buf_p = 0;
+	*slen  = 0;
         MPIR_ERR_INTERNALANDJUMP(mpi_errno, "len > connInfo->toStringLen");
     }
 
@@ -870,13 +773,13 @@ static int connFromString( const char *buf, MPIDI_PG_t *pg )
 
     /* For now, make a copy of each item */
     for (i=0; i<pg->size; i++) {
-    /* printf( "Adding conn[%d] = %s\n", i, buf );fflush(stdout); */
-    conninfo->connStrings[i] = MPL_strdup( buf );
-    while (*buf) buf++;
-    buf++;
+	/* printf( "Adding conn[%d] = %s\n", i, buf );fflush(stdout); */
+	conninfo->connStrings[i] = MPL_strdup( buf );
+	while (*buf) buf++;
+	buf++;
     }
     pg->connData = conninfo;
-    
+	
     /* Save the length of the string needed to encode the connection
        information */
     conninfo->toStringLen = (int)(buf - buf0) + 1;
@@ -889,7 +792,7 @@ static int connFree( MPIDI_PG_t *pg )
     int i;
 
     for (i=0; i<pg->size; i++) {
-    MPL_free( conninfo->connStrings[i] );
+	MPL_free( conninfo->connStrings[i] );
     }
     MPL_free( conninfo->connStrings );
     MPL_free( conninfo );
@@ -902,7 +805,7 @@ static int connFree( MPIDI_PG_t *pg )
    A better approach may be to convert it into a single (long) string
    with no nulls. */
 int MPIDI_PrintConnStr( const char *file, int line, 
-            const char *label, const char *str )
+			const char *label, const char *str )
 {
     int pg_size, i;
 
@@ -919,14 +822,14 @@ int MPIDI_PrintConnStr( const char *file, int line,
     str++;
 
     for (i=0; i<pg_size; i++) {
-    MPL_dbg_outevent( file, line, MPIDI_CH3_DBG_CONNECT, 0, "%s", str );
-    while (*str) str++;
-    str++;
+	MPL_dbg_outevent( file, line, MPIDI_CH3_DBG_CONNECT, 0, "%s", str );
+	while (*str) str++;
+	str++;
     }
     return 0;
 }
 int MPIDI_PrintConnStrToFile( FILE *fd, const char *file, int line, 
-                  const char *label, const char *str )
+			      const char *label, const char *str )
 {
     int pg_size, i;
 
@@ -943,9 +846,9 @@ int MPIDI_PrintConnStrToFile( FILE *fd, const char *file, int line,
     str++;
 
     for (i=0; i<pg_size; i++) {
-    fprintf( fd, "\t%s\n", str ); 
-    while (*str) str++;
-    str++;
+	fprintf( fd, "\t%s\n", str ); 
+	while (*str) str++;
+	str++;
     }
     fflush(stdout);
     return 0;
@@ -971,10 +874,10 @@ int MPIDI_PG_GetConnString( MPIDI_PG_t *pg, int rank, char *val, int vallen )
     int mpi_errno = MPI_SUCCESS;
 
     if (pg->getConnInfo) {
-    mpi_errno = (*pg->getConnInfo)( rank, val, vallen, pg );
+	mpi_errno = (*pg->getConnInfo)( rank, val, vallen, pg );
     }
     else {
-    MPL_internal_error_printf( "Panic: no getConnInfo defined!\n" );
+	MPL_internal_error_printf( "Panic: no getConnInfo defined!\n" );
     }
 
     return mpi_errno;
@@ -998,9 +901,8 @@ int MPIDI_PG_GetConnString( MPIDI_PG_t *pg, int rank, char *val, int vallen )
 int MPIDI_PG_Dup_vcr( MPIDI_PG_t *pg, int rank, MPIDI_VC_t **vc_p )
 {
     MPIDI_VC_t *vc;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_PG_DUP_VCR);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_PG_DUP_VCR);
+    MPIR_FUNC_ENTER;
 
     vc = &pg->vct[rank];
     /* Increase the reference count of the vc.  If the reference count 
@@ -1009,13 +911,13 @@ int MPIDI_PG_Dup_vcr( MPIDI_PG_t *pg, int rank, MPIDI_VC_t **vc_p )
        allows us to distinguish between Comm_free and Comm_disconnect) */
     /* FIXME-MT: This should be a fetch and increment for thread-safety */
     if (MPIR_Object_get_ref(vc) == 0) {
-    MPIDI_PG_add_ref(pg);
-    MPIDI_VC_add_ref(vc);
+	MPIDI_PG_add_ref(pg);
+	MPIDI_VC_add_ref(vc);
     }
     MPIDI_VC_add_ref(vc);
     *vc_p = vc;
 
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_PG_DUP_VCR);
+    MPIR_FUNC_EXIT;
     return MPI_SUCCESS;
 }
 
@@ -1032,116 +934,60 @@ int MPIDI_PG_Close_VCs( void )
 {
     MPIDI_PG_t * pg = MPIDI_PG_list;
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_PG_CLOSE_VCS);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_PG_CLOSE_VCS);
-#if defined (CHANNEL_MRAIL)
-    PRINT_DEBUG(DEBUG_CM_verbose>0, "MPIDI_PG_Close_VCs\n");
-#endif
+    MPIR_FUNC_ENTER;
 
     while (pg) {
-        int i, inuse, n, i_start;
+	int i, inuse, n, i_start;
 
-        MPL_DBG_MSG_S(MPIDI_CH3_DBG_DISCONNECT,VERBOSE,"Closing vcs for pg %s",
-               (char *)pg->id );
+	MPL_DBG_MSG_S(MPIDI_CH3_DBG_DISCONNECT,VERBOSE,"Closing vcs for pg %s",
+		       (char *)pg->id );
 
-#if defined (CHANNEL_MRAIL)
-        PRINT_DEBUG(DEBUG_CM_verbose>0, "closing vcs for pg %s\n", (char *) pg->id);
-#endif
         /* We want to reduce the chance of having all processes send
            close requests to the same process at once.  We do this by
            having processes start at different indices, namely
            (my_pg_rank+1) mod pg->size. */
         i_start = (MPIDI_Process.my_pg_rank+1) % pg->size;
-        for (n = 0; n < pg->size; n++) {
-            MPIDI_VC_t * vc = NULL;
+	for (n = 0; n < pg->size; n++)
+	{
+            MPIDI_VC_t * vc;
             i = (n + i_start) % pg->size;
-            vc = &pg->vct[i];
-            /* If the VC is myself then skip the close message */
-            if (pg == MPIDI_Process.my_pg && i == MPIDI_Process.my_pg_rank) {
+	    vc = &pg->vct[i];
+	    /* If the VC is myself then skip the close message */
+	    if (pg == MPIDI_Process.my_pg && i == MPIDI_Process.my_pg_rank) {
                 /* XXX DJG FIXME-MT should we be checking this? */
                 if (MPIR_Object_get_ref(vc) != 0) {
                     MPIDI_PG_release_ref(pg, &inuse);
                 }
-                continue;
-            }
-#ifdef _ENABLE_XRC_
-            if (USE_XRC) {
-                PRINT_DEBUG(DEBUG_XRC_verbose>0, "closing %d xf: 0x%08x state:%d\n", 
-                        vc->pg_rank, vc->ch.xrc_flags, vc->state);
-                MPICM_lock();
-                VC_XST_SET (vc, XF_CONN_CLOSING);
-                MPICM_unlock();
-            }
-#endif
+		continue;
+	    }
 
-#ifdef _ENABLE_UD_
-            if (MVP_USE_UD_HYBRID) {
-                MPICM_lock();
-                /* This process is trying to switch between UD to RC.
-                 * Don't allow this switch in finalize to prevent hangs
-                 * and/or assertion errors */
-                if ((vc->ch.state == MPIDI_CH3I_VC_STATE_UNCONNECTED) &&
-                    (vc->mrail.state & MRAILI_RC_CONNECTING)) {
-                    vc->state = MPIDI_VC_STATE_ACTIVE;
-                    vc->ch.state = MPIDI_CH3I_VC_STATE_IDLE;
-#ifdef _ENABLE_XRC_
-                    if(USE_XRC) {
-                        VC_XST_SET (vc, XF_SEND_IDLE);
-                    }
-#endif
-                }
-                MPICM_unlock();
-            }
-#endif
-
-#ifdef _ENABLE_XRC_
-            if ((!USE_XRC || VC_XST_ISSET (vc, XF_SMP_VC | XF_DPM_INI)) ? 
-                (vc->state == MPIDI_VC_STATE_ACTIVE || 
-                 vc->state == MPIDI_VC_STATE_LOCAL_ACTIVE ||
-                 vc->state == MPIDI_VC_STATE_REMOTE_CLOSE):
-                (VC_XST_ISUNSET (vc, XF_TERMINATED) &&
-                 VC_XST_ISSET (vc, (XF_SEND_IDLE | XF_SEND_CONNECTING))
-#ifdef _ENABLE_UD_ 
-                && VC_XST_ISSET (vc, XF_UD_CONNECTED)
-#endif
-                ))
-#else
-            if (vc->state == MPIDI_VC_STATE_ACTIVE ||
-                vc->state == MPIDI_VC_STATE_LOCAL_ACTIVE ||
-                vc->state == MPIDI_VC_STATE_REMOTE_CLOSE
-               )
-#endif
-            {
-#if defined (CHANNEL_MRAIL)
-                PRINT_DEBUG(DEBUG_CM_verbose>0, "SendClose to %d with vc state %s\n",
-                        vc->pg_rank, MPIDI_VC_GetStateString(vc->ch.state));
-#endif
-                mpi_errno = MPIDI_CH3U_VC_SendClose( vc, i );
+	    if (vc->state == MPIDI_VC_STATE_ACTIVE ||
+		vc->state == MPIDI_VC_STATE_REMOTE_CLOSE) {
+		mpi_errno = MPIDI_CH3U_VC_SendClose( vc, i );
                 MPIR_ERR_CHECK(mpi_errno);
-            } else if (vc->state == MPIDI_VC_STATE_INACTIVE ||
+	    } else if (vc->state == MPIDI_VC_STATE_INACTIVE ||
                        vc->state == MPIDI_VC_STATE_MORIBUND) {
                 /* XXX DJG FIXME-MT should we be checking this? */
                 if (MPIR_Object_get_ref(vc) != 0) {
-                    /* FIXME: If the reference count for the vc is not 0,
-                       something is wrong */
+		    /* FIXME: If the reference count for the vc is not 0,
+		       something is wrong */
                     MPIDI_PG_release_ref(pg, &inuse);
                 }
                 /* Inactive connections need to be marked
                    INACTIVE_CLOSED, so that if a connection request
                    comes in during the close protocol, we know to
                    reject it. */
-                if (vc->state == MPIDI_VC_STATE_INACTIVE) {
+                if (vc->state == MPIDI_VC_STATE_INACTIVE)
                     MPIDI_CHANGE_VC_STATE(vc, INACTIVE_CLOSED);
-                }
             } else {
-                MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_DISCONNECT,VERBOSE,(MPL_DBG_FDEST,
-                    "vc=%p: not sending a close to %d, vc in state %s", vc,i,
-                MPIDI_VC_GetStateString(vc->state)));
-            }
-        }
+		MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_DISCONNECT,VERBOSE,(MPL_DBG_FDEST,
+		     "vc=%p: not sending a close to %d, vc in state %s", vc,i,
+		     MPIDI_VC_GetStateString(vc->state)));
+	    }
+	}
         pg->finalize = 1;
-        pg = pg->next;
+	pg = pg->next;
     }
     /* Note that we do not free the process groups within this routine, even
        if the reference counts have gone to zero. That is done once the 
@@ -1149,7 +995,7 @@ int MPIDI_PG_Close_VCs( void )
        handles any close requests that this code generates) */
 
  fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_PG_CLOSE_VCS);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
  fn_fail:
     goto fn_exit;
@@ -1159,25 +1005,25 @@ int MPIDI_PG_Close_VCs( void )
  * This routine may be called to print the contents (including states and
  * reference counts) for process groups.
  */
-int MPIDI_PG_Printall( FILE *fp )
+int MPIU_PG_Printall( FILE *fp )
 {
     MPIDI_PG_t *pg;
     int         i;
-          
+		  
     pg = MPIDI_PG_list;
 
     fprintf( fp, "Process groups:\n" );
     while (pg) {
         /* XXX DJG FIXME-MT should we be checking this? */
-    fprintf( fp, "size = %d, refcount = %d, id = %s\n", 
-         pg->size, MPIR_Object_get_ref(pg), (char *)pg->id );
-    for (i=0; i<pg->size; i++) {
-        fprintf( fp, "\tVCT rank = %d, refcount = %d, lpid = %d, state = %d \n", 
-             pg->vct[i].pg_rank, MPIR_Object_get_ref(&pg->vct[i]),
-             pg->vct[i].lpid, (int)pg->vct[i].state );
-    }
-    fflush(fp);
-    pg = pg->next;
+	fprintf( fp, "size = %d, refcount = %d, id = %s\n", 
+		 pg->size, MPIR_Object_get_ref(pg), (char *)pg->id );
+	for (i=0; i<pg->size; i++) {
+	    fprintf( fp, "\tVCT rank = %d, refcount = %d, lpid = %d, state = %d \n", 
+		     pg->vct[i].pg_rank, MPIR_Object_get_ref(&pg->vct[i]),
+		     pg->vct[i].lpid, (int)pg->vct[i].state );
+	}
+	fflush(fp);
+	pg = pg->next;
     }
 
     return 0;
@@ -1185,17 +1031,5 @@ int MPIDI_PG_Printall( FILE *fp )
 
 int MPIDI_PG_CheckForSingleton( void )
 {
-
-#ifdef USE_PMI2_API
-    /* PMI2 FIXME for now we just always assume we aren't doing singleton init */
-#else
-    if (strstr((char*)pg_world->id,"singinit_kvs") == (char *)pg_world->id) {
-    char buf[256];
-    /* Force an enroll */
-    UPMI_KVS_GET( "foobar", "foobar", buf, sizeof(buf) );
-    UPMI_KVS_GET_MY_NAME( pg_world->id, 256 );
-    UPMI_KVS_GET_MY_NAME( pg_world->connData, 256 );
-    }
-#endif
     return MPI_SUCCESS;
 }

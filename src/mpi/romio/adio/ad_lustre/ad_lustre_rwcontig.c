@@ -3,11 +3,11 @@
  *     See COPYRIGHT in top-level directory
  */
 
+#include "ad_lustre.h"
 #include <unistd.h>
 
 #include <stdlib.h>
-#include <malloc.h>
-#include "ad_lustre.h"
+#include "mpl.h"
 
 #define LUSTRE_MEMALIGN (1<<12) /* to use page_shift */
 
@@ -94,7 +94,7 @@ static ssize_t ADIOI_LUSTRE_Directio(ADIO_File fd, const void *buf, MPI_Count le
                 return -1;
             nbytes += err;
         } else {
-            newbuf = (void *) memalign(LUSTRE_MEMALIGN, size);
+            newbuf = (void *) MPL_aligned_alloc(LUSTRE_MEMALIGN, size, MPL_MEM_IO);
             if (newbuf) {
                 memcpy(newbuf, buf, size);
                 ADIOI_LUSTRE_Aligned_Mem_File_Write(fd, newbuf, size, offset, &err);
@@ -116,7 +116,7 @@ static ssize_t ADIOI_LUSTRE_Directio(ADIO_File fd, const void *buf, MPI_Count le
                 return -1;
             nbytes += err;
         } else {
-            newbuf = (void *) memalign(LUSTRE_MEMALIGN, size);
+            newbuf = (void *) MPL_aligned_alloc(LUSTRE_MEMALIGN, size, MPL_MEM_IO);
             if (newbuf) {
                 ADIOI_LUSTRE_Aligned_Mem_File_Read(fd, newbuf, size, offset, &err);
                 if (err == -1)
@@ -136,11 +136,11 @@ static ssize_t ADIOI_LUSTRE_Directio(ADIO_File fd, const void *buf, MPI_Count le
     return nbytes;
 }
 
-static void ADIOI_LUSTRE_IOContig(ADIO_File fd, const void *buf, int count,
+static void ADIOI_LUSTRE_IOContig(ADIO_File fd, const void *buf, MPI_Aint count,
                                   MPI_Datatype datatype, int file_ptr_type,
                                   ADIO_Offset offset, ADIO_Status * status,
                                   int io_mode, int *error_code);
-static void ADIOI_LUSTRE_IOContig(ADIO_File fd, const void *buf, int count,
+static void ADIOI_LUSTRE_IOContig(ADIO_File fd, const void *buf, MPI_Aint count,
                                   MPI_Datatype datatype, int file_ptr_type,
                                   ADIO_Offset offset, ADIO_Status * status,
                                   int io_mode, int *error_code)
@@ -235,14 +235,14 @@ static void ADIOI_LUSTRE_IOContig(ADIO_File fd, const void *buf, int count,
     /* --END ERROR HANDLING-- */
 }
 
-void ADIOI_LUSTRE_WriteContig(ADIO_File fd, const void *buf, int count,
+void ADIOI_LUSTRE_WriteContig(ADIO_File fd, const void *buf, MPI_Aint count,
                               MPI_Datatype datatype, int file_ptr_type,
                               ADIO_Offset offset, ADIO_Status * status, int *error_code)
 {
     ADIOI_LUSTRE_IOContig(fd, buf, count, datatype, file_ptr_type, offset, status, 1, error_code);
 }
 
-void ADIOI_LUSTRE_ReadContig(ADIO_File fd, void *buf, int count,
+void ADIOI_LUSTRE_ReadContig(ADIO_File fd, void *buf, MPI_Aint count,
                              MPI_Datatype datatype, int file_ptr_type,
                              ADIO_Offset offset, ADIO_Status * status, int *error_code)
 {

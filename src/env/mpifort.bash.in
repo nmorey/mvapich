@@ -1,14 +1,4 @@
 #! @BASH_SHELL@
-#
-# Copyright (c) 2001-2022, The Ohio State University. All rights reserved.
-#  
-# This file is part of the MVAPICH software package developed by the team
-# members of The Ohio State University's Network-Based Computing Laboratory
-# (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
-#
-# For detailed copyright and licensing information, please refer to the
-# copyright file COPYRIGHT in the top level MVAPICH directory.
-#
 ##
 ## Copyright (C) by Argonne National Laboratory
 ##     See COPYRIGHT in top-level directory
@@ -47,7 +37,7 @@ modincdir=@modincdir@
 
 # Default settings for compiler, flags, and libraries
 # Determined by a combination of environment variables and tests within
-# configure (e.g., determining whehter -lsocket is needee)
+# configure (e.g., determining whether -lsocket is needee)
 FC="@FC@"
 FCCPP="@FCCPP@"
 #
@@ -63,7 +53,7 @@ FCMODINC="@FCMODINCFLAG@"
 FCMODINCSPEC="@FCMODINCSPEC@"
 FCEXT="@FCEXT@"
 
-MVAPICH_VERSION="@MVAPICH_VERSION@"
+MPICH_VERSION="@MPICH_VERSION@"
 
 @fc_shlib_conf@
 
@@ -86,6 +76,17 @@ Show=
 #
 # End of initialization of variables
 #---------------------------------------------------------------------
+
+# Check recursive situations
+# User mistakes, e.g. setting MPICH_CC=mpicc, may end up recursively running
+# this script. A simple check to bail if that's the case.
+if [ -n "$MPICH_RECURSION_CHECK" ] ; then
+    echo "This script ($0) is being called recursively, check that MPICH_FC does not refer to mpifort."
+    exit 1
+fi
+MPICH_RECURSION_CHECK=1
+export MPICH_RECURSION_CHECK
+
 # Environment Variables.
 # The environment variables MPICH_FC may be used to override the
 # default choices.
@@ -113,7 +114,7 @@ fi
 # Argument processing.
 # This is somewhat awkward because of the handling of arguments within
 # the shell.  We want to handle arguments that include spaces without
-# loosing the spacing (an alternative would be to use a more powerful
+# losing the spacing (an alternative would be to use a more powerful
 # scripting language that would allow us to retain the array of values,
 # which the basic (rather than enhanced) Bourne shell does not.
 #
@@ -184,7 +185,7 @@ for arg in "$@" ; do
     ;;
     -v)
     # Pass this argument to the compiler as well.
-    echo "mpifort for MVAPICH version $MVAPICH_VERSION"
+    echo "mpifort for MPICH version $MPICH_VERSION"
     # if there is only 1 argument, it must be -v.
     if [ "$#" -eq "1" ] ; then
         linking=no
@@ -201,20 +202,6 @@ for arg in "$@" ; do
     -nativelinking)
     # Internal option to use native compiler for linking without MPI libraries
     nativelinking=yes
-    addarg=no
-    ;;
-    -itac)
-    if [ -n "$VT_ROOT" ] ; then
-        if [ -e "$VT_ROOT/bin/itacvars.sh" ] ; then
-            VT_LIB_DIR=`bash -c ". $VT_ROOT/bin/itacvars.sh; echo \\$VT_LIB_DIR"`
-            VT_ADD_LIBS=`bash -c ". $VT_ROOT/bin/itacvars.sh; echo \\$VT_ADD_LIBS"`
-            ITAC_OPTIONS="-L$VT_LIB_DIR -lVT $VT_ADD_LIBS"
-        else
-            echo "Cannot find itacvars.sh in $VT_ROOT/bin. -itac option ignored."
-        fi
-    else
-        echo "VT_ROOT should be set with the root directory of Intel Trace Analyzer and Collector. -itac option ignored."
-    fi
     addarg=no
     ;;
     -help)
@@ -352,12 +339,17 @@ final_fcflags="@MPICH_MPIFORT_FCFLAGS@ @WRAPPER_FCFLAGS@"
 final_ldflags="@MPICH_MPIFORT_LDFLAGS@ @WRAPPER_LDFLAGS@"
 final_libs="@MPICH_MPIFORT_LIBS@"
 if test "@INTERLIB_DEPS@" = "no" -o "${interlib_deps}" = "no" ; then
-    final_ldflags="${final_ldflags} @LDFLAGS@"
-    final_libs="${final_libs} @LIBS@ @WRAPPER_LIBS@"
+    final_ldflags="${final_ldflags} @WRAPPER_DEPENDENCY_LDFLAGS@"
+    final_libs="${final_libs} __LIBS_TO_BE_FILLED_AT_INSTALL_TIME__"
+fi
+
+extra_f77_flags="@WRAPPER_EXTRA_F77_FLAGS@"
+if test "mpif77" = ${0##*/} -a -n "$extra_f77_flags" ; then
+    final_fcflags="${final_fcflags} $extra_f77_flags"
 fi
 
 # A temporary statement to invoke the compiler
-# Place the -L before any args incase there are any mpi libraries in there.
+# Place the -L before any args in case there are any mpi libraries in there.
 # Eventually, we'll want to move this after any non-MPI implementation
 # libraries
 if [ "$linking" = yes ] ; then

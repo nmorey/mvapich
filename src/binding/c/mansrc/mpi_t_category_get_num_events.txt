@@ -1,0 +1,25 @@
+/*D
+   MPI_T_category_get_num_events - Returns the number of event types contained in the queried category.
+
+Synopsis:
+.vb
+int MPI_T_category_get_num_events(int cat_index, int *num_events)
+.ve
+
+Input Parameters:
+. cat_index - index of the category to be queried (integer)
+
+Output Parameters:
+. num_events - number of event types in the category (integer)
+
+.N ThreadSafe
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_T_ERR_INVALID
+.N MPI_T_ERR_INVALID_INDEX
+.N MPI_T_ERR_NOT_INITIALIZED
+.N MPI_ERR_OTHER
+
+D*/
+

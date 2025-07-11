@@ -1,5 +1,5 @@
 #
-# Copyright © 2018-2020 Inria.  All rights reserved.
+# Copyright © 2018-2022 Inria.  All rights reserved.
 # See COPYING in top-level directory.
 #
 
@@ -12,19 +12,23 @@
 
 _lstopo() {
     local INPUT_FORMAT=(xml synthetic fsroot cpuid)
-    local OUTPUT_FORMAT=(console ascii tikz fig pdf ps png svg xml synthetic)
+    local OUTPUT_FORMAT=(default window console ascii tikz tex fig pdf nativesvg cairosvg ps png svg xml shmem synthetic)
     local TYPES=("Machine" "Misc" "Group" "NUMANode" "MemCache" "Package" "Die" "L1" "L2" "L3" "L4" "L5" "L1i" "L2i" "L3i" "Core" "Bridge" "PCIDev" "OSDev" "PU")
     local FILTERKINDS=("none" "all" "structure" "important")
     local OPTIONS=(-l --logical
 		   -p --physical
-		   --output-format --of
+                   --logical-index-prefix
+                   --os-index-prefix
+                   --output-format --of
 		   -f --force
 		   --only
 		   -v --verbose
 		   -s --silent
 		   --distances
+		   --distances-transform
 		   --memattrs
 		   --cpukinds
+		   --windows-processor-groups
 		   -c --cpuset
 		   -C --cpuset-only
 		   --taskset
@@ -54,6 +58,7 @@ _lstopo() {
 		   --fontsize
 		   --gridsize
 		   --linespacing
+		   --thickness
 		   --horiz --horiz=
 		   --vert --vert=
 		   --rect --rect=
@@ -66,6 +71,8 @@ _lstopo() {
 		   --no-legend
 		   --no-default-legend
 		   --append-legend
+		   --grey --greyscale
+		   --palette
 		   --binding-color
 		   --disallowed-color
 		   --top-color
@@ -105,6 +112,9 @@ _lstopo() {
 	    --restrict)
 		COMPREPLY=( `compgen -W "binding <cpuset>" -- "$cur"` )
 		;;
+            --logical-index-prefix | --os-index-prefix)
+	        COMPREPLY=( "<string>" "" )
+		;;
 	    -i | --input)
 		_filedir xml
 		;;
@@ -117,20 +127,23 @@ _lstopo() {
 	    --allow)
 		COMPREPLY=( `compgen -W "all local <mask> nodeset=<mask>" -- "$cur"` )
 		;;
-	    --restrict-flags | --export-xml-flags | --export-synthetic-flags | --fontsize | --gridsize | --linespacing)
+	    --restrict-flags | --export-xml-flags | --export-synthetic-flags | --fontsize | --gridsize | --linespacing | --thickness)
 		COMPREPLY=( "<integer>" "" )
 		;;
 	    --append-legend)
 		COMPREPLY=( "<line of text>" "" )
 		;;
-	    --binding-color | --disallowed-color)
-		COMPREPLY=( `compgen -W "none" -- "$cur"` )
+	    --palette)
+		COMPREPLY=( `compgen -W "grey" "greyscale" "default" "colors" "white" "none" -- "$cur"` )
 		;;
-	    --top-color)
-		COMPREPLY=( `compgen -W "none <#xxyyzz>" -- "$cur"` )
+	    --binding-color | --disallowed-color | --top-color)
+		COMPREPLY=( `compgen -W "none <#rrggbb>" -- "$cur"` )
 		;;
 	    --children-order)
 		COMPREPLY=( `compgen -W "plain memoryabove" -- "$cur"` )
+		;;
+	    --distances-transform)
+	        COMPREPLY=( `compgen -W "links merge-switch-ports transitive-closure" -- "$cur"` )
 		;;
 	esac
     fi
@@ -352,7 +365,7 @@ complete -F _hwloc_calc hwloc-calc
 
 
 _hwloc_annotate(){
-    local OPTIONS=(--ci --ri --cu --cd -h --help)
+    local OPTIONS=(--ci --ri --cu --cd --version -h --help)
     local cur=${COMP_WORDS[COMP_CWORD]}
 
     if [[ $COMP_CWORD == 1 || $cur == -* ]] ; then
@@ -377,6 +390,7 @@ _hwloc_diff(){
 	case "$prev" in
 	    --refname)
 		COMPREPLY=( "<reference topology identifier>" "")
+		return
 		;;
 	esac
     fi
@@ -403,6 +417,7 @@ complete -F _hwloc_patch hwloc-patch
 _hwloc_compress_dir(){
     local OPTIONS=(-R --reverse
 		   -v --verbose
+		   --version
 		   -h --help
 		  )
     local cur=${COMP_WORDS[COMP_CWORD]}
@@ -465,17 +480,20 @@ _hwloc_ps(){
     local OPTIONS=(-a
 		   --pid
 		   --name
+		   --uid
 		   -l --logical
 		   -p --physical
 		   -c --cpuset
+		   --single-ancestor
 		   -t --threads
 		   -e --get-last-cpu-location
 		   --pid-cmd
-		   --uid
+		   --short-name
 		   --disallowed --whole-system
 		   --json-server
 		   --json-port
 		   -v --verbose
+		   --version
 		   -h --help
 		  )
     local cur=${COMP_WORDS[COMP_CWORD]}
@@ -509,6 +527,7 @@ complete -F _hwloc_ps hwloc-ps
 _hwloc_gather_cpuid(){
     local OPTIONS=(-c
 		   -s --silent
+		   --version
 		   -h --help
 		   )
     local cur=${COMP_WORDS[COMP_CWORD]}
@@ -532,6 +551,7 @@ _hwloc_gather_topology(){
 		   --dmi
 		   --no-cpuid
 		   --keep
+		   --version
 		   -h --help
 		  )
     local cur=${COMP_WORDS[COMP_CWORD]}

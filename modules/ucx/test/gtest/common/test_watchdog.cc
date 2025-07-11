@@ -1,5 +1,5 @@
 /**
- * Copyright (C) Mellanox Technologies Ltd. 2019.  ALL RIGHTS RESERVED.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2019. ALL RIGHTS RESERVED.
  *
  * See file LICENSE for terms.
  */
@@ -16,20 +16,20 @@ public:
         ucs::watchdog_signal();
         // all have to be set to their default values
         EXPECT_EQ(ucs::WATCHDOG_RUN, ucs::watchdog_get_state());
-        EXPECT_EQ(ucs::watchdog_timeout_default, ucs::watchdog_get_timeout());
+        EXPECT_EQ(ucs::watchdog_timeout, ucs::watchdog_get_timeout());
     }
 };
 
 UCS_TEST_F(test_watchdog, watchdog_set) {
     EXPECT_EQ(ucs::WATCHDOG_RUN, ucs::watchdog_get_state());
-    EXPECT_EQ(ucs::watchdog_timeout_default, ucs::watchdog_get_timeout());
+    EXPECT_EQ(ucs::watchdog_timeout, ucs::watchdog_get_timeout());
     EXPECT_EQ(SIGABRT, ucs::watchdog_get_kill_signal());
 
     ucs::watchdog_set(ucs::WATCHDOG_TEST);
     // when the test state is applied, the watchdog
     // changes state to WATCHDOG_DEFAULT_SET
     EXPECT_EQ(ucs::WATCHDOG_DEFAULT_SET, ucs::watchdog_get_state());
-    EXPECT_EQ(ucs::watchdog_timeout_default, ucs::watchdog_get_timeout());
+    EXPECT_EQ(ucs::watchdog_timeout, ucs::watchdog_get_timeout());
     EXPECT_EQ(SIGTERM, ucs::watchdog_get_kill_signal());
 
     reset_to_default();
@@ -54,12 +54,12 @@ UCS_TEST_F(test_watchdog, watchdog_set) {
     // when the timeout and the timeout applied, the watchdog
     // changes state to WATCHDOG_DEFAULT_SET
     EXPECT_EQ(ucs::WATCHDOG_RUN, ucs::watchdog_get_state());
-    EXPECT_EQ(ucs::watchdog_timeout_default, ucs::watchdog_get_timeout());
+    EXPECT_EQ(ucs::watchdog_timeout, ucs::watchdog_get_timeout());
     EXPECT_EQ(SIGABRT, ucs::watchdog_get_kill_signal());
 
     ucs::watchdog_set(ucs::WATCHDOG_DEFAULT_SET);
     EXPECT_EQ(ucs::WATCHDOG_RUN, ucs::watchdog_get_state());
-    EXPECT_EQ(ucs::watchdog_timeout_default, ucs::watchdog_get_timeout());
+    EXPECT_EQ(ucs::watchdog_timeout, ucs::watchdog_get_timeout());
     EXPECT_EQ(SIGABRT, ucs::watchdog_get_kill_signal());
 }
 

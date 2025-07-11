@@ -7,10 +7,9 @@ Usage: $MYCMD [options] file....
 Available $MYCMD options:
     -echo         - Show exactly what this program is doing.
                     This option should normally not be used.
-    -show         - Show the commands that would be used without runnning them.
+    -show         - Show the commands that would be used without running them.
     -compile-info - Show how to compile a program.
     -link-info    - Show how to link a program.
-    -itac         - Link Intel Trace Analyzer and Collector libraries.
     -v            - Version info of $MYCMD and its native compiler $NC.
     -help         - Give this help message.
     -profile=XXX  - Use profiling configuration file,

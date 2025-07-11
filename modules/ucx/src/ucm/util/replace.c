@@ -1,5 +1,5 @@
 /**
- * Copyright (C) Mellanox Technologies Ltd. 2001-2017.  ALL RIGHTS RESERVED.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2017. ALL RIGHTS RESERVED.
  *
  * See file LICENSE for terms.
  */
@@ -17,12 +17,18 @@
 #include <ucm/util/log.h>
 #include <ucm/util/reloc.h>
 #include <ucm/util/replace.h>
+#include <ucm/util/sys.h>
 #include <ucm/mmap/mmap.h>
 #include <ucs/sys/compiler.h>
 #include <ucs/sys/preprocessor.h>
 
+
 #ifndef MAP_FAILED
 #define MAP_FAILED ((void*)-1)
+#endif
+
+#if HAVE___CURBRK
+extern void *__curbrk;
 #endif
 
 #ifdef PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
@@ -44,7 +50,8 @@ pthread_t volatile ucm_reloc_get_orig_thread = (pthread_t)-1;
 UCM_DEFINE_REPLACE_FUNC(mmap,    void*, MAP_FAILED, void*, size_t, int, int, int, off_t)
 UCM_DEFINE_REPLACE_FUNC(munmap,  int,   -1,         void*, size_t)
 #if HAVE_MREMAP
-UCM_DEFINE_REPLACE_FUNC(mremap,  void*, MAP_FAILED, void*, size_t, size_t, int)
+UCM_DEFINE_REPLACE_FUNC(mremap, void*, MAP_FAILED, void*, size_t, size_t, int,
+                        void*)
 #endif
 UCM_DEFINE_REPLACE_FUNC(shmat,   void*, MAP_FAILED, int, const void*, int)
 UCM_DEFINE_REPLACE_FUNC(shmdt,   int,   -1,         const void*)
@@ -55,7 +62,8 @@ UCM_DEFINE_REPLACE_FUNC(madvise, int,   -1,         void*, size_t, int)
 UCM_DEFINE_SELECT_FUNC(mmap, void*, MAP_FAILED, SYS_mmap, void*, size_t, int, int, int, off_t)
 UCM_DEFINE_SELECT_FUNC(munmap, int, -1, SYS_munmap, void*, size_t)
 #if HAVE_MREMAP
-UCM_DEFINE_SELECT_FUNC(mremap, void*, MAP_FAILED, SYS_mremap, void*, size_t, size_t, int)
+UCM_DEFINE_SELECT_FUNC(mremap, void*, MAP_FAILED, SYS_mremap, void*, size_t,
+                       size_t, int, void*)
 #endif
 UCM_DEFINE_SELECT_FUNC(madvise, int, -1, SYS_madvise, void*, size_t, int)
 
@@ -113,16 +121,7 @@ int ucm_orig_shmdt(const void *shmaddr)
 
 #endif
 
-#if HAVE___CURBRK
-extern void *__curbrk;
-#endif
-
 _UCM_DEFINE_DLSYM_FUNC(brk, ucm_orig_dlsym_brk, ucm_override_brk, int, -1, void*)
-
-void *ucm_brk_syscall(void *addr)
-{
-    return (void*)syscall(SYS_brk, addr);
-}
 
 int ucm_orig_brk(void *addr)
 {
@@ -133,7 +132,7 @@ int ucm_orig_brk(void *addr)
 #endif
     new_addr = ucm_brk_syscall(addr);
 
-    if (new_addr < addr) {
+    if (new_addr != addr) {
         errno = ENOMEM;
         return -1;
     } else {
@@ -151,15 +150,26 @@ void *ucm_orig_sbrk(intptr_t increment)
     if (ucm_mmap_hook_mode() == UCM_MMAP_HOOK_RELOC) {
         return ucm_orig_dlsym_sbrk(increment);
     } else {
-        prev = ucm_brk_syscall(0);
-        return ucm_orig_brk(UCS_PTR_BYTE_OFFSET(prev, increment)) ? (void*)-1 : prev;
+        prev = ucm_get_current_brk();
+        return ucm_orig_brk(UCS_PTR_BYTE_OFFSET(prev, increment)) ?
+               (void*)-1 : prev;
     }
 }
 
 #else /* UCM_BISTRO_HOOKS */
 
+UCM_DEFINE_DLSYM_FUNC(brk, int, -1, void*)
 UCM_DEFINE_DLSYM_FUNC(sbrk, void*, MAP_FAILED, intptr_t)
 UCM_DEFINE_DLSYM_FUNC(shmat, void*, MAP_FAILED, int, const void*, int)
 UCM_DEFINE_DLSYM_FUNC(shmdt, int, -1, const void*)
 
 #endif /* UCM_BISTRO_HOOKS */
+
+void *ucm_get_current_brk()
+{
+#if HAVE___CURBRK
+    return __curbrk;
+#else
+    return ucm_brk_syscall(0);
+#endif
+}

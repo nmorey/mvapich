@@ -1,0 +1,43 @@
+/*D
+   MPI_Op_create - Creates a user-defined combination function handle
+
+Synopsis:
+.vb
+int MPI_Op_create(MPI_User_function *user_fn, int commute, MPI_Op *op)
+.ve
+.vb
+int MPI_Op_create_c(MPI_User_function_c *user_fn, int commute, MPI_Op *op)
+.ve
+
+Input Parameters:
++ user_fn - user defined function (function)
+- commute - true if commutative; false otherwise. (logical)
+
+Output Parameters:
+. op - operation (handle)
+
+Notes on the user function:
+The calling list for the user function type is
+.vb
+    typedef void (MPI_User_function) (void * a,
+                  void * b, int * len, MPI_Datatype *);
+.ve
+where the operation is 'b[i] = a[i] op b[i]', for 'i=0,...,len-1'.  A pointer
+to the datatype given to the MPI collective computation routine (i.e.,
+'MPI_Reduce', 'MPI_Allreduce', 'MPI_Scan', or 'MPI_Reduce_scatter') is also
+passed to the user-specified routine.
+
+.N collops
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Op_free
+D*/
+

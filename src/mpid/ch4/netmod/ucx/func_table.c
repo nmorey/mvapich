@@ -3,34 +3,42 @@
  *     See COPYRIGHT in top-level directory
  */
 
-#include "mpl.h"
-
-MPL_SUPPRESS_OSX_HAS_NO_SYMBOLS_WARNING;
+/* ** This file is auto-generated, do not edit ** */
 
 #ifndef NETMOD_INLINE
 #define NETMOD_DISABLE_INLINES
 #include <mpidimpl.h>
+MPL_SUPPRESS_OSX_HAS_NO_SYMBOLS_WARNING;
+
 #include "netmod_inline.h"
 MPIDI_NM_funcs_t MPIDI_NM_ucx_funcs = {
-    .mpi_init = MPIDI_UCX_mpi_init_hook,
-    .mpi_finalize = MPIDI_UCX_mpi_finalize_hook,
+    .init_local = MPIDI_UCX_init_local,
+    .init_world = MPIDI_UCX_init_world,
+    .mpi_finalize_hook = MPIDI_UCX_mpi_finalize_hook,
+    .init_vcis = MPIDI_UCX_init_vcis,
     .post_init = MPIDI_UCX_post_init,
-    .progress = MPIDI_UCX_progress,
-    .mpi_comm_connect = MPIDI_UCX_mpi_comm_connect,
-    .mpi_comm_disconnect = MPIDI_UCX_mpi_comm_disconnect,
-    .mpi_open_port = MPIDI_UCX_mpi_open_port,
-    .mpi_close_port = MPIDI_UCX_mpi_close_port,
-    .mpi_comm_accept = MPIDI_UCX_mpi_comm_accept,
-    /* Routines that handle addressing */
-    .comm_get_lpid = MPIDI_NM_comm_get_lpid,
+    .progress = MPIDI_NM_progress,
+    .comm_set_hints = MPIDI_UCX_comm_set_hints,
+    .am_send_hdr = MPIDI_NM_am_send_hdr,
+    .am_isend = MPIDI_NM_am_isend,
+    .am_send_hdr_reply = MPIDI_NM_am_send_hdr_reply,
+    .am_isend_reply = MPIDI_NM_am_isend_reply,
+    .am_get_data_copy_cb = MPIDI_NM_am_get_data_copy_cb,
+    .am_hdr_max_sz = MPIDI_NM_am_hdr_max_sz,
+    .am_eager_limit = MPIDI_NM_am_eager_limit,
+    .am_eager_buf_limit = MPIDI_NM_am_eager_buf_limit,
+    .am_check_eager = MPIDI_NM_am_check_eager,
+    .am_can_do_tag = MPIDI_NM_am_can_do_tag,
+    .am_tag_send = MPIDI_NM_am_tag_send,
+    .am_tag_recv = MPIDI_NM_am_tag_recv,
+    .comm_get_gpid = MPIDI_NM_comm_get_gpid,
     .get_local_upids = MPIDI_UCX_get_local_upids,
-    .get_vci_attr = MPIDI_UCX_get_vci_attr,
-    .upids_to_lupids = MPIDI_UCX_upids_to_lupids,
-    .create_intercomm_from_lpids = MPIDI_UCX_create_intercomm_from_lpids,
+    .upids_to_gpids = MPIDI_UCX_upids_to_gpids,
+    .dynamic_send = MPIDI_UCX_dynamic_send,
+    .dynamic_recv = MPIDI_UCX_dynamic_recv,
     .mpi_comm_commit_pre_hook = MPIDI_UCX_mpi_comm_commit_pre_hook,
     .mpi_comm_commit_post_hook = MPIDI_UCX_mpi_comm_commit_post_hook,
     .mpi_comm_free_hook = MPIDI_UCX_mpi_comm_free_hook,
-    /* Window initialization/cleanup routines */
     .mpi_win_create_hook = MPIDI_UCX_mpi_win_create_hook,
     .mpi_win_allocate_hook = MPIDI_UCX_mpi_win_allocate_hook,
     .mpi_win_allocate_shared_hook = MPIDI_UCX_mpi_win_allocate_shared_hook,
@@ -38,37 +46,26 @@ MPIDI_NM_funcs_t MPIDI_NM_ucx_funcs = {
     .mpi_win_attach_hook = MPIDI_UCX_mpi_win_attach_hook,
     .mpi_win_detach_hook = MPIDI_UCX_mpi_win_detach_hook,
     .mpi_win_free_hook = MPIDI_UCX_mpi_win_free_hook,
-    /* RMA synchronization routines */
     .rma_win_cmpl_hook = MPIDI_NM_rma_win_cmpl_hook,
     .rma_win_local_cmpl_hook = MPIDI_NM_rma_win_local_cmpl_hook,
     .rma_target_cmpl_hook = MPIDI_NM_rma_target_cmpl_hook,
     .rma_target_local_cmpl_hook = MPIDI_NM_rma_target_local_cmpl_hook,
-    /* Request initialization/cleanup routines */
     .am_request_init = MPIDI_NM_am_request_init,
     .am_request_finalize = MPIDI_NM_am_request_finalize,
-    /* Active Message Routines */
-    .am_send_hdr = MPIDI_NM_am_send_hdr,
-    .am_isend = MPIDI_NM_am_isend,
-    .am_isendv = MPIDI_NM_am_isendv,
-    .am_send_hdr_reply = MPIDI_NM_am_send_hdr_reply,
-    .am_isend_reply = MPIDI_NM_am_isend_reply,
-    .am_hdr_max_sz = MPIDI_NM_am_hdr_max_sz,
-    .am_eager_limit = MPIDI_NM_am_eager_limit,
-    .am_eager_buf_limit = MPIDI_NM_am_eager_buf_limit
 };
 
 MPIDI_NM_native_funcs_t MPIDI_NM_native_ucx_funcs = {
-    .mpi_send = MPIDI_NM_mpi_send,
-    .send_coll = MPIDI_NM_send_coll,
-    .mpi_ssend = MPIDI_NM_mpi_ssend,
     .mpi_isend = MPIDI_NM_mpi_isend,
-    .isend_coll = MPIDI_NM_isend_coll,
-    .mpi_issend = MPIDI_NM_mpi_issend,
     .mpi_cancel_send = MPIDI_NM_mpi_cancel_send,
-    .mpi_recv = MPIDI_NM_mpi_recv,
     .mpi_irecv = MPIDI_NM_mpi_irecv,
     .mpi_imrecv = MPIDI_NM_mpi_imrecv,
     .mpi_cancel_recv = MPIDI_NM_mpi_cancel_recv,
+    .mpi_psend_init = MPIDI_UCX_mpi_psend_init,
+    .mpi_precv_init = MPIDI_UCX_mpi_precv_init,
+    .part_start = MPIDI_NM_part_start,
+    .mpi_pready_range = MPIDI_NM_mpi_pready_range,
+    .mpi_pready_list = MPIDI_NM_mpi_pready_list,
+    .mpi_parrived = MPIDI_NM_mpi_parrived,
     .mpi_alloc_mem = MPIDI_UCX_mpi_alloc_mem,
     .mpi_free_mem = MPIDI_UCX_mpi_free_mem,
     .mpi_improbe = MPIDI_NM_mpi_improbe,
@@ -109,8 +106,6 @@ MPIDI_NM_native_funcs_t MPIDI_NM_native_ucx_funcs = {
     .mpi_get_accumulate = MPIDI_NM_mpi_get_accumulate,
     .mpi_win_lock_all = MPIDI_NM_mpi_win_lock_all,
     .rank_is_local = MPIDI_NM_rank_is_local,
-    .av_is_local = MPIDI_NM_av_is_local,
-    /* Collectives */
     .mpi_barrier = MPIDI_NM_mpi_barrier,
     .mpi_bcast = MPIDI_NM_mpi_bcast,
     .mpi_allreduce = MPIDI_NM_mpi_allreduce,
@@ -130,9 +125,9 @@ MPIDI_NM_native_funcs_t MPIDI_NM_native_ucx_funcs = {
     .mpi_exscan = MPIDI_NM_mpi_exscan,
     .mpi_neighbor_allgather = MPIDI_NM_mpi_neighbor_allgather,
     .mpi_neighbor_allgatherv = MPIDI_NM_mpi_neighbor_allgatherv,
-    .mpi_neighbor_alltoall = MPIDI_NM_mpi_neighbor_alltoall,
     .mpi_neighbor_alltoallv = MPIDI_NM_mpi_neighbor_alltoallv,
     .mpi_neighbor_alltoallw = MPIDI_NM_mpi_neighbor_alltoallw,
+    .mpi_neighbor_alltoall = MPIDI_NM_mpi_neighbor_alltoall,
     .mpi_ineighbor_allgather = MPIDI_NM_mpi_ineighbor_allgather,
     .mpi_ineighbor_allgatherv = MPIDI_NM_mpi_ineighbor_allgatherv,
     .mpi_ineighbor_alltoall = MPIDI_NM_mpi_ineighbor_alltoall,
@@ -155,10 +150,8 @@ MPIDI_NM_native_funcs_t MPIDI_NM_native_ucx_funcs = {
     .mpi_iscan = MPIDI_NM_mpi_iscan,
     .mpi_iscatter = MPIDI_NM_mpi_iscatter,
     .mpi_iscatterv = MPIDI_NM_mpi_iscatterv,
-    /* Datatype hooks */
     .mpi_type_commit_hook = MPIDI_UCX_mpi_type_commit_hook,
     .mpi_type_free_hook = MPIDI_UCX_mpi_type_free_hook,
-    /* Op hooks */
     .mpi_op_commit_hook = MPIDI_UCX_mpi_op_commit_hook,
     .mpi_op_free_hook = MPIDI_UCX_mpi_op_free_hook,
 };

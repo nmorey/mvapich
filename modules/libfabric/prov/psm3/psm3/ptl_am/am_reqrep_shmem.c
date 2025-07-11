@@ -58,6 +58,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <errno.h>
 
 #include "psm_user.h"
 #include "psm_mq_internal.h"
@@ -69,21 +70,42 @@
 #include "am_cuda_memhandle_cache.h"
 #endif
 
+#ifdef PSM_ONEAPI
+#include "am_oneapi_memhandle_cache.h"
+#ifdef HAVE_DRM
+#include <drm/i915_drm.h>
+#include <sys/ioctl.h>
+#include <stdio.h>
+#endif
+#ifdef HAVE_LIBDRM
+#include <libdrm/i915_drm.h>
+#include <sys/ioctl.h>
+#include <stdio.h>
+#endif
+#ifdef PSM_HAVE_PIDFD
+#include <sys/syscall.h>
+#endif
+#endif
+
 int psm3_shm_mq_rv_thresh = PSMI_MQ_RV_THRESH_NO_KASSIST;
 
-static const amsh_qinfo_t amsh_qcounts = {
-	.qreqFifoShort = 1024,
-	.qreqFifoLong = 256,
-	.qrepFifoShort = 1024,
-	.qrepFifoLong = 256
+// qcounts and qelemsz tunable via amsh_fifo_getconfig();
+static amsh_qinfo_t amsh_qcounts = {
+	.qreqFifoShort = AMSHORT_Q_NO_DSA,
+	.qreqFifoLong = AMLONG_Q_NO_DSA,
+	.qrepFifoShort = AMSHORT_Q_NO_DSA,
+	.qrepFifoLong = AMLONG_Q_NO_DSA
 };
 
-static const amsh_qinfo_t amsh_qelemsz = {
+static amsh_qinfo_t amsh_qelemsz = {
 	.qreqFifoShort = sizeof(am_pkt_short_t),
-	.qreqFifoLong = AMLONG_SZ,
+	.qreqFifoLong = AMLONG_SZ_NO_DSA,
 	.qrepFifoShort = sizeof(am_pkt_short_t),
-	.qrepFifoLong = AMLONG_SZ
+	.qrepFifoLong = AMLONG_SZ_NO_DSA
 };
+
+/* AMLONG_MTU is the number of bytes available in a bulk packet for payload. */
+#define AMLONG_MTU (amsh_qelemsz.qreqFifoLong-sizeof(am_pkt_bulk_t))
 
 ustatic struct {
 	void *addr;
@@ -92,7 +114,7 @@ ustatic struct {
 	struct sigaction SIGBUS_old_act;
 } action_stash;
 
-static psm2_error_t amsh_poll(ptl_t *ptl, int replyonly);
+static psm2_error_t amsh_poll(ptl_t *ptl, int replyonly, bool force);
 static void process_packet(ptl_t *ptl, am_pkt_short_t *pkt, int isreq);
 static void amsh_conn_handler(void *toki, psm2_amarg_t *args, int narg,
 			      void *buf, size_t len);
@@ -101,7 +123,7 @@ static void amsh_conn_handler(void *toki, psm2_amarg_t *args, int narg,
 #if _HFI_DEBUGGING
 static const char *psmi_kassist_getmode(int mode);
 #endif
-static int psmi_get_kassist_mode();
+static int psm3_get_kassist_mode();
 int psm3_epaddr_pid(psm2_epaddr_t epaddr);
 
 static inline void
@@ -148,7 +170,7 @@ static uint32_t create_extra_ep_data()
 {
 	uint32_t ret = getpid();
 
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 	/* PID is at maximum 22 bits */
 	ret |= my_gpu_device << 22;
 #endif
@@ -258,7 +280,7 @@ psm2_error_t psm3_shm_create(ptl_t *ptl_gen)
 	char *amsh_keyname = NULL;
 	int iterator;
 	/* Get which kassist mode to use. */
-	ptl->psmi_kassist_mode = psmi_get_kassist_mode();
+	ptl->psmi_kassist_mode = psm3_get_kassist_mode();
 
 	_HFI_PRDBG("kassist_mode %d %s use_kassist %d\n",
 			ptl->psmi_kassist_mode,
@@ -271,7 +293,7 @@ psm2_error_t psm3_shm_create(ptl_t *ptl_gen)
 			 sizeof(shmbuf),
 			 "/psm3_shm.%ld.%s.%d",
 			 (long int) getuid(),
-			 psm3_epid_fmt(ep->epid, 0),
+			 psm3_epid_fmt_internal(ep->epid, 0),
 			 iterator);
 		amsh_keyname = psmi_strdup(NULL, shmbuf);
 		if (amsh_keyname == NULL) {
@@ -311,6 +333,7 @@ psm2_error_t psm3_shm_create(ptl_t *ptl_gen)
 			} else {
 				err = PSM2_SHMEM_SEGMENT_ERR;
 				close(shmfd);
+				shmfd = -1;
 				psmi_free(amsh_keyname);
 				amsh_keyname = NULL;
 			}
@@ -430,10 +453,10 @@ psm2_error_t psm3_shm_map_remote(ptl_t *ptl_gen, psm2_epid_t epid, uint16_t *shm
 	shmidx = *shmidx_o = -1;
 
 	for (i = 0; i <= ptl->max_ep_idx; i++) {
-		if (!psm3_epid_cmp(ptl->am_ep[i].epid, epid)) {
+		if (!psm3_epid_cmp_internal(ptl->am_ep[i].epid, epid)) {
 			if (force_remap) {
 				ptl->am_ep[i].epaddr = NULL;
-				ptl->am_ep[i].epid = psm3_epid_zeroed();
+				ptl->am_ep[i].epid = psm3_epid_zeroed_internal();
 				break;
 			}
 			*shmidx_o = shmidx = i;
@@ -450,7 +473,7 @@ psm2_error_t psm3_shm_map_remote(ptl_t *ptl_gen, psm2_epid_t epid, uint16_t *shm
 			 sizeof(shmbuf),
 			 "/psm3_shm.%ld.%s.%d",
 			 (long int) getuid(),
-			 psm3_epid_fmt(epid, 0),
+			 psm3_epid_fmt_internal(epid, 0),
 			 iterator);
 		dest_shmfd = shm_open(shmbuf, O_RDWR, S_IRWXU);
 		if (dest_shmfd < 0) {
@@ -525,6 +548,9 @@ psm2_error_t psm3_shm_map_remote(ptl_t *ptl_gen, psm2_epid_t epid, uint16_t *shm
 			   "%p, size=%d\n", dest_mapptr, (int)segsz);
 	}
 
+	// read every page in segment so faulted into our address space
+	psm3_touch_mmap(dest_mapptr, segsz);
+
 	shmidx = -1;
 	if ((ptl->max_ep_idx + 1) == ptl->am_ep_size) {
 		err = psm3_epdir_extend(ptl_gen);
@@ -532,13 +558,13 @@ psm2_error_t psm3_shm_map_remote(ptl_t *ptl_gen, psm2_epid_t epid, uint16_t *shm
 			goto fail;
 
 		for (i = 0; i <= ptl->max_ep_idx; i++) {
-			if (!psm3_epid_zero(ptl->am_ep[i].epid))
+			if (!psm3_epid_zero_internal(ptl->am_ep[i].epid))
 				am_update_directory(&ptl->am_ep[i]);
 		}
 	}
 	for (i = 0; i < ptl->am_ep_size; i++) {
-		psmi_assert(psm3_epid_cmp(ptl->am_ep[i].epid, epid));
-		if (psm3_epid_zero(ptl->am_ep[i].epid)) {
+		psmi_assert(psm3_epid_cmp_internal(ptl->am_ep[i].epid, epid));
+		if (psm3_epid_zero_internal(ptl->am_ep[i].epid)) {
 			ptl->am_ep[i].epid = epid;
 			ptl->am_ep[i].psm_verno = dest_nodeinfo->psm_verno;
 			ptl->am_ep[i].pid = dest_nodeinfo->pid;
@@ -567,7 +593,7 @@ psm2_error_t psm3_shm_map_remote(ptl_t *ptl_gen, psm2_epid_t epid, uint16_t *shm
 			_HFI_CONNDBG("KASSIST MODE: %s\n",
 				   psmi_kassist_getmode(ptl->psmi_kassist_mode));
 			shmidx = *shmidx_o = i;
-			_HFI_CONNDBG("Mapped epid %s into shmidx %d\n", psm3_epid_fmt(epid, 0), shmidx);
+			_HFI_CONNDBG("Mapped epid %s into shmidx %d\n", psm3_epid_fmt_internal(epid, 0), shmidx);
 			ptl->am_ep[i].amsh_shmbase = (uintptr_t) dest_mapptr;
 			ptl->am_ep[i].amsh_qsizes = dest_nodeinfo->amsh_qsizes;
 			if (i > ptl->max_ep_idx)
@@ -604,7 +630,7 @@ static psm2_error_t amsh_init_segment(ptl_t *ptl_gen)
 	psmi_assert_always(ptl != NULL);
 	psmi_assert_always(ptl->ep != NULL);
 	psmi_assert_always(ptl->epaddr != NULL);
-	psmi_assert_always(!psm3_epid_zero(ptl->ep->epid));
+	psmi_assert_always(!psm3_epid_zero_internal(ptl->ep->epid));
 
 	if ((err = psm3_shm_create(ptl_gen)))
 		goto fail;
@@ -753,7 +779,14 @@ void am_update_directory(struct am_ctl_nodeinfo *nodeinfo)
 	    (uintptr_t) nodeinfo->qdir.qrepFifoLong +
 	    nodeinfo->amsh_qsizes.qrepFifoLong;
 
-	psmi_assert_always(base_next - base_this <= am_ctl_sizeof_block());
+	// this assert can happen if shm Fifo settings inconsistent
+	// such as 1 rank enabling DSA and another not enabling DSA
+	if (base_next - base_this > am_ctl_sizeof_block()) {
+		_HFI_ERROR("Inconsistent shm, Fifo parameters delta=%lu > block=%lu.  Aborting\n",
+				(unsigned long)(base_next - base_this),
+				(unsigned long)am_ctl_sizeof_block());
+		psmi_assert_always(base_next - base_this <= am_ctl_sizeof_block());
+	}
 }
 
 
@@ -778,10 +811,9 @@ amsh_epaddr_add(ptl_t *ptl_gen, psm2_epid_t epid, uint16_t shmidx, psm2_epaddr_t
 	am_epaddr_t *amaddr;
 	psm2_error_t err = PSM2_OK;
 
-	psmi_assert(psm3_epid_lookup(ptl->ep, epid) == NULL);
-
+	psmi_assert(psm3_epid_lookup(ptl->ep, epid) == NULL); 
 	/* The self PTL handles loopback communication. */
-	psmi_assert(psm3_epid_cmp(epid, ptl->epid));
+	psmi_assert(psm3_epid_cmp_internal(epid, ptl->epid));
 
 	/* note the size of the memory is am_epaddr_t */
 	epaddr = (psm2_epaddr_t) psmi_calloc(ptl->ep,
@@ -807,6 +839,26 @@ amsh_epaddr_add(ptl_t *ptl_gen, psm2_epid_t epid, uint16_t shmidx, psm2_epaddr_t
 	amaddr->return_shmidx = -1;
 	amaddr->cstate_outgoing = AMSH_CSTATE_OUTGOING_NONE;
 	amaddr->cstate_incoming = AMSH_CSTATE_INCOMING_NONE;
+#ifdef PSM_ONEAPI
+#ifdef PSM_HAVE_PIDFD
+	amaddr->pidfd = syscall(SYS_pidfd_open, ptl->am_ep[shmidx].pid, 0);
+	if (amaddr->pidfd < 0) {
+		_HFI_ERROR("pidfd_open failed: pid %u, ret %d (%s)\n",
+			   ptl->am_ep[shmidx].pid, amaddr->pidfd,
+			   strerror(errno));
+		goto fail;
+	}
+#else
+	amaddr->num_peer_fds = 0;
+	{
+		int i;
+		for (i=0; i < MAX_ZE_DEVICES; i++)
+			amaddr->peer_fds[i] = -1;
+	}
+	amaddr->sock_connected_state = ZE_SOCK_NOT_CONNECTED;
+	amaddr->sock = -1;
+#endif
+#endif /* PSM_ONEAPI */
 
 	/* other setup */
 	ptl->am_ep[shmidx].epaddr = epaddr;
@@ -874,9 +926,31 @@ struct ptl_connection_req {
 };
 
 static
-void amsh_free_epaddr(psm2_epaddr_t epaddr)
+void amsh_free_epaddr(ptl_t *ptl_gen, psm2_epaddr_t epaddr)
 {
+	struct ptl_am *ptl = (struct ptl_am *)ptl_gen;
+	am_epaddr_t *amaddr = (am_epaddr_t *) epaddr;
 	psm3_epid_remove(epaddr->ptlctl->ep, epaddr->epid);
+	
+	/* we are a little paranoid, but can't hurt to be safe */
+	psmi_assert(ptl->am_ep[amaddr->shmidx].epaddr == epaddr);
+	if (ptl->am_ep[amaddr->shmidx].epaddr == epaddr)
+		ptl->am_ep[amaddr->shmidx].epaddr = NULL;
+#ifdef PSM_ONEAPI
+#ifdef PSM_HAVE_PIDFD
+	if (amaddr->pidfd >= 0)
+		close(amaddr->pidfd);
+#else
+	{
+		int i;
+		for (i=0; i < MAX_ZE_DEVICES; i++)
+			if (amaddr->peer_fds[i] >= 0)
+				close(amaddr->peer_fds[i]);
+	}
+	if (amaddr->sock >= 0)
+		close(amaddr->sock);
+#endif
+#endif /* PSM_ONEAPI */
 	psmi_free(epaddr);
 	return;
 }
@@ -928,18 +1002,17 @@ amsh_ep_connreq_init(ptl_t *ptl_gen, int op, /* connect, disconnect or abort */
 			continue;
 		if (op == PTL_OP_CONNECT) {
 			epid = array_of_epid[i];
-
 			/* Connect only to other processes reachable by shared memory.
 			   The self PTL handles loopback communication, so explicitly
 			   refuse to connect to self. */
 			if (!amsh_epid_reachable(ptl_gen, epid)
-			    || !psm3_epid_cmp(epid, ptl->epid)) {
+			    || !psm3_epid_cmp_internal(epid, ptl->epid)) {
 				array_of_errors[i] = PSM2_EPID_UNREACHABLE;
 				array_of_epaddr[i] = NULL;
 				continue;
 			}
 
-			_HFI_CONNDBG("Connect epid %s\n", psm3_epid_fmt(epid, 0));
+			_HFI_CONNDBG("Connect epid %s\n", psm3_epid_fmt_internal(epid, 0));
 			epaddr = psm3_epid_lookup(ptl->ep, epid);
 			if (epaddr != NULL) {
 				if (epaddr->ptlctl->ptl != ptl_gen) {
@@ -952,6 +1025,12 @@ amsh_ep_connreq_init(ptl_t *ptl_gen, int op, /* connect, disconnect or abort */
 				if (cstate == AMSH_CSTATE_OUTGOING_ESTABLISHED) {
 					array_of_epaddr[i] = epaddr;
 					array_of_errors[i] = PSM2_OK;
+#ifdef PSM_ONEAPI
+#ifndef PSM_HAVE_PIDFD
+					// set done so know to check in amsh_ep_connreq_poll_dev_fds
+					req->epid_mask[i] = AMSH_CMASK_DONE;
+#endif
+#endif
 				} else {
 					psmi_assert(cstate ==
 						    AMSH_CSTATE_OUTGOING_NONE);
@@ -970,7 +1049,7 @@ amsh_ep_connreq_init(ptl_t *ptl_gen, int op, /* connect, disconnect or abort */
 
 			psmi_assert(epaddr != NULL);
 			_HFI_CONNDBG("Disconnect force=%d epid %s\n",
-					(op == PTL_OP_ABORT), psm3_epid_fmt(epaddr->epid, 0));
+					(op == PTL_OP_ABORT), psm3_epid_fmt_internal(epaddr->epid, 0));
 			cstate = ((am_epaddr_t *) epaddr)->cstate_outgoing;
 			if (cstate == AMSH_CSTATE_OUTGOING_ESTABLISHED) {
 				req->epid_mask[i] = AMSH_CMASK_PREREQ;
@@ -1026,7 +1105,7 @@ amsh_ep_connreq_poll(ptl_t *ptl_gen, struct ptl_connection_req *req)
 			if (req->epid_mask[i] == AMSH_CMASK_PREREQ) {
 				shmidx = ((am_epaddr_t *) epaddr)->shmidx;
 				/* Make sure the target of the disconnect is still there */
-				if (psm3_epid_cmp(ptl->am_ep[shmidx].epid, epaddr->epid)) {
+				if (psm3_epid_cmp_internal(ptl->am_ep[shmidx].epid, epaddr->epid)) {
 					req->numep_left--;
 					req->epid_mask[i] = AMSH_CMASK_DONE;
 					((am_epaddr_t *) epaddr)->cstate_outgoing =
@@ -1107,6 +1186,12 @@ amsh_ep_connreq_poll(ptl_t *ptl_gen, struct ptl_connection_req *req)
 				((am_epaddr_t *) epaddr)->cstate_outgoing =
 					AMSH_CSTATE_OUTGOING_ESTABLISHED;
 				req->epid_mask[i] = AMSH_CMASK_DONE;
+#ifdef PSM_ONEAPI
+#ifndef PSM_HAVE_PIDFD
+				if (PSMI_IS_GPU_ENABLED)
+					psm3_send_dev_fds(ptl_gen, epaddr);
+#endif
+#endif
 				continue;
 			}
 		}
@@ -1123,7 +1208,7 @@ amsh_ep_connreq_poll(ptl_t *ptl_gen, struct ptl_connection_req *req)
 				for (shmidx = -1, j = 0;
 				     j <= ptl->max_ep_idx; j++) {
 					/* epid is connected and ready to go */
-					if (!psm3_epid_cmp(ptl->am_ep[j].epid,
+					if (!psm3_epid_cmp_internal(ptl->am_ep[j].epid,
 								 epid)) {
 						shmidx = j;
 						break;
@@ -1154,8 +1239,8 @@ amsh_ep_connreq_poll(ptl_t *ptl_gen, struct ptl_connection_req *req)
 
 					_HFI_INFO("Local endpoint id %s"
 						  " has version %s "
-						  "which is not supported by library version %d.%d",
-						  psm3_epid_fmt(epid, 0), buf, PSM2_VERNO_MAJOR,
+				  		  "which is not supported by library version %d.%d",
+						  psm3_epid_fmt_internal(epid, 0), buf, PSM2_VERNO_MAJOR,
 						  PSM2_VERNO_MINOR);
 					req->errors[i] =
 					    PSM2_EPID_INVALID_VERSION;
@@ -1197,7 +1282,7 @@ amsh_ep_connreq_poll(ptl_t *ptl_gen, struct ptl_connection_req *req)
 							req->args, 6, NULL, 0,
 							0);
 				_HFI_CONNDBG("epaddr=%p, epid=%s at shmidx=%d\n",
-						   epaddr, psm3_epid_fmt(epid, 0), shmidx);
+						   epaddr, psm3_epid_fmt_internal(epid, 0), shmidx);
 			}
 		}
 	}
@@ -1240,9 +1325,23 @@ amsh_ep_connreq_fini(ptl_t *ptl_gen, struct ptl_connection_req *req)
 			req->epid_mask[i] = AMSH_CMASK_DONE;
 			cstate = ((am_epaddr_t *) req->epaddr[i])->cstate_outgoing;
 			if (cstate == AMSH_CSTATE_OUTGOING_REPLIED) {
-				req->numep_left--;
 				((am_epaddr_t *) req->epaddr[i])->cstate_outgoing =
 					AMSH_CSTATE_OUTGOING_ESTABLISHED;
+#ifdef PSM_ONEAPI
+#ifndef PSM_HAVE_PIDFD
+				// late connect establish, check once to
+				// see if have GPU dev fds, if not, this one
+				// missed the timelimit and timesout
+				if (PSMI_IS_GPU_ENABLED && req->op == PTL_OP_CONNECT)
+					_HFI_CONNDBG("late established, special GPU dev FDs poll\n");
+				if (PSMI_IS_GPU_ENABLED && req->op == PTL_OP_CONNECT &&
+					PSM2_OK != psm3_check_dev_fds_exchanged(ptl_gen,
+											  				req->epaddr[i]))
+					req->errors[i] = PSM2_TIMEOUT;
+				else
+#endif
+#endif
+					req->numep_left--;
 			} else {	/* never actually got reply */
 				req->errors[i] = PSM2_TIMEOUT;
 			}
@@ -1275,7 +1374,7 @@ amsh_ep_connreq_fini(ptl_t *ptl_gen, struct ptl_connection_req *req)
 		if (cstate == AMSH_CSTATE_INCOMING_DISC_REQUESTED) {
 			if (req->op == PTL_OP_DISCONNECT || req->op == PTL_OP_ABORT) {
 				psmi_assert(req->epaddr[i] != NULL);
-				amsh_free_epaddr(req->epaddr[i]);
+				amsh_free_epaddr(ptl_gen, req->epaddr[i]);
 				req->epaddr[i] = NULL;
 			}
 		}
@@ -1286,6 +1385,39 @@ amsh_ep_connreq_fini(ptl_t *ptl_gen, struct ptl_connection_req *req)
 
 	return err;
 }
+
+#ifdef PSM_ONEAPI
+#ifndef PSM_HAVE_PIDFD
+// check if all successful epid/epaddr in req have exchanged GPU dev FDs
+// when called it assumes all the good epid have completed so it does not
+// check failed epid and just treats them as done for this phase
+// return:
+//	PSM2_OK - all that can be done are done
+//	PSM2_OK_NO_PROGRESS - more to be done
+static
+psm2_error_t
+amsh_ep_connreq_poll_dev_fds(ptl_t *ptl_gen, struct ptl_connection_req *req)
+{
+	int num_left = 0;
+	int i;
+
+	for (i = 0; i < req->numep; i++) {
+		if (req->epid_mask[i] == AMSH_CMASK_NONE)
+			continue;
+		if (req->epid_mask[i] != AMSH_CMASK_DONE || req->errors[i])
+			continue;
+		psmi_assert(req->epaddr[i]);
+		psmi_assert(! psm3_epid_zero_internal(req->epaddr[i]->epid));
+		if (PSM2_OK != psm3_check_dev_fds_exchanged(ptl_gen, req->epaddr[i]))
+			num_left++;
+	}
+	if (num_left == 0)
+		return PSM2_OK;
+	else
+		return PSM2_OK_NO_PROGRESS;	// not done everyone yet
+}
+#endif
+#endif /* PSM_ONEAPI */
 
 /* Wrapper for 2.0's use of connect/disconnect.  The plan is to move the
  * init/poll/fini interface up to the PTL level for 2.2 */
@@ -1307,8 +1439,12 @@ amsh_ep_connreq_wrap(ptl_t *ptl_gen, int op,
 	static int shm_polite_attach = -1;
 
 	if (shm_polite_attach == -1) {
-		char *p = getenv("PSM3_SHM_POLITE_ATTACH");
-		if (p && *p && atoi(p) != 0) {
+		union psmi_envvar_val envval;
+		psm3_getenv("PSM3_SHM_POLITE_ATTACH",
+				"Periodically yield CPU while trying to attach to another process's linux shared memory segment",
+				PSMI_ENVVAR_LEVEL_HIDDEN, PSMI_ENVVAR_TYPE_YESNO,
+				(union psmi_envvar_val)0, &envval);
+		if (envval.e_int) {
 			fprintf(stderr, "%s: Using Polite SHM segment attach\n",
 				psm3_gethostname());
 			shm_polite_attach = 1;
@@ -1331,7 +1467,7 @@ amsh_ep_connreq_wrap(ptl_t *ptl_gen, int op,
 		 * for reply, but not wait for reply
 		 */
 		for (i=0; i < 2; i++) {
-			psm3_poll_internal(ptl->ep, 1);
+			psm3_poll_internal(ptl->ep, 1, 0);
 			err = amsh_ep_connreq_poll(ptl_gen, req);
 			if (err != PSM2_OK && err != PSM2_OK_NO_PROGRESS) {
 				psmi_free(req->epid_mask);
@@ -1348,22 +1484,40 @@ amsh_ep_connreq_wrap(ptl_t *ptl_gen, int op,
 	 */
 	t_start = get_cycles();
 	do {
-		psm3_poll_internal(ptl->ep, 1);
+		psm3_poll_internal(ptl->ep, 1, 0);
 		err = amsh_ep_connreq_poll(ptl_gen, req);
 		if (err == PSM2_OK)
+#ifndef PSM_ONEAPI
 			break;	/* Finished before timeout */
-		else if (err != PSM2_OK_NO_PROGRESS) {
-			psmi_free(req->epid_mask);
-			psmi_free(req);
-			goto fail;
-		} else if (shm_polite_attach &&
-			   ++num_polls_noprogress ==
-			   CONNREQ_ZERO_POLLS_BEFORE_YIELD) {
-			num_polls_noprogress = 0;
-			PSMI_YIELD(ptl->ep->mq->progress_lock);
+#elif !defined(PSM_HAVE_PIDFD)
+		{
+			if (PSMI_IS_GPU_ENABLED && req->op == PTL_OP_CONNECT) {
+				if (amsh_ep_connreq_poll_dev_fds(ptl_gen, req) == PSM2_OK) {
+					break;	/* Finished before timeout */
+				} else {
+					PSMI_YIELD(ptl->ep->mq->progress_lock);
+				}
+			} else
+				break;
 		}
+#else
+			break;
+#endif
+		else if (err != PSM2_OK_NO_PROGRESS) {
+				psmi_free(req->epid_mask);
+				psmi_free(req);
+				goto fail;
+			} else if (shm_polite_attach &&
+			   	++num_polls_noprogress ==
+			   	CONNREQ_ZERO_POLLS_BEFORE_YIELD) {
+				num_polls_noprogress = 0;
+				PSMI_YIELD(ptl->ep->mq->progress_lock);
+			}
 	}
 	while (psm3_cycles_left(t_start, timeout_ns));
+	if (!psm3_cycles_left(t_start, timeout_ns))
+		_HFI_CONNDBG("TIMEOUT on shm connect timeout_ns=%"PRIu64" err=%d\n",
+				timeout_ns, err);
 
 fini:
 	err = amsh_ep_connreq_fini(ptl_gen, req);
@@ -1549,6 +1703,14 @@ amsh_poll_internal_inner(ptl_t *ptl_gen, int replyonly,
 			} while (!QISEMPTY(ptl->reqH.head->flag));
 		}
 	}
+#ifdef PSM_ONEAPI
+#ifndef PSM_HAVE_PIDFD
+	// play err safe, callers ignore errors or expect just OK or NO_PROGRESS
+	if (((struct ptl_am *)ptl_gen)->ep->need_dev_fds_poll
+			&& psm3_poll_dev_fds_exchange(ptl_gen) != PSM2_OK_NO_PROGRESS)
+		err = PSM2_OK;
+#endif
+#endif
 
 	if (is_internal) {
 		if (err == PSM2_OK)	/* some progress, no yields */
@@ -1560,7 +1722,7 @@ amsh_poll_internal_inner(ptl_t *ptl_gen, int replyonly,
 		}
 
 		if (++ptl->amsh_only_polls == AMSH_POLLS_BEFORE_PSM_POLL) {
-			psm3_poll_internal(ptl->ep, 0);
+			psm3_poll_internal(ptl->ep, 0, 0);
 			ptl->amsh_only_polls = 0;
 		}
 	}
@@ -1595,7 +1757,7 @@ amsh_poll_internal(ptl_t *ptl, int replyonly)
 	} while (0)
 #endif
 
-static psm2_error_t amsh_poll(ptl_t *ptl, int replyonly)
+static psm2_error_t amsh_poll(ptl_t *ptl, int replyonly, bool force)
 {
 	return amsh_poll_internal_inner(ptl, replyonly, 0);
 }
@@ -1646,7 +1808,31 @@ am_send_pkt_short(ptl_t *ptl, uint32_t destidx, uint32_t returnidx,
 }
 
 #define amsh_shm_copy_short psm3_mq_mtucpy
-#define amsh_shm_copy_long  psm3_mq_mtucpy
+#ifdef PSM_DSA
+// buffer to shm
+static inline void amsh_shm_copy_long_tx(int use_dsa, ptl_t *ptl_gen, void *dest, const void *src, uint32_t n)
+{
+	if (use_dsa) {
+		psm3_dsa_memcpy(dest, src, n, 0,
+			&(((struct ptl_am *)ptl_gen)->ep->mq->stats.dsa_stats[0]));
+	} else {
+		psm3_mq_mtucpy(dest, src, n);
+	}
+}
+// shm to buffer
+static inline void amsh_shm_copy_long_rx(ptl_t *ptl_gen, void *dest, const void *src, uint32_t n)
+{
+	if (psm3_use_dsa(n)) {
+		psm3_dsa_memcpy(dest, src, n, 1,
+			&(((struct ptl_am *)ptl_gen)->ep->mq->stats.dsa_stats[1]));
+	} else {
+		psm3_mq_mtucpy(dest, src, n);
+	}
+}
+#else /* PSM_DSA */
+#define amsh_shm_copy_long_tx(use_dsa, ptl, dest, src, n)  psm3_mq_mtucpy(dest, src, n)
+#define amsh_shm_copy_long_rx(ptl, dest, src, n)  psm3_mq_mtucpy(dest, src, n)
+#endif /* PSM_DSA */
 
 PSMI_ALWAYS_INLINE(
 int
@@ -1715,6 +1901,9 @@ psm3_amsh_generic_inner(uint32_t amtype, ptl_t *ptl_gen, psm2_epaddr_t epaddr,
 			uint8_t *src_this = (uint8_t *) src;
 			uint8_t *dst_this = (uint8_t *) dst;
 			uint32_t bytes_this;
+#ifdef PSM_DSA
+			int use_dsa = psm3_use_dsa(len);
+#endif
 
 			type = AMFMT_LONG;
 
@@ -1733,7 +1922,8 @@ psm3_amsh_generic_inner(uint32_t amtype, ptl_t *ptl_gen, psm2_epaddr_t epaddr,
 				if (bytes_left == 0)
 					type = AMFMT_LONG_END;
 				bulkidx = bulkpkt->idx;
-				amsh_shm_copy_long((void *)bulkpkt->payload,
+				// copy to shm from buffer
+				amsh_shm_copy_long_tx(use_dsa, ptl_gen, (void *)bulkpkt->payload,
 						   src_this, bytes_this);
 
 				bulkpkt->dest = (uintptr_t) dst;
@@ -1976,7 +2166,8 @@ void process_packet(ptl_t *ptl_gen, am_pkt_short_t *pkt, int isreq)
 			   (void *)bulkpkt->payload, bulkpkt->len);
 			QMARKFREE(bulkpkt);
 		} else {
-			amsh_shm_copy_long((void *)(bulkpkt->dest +
+			// copy to buffer from shm
+			amsh_shm_copy_long_rx(ptl_gen, (void *)(bulkpkt->dest +
 						    bulkpkt->dest_off),
 					   bulkpkt->payload, bulkpkt->len);
 
@@ -2001,8 +2192,25 @@ amsh_mq_rndv(ptl_t *ptl, psm2_mq_t mq, psm2_mq_req_t req,
 	     psm2_epaddr_t epaddr, psm2_mq_tag_t *tag, const void *buf,
 	     uint32_t len)
 {
+#ifdef PSM_ONEAPI
+	psm2_amarg_t args[6];
+#else
 	psm2_amarg_t args[5];
+#endif
 	psm2_error_t err = PSM2_OK;
+#ifdef PSM_ONEAPI
+#if defined(HAVE_DRM) || defined(HAVE_LIBDRM)
+#ifndef PSM_HAVE_PIDFD
+	int fd;
+	int *devfds;
+	int numfds;
+	int device_index = 0;
+#endif
+	uint64_t handle_fd = 0;
+	size_t total;
+#endif
+#endif
+
 
 	args[0].u32w0 = MQ_MSG_LONGRTS;
 	args[0].u32w1 = len;
@@ -2029,7 +2237,7 @@ amsh_mq_rndv(ptl_t *ptl, psm2_mq_t mq, psm2_mq_req_t req,
 		/* Offset in GPU buffer from which we copy data, we have to
 			* send it separetly because this offset is lost
 			* when cuIpcGetMemHandle  is called */
-		req->cuda_ipc_offset = buf - (void*)buf_base_ptr;
+		req->cuda_ipc_offset = (uint32_t)((uintptr_t)buf - (uintptr_t)buf_base_ptr);
 		args[2].u32w0 = (uint32_t)req->cuda_ipc_offset;
 
 		PSMI_CUDA_CALL(cuIpcGetMemHandle,
@@ -2047,7 +2255,96 @@ amsh_mq_rndv(ptl_t *ptl, psm2_mq_t mq, psm2_mq_req_t req,
 		}
 		req->cuda_ipc_handle_attached = 1;
 	} else
+#elif defined(PSM_ONEAPI)
+	/* If the send buffer is on gpu, we create a oneapi IPC
+	 * handle and send it as payload in the RTS */
+	if (req->is_buf_gpu_mem) {
+#if defined(HAVE_DRM) || defined(HAVE_LIBDRM)
+		void *buf_base_ptr;
+#ifndef PSM_HAVE_PIDFD
+		struct drm_prime_handle open_fd = {0, 0, 0};
 #endif
+		uint64_t alloc_id;
+		struct am_oneapi_ze_ipc_info info;
+
+#ifndef PSM_HAVE_PIDFD
+		devfds = psm3_ze_get_dev_fds(&numfds);
+		device_index = cur_ze_dev - ze_devices; /* index (offset) in table */
+		args[5].u32w0 = device_index;
+		fd = devfds[device_index];
+#endif
+		PSMI_ONEAPI_ZE_CALL(zeMemGetAddressRange, ze_context, buf, &buf_base_ptr, &total);
+
+		/* Offset in GPU buffer from which we copy data, we have to
+			* send it separetly because this offset is lost
+			* when zeMemGetIpcHandle is called */
+		req->ze_ipc_offset = (uint32_t)((uintptr_t)buf - (uintptr_t)buf_base_ptr);
+		args[2].u32w0 = (uint32_t)req->ze_ipc_offset;
+		alloc_id = psm3_oneapi_ze_get_alloc_id(buf_base_ptr, &info.alloc_type);
+#ifndef PSM_HAVE_PIDFD
+		args[5].u32w1 = (uint32_t)alloc_id; /* 32-bit for now  */
+#else
+		args[5].u64w0 = alloc_id;
+#endif
+
+		PSMI_ONEAPI_ZE_CALL(zeMemGetIpcHandle,
+				ze_context,
+				(const void *)buf_base_ptr,
+				&req->ipc_handle);
+#ifdef PSM_HAVE_ONEAPI_ZE_PUT_IPCHANDLE
+		PSMI_ONEAPI_ZE_CALL(zeMemGetFileDescriptorFromIpcHandleExp, ze_context, req->ipc_handle, &handle_fd);
+#else
+		memcpy(&handle_fd, &req->ipc_handle, sizeof(uint32_t));
+#endif
+		req->ze_handle_attached = 1;
+#ifndef PSM_HAVE_PIDFD
+		open_fd.fd = (uint32_t)handle_fd;
+		if (ioctl(fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &open_fd) < 0) {
+			struct ptl_am *ptl_am = (struct ptl_am *)ptl;
+			_HFI_ERROR("ioctl failed for DRM_IOCTL_PRIME_FD_TO_HANDLE: for fd %d: %s", open_fd.fd, strerror(errno));
+			psm3_handle_error(ptl_am->ep, PSM2_INTERNAL_ERR,
+				"ioctl "
+				"failed for DRM_IOCTL_PRIME_FD_TO_HANDLE for fd %d: errno=%d",
+				open_fd.fd, errno);
+			err = PSM2_INTERNAL_ERR;
+			goto fail;
+		}
+		_HFI_VDBG("FD_TO_HANDLE: buf %p total 0x%lx base %p alloc_id %lu gem_handle %u\n",
+			  buf, total, buf_base_ptr, alloc_id, open_fd.handle);
+		info.handle = open_fd.handle;
+		if (req->flags_internal & PSMI_REQ_FLAG_FASTPATH) {
+			psm3_am_reqq_add(AMREQUEST_SHORT, ptl,
+						epaddr, mq_handler_hidx,
+						args, 6, (void *)&info,
+						sizeof(info), NULL, 0);
+		} else {
+			psm3_amsh_short_request(ptl, epaddr, mq_handler_hidx,
+						args, 6, (void *)&info,
+						sizeof(info), 0);
+		}
+		// for DRM approach once we have the open_fd we could
+		// PutIpcHandle(ipc_handle) since open_fd has a reference
+		// however since that is a legacy mode, we focus on the
+		// prefered mode and have both delay the Put until CTS received
+#else
+		info.handle = (uint32_t)handle_fd;
+		if (req->flags_internal & PSMI_REQ_FLAG_FASTPATH) {
+			psm3_am_reqq_add(AMREQUEST_SHORT, ptl,
+					 epaddr, mq_handler_hidx,
+					 args, 6, (void *)&info,
+					 sizeof(info), NULL, 0);
+		} else {
+			psm3_amsh_short_request(ptl, epaddr, mq_handler_hidx,
+					 args, 6, (void *)&info,
+					 sizeof(info), 0);
+		}
+#endif /* PSM_HAVE_PIDFD */
+#else // if no drm, error out as oneapi ipc handles don't work without drm
+		err = PSM2_INTERNAL_ERR;
+		goto fail;
+#endif // defined(HAVE_DRM) || defined(HAVE_LIBDRM)
+	} else
+#endif // defined(PSM_ONEAPI)
 	if (req->flags_internal & PSMI_REQ_FLAG_FASTPATH) {
 		psm3_am_reqq_add(AMREQUEST_SHORT, ptl, epaddr, mq_handler_hidx,
 					args, 5, NULL, 0, NULL, 0);
@@ -2061,6 +2358,11 @@ amsh_mq_rndv(ptl_t *ptl, psm2_mq_t mq, psm2_mq_req_t req,
 	mq->stats.tx_rndv_num++;
 	// tx_rndv_bytes tabulated when get CTS
 
+#ifdef PSM_ONEAPI
+#if !defined(PSM_HAVE_PIDFD) || !(defined(HAVE_DRM) || defined(HAVE_LIBDRM))
+fail:
+#endif
+#endif
 	return err;
 }
 
@@ -2136,12 +2438,11 @@ amsh_mq_send_inner(psm2_mq_t mq, psm2_mq_req_t req, psm2_epaddr_t epaddr,
 	psm2_amarg_t args[3];
 	psm2_error_t err = PSM2_OK;
 	int is_blocking = (req == NULL);
-
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 	int gpu_mem = 0;
 	int ep_supports_p2p = (1 << ((am_epaddr_t *) epaddr)->gpuid) & gpu_p2p_supported();
 
-	if (PSMI_IS_CUDA_ENABLED && PSMI_IS_CUDA_MEM(ubuf)) {
+	if (PSM3_IS_BUFFER_GPU_MEM(ubuf, len)) {
 		gpu_mem = 1;
 
 		/* All sends from a gpu buffer use the rendezvous protocol if p2p is supported */
@@ -2161,7 +2462,7 @@ amsh_mq_send_inner(psm2_mq_t mq, psm2_mq_req_t req, psm2_epaddr_t epaddr,
 		goto do_rendezvous;
 
 	if (len <= mq->shm_thresh_rv)
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 do_eager:
 #endif
 		return amsh_mq_send_inner_eager(mq, req, epaddr, args, flags_user,
@@ -2180,19 +2481,21 @@ do_rendezvous:
 		 * mq->completed_q */
 		req->flags_internal |= (flags_internal | PSMI_REQ_FLAG_IS_INTERNAL);
 	}
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 	void *host_buf = NULL;
 
 	req->is_buf_gpu_mem = gpu_mem;
 	if (req->is_buf_gpu_mem) {
+#ifdef PSM_CUDA
 		psmi_cuda_set_attr_sync_memops(ubuf);
+#endif
 
 		/* Use host buffer for blocking requests if GPU P2P is
 		 * unsupported between endpoints.
 		 * This will be only used with blocking requests. */
 		if (!ep_supports_p2p) {
 			host_buf = psmi_malloc(epaddr->ptlctl->ep, UNDEFINED, len);
-			PSMI_CUDA_CALL(cuMemcpyDtoH, host_buf, (CUdeviceptr)ubuf, len);
+			PSM3_GPU_MEMCPY_DTOH(host_buf, ubuf, len);
 
 			/* Reset is_buf_gpu_mem since host buffer is being used
 			 * instead of one from GPU. */
@@ -2208,7 +2511,7 @@ do_rendezvous:
 		err = psm3_mq_wait_internal(&req);
 	}
 
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 	if (err == PSM2_OK && host_buf)
 		psmi_free(host_buf);
 #endif
@@ -2281,16 +2584,28 @@ const char *psmi_kassist_getmode(int mode)
 #endif
 
 static
-int psmi_get_kassist_mode()
+int psm3_get_kassist_mode()
 {
 	/* Cuda PSM2 supports only KASSIST_CMA_GET */
 	int mode = PSMI_KASSIST_CMA_GET;
-#ifndef PSM_CUDA
-	union psmi_envvar_val env_kassist;
+#ifdef PSM_DSA
+	// dsa_available is determined during psm3_init(), while kassist is
+	// not checked until a shm ep is being opened. So dsa_available is
+	// initialized before this function is called.
+	// Since the DSA threshold is 8000 and shm RV_THRESH is 16000 with
+	// or without kassist, when DSA is enabled there is no message size
+	// where kassist applies, so we must turn it off so DSA can
+	// do the copies for all rndv shm messages
+	if (psm3_dsa_available())
+		return PSMI_KASSIST_OFF;
+#endif
 
-	if (!psm3_getenv("PSM3_KASSIST_MODE",
-			 "PSM Shared memory kernel assist mode "
-			 "(cma-put, cma-get, none)",
+#if !defined(PSM_CUDA) && !defined(PSM_ONEAPI)
+	union psmi_envvar_val env_kassist;
+	const char *PSM3_KASSIST_MODE_HELP = "PSM Shared memory kernel assist mode "
+			 "(cma-put, cma-get, none)";
+
+	if (!psm3_getenv("PSM3_KASSIST_MODE", PSM3_KASSIST_MODE_HELP,
 			 PSMI_ENVVAR_LEVEL_HIDDEN, PSMI_ENVVAR_TYPE_STR,
 			 (union psmi_envvar_val)
 			 PSMI_KASSIST_MODE_DEFAULT_STRING, &env_kassist)) {
@@ -2299,8 +2614,13 @@ int psmi_get_kassist_mode()
 			mode = PSMI_KASSIST_CMA_PUT;
 		else if (strcasecmp(s, "cma-get") == 0)
 			mode = PSMI_KASSIST_CMA_GET;
-		else
+		else if (strcasecmp(s, "none") == 0)
 			mode = PSMI_KASSIST_OFF;
+		else {
+			_HFI_INFO("Invalid value for PSM3_KASSIST_MODE ('%s') %-40s Using: cma-get\n",
+				s, PSM3_KASSIST_MODE_HELP);
+			mode = PSMI_KASSIST_CMA_GET;
+		}
 	}
 #endif
 	return mode;
@@ -2343,7 +2663,7 @@ amsh_conn_handler(void *toki, psm2_amarg_t *args, int narg, void *buf,
 	read_extra_ep_data(args[2].u32w0, &pid, &gpuid);
 
 	_HFI_CONNDBG("Conn op=%d, phase=%d, epid=%s, err=%d\n",
-			  op, phase, psm3_epid_fmt(epid, 0), err);
+			  op, phase, psm3_epid_fmt_internal(epid, 0), err);
 
 	switch (op) {
 	case PSMI_AM_CONN_REQ:
@@ -2389,6 +2709,12 @@ amsh_conn_handler(void *toki, psm2_amarg_t *args, int narg, void *buf,
 			((am_epaddr_t *) epaddr)->pid = pid;
 			((am_epaddr_t *) epaddr)->gpuid = gpuid;
 		}
+#ifdef PSM_ONEAPI
+#ifndef PSM_HAVE_PIDFD
+		if (PSMI_IS_GPU_ENABLED)
+			psm3_send_dev_fds(ptl_gen, epaddr);
+#endif
+#endif
 
 		/* Rewrite args */
 		ptl->connect_incoming++;
@@ -2435,7 +2761,7 @@ amsh_conn_handler(void *toki, psm2_amarg_t *args, int narg, void *buf,
 	case PSMI_AM_DISC_REQ:
 		epaddr = psm3_epid_lookup(ptl->ep, epid);
 		if (!epaddr) {
-			_HFI_CONNDBG("Dropping disconnect request from an epid that we are not connected to %s\n", psm3_epid_fmt(epid, 0));
+			_HFI_CONNDBG("Dropping disconnect request from an epid that we are not connected to %s\n", psm3_epid_fmt_internal(epid, 0));
 			return;
 		}
 		args[0].u16w0 = PSMI_AM_DISC_REP;
@@ -2446,7 +2772,7 @@ amsh_conn_handler(void *toki, psm2_amarg_t *args, int narg, void *buf,
 		/* Before sending the reply, make sure the process
 		 * is still connected */
 
-		if (psm3_epid_cmp(ptl->am_ep[shmidx].epid, epaddr->epid))
+		if (psm3_epid_cmp_internal(ptl->am_ep[shmidx].epid, epaddr->epid))
 			is_valid = 0;
 		else
 			is_valid = 1;
@@ -2512,6 +2838,50 @@ psm3_amsh_am_get_parameters(psm2_ep_t ep, struct psm2_am_parameters *parameters)
 	return PSM2_OK;
 }
 
+static void amsh_fifo_getconfig()
+{
+	union psmi_envvar_val env_var;
+
+#ifdef PSM_DSA
+	if (psm3_dsa_available()) {
+		// adjust defaults
+		amsh_qcounts.qreqFifoShort = AMSHORT_Q_DSA;
+		amsh_qcounts.qrepFifoShort = AMSHORT_Q_DSA;
+		amsh_qcounts.qreqFifoLong = AMLONG_Q_DSA;
+		amsh_qcounts.qrepFifoLong = AMLONG_Q_DSA;
+		amsh_qelemsz.qreqFifoLong = AMLONG_SZ_DSA;
+		amsh_qelemsz.qrepFifoLong = AMLONG_SZ_DSA;
+	}
+#endif
+
+	psm3_getenv("PSM3_SHM_SHORT_Q_DEPTH",
+		"Number of entries on shm undirectional short msg fifos",
+		PSMI_ENVVAR_LEVEL_HIDDEN, PSMI_ENVVAR_TYPE_UINT,
+		(union psmi_envvar_val)amsh_qcounts.qreqFifoShort, &env_var);
+	amsh_qcounts.qreqFifoShort = env_var.e_uint;
+	amsh_qcounts.qrepFifoShort = env_var.e_uint;
+
+	psm3_getenv("PSM3_SHM_LONG_Q_DEPTH",
+		"Number of entries on shm undirectional long msg fifos",
+		PSMI_ENVVAR_LEVEL_HIDDEN, PSMI_ENVVAR_TYPE_UINT,
+		(union psmi_envvar_val)amsh_qcounts.qreqFifoLong, &env_var);
+	amsh_qcounts.qreqFifoLong = env_var.e_uint;
+	amsh_qcounts.qrepFifoLong = env_var.e_uint;
+
+	// PSM3_SHM_SHORT_MTU - untunable at sizeof(am_pkt_short_t)
+
+	psm3_getenv("PSM3_SHM_LONG_MTU",
+		"Size of buffers on shm undirectional long msg fifos",
+		PSMI_ENVVAR_LEVEL_HIDDEN, PSMI_ENVVAR_TYPE_UINT,
+		(union psmi_envvar_val)amsh_qelemsz.qreqFifoLong, &env_var);
+	amsh_qelemsz.qreqFifoLong = env_var.e_uint;
+	amsh_qelemsz.qrepFifoLong = env_var.e_uint;
+
+	_HFI_PRDBG("shm Q Short: %u of %u bytes, Long: %u of %u bytes\n",
+		amsh_qcounts.qreqFifoShort, amsh_qelemsz.qreqFifoShort,
+		amsh_qcounts.qreqFifoLong, amsh_qelemsz.qrepFifoLong);
+}
+
 /**
  * @param ep PSM Endpoint, guaranteed to have initialized epaddr and epid.
  * @param ptl Pointer to caller-allocated space for PTL (fill in)
@@ -2528,7 +2898,7 @@ amsh_init(psm2_ep_t ep, ptl_t *ptl_gen, ptl_ctl_t *ctl)
 	/* Preconditions */
 	psmi_assert_always(ep != NULL);
 	psmi_assert_always(ep->epaddr != NULL);
-	psmi_assert_always(!psm3_epid_zero(ep->epid));
+	psmi_assert_always(!psm3_epid_zero_internal(ep->epid));
 
 	ptl->ep = ep;		/* back pointer */
 	ptl->epid = ep->epid;	/* cache epid */
@@ -2539,6 +2909,20 @@ amsh_init(psm2_ep_t ep, ptl_t *ptl_gen, ptl_ctl_t *ctl)
 	ptl->connect_phase = 0;
 	ptl->connect_incoming = 0;
 	ptl->connect_outgoing = 0;
+
+	amsh_fifo_getconfig();
+
+#ifdef PSM_ONEAPI
+#ifndef PSM_HAVE_PIDFD
+	ptl->ep->ze_ipc_socket = -1;
+	if (PSMI_IS_GPU_ENABLED) {
+		if ((err = psm3_ze_init_ipc_socket(ptl_gen)) != PSM2_OK)
+			goto fail;
+		if ((err = psm3_ze_init_fds()) != PSM2_OK)
+			goto fail;
+	}
+#endif
+#endif
 
 	memset(&ptl->amsh_empty_shortpkt, 0, sizeof(ptl->amsh_empty_shortpkt));
 	memset(&ptl->psmi_am_reqq_fifo, 0, sizeof(ptl->psmi_am_reqq_fifo));
@@ -2607,21 +2991,49 @@ amsh_init(psm2_ep_t ep, ptl_t *ptl_gen, ptl_ctl_t *ctl)
 	ctl->epaddr_stats_get = NULL;
 #endif
 #ifdef PSM_CUDA
-	union psmi_envvar_val env_memcache_enabled;
-	psm3_getenv("PSM3_CUDA_MEMCACHE_ENABLED",
-		    "PSM cuda ipc memhandle cache enabled (default is enabled)",
-		     PSMI_ENVVAR_LEVEL_HIDDEN, PSMI_ENVVAR_TYPE_UINT,
-		     (union psmi_envvar_val)
-		      1, &env_memcache_enabled);
-	if (PSMI_IS_CUDA_ENABLED && env_memcache_enabled.e_uint) {
-		union psmi_envvar_val env_memcache_size;
-		psm3_getenv("PSM3_CUDA_MEMCACHE_SIZE",
-			    "Size of the cuda ipc memhandle cache ",
-			    PSMI_ENVVAR_LEVEL_HIDDEN, PSMI_ENVVAR_TYPE_UINT,
-			    (union psmi_envvar_val)
-			    CUDA_MEMHANDLE_CACHE_SIZE, &env_memcache_size);
-		if ((err = am_cuda_memhandle_cache_init(env_memcache_size.e_uint) != PSM2_OK))
-			goto fail;
+	if (PSMI_IS_GPU_ENABLED) {
+		union psmi_envvar_val env_memcache_enabled;
+		psm3_getenv("PSM3_CUDA_MEMCACHE_ENABLED",
+			    "PSM cuda ipc memhandle cache enabled (default is enabled)",
+			     PSMI_ENVVAR_LEVEL_HIDDEN, PSMI_ENVVAR_TYPE_UINT,
+			     (union psmi_envvar_val)
+			      1, &env_memcache_enabled);
+		if (env_memcache_enabled.e_uint) {
+			union psmi_envvar_val env_memcache_size;
+			psm3_getenv("PSM3_CUDA_MEMCACHE_SIZE",
+				    "Size of the cuda ipc memhandle cache ",
+				    PSMI_ENVVAR_LEVEL_HIDDEN, PSMI_ENVVAR_TYPE_UINT,
+				    (union psmi_envvar_val)
+				    CUDA_MEMHANDLE_CACHE_SIZE, &env_memcache_size);
+#if defined(HAVE_DRM) || defined(HAVE_LIBDRM)
+			if ((err = am_cuda_memhandle_cache_alloc(&ptl->memhandle_cache,
+						 env_memcache_size.e_uint, &ep->mq->stats) != PSM2_OK))
+				goto fail;
+#endif
+		}
+	}
+#endif
+#ifdef PSM_ONEAPI
+	if (PSMI_IS_GPU_ENABLED) {
+		union psmi_envvar_val env_memcache_enabled;
+		psm3_getenv("PSM3_ONEAPI_MEMCACHE_ENABLED",
+			    "PSM oneapi ipc memhandle cache enabled (default is enabled)",
+			     PSMI_ENVVAR_LEVEL_HIDDEN, PSMI_ENVVAR_TYPE_UINT,
+			     (union psmi_envvar_val)
+			      1, &env_memcache_enabled);
+		if (env_memcache_enabled.e_uint) {
+			union psmi_envvar_val env_memcache_size;
+			psm3_getenv("PSM3_ONEAPI_MEMCACHE_SIZE",
+				    "Size of the oneapi ipc memhandle cache ",
+				    PSMI_ENVVAR_LEVEL_HIDDEN, PSMI_ENVVAR_TYPE_UINT,
+				    (union psmi_envvar_val)
+				    ONEAPI_MEMHANDLE_CACHE_SIZE, &env_memcache_size);
+#if defined(HAVE_DRM) || defined(HAVE_LIBDRM)
+			if ((err = am_ze_memhandle_cache_alloc(&ptl->memhandle_cache,
+						 env_memcache_size.e_uint, &ep->mq->stats) != PSM2_OK))
+				goto fail;
+#endif
+		}
 	}
 #endif
 fail:
@@ -2707,7 +3119,7 @@ poll:
 					  ptl->connect_incoming, ptl->connect_outgoing);
 				break;
 			}
-			psm3_poll_internal(ptl->ep, 1);
+			psm3_poll_internal(ptl->ep, 1, 0);
 		}
 		_HFI_CONNDBG("CCC done polling disconnect from=%d,to=%d\n",
 			  ptl->connect_incoming, ptl->connect_outgoing);
@@ -2720,6 +3132,15 @@ poll:
 		goto fail;
 	}
 
+#ifdef PSM_ONEAPI
+#ifndef PSM_HAVE_PIDFD
+	if (PSMI_IS_GPU_ENABLED && (err_seg = psm3_sock_detach(ptl_gen))) {
+		err = err_seg;
+		goto fail;
+	}
+#endif
+#endif
+
 	/* This prevents poll calls between now and the point where the endpoint is
 	 * deallocated to reference memory that disappeared */
 	ptl->repH.head = &ptl->amsh_empty_shortpkt;
@@ -2729,8 +3150,16 @@ poll:
 		psmi_free(ptl->am_ep);
 
 #ifdef PSM_CUDA
-	if (PSMI_IS_CUDA_ENABLED)
-		am_cuda_memhandle_cache_map_fini();
+	if (ptl->memhandle_cache)
+		am_cuda_memhandle_cache_free(ptl->memhandle_cache);
+	ptl->memhandle_cache = NULL;
+#endif
+#ifdef PSM_ONEAPI
+#if defined(HAVE_DRM) || defined(HAVE_LIBDRM)
+	if (ptl->memhandle_cache)
+		am_ze_memhandle_cache_free(ptl->memhandle_cache);
+#endif
+	ptl->memhandle_cache = NULL;
 #endif
 	return PSM2_OK;
 fail:

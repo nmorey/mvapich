@@ -1,0 +1,37 @@
+/*D
+   MPI_Get_count - Gets the number of "top level" elements
+
+Synopsis:
+.vb
+int MPI_Get_count(const MPI_Status *status, MPI_Datatype datatype, int *count)
+.ve
+.vb
+int MPI_Get_count_c(const MPI_Status *status, MPI_Datatype datatype,
+                    MPI_Count *count)
+.ve
+
+Input Parameters:
++ status - return status of receive operation (Status)
+- datatype - datatype of each receive buffer entry (handle)
+
+Output Parameters:
+. count - number of received entries (integer)
+
+Notes:
+If the size of the datatype is zero, this routine will return a count of
+zero.  If the amount of data in 'status' is not an exact multiple of the
+size of 'datatype' (so that 'count' would not be integral), a 'count' of
+'MPI_UNDEFINED' is returned instead.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

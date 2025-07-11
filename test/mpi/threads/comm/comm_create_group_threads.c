@@ -24,7 +24,7 @@ MTEST_THREAD_LOCK_TYPE comm_lock;
 int rank, size;
 int verbose = 0;
 
-MTEST_THREAD_RETURN_TYPE test_comm_create_group(void *arg)
+static MTEST_THREAD_RETURN_TYPE test_comm_create_group(void *arg)
 {
     int i;
 
@@ -68,14 +68,14 @@ MTEST_THREAD_RETURN_TYPE test_comm_create_group(void *arg)
 
     if (verbose)
         printf("%d: Thread %d - Done.\n", rank, *(int *) arg);
-    return NULL;
+    MTEST_THREAD_RETURN_EXPRESSION;
 }
 
 
 int main(int argc, char **argv)
 {
     int thread_args[NUM_THREADS];
-    int i, err, provided;
+    int i, provided;
 
     MTest_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 

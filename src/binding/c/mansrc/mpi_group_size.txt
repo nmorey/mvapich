@@ -1,0 +1,26 @@
+/*D
+   MPI_Group_size - Returns the size of a group
+
+Synopsis:
+.vb
+int MPI_Group_size(MPI_Group group, int *size)
+.ve
+
+Input Parameters:
+. group - group (handle)
+
+Output Parameters:
+. size - number of processes in the group (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_GROUP
+.N MPI_ERR_OTHER
+
+D*/
+

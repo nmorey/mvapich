@@ -4,6 +4,8 @@
  */
 
 #include "mpioimpl.h"
+#include <limits.h>
+#include <assert.h>
 
 #ifdef HAVE_WEAK_SYMBOLS
 
@@ -20,6 +22,19 @@ int MPI_File_iread_shared(MPI_File fh, void *buf, int count, MPI_Datatype dataty
     __attribute__ ((weak, alias("PMPI_File_iread_shared")));
 #endif
 
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_File_iread_shared_c = PMPI_File_iread_shared_c
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_File_iread_shared_c MPI_File_iread_shared_c
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_File_iread_shared_c as PMPI_File_iread_shared_c
+/* end of weak pragmas */
+#elif defined(HAVE_WEAK_ATTRIBUTE)
+int MPI_File_iread_shared_c(MPI_File fh, void *buf, MPI_Count count, MPI_Datatype datatype,
+                            MPIO_Request * request)
+    __attribute__ ((weak, alias("PMPI_File_iread_shared_c")));
+#endif
+
 /* Include mapping from MPI->PMPI */
 #define MPIO_BUILD_PROFILING
 #include "mpioprof.h"
@@ -27,6 +42,7 @@ int MPI_File_iread_shared(MPI_File fh, void *buf, int count, MPI_Datatype dataty
 
 #ifdef HAVE_MPI_GREQUEST
 #include "mpiu_greq.h"
+#endif
 
 /*@
     MPI_File_iread_shared - Nonblocking read using shared file pointer
@@ -45,6 +61,36 @@ Output Parameters:
 int MPI_File_iread_shared(MPI_File fh, void *buf, int count,
                           MPI_Datatype datatype, MPI_Request * request)
 {
+    return MPIOI_File_iread_shared(fh, buf, count, datatype, request);
+}
+
+/* large count function */
+
+
+/*@
+    MPI_File_iread_shared_c - Nonblocking read using shared file pointer
+
+Input Parameters:
+. fh - file handle (handle)
+. count - number of elements in buffer (nonnegative integer)
+. datatype - datatype of each buffer element (handle)
+
+Output Parameters:
+. buf - initial address of buffer (choice)
+. request - request object (handle)
+
+.N fortran
+@*/
+int MPI_File_iread_shared_c(MPI_File fh, void *buf, MPI_Count count,
+                            MPI_Datatype datatype, MPI_Request * request)
+{
+    return MPIOI_File_iread_shared(fh, buf, count, datatype, request);
+}
+
+#ifdef MPIO_BUILD_PROFILING
+int MPIOI_File_iread_shared(MPI_File fh, void *buf, MPI_Aint count,
+                            MPI_Datatype datatype, MPI_Request * request)
+{
     int error_code, buftype_is_contig, filetype_is_contig;
     ADIO_Offset bufsize;
     ADIO_File adio_fh;
@@ -53,6 +99,7 @@ int MPI_File_iread_shared(MPI_File fh, void *buf, int count,
     MPI_Status status;
     ADIO_Offset off, shared_fp;
     MPI_Offset nbytes = 0;
+    void *xbuf = NULL, *e32_buf = NULL, *host_buf = NULL;
 
     ROMIO_THREAD_CS_ENTER();
 
@@ -87,12 +134,28 @@ int MPI_File_iread_shared(MPI_File fh, void *buf, int count,
     }
     /* --END ERROR HANDLING-- */
 
+    xbuf = buf;
+    if (adio_fh->is_external32) {
+        MPI_Aint e32_size = 0;
+        error_code = MPIU_datatype_full_size(datatype, &e32_size);
+        if (error_code != MPI_SUCCESS)
+            goto fn_exit;
+
+        e32_buf = ADIOI_Malloc(e32_size * count);
+        xbuf = e32_buf;
+    } else {
+        MPIO_GPU_HOST_ALLOC(host_buf, buf, count, datatype);
+        if (host_buf != NULL) {
+            xbuf = host_buf;
+        }
+    }
+
     if (buftype_is_contig && filetype_is_contig) {
         /* convert count and shared_fp to bytes */
         bufsize = datatype_size * count;
         off = adio_fh->disp + adio_fh->etype_size * shared_fp;
         if (!(adio_fh->atomicity)) {
-            ADIO_IreadContig(adio_fh, buf, count, datatype, ADIO_EXPLICIT_OFFSET,
+            ADIO_IreadContig(adio_fh, xbuf, count, datatype, ADIO_EXPLICIT_OFFSET,
                              off, request, &error_code);
         } else {
             /* to maintain strict atomicity semantics with other concurrent
@@ -102,7 +165,7 @@ int MPI_File_iread_shared(MPI_File fh, void *buf, int count,
                 ADIOI_WRITE_LOCK(adio_fh, off, SEEK_SET, bufsize);
             }
 
-            ADIO_ReadContig(adio_fh, buf, count, datatype, ADIO_EXPLICIT_OFFSET,
+            ADIO_ReadContig(adio_fh, xbuf, count, datatype, ADIO_EXPLICIT_OFFSET,
                             off, &status, &error_code);
 
             if (adio_fh->file_system != ADIO_NFS) {
@@ -114,7 +177,7 @@ int MPI_File_iread_shared(MPI_File fh, void *buf, int count,
             MPIO_Completed_request_create(&adio_fh, nbytes, &error_code, request);
         }
     } else {
-        ADIO_IreadStrided(adio_fh, buf, count, datatype, ADIO_EXPLICIT_OFFSET,
+        ADIO_IreadStrided(adio_fh, xbuf, count, datatype, ADIO_EXPLICIT_OFFSET,
                           shared_fp, request, &error_code);
     }
 
@@ -122,6 +185,13 @@ int MPI_File_iread_shared(MPI_File fh, void *buf, int count,
     if (error_code != MPI_SUCCESS)
         error_code = MPIO_Err_return_file(adio_fh, error_code);
     /* --END ERROR HANDLING-- */
+
+    if (e32_buf != NULL) {
+        error_code = MPIU_read_external32_conversion_fn(buf, datatype, count, e32_buf);
+        ADIOI_Free(e32_buf);
+    }
+
+    MPIO_GPU_SWAP_BACK(host_buf, buf, count, datatype);
 
   fn_exit:
     ROMIO_THREAD_CS_EXIT();

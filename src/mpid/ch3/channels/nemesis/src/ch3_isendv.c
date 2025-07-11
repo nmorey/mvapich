@@ -17,11 +17,9 @@ int MPIDI_CH3_iSendv (MPIDI_VC_t *vc, MPIR_Request *sreq, struct iovec *iov, int
     int mpi_errno = MPI_SUCCESS;
     int again = 0;
     int j;
-    int in_cs = FALSE;
     MPIDI_CH3I_VC *vc_ch = &vc->ch;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3_ISENDV);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3_ISENDV);
+    MPIR_FUNC_ENTER;
 
     if (vc->state == MPIDI_VC_STATE_MORIBUND) {
         sreq->status.MPI_ERROR = MPI_SUCCESS;
@@ -57,9 +55,6 @@ int MPIDI_CH3_iSendv (MPIDI_VC_t *vc, MPIR_Request *sreq, struct iovec *iov, int
      * the maximum of all possible packet headers */
     iov[0].iov_len = sizeof(MPIDI_CH3_Pkt_t);
     MPIDI_DBG_Print_packet((MPIDI_CH3_Pkt_t *)iov[0].iov_base);
-
-    MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    in_cs = TRUE;
 
     if (MPIDI_CH3I_Sendq_empty(MPIDI_CH3I_shm_sendq))
     {
@@ -158,7 +153,11 @@ int MPIDI_CH3_iSendv (MPIDI_VC_t *vc, MPIR_Request *sreq, struct iovec *iov, int
 	sreq->dev.iov[0].iov_base = (char *) &sreq->dev.pending_pkt;
 	sreq->dev.iov[0].iov_len = iov[0].iov_len;
 
-    MPIR_Memcpy(sreq->dev.iov, iov, n_iov * sizeof(struct iovec));
+	for (i = 1; i < n_iov; i++)
+	{
+	    sreq->dev.iov[i] = iov[i];
+	}
+
 	sreq->dev.iov_count = n_iov;
 	sreq->dev.iov_offset = 0;
         sreq->ch.noncontig = FALSE;
@@ -172,11 +171,7 @@ int MPIDI_CH3_iSendv (MPIDI_VC_t *vc, MPIR_Request *sreq, struct iovec *iov, int
     }
 
  fn_exit:
-    if (in_cs) {
-        MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    }
-
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3_ISENDV);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
  fn_fail:
     goto fn_exit;

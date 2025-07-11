@@ -1,0 +1,27 @@
+/*D
+   MPI_Cart_sub - Partitions a communicator into subgroups which form lower-dimensional cartesian subgrids
+
+Synopsis:
+.vb
+int MPI_Cart_sub(MPI_Comm comm, const int remain_dims[], MPI_Comm *newcomm)
+.ve
+
+Input Parameters:
++ comm - communicator with Cartesian structure (handle)
+- remain_dims - the i-th entry of remain_dims specifies whether the i-th dimension is kept in the subgrid (true) or is dropped (false)
+
+Output Parameters:
+. newcomm - communicator containing the subgrid that includes the calling process (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+D*/
+

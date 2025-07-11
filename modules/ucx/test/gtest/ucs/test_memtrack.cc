@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2001-2014.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2014. ALL RIGHTS RESERVED.
 * Copyright (C) UT-Battelle, LLC. 2014. ALL RIGHTS RESERVED.
 * See file LICENSE for terms.
 */
@@ -7,7 +7,7 @@
 #include <common/test.h>
 
 extern "C" {
-#include <ucs/debug/memtrack.h>
+#include <ucs/debug/memtrack_int.h>
 #include <ucs/sys/sys.h>
 }
 
@@ -19,8 +19,6 @@ extern "C" {
 #include <limits>
 
 
-#ifdef ENABLE_MEMTRACK
-
 class test_memtrack : public ucs::test {
 protected:
     static const size_t ALLOC_SIZE = 10000;
@@ -31,6 +29,7 @@ protected:
         push_config();
         modify_config("MEMTRACK_DEST", "/dev/null");
         ucs_memtrack_init();
+        init_count_size();
     }
 
     void cleanup() {
@@ -39,14 +38,48 @@ protected:
         ucs_memtrack_init();
     }
 
-    void test_total(size_t peak_count, size_t peak_size) {
+    void test_total(unsigned count, size_t size)
+    {
         ucs_memtrack_entry_t total;
 
         ucs_memtrack_total(&total);
-        EXPECT_EQ(0lu, total.count);
-        EXPECT_EQ(peak_count, total.peak_count);
-        EXPECT_EQ(peak_size,  total.peak_size);
+        EXPECT_EQ(m_count, total.count);
+        EXPECT_EQ(m_count + count, total.peak_count);
+        EXPECT_EQ(m_size + size, total.peak_size);
     }
+
+    void test_total_memalign_realloc(unsigned count, size_t size)
+    {
+        /* ucs_posix_memalign_realloc() call may hold two buffers
+           for a short time if malloc() returned an unaligned pointer */
+        ucs_memtrack_entry_t total;
+
+        ucs_memtrack_total(&total);
+        EXPECT_EQ(m_count, total.count);
+
+        unsigned peak_count = total.peak_count - m_count;
+        size_t peak_size    = total.peak_size - m_size;
+
+        EXPECT_EQ(peak_count % count, 0);
+        EXPECT_EQ(peak_size % size, 0);
+        EXPECT_GT(peak_count / count, 0);
+        EXPECT_GT(peak_size / size, 0);
+        EXPECT_LT(peak_count / count, 3);
+        EXPECT_LT(peak_size / size, 3);
+    }
+
+private:
+    void init_count_size()
+    {
+        ucs_memtrack_entry_t entry;
+
+        ucs_memtrack_total(&entry);
+        m_count = entry.count;
+        m_size  = entry.size;
+    }
+
+    unsigned m_count{0};
+    size_t m_size{0};
 };
 
 const char test_memtrack::ALLOC_NAME[] = "memtrack_test";
@@ -73,13 +106,13 @@ UCS_TEST_F(test_memtrack, sanity) {
 
     b = ucs_malloc(4, ALLOC_NAME);
     ucs_free(b);
-    ucs_memtrack_total( &entry);
+    ucs_memtrack_total(&entry);
     if (ucs_memtrack_is_enabled()) {
-        EXPECT_EQ((size_t)1, entry.count);
+        EXPECT_EQ((size_t)(i + 1), entry.count);
     }
     ucs_free(a);
 
-    for (i = 0; i < 101; i++) {
+    for (i = 1; i < 101; i++) {
         a = ucs_malloc(i, ALLOC_NAME);
         ucs_free(a);
     }
@@ -97,7 +130,7 @@ UCS_TEST_F(test_memtrack, parse_dump) {
     }
 
     /* Parse */
-    ASSERT_NE((void *)NULL, strstr(buf, "TOTAL"));
+    ASSERT_NE((void*)NULL, strstr(buf, "TOTAL"));
     free(buf);
 }
 
@@ -105,10 +138,10 @@ UCS_TEST_F(test_memtrack, malloc_realloc) {
     void* ptr;
 
     ptr = ucs_malloc(ALLOC_SIZE, ALLOC_NAME);
-    ASSERT_NE((void *)NULL, ptr);
+    ASSERT_NE((void*)NULL, ptr);
 
     ptr = ucs_realloc(ptr, 2 * ALLOC_SIZE, ALLOC_NAME);
-    ASSERT_NE((void *)NULL, ptr);
+    ASSERT_NE((void*)NULL, ptr);
     ucs_free(ptr);
 
     test_total(1, 2 * ALLOC_SIZE);
@@ -118,7 +151,7 @@ UCS_TEST_F(test_memtrack, realloc_null) {
     void* ptr;
 
     ptr = ucs_realloc(NULL, ALLOC_SIZE, ALLOC_NAME);
-    ASSERT_NE((void *)NULL, ptr);
+    ASSERT_NE((void*)NULL, ptr);
     ucs_free(ptr);
 
     test_total(1, ALLOC_SIZE);
@@ -128,11 +161,11 @@ UCS_TEST_F(test_memtrack, calloc) {
     void* ptr;
 
     ptr = ucs_calloc(1, ALLOC_SIZE, ALLOC_NAME);
-    ASSERT_NE((void *)NULL, ptr);
+    ASSERT_NE((void*)NULL, ptr);
     ucs_free(ptr);
 
     ptr = ucs_calloc(ALLOC_SIZE, 1, ALLOC_NAME);
-    ASSERT_NE((void *)NULL, ptr);
+    ASSERT_NE((void*)NULL, ptr);
     ucs_free(ptr);
 
     test_total(1, ALLOC_SIZE);
@@ -149,7 +182,7 @@ UCS_TEST_F(test_memtrack, sysv) {
     status = ucs_sysv_alloc(&size, std::numeric_limits<size_t>::max(), &ptr, 0,
                             ALLOC_NAME, &shmid);
     ASSERT_UCS_OK(status);
-    ASSERT_NE((void *)NULL, ptr);
+    ASSERT_NE((void*)NULL, ptr);
 
     memset(ptr, 0xAA, size);
     ucs_sysv_free(ptr);
@@ -162,22 +195,47 @@ UCS_TEST_F(test_memtrack, memalign_realloc) {
     int ret;
 
     ret = ucs_posix_memalign(&ptr, 8, ALLOC_SIZE, ALLOC_NAME);
+    ucs_free(ptr);
     ASSERT_EQ(0, ret);
-    ASSERT_NE((void *)NULL, ptr);
+    ASSERT_NE((void*)NULL, ptr);
+    /* Silence coverity warning. */
+    ptr = NULL;
+
+    ret = ucs_posix_memalign(&ptr, UCS_KBYTE, ALLOC_SIZE, ALLOC_NAME);
+    ASSERT_EQ(0, ret);
+    ASSERT_NE((void*)NULL, ptr);
+    ASSERT_EQ(0, (uintptr_t)ptr % UCS_KBYTE);
+
+    ptr = ucs_realloc(ptr, 2 * ALLOC_SIZE, ALLOC_NAME);
+    ASSERT_NE((void*)NULL, ptr);
+
+    ptr = ucs_realloc(ptr, ALLOC_SIZE, ALLOC_NAME);
+    ASSERT_NE((void*)NULL, ptr);
+
     ucs_free(ptr);
     /* Silence coverity warning. */
     ptr = NULL;
 
-    ret = ucs_posix_memalign(&ptr, 1024, ALLOC_SIZE, ALLOC_NAME);
-    ASSERT_EQ(0, ret);
-    ASSERT_NE((void *)NULL, ptr);
+    test_total_memalign_realloc(1, 2 * ALLOC_SIZE);
 
-    ptr = ucs_realloc(ptr, 2*ALLOC_SIZE, ALLOC_NAME);
-    ASSERT_NE((void *)NULL, ptr);
+    ret = ucs_posix_memalign(&ptr, UCS_KBYTE, ALLOC_SIZE, ALLOC_NAME);
+    ASSERT_EQ(0, ret);
+    ASSERT_NE((void*)NULL, ptr);
+    ASSERT_EQ(0, (uintptr_t)ptr % UCS_KBYTE);
+
+    ret = ucs_posix_memalign_realloc(&ptr, UCS_KBYTE, 4 * ALLOC_SIZE,
+                                     ALLOC_NAME);
+    ASSERT_EQ(0, ret);
+    ASSERT_NE((void*)NULL, ptr);
+    ASSERT_EQ(0, (uintptr_t)ptr % UCS_KBYTE);
+
+    ret = ucs_posix_memalign_realloc(&ptr, UCS_MBYTE, 2 * ALLOC_SIZE,
+                                     ALLOC_NAME);
+    ASSERT_EQ(0, ret);
+    ASSERT_NE((void*)NULL, ptr);
+    ASSERT_EQ(0, (uintptr_t)ptr % UCS_MBYTE);
 
     ucs_free(ptr);
-
-    test_total(1, 2 * ALLOC_SIZE);
 }
 
 UCS_TEST_F(test_memtrack, mmap) {
@@ -185,7 +243,7 @@ UCS_TEST_F(test_memtrack, mmap) {
 
     ptr = ucs_mmap(NULL, ALLOC_SIZE, PROT_READ|PROT_WRITE,
                    MAP_PRIVATE|MAP_ANONYMOUS, -1, 0, ALLOC_NAME);
-    ASSERT_NE((void *)NULL, ptr);
+    ASSERT_NE((void*)NULL, ptr);
     ucs_munmap(ptr, ALLOC_SIZE);
 
     test_total(1, ALLOC_SIZE);
@@ -206,4 +264,49 @@ UCS_TEST_F(test_memtrack, custom) {
     test_total(1, ALLOC_SIZE);
 }
 
-#endif
+
+class test_memtrack_log : public ucs::test {
+public:
+    static ucs_log_func_rc_t
+    zero_size_log_handler(const char *file, unsigned line, const char *function,
+                          ucs_log_level_t level,
+                          const ucs_log_component_config_t *comp_conf,
+                          const char *message, va_list ap)
+    {
+        std::string log_str = format_message(message, ap);
+        if ((level == UCS_LOG_LEVEL_WARN) &&
+            (log_str.find("allocated zero-size block") != std::string::npos)) {
+            UCS_TEST_MESSAGE << log_str;
+            ++log_count;
+            return UCS_LOG_FUNC_RC_STOP;
+        }
+
+        return UCS_LOG_FUNC_RC_CONTINUE;
+    }
+
+    static size_t log_count;
+};
+
+size_t test_memtrack_log::log_count = 0;
+
+UCS_TEST_F(test_memtrack_log, zero_size) {
+    scoped_log_handler slh(zero_size_log_handler);
+
+    int count_before = log_count;
+    void *ptr        = ucs_calloc(1, 0, "test");
+    EXPECT_EQ(log_count - count_before, 1);
+
+    ucs_free(ptr);
+
+    count_before = log_count;
+    ptr          = ucs_malloc(0, "test");
+    EXPECT_EQ(log_count - count_before, 1);
+
+    count_before = log_count;
+    void *tmp    = ucs_realloc(ptr, 0, "test");
+    EXPECT_EQ(log_count - count_before, 1);
+
+    if (tmp != NULL) {
+        ucs_free(tmp);
+    }
+}

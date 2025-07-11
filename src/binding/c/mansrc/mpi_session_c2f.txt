@@ -1,0 +1,15 @@
+/*D
+   MPI_Session_c2f - converts MPI_Session to Fortran INTEGER
+
+Synopsis:
+.vb
+MPI_Fint MPI_Session_c2f(MPI_Session session)
+.ve
+
+Input Parameters:
+. session - session (handle)
+
+.N ThreadSafe
+
+D*/
+

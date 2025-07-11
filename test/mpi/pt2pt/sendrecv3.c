@@ -22,6 +22,17 @@ int main(int argc, char *argv[])
     static int msgsizes[] = { 100, 1000, 10000, 100000, -1 };
     static int nmsgs[] = { 100, 10, 10, 4 };
     MPI_Comm comm;
+    int use_isendrecv = 0;
+
+    if (argc > 1 && strcmp(argv[1], "-isendrecv") == 0) {
+        use_isendrecv = 1;
+    }
+
+    /* skip the test if MPI_Isendrecv is not available */
+    if (use_isendrecv && !MTEST_HAVE_MIN_MPI_VERSION(4, 0)) {
+        printf("Test Skipped\n");
+        return 0;
+    }
 
     MTest_Init(&argc, &argv);
 
@@ -40,7 +51,8 @@ int main(int argc, char *argv[])
         if (rank == source || rank == dest) {
             int nmsg = nmsgs[testnum];
             int msgSize = msgsizes[testnum];
-            MPI_Request r[MAX_NMSGS];
+            MPI_Request r[MAX_NMSGS + 1];       /* last one is for MPI_Isendrecv */
+            int num_requests;
             int *buf[MAX_NMSGS];
 
             for (i = 0; i < nmsg; i++) {
@@ -53,8 +65,18 @@ int main(int argc, char *argv[])
             }
             partner = (rank + 1) % size;
 
-            MPI_Sendrecv(MPI_BOTTOM, 0, MPI_INT, partner, 10,
-                         MPI_BOTTOM, 0, MPI_INT, partner, 10, comm, MPI_STATUS_IGNORE);
+#if MTEST_HAVE_MIN_MPI_VERSION(4,0)
+            if (use_isendrecv) {
+                MPI_Isendrecv(MPI_BOTTOM, 0, MPI_INT, partner, 10,
+                              MPI_BOTTOM, 0, MPI_INT, partner, 10, comm, &r[nmsg]);
+                num_requests = nmsg + 1;
+            } else
+#endif
+            {
+                MPI_Sendrecv(MPI_BOTTOM, 0, MPI_INT, partner, 10,
+                             MPI_BOTTOM, 0, MPI_INT, partner, 10, comm, MPI_STATUS_IGNORE);
+                num_requests = nmsg;
+            }
             /* Try to fill up the outgoing message buffers */
             for (i = 0; i < nmsg; i++) {
                 MPI_Isend(buf[i], msgSize, MPI_INT, partner, testnum, comm, &r[i]);
@@ -62,11 +84,19 @@ int main(int argc, char *argv[])
             for (i = 0; i < nmsg; i++) {
                 MPI_Recv(buf[i], msgSize, MPI_INT, partner, testnum, comm, MPI_STATUS_IGNORE);
             }
-            MPI_Waitall(nmsg, r, MPI_STATUSES_IGNORE);
+            MPI_Waitall(num_requests, r, MPI_STATUSES_IGNORE);
 
             /* Repeat the test, but make one of the processes sleep */
-            MPI_Sendrecv(MPI_BOTTOM, 0, MPI_INT, partner, 10,
-                         MPI_BOTTOM, 0, MPI_INT, partner, 10, comm, MPI_STATUS_IGNORE);
+#if MTEST_HAVE_MIN_MPI_VERSION(4,0)
+            if (use_isendrecv) {
+                MPI_Isendrecv(MPI_BOTTOM, 0, MPI_INT, partner, 10,
+                              MPI_BOTTOM, 0, MPI_INT, partner, 10, comm, &r[nmsg]);
+            } else
+#endif
+            {
+                MPI_Sendrecv(MPI_BOTTOM, 0, MPI_INT, partner, 10,
+                             MPI_BOTTOM, 0, MPI_INT, partner, 10, comm, MPI_STATUS_IGNORE);
+            }
             if (rank == dest)
                 MTestSleep(1);
             /* Try to fill up the outgoing message buffers */
@@ -78,7 +108,7 @@ int main(int argc, char *argv[])
             for (i = 0; i < nmsg; i++) {
                 MPI_Recv(buf[i], msgSize, MPI_INT, partner, testnum, comm, MPI_STATUS_IGNORE);
             }
-            MPI_Waitall(nmsg, r, MPI_STATUSES_IGNORE);
+            MPI_Waitall(num_requests, r, MPI_STATUSES_IGNORE);
 
             if (tsend > 0.5) {
                 printf("Isends for %d messages of size %d took too long (%f seconds)\n", nmsg,

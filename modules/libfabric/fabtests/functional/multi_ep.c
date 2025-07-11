@@ -107,7 +107,8 @@ static int alloc_multi_ep_res()
 	}
 
 	ret = ft_reg_mr(fi, data_bufs, num_eps * 2 * opts.transfer_size,
-			ft_info_to_mr_access(fi), FT_MR_KEY + 1, &data_mr, &data_desc);
+			ft_info_to_mr_access(fi), FT_MR_KEY + 1, opts.iface,
+			opts.device, &data_mr, &data_desc);
 	if (ret) {
 		free_ep_res();
 		return ret;
@@ -211,12 +212,12 @@ static int setup_client_ep(int idx)
 		return ret;
 	}
 
-	ret = ft_alloc_ep_res(fi, &txcqs[idx], &rxcqs[idx], NULL, NULL);
+	ret = ft_alloc_ep_res(fi, &txcqs[idx], &rxcqs[idx], NULL, NULL, NULL);
 	if (ret)
 		return ret;
 
 	ret = ft_enable_ep(eps[idx], eq, av, txcqs[idx], rxcqs[idx],
-			   NULL, NULL);
+			   NULL, NULL, NULL);
 	if (ret)
 		return ret;
 
@@ -241,12 +242,12 @@ static int setup_server_ep(int idx)
 		goto failed_accept;
 	}
 
-	ret = ft_alloc_ep_res(fi, &txcqs[idx], &rxcqs[idx], NULL, NULL);
+	ret = ft_alloc_ep_res(fi, &txcqs[idx], &rxcqs[idx], NULL, NULL, NULL);
 	if (ret)
 		return ret;
 
 	ret = ft_enable_ep(eps[idx], eq, av, txcqs[idx], rxcqs[idx],
-			   NULL, NULL);
+			   NULL, NULL, NULL);
 	if (ret)
 		goto failed_accept;
 
@@ -284,7 +285,7 @@ static int setup_av_ep(int idx)
 		return ret;
 	}
 
-	ret = ft_alloc_ep_res(fi, &txcqs[idx], &rxcqs[idx], NULL, NULL);
+	ret = ft_alloc_ep_res(fi, &txcqs[idx], &rxcqs[idx], NULL, NULL, NULL);
 	if (ret)
 		return ret;
 
@@ -296,7 +297,7 @@ static int enable_ep(int idx)
 	int ret;
 
 	ret = ft_enable_ep(eps[idx], eq, av, txcqs[idx], rxcqs[idx],
-			   NULL, NULL);
+			   NULL, NULL, NULL);
 	if (ret)
 		return ret;
 
@@ -402,6 +403,7 @@ int main(int argc, char **argv)
 	hints->caps = FI_MSG;
 	hints->mode = FI_CONTEXT;
 	hints->domain_attr->mr_mode = opts.mr_mode;
+	hints->addr_format = opts.address_format;
 
 	ret = run_test();
 

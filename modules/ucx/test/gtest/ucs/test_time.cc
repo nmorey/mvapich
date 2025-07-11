@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2001-2014.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2014. ALL RIGHTS RESERVED.
 * Copyright (C) UT-Battelle, LLC. 2014. ALL RIGHTS RESERVED.
 * Copyright (C) ARM Ltd. 2016.  ALL RIGHTS RESERVED.
 * See file LICENSE for terms.
@@ -19,7 +19,7 @@ UCS_TEST_F(test_time, time_calc) {
     double value = ucs::rand() % UCS_USEC_PER_SEC;
 
     EXPECT_NEAR(value * 1000ull, ucs_time_to_msec(ucs_time_from_sec (value)), 0.000001);
-    EXPECT_NEAR(value * 1000ull, ucs_time_to_usec(ucs_time_from_msec(value)), 0.01);
+    EXPECT_NEAR(value * 1000ull, ucs_time_to_usec(ucs_time_from_msec(value)), 0.02);
     EXPECT_NEAR(value * 1000ull, ucs_time_to_nsec(ucs_time_from_usec(value)), 20.0);
 }
 

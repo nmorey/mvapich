@@ -2,63 +2,9 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- *
- */
 
 #include "mpidimpl.h"
 #include "mpidrma.h"
-#if defined(CHANNEL_MRAIL)
-#include "dreg.h"
-#endif
-
-#if defined(CHANNEL_MRAIL)
-#include "mvp_ch3_shmem.h"
-#endif
-
-#if defined(_SMP_LIMIC_)
-#include "mpiimpl.h"
-#include <limic.h>
-#endif /* _SMP_LIMIC_ */
-
-#if defined(CHANNEL_MRAIL)
-#include "rdma_impl.h"
-#undef DEBUG_PRINT
-#if defined(DEBUG)
-#define DEBUG_PRINT(args...) \
-    do {                                                              \
-        int rank;                                                     \
-        UPMI_GET_RANK(&rank);                                          \
-        fprintf(stderr, "[%d][%s:%d] ", rank, __FILE__, __LINE__);    \
-        fprintf(stderr, args);                                        \
-        fflush(stderr);                                               \
-    } while (0)
-#else /* defined(DEBUG) */
-#define DEBUG_PRINT(args...)
-#endif /* defined(DEBUG) */
-#endif /* defined(CHANNEL_MRAIL) */
-
-//#define PSM_1SC_DEBUG
-#ifdef PSM_1SC_DEBUG
-    #define PSM_PRINT(args...) \
-     do {                                                              \
-        int rank;                                                     \
-        UPMI_GET_RANK(&rank);                                          \
-        fprintf(stderr, "[%d][%s:%d] ", rank, __FILE__, __LINE__);    \
-        fprintf(stderr, args);                                        \
-        fflush(stderr);                                               \
-    } while (0)
-#else 
-#define PSM_PRINT(args...)
-#endif 
 
 /* Notes for memory barriers in RMA synchronizations
 
@@ -276,7 +222,7 @@ cvars:
       description : >-
           Specify the threshold of switching the algorithm used in
           FENCE from the basic algorithm to the scalable algorithm.
-          The value can be nagative, zero or positive.
+          The value can be negative, zero or positive.
           When the number of processes is larger than or equal to
           this value, FENCE will use a scalable algorithm which do
           not use O(P) data structure; when the number of processes
@@ -371,10 +317,6 @@ void MPIDI_CH3_RMA_Init_sync_pvars(void)
    ability to discriminate between the different types of RMA synchronization.
 */
 
-#if defined(_SMP_LIMIC_)
-extern int limic_fd;
-#endif /*_SMP_LIMIC_ */
-
 /*
  * These routines provide a default implementation of the MPI RMA operations
  * in terms of the low-level, two-sided channel operations.
@@ -388,9 +330,8 @@ static inline int flush_local_all(MPIR_Win * win_ptr)
     int local_completed = 0;
     MPIDI_RMA_Target_t *curr_target = NULL;
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_FLUSH_LOCAL_ALL);
 
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_FLUSH_LOCAL_ALL);
+    MPIR_FUNC_ENTER;
 
     /* Set sync_flag in sync struct. */
     for (i = 0; i < win_ptr->num_slots; i++) {
@@ -419,7 +360,7 @@ static inline int flush_local_all(MPIR_Win * win_ptr)
     } while (!local_completed);
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_FLUSH_LOCAL_ALL);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
     /* --BEGIN ERROR HANDLING-- */
   fn_fail:
@@ -433,9 +374,8 @@ static inline int flush_all(MPIR_Win * win_ptr)
     int remote_completed = 0;
     MPIDI_RMA_Target_t *curr_target = NULL;
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_FLUSH_ALL);
 
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_FLUSH_ALL);
+    MPIR_FUNC_ENTER;
 
     /* Set sync_flag in sync struct. */
     for (i = 0; i < win_ptr->num_slots; i++) {
@@ -454,31 +394,16 @@ static inline int flush_all(MPIR_Win * win_ptr)
     MPIR_ERR_CHECK(mpi_errno);
 
     /* Wait for remote completion. */
-#if defined (CHANNEL_MRAIL)
-    if (win_ptr->fall_back != 1){
-        do {
-            MPIDI_CH3I_RMA_ops_win_remote_completion(win_ptr, remote_completed);
-
-            if (!remote_completed || win_ptr->rma_issued != 0) {
-                mpi_errno = wait_progress_engine();
-                if (mpi_errno != MPI_SUCCESS)
-                    MPIR_ERR_POP(mpi_errno);
-            }
-        } while (!remote_completed || win_ptr->rma_issued != 0);
-    } else 
-#endif
-    {
-        do {
-            MPIDI_CH3I_RMA_ops_win_remote_completion(win_ptr, remote_completed);
-            if (!remote_completed) {
-                mpi_errno = wait_progress_engine();
-                MPIR_ERR_CHECK(mpi_errno);
-            }
-        } while (!remote_completed);
-    }
+    do {
+        MPIDI_CH3I_RMA_ops_win_remote_completion(win_ptr, remote_completed);
+        if (!remote_completed) {
+            mpi_errno = wait_progress_engine();
+            MPIR_ERR_CHECK(mpi_errno);
+        }
+    } while (!remote_completed);
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_FLUSH_ALL);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
     /* --BEGIN ERROR HANDLING-- */
   fn_fail:
@@ -492,8 +417,7 @@ static int fence_barrier_complete(MPIR_Request * sreq)
     int mpi_errno = MPI_SUCCESS;
     MPIR_Win *win_ptr = NULL;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_FENCE_BARRIER_COMPLETE);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_FENCE_BARRIER_COMPLETE);
+    MPIR_FUNC_ENTER;
 
     MPIR_Win_get_ptr(sreq->dev.source_win_handle, win_ptr);
     MPIR_Assert(win_ptr != NULL);
@@ -514,7 +438,7 @@ static int fence_barrier_complete(MPIR_Request * sreq)
     }
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_FENCE_BARRIER_COMPLETE);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 
   fn_fail:
@@ -531,15 +455,13 @@ int MPID_Win_fence(int assert, MPIR_Win * win_ptr)
 {
     int i;
     MPIDI_RMA_Target_t *curr_target = NULL;
-    MPIR_Errflag_t errflag = MPIR_ERR_NONE;
     int comm_size = win_ptr->comm_ptr->local_size;
     int scalable_fence_enabled = 0;
     int *rma_target_marks = NULL;
     int mpi_errno = MPI_SUCCESS;
     MPIR_CHKLMEM_DECL(1);
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_WIN_FENCE);
 
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPID_WIN_FENCE);
+    MPIR_FUNC_ENTER;
 
     MPIR_ERR_CHKANDJUMP((win_ptr->states.access_state != MPIDI_RMA_NONE &&
                          win_ptr->states.access_state != MPIDI_RMA_FENCE_ISSUED &&
@@ -565,63 +487,39 @@ int MPID_Win_fence(int assert, MPIR_Win * win_ptr)
             MPIR_Request* fence_sync_req_ptr;
 
             if (win_ptr->shm_allocated == TRUE) {
-#if defined(CHANNEL_MRAIL)
-                mpi_errno = MPIDI_CH3I_barrier_in_rma(&win_ptr, win_ptr->comm_ptr->rank,
-                        win_ptr->node_comm_size,
-                        win_ptr->comm_ptr->local_size);
-#else
-                MPIR_Comm *node_comm_ptr = NULL;
-                node_comm_ptr = win_ptr->comm_ptr->node_comm;
-                mpi_errno = MPIR_Barrier_impl(node_comm_ptr, &errflag);
-#endif /* CHANNEL_MRAIL */
+                MPIR_Comm *node_comm_ptr = win_ptr->comm_ptr->node_comm;
+
+                mpi_errno = MPIR_Barrier(node_comm_ptr, MPIR_ERR_NONE);
                 MPIR_ERR_CHECK(mpi_errno);
-                MPIR_ERR_CHKANDJUMP(errflag, mpi_errno, MPI_ERR_OTHER, "**coll_fail");
             }
 
-#if defined(CHANNEL_MRAIL)
-            if (win_ptr->fall_back != 1) {
-                MPIR_Barrier_impl(win_ptr->comm_ptr, &errflag);
-                win_ptr->states.access_state = MPIDI_RMA_FENCE_GRANTED;
-            } else 
-#endif /* defined(CHANNEL_MRAIL) */
-            {
-                mpi_errno = MPIR_Ibarrier(win_ptr->comm_ptr, &fence_sync_req_ptr);
-                MPIR_ERR_CHECK(mpi_errno);
+            mpi_errno = MPIR_Ibarrier(win_ptr->comm_ptr, &fence_sync_req_ptr);
+            MPIR_ERR_CHECK(mpi_errno);
 
-                if (fence_sync_req_ptr == NULL) {
+            if (fence_sync_req_ptr == NULL) {
+                /* ibarrier completed immediately. */
+                win_ptr->states.access_state = MPIDI_RMA_FENCE_GRANTED;
+            }
+            else {
+                /* Set window access state properly. */
+                win_ptr->states.access_state = MPIDI_RMA_FENCE_ISSUED;
+
+                if (!MPIR_Request_is_complete(fence_sync_req_ptr)) {
+                    fence_sync_req_ptr->dev.source_win_handle = win_ptr->handle;
+                    fence_sync_req_ptr->dev.request_completed_cb = fence_barrier_complete;
+                    win_ptr->sync_request_cnt++;
+                }
+                else {
                     /* ibarrier completed immediately. */
                     win_ptr->states.access_state = MPIDI_RMA_FENCE_GRANTED;
-                } 
-                else {
-                    /* Set window access state properly. */
-                    win_ptr->states.access_state = MPIDI_RMA_FENCE_ISSUED;
-                    if (!MPIR_Request_is_complete(fence_sync_req_ptr)) {
-                        fence_sync_req_ptr->dev.source_win_handle = win_ptr->handle;
-                        fence_sync_req_ptr->dev.request_completed_cb = fence_barrier_complete;
-                        win_ptr->sync_request_cnt++;
-                    }
-                    else {
-                        /* ibarrier completed immediately. */
-                        win_ptr->states.access_state = MPIDI_RMA_FENCE_GRANTED;
-                    }
-
-                    MPIR_Request_free(fence_sync_req_ptr);
                 }
+
+                MPIR_Request_free(fence_sync_req_ptr);
             }
 
             goto finish_fence;
         }
     }
-
-#if defined(CHANNEL_MRAIL)
-    if (win_ptr->fall_back != 1) {
-        win_ptr->use_rdma_path = 1; 
-        win_ptr->is_active = 1;
-        for (i = 0; i < comm_size; i++) {
-            win_ptr->post_flag[i] = 1;
-        }
-    }
-#endif
 
     /* Perform basic algorithm by calling reduce-scatter */
     if (!scalable_fence_enabled) {
@@ -641,10 +539,8 @@ int MPID_Win_fence(int assert, MPIR_Win * win_ptr)
         win_ptr->at_completion_counter += comm_size;
 
         mpi_errno = MPIR_Reduce_scatter_block(MPI_IN_PLACE, rma_target_marks, 1,
-                                              MPI_INT, MPI_SUM, win_ptr->comm_ptr, &errflag);
+                                              MPI_INT, MPI_SUM, win_ptr->comm_ptr, MPIR_ERR_NONE);
         MPIR_ERR_CHECK(mpi_errno);
-
-        MPIR_ERR_CHKANDJUMP(errflag, mpi_errno, MPI_ERR_OTHER, "**coll_fail");
 
         win_ptr->at_completion_counter -= comm_size;
         win_ptr->at_completion_counter += rma_target_marks[0];
@@ -673,20 +569,9 @@ int MPID_Win_fence(int assert, MPIR_Win * win_ptr)
     }
 
     /* waiting for all outstanding ACKs */
-#if defined (CHANNEL_MRAIL)
-    if (win_ptr->fall_back != 1 && win_ptr->rma_issued != 0){
-        win_ptr->poll_flag = 1;
-        while(win_ptr->poll_flag == 1 || win_ptr->outstanding_acks > 0){
-            mpi_errno = wait_progress_engine();
-            MPIR_ERR_CHECK(mpi_errno);
-        }   
-    } else 
-#endif
-    {
-        while (win_ptr->outstanding_acks > 0) {
-            mpi_errno = wait_progress_engine();
-            MPIR_ERR_CHECK(mpi_errno);
-        }
+    while (win_ptr->outstanding_acks > 0) {
+        mpi_errno = wait_progress_engine();
+        MPIR_ERR_CHECK(mpi_errno);
     }
 
     /* Cleanup all targets on window. */
@@ -694,9 +579,8 @@ int MPID_Win_fence(int assert, MPIR_Win * win_ptr)
     MPIR_ERR_CHECK(mpi_errno);
 
     if (scalable_fence_enabled) {
-        mpi_errno = MPIR_Barrier(win_ptr->comm_ptr, &errflag);
+        mpi_errno = MPIR_Barrier(win_ptr->comm_ptr, MPIR_ERR_NONE);
         MPIR_ERR_CHECK(mpi_errno);
-        MPIR_ERR_CHKANDJUMP(errflag, mpi_errno, MPI_ERR_OTHER, "**coll_fail");
 
         /* Set window access state properly. */
         if (assert & MPI_MODE_NOSUCCEED) {
@@ -708,37 +592,9 @@ int MPID_Win_fence(int assert, MPIR_Win * win_ptr)
     }
     else {
         /* Waiting for all operations targeting at me to be finished. */
-#if defined(CHANNEL_MRAIL) 
-        if (win_ptr->fall_back != 1) {
-            int num_wait_completions = 0, j;
-            while (win_ptr->at_completion_counter || win_ptr->outstanding_rma != 0) {
-                int newly_finished = 0; 
-                for (i = 0; i < comm_size; ++i) {
-                    for (j = 0; j < rdma_num_rails; ++j) {
-                        int index = i*rdma_num_rails+j;
-                        if (win_ptr->completion_counter[index] == 1) {
-                            win_ptr->completion_counter[index] = 0;
-                            ++num_wait_completions;
-                            if (num_wait_completions == rdma_num_rails) {
-                                ++newly_finished;
-                                num_wait_completions = 0;
-                            }
-                        }       
-                    }
-                }
-                win_ptr->at_completion_counter -= newly_finished;
-                if (win_ptr->at_completion_counter == 0)
-                    break;
-                mpi_errno = MPID_Progress_test(NULL);
-                MPIR_ERR_CHECK(mpi_errno);
-            }
-        } else 
-#endif /* defined(CHANNEL_MRAIL) */
-        {
-            while (win_ptr->at_completion_counter) {
-                mpi_errno = wait_progress_engine();
-                MPIR_ERR_CHECK(mpi_errno);
-            }
+        while (win_ptr->at_completion_counter) {
+            mpi_errno = wait_progress_engine();
+            MPIR_ERR_CHECK(mpi_errno);
         }
 
         if (assert & MPI_MODE_NOSUCCEED) {
@@ -772,17 +628,9 @@ int MPID_Win_fence(int assert, MPIR_Win * win_ptr)
             }
 
             if (win_ptr->shm_allocated == TRUE) {
-#if defined(CHANNEL_MRAIL) 
-                mpi_errno = MPIDI_CH3I_barrier_in_rma(&win_ptr, win_ptr->comm_ptr->rank,
-                        win_ptr->node_comm_size,
-                        win_ptr->comm_ptr->local_size);
-#else
-                MPIR_Comm *node_comm_ptr = NULL;
-                node_comm_ptr = win_ptr->comm_ptr->node_comm;
-                mpi_errno = MPIR_Barrier_impl(node_comm_ptr, &errflag);
-#endif
+                MPIR_Comm *node_comm_ptr = win_ptr->comm_ptr->node_comm;
+                mpi_errno = MPIR_Barrier(node_comm_ptr, MPIR_ERR_NONE);
                 MPIR_ERR_CHECK(mpi_errno);
-                MPIR_ERR_CHKANDJUMP(errflag, mpi_errno, MPI_ERR_OTHER, "**coll_fail");
             }
         }
     }
@@ -795,7 +643,7 @@ int MPID_Win_fence(int assert, MPIR_Win * win_ptr)
 
   fn_exit:
     MPIR_CHKLMEM_FREEALL();
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPID_WIN_FENCE);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
     /* --BEGIN ERROR HANDLING-- */
   fn_fail:
@@ -809,9 +657,8 @@ int MPID_Win_post(MPIR_Group * post_grp_ptr, int assert, MPIR_Win * win_ptr)
     int *post_ranks_in_win_grp;
     int mpi_errno = MPI_SUCCESS;
     MPIR_CHKLMEM_DECL(3);
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_WIN_POST);
 
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPID_WIN_POST);
+    MPIR_FUNC_ENTER;
 
     /* Note that here we cannot distinguish if this exposure epoch is overlapped
      * with an exposure epoch of FENCE (which is not allowed), since FENCE may be
@@ -830,15 +677,8 @@ int MPID_Win_post(MPIR_Group * post_grp_ptr, int assert, MPIR_Win * win_ptr)
 
     win_ptr->at_completion_counter += post_grp_ptr->size;
 
-#if defined(CHANNEL_MRAIL)
-    if (win_ptr->fall_back != 1) {
-        MPIR_Memset((void *) win_ptr->completion_counter, 0,
-                sizeof(long long) * win_ptr->comm_ptr->local_size * rdma_num_rails);
-    }
-#endif
-
     if ((assert & MPI_MODE_NOCHECK) == 0) {
-        MPI_Request *req;
+        MPIR_Request ** req;
         MPI_Status *status;
         int i, post_grp_size, dst, rank;
         MPIR_Comm *win_comm_ptr;
@@ -855,45 +695,23 @@ int MPID_Win_post(MPIR_Group * post_grp_ptr, int assert, MPIR_Win * win_ptr)
         mpi_errno = fill_ranks_in_win_grp(win_ptr, post_grp_ptr, post_ranks_in_win_grp);
         MPIR_ERR_CHECK(mpi_errno);
 
-        MPIR_CHKLMEM_MALLOC(req, MPI_Request *, post_grp_size * sizeof(MPI_Request),
+        MPIR_CHKLMEM_MALLOC(req, MPIR_Request **, post_grp_size * sizeof(MPIR_Request *),
                             mpi_errno, "req", MPL_MEM_RMA);
         MPIR_CHKLMEM_MALLOC(status, MPI_Status *, post_grp_size * sizeof(MPI_Status),
                             mpi_errno, "status", MPL_MEM_RMA);
-
-#if defined(CHANNEL_MRAIL)
-        MPIDI_VC_t* vc = NULL;
-#endif 
 
         /* Send a 0-byte message to the source processes */
         for (i = 0; i < post_grp_size; i++) {
             dst = post_ranks_in_win_grp[i];
 
-#if defined(CHANNEL_MRAIL)
-            if (SMP_INIT) {
-                MPIDI_Comm_get_vc(win_ptr->comm_ptr, dst, &vc);
-            }
-#endif /* defined(CHANNEL_MRAIL) */
-
             if (dst != rank) {
-#if defined(CHANNEL_MRAIL)
-                req[i] = MPI_REQUEST_NULL;
-                if (win_ptr->fall_back != 1
-                    && (!SMP_INIT || vc->smp.local_nodes == -1))
-                {
-                    MPIDI_CH3I_RDMA_post(win_ptr, dst);
-                } 
-                else
-#endif
-                {
-                    MPIR_Request *req_ptr;
-                    mpi_errno = MPID_Isend(&i, 0, MPI_INT, dst, SYNC_POST_TAG, win_comm_ptr,
-                                       MPIR_CONTEXT_INTRA_PT2PT, &req_ptr);
-                    MPIR_ERR_CHECK(mpi_errno);
-                    req[i] = req_ptr->handle;
-                }
+                MPIR_Request *req_ptr;
+                mpi_errno = MPID_Isend(&i, 0, MPI_INT, dst, SYNC_POST_TAG, win_comm_ptr, 0, &req_ptr);
+                MPIR_ERR_CHECK(mpi_errno);
+                req[i] = req_ptr;
             }
             else {
-                req[i] = MPI_REQUEST_NULL;
+                req[i] = NULL;
             }
         }
 
@@ -911,11 +729,17 @@ int MPID_Win_post(MPIR_Group * post_grp_ptr, int assert, MPIR_Win * win_ptr)
             }
         }
         /* --END ERROR HANDLING-- */
+
+        for (i = 0; i < post_grp_size; i++) {
+            if (req[i]) {
+                MPIR_Request_free(req[i]);
+            }
+        }
     }
 
   fn_exit:
     MPIR_CHKLMEM_FREEALL();
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPID_WIN_POST);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
     /* --BEGIN ERROR HANDLING-- */
   fn_fail:
@@ -928,8 +752,7 @@ static int start_req_complete(MPIR_Request * req)
     int mpi_errno = MPI_SUCCESS;
     MPIR_Win *win_ptr = NULL;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_START_REQ_COMPLETE);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_START_REQ_COMPLETE);
+    MPIR_FUNC_ENTER;
 
     MPIR_Win_get_ptr(req->dev.source_win_handle, win_ptr);
     MPIR_Assert(win_ptr != NULL);
@@ -944,10 +767,8 @@ static int start_req_complete(MPIR_Request * req)
             MPIDI_CH3I_Win_set_active(win_ptr);
     }
 
-  fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_START_REQ_COMPLETE);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
-
 }
 
 int MPID_Win_start(MPIR_Group * group_ptr, int assert, MPIR_Win * win_ptr)
@@ -955,9 +776,8 @@ int MPID_Win_start(MPIR_Group * group_ptr, int assert, MPIR_Win * win_ptr)
     int mpi_errno = MPI_SUCCESS;
     MPIR_CHKLMEM_DECL(2);
     MPIR_CHKPMEM_DECL(1);
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_WIN_START);
 
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPID_WIN_START);
+    MPIR_FUNC_ENTER;
 
     /* Note that here we cannot distinguish if this access epoch is overlapped
      * with an access epoch of FENCE (which is not allowed), since FENCE may be
@@ -981,7 +801,7 @@ int MPID_Win_start(MPIR_Group * group_ptr, int assert, MPIR_Win * win_ptr)
 
     if ((assert & MPI_MODE_NOCHECK) == 0) {
         int i, intra_cnt;
-        MPI_Request *intra_start_req = NULL;
+        MPIR_Request ** intra_start_req = NULL;
         MPI_Status *intra_start_status = NULL;
         MPIR_Comm *comm_ptr = win_ptr->comm_ptr;
         int rank = comm_ptr->rank;
@@ -990,13 +810,9 @@ int MPID_Win_start(MPIR_Group * group_ptr, int assert, MPIR_Win * win_ptr)
 
         /* post IRECVs */
         if (win_ptr->shm_allocated == TRUE) {
-#if defined(CHANNEL_MRAIL)
-            int node_comm_size = win_ptr->node_comm_size; 
-#else 
             int node_comm_size = comm_ptr->node_comm->local_size;
-#endif
-            MPIR_CHKLMEM_MALLOC(intra_start_req, MPI_Request *,
-                                node_comm_size * sizeof(MPI_Request), mpi_errno, "intra_start_req", MPL_MEM_RMA);
+            MPIR_CHKLMEM_MALLOC(intra_start_req, MPIR_Request **,
+                                node_comm_size * sizeof(MPIR_Request *), mpi_errno, "intra_start_req", MPL_MEM_RMA);
             MPIR_CHKLMEM_MALLOC(intra_start_status, MPI_Status *,
                                 node_comm_size * sizeof(MPI_Status),
                                 mpi_errno, "intra_start_status", MPL_MEM_RMA);
@@ -1005,60 +821,19 @@ int MPID_Win_start(MPIR_Group * group_ptr, int assert, MPIR_Win * win_ptr)
         intra_cnt = 0;
         for (i = 0; i < win_ptr->start_grp_size; i++) {
             MPIR_Request *req_ptr;
-#if !defined (CHANNEL_MRAIL)
             MPIDI_VC_t *orig_vc = NULL, *target_vc = NULL;
-#endif
             int src = win_ptr->start_ranks_in_win_grp[i];
 
             if (src != rank) {
-#if defined (CHANNEL_MRAIL)
-                MPIDI_VC_t* vc = NULL;
-                MPIDI_Comm_get_vc(comm_ptr, src, &vc);
-
-                if (SMP_INIT && vc->smp.local_nodes != -1) {
-                    mpi_errno = MPID_Irecv(NULL, 0, MPI_INT, src, SYNC_POST_TAG,
-                            comm_ptr, MPIR_CONTEXT_INTRA_PT2PT, &req_ptr);
-                    if (mpi_errno != MPI_SUCCESS)
-                        MPIR_ERR_POP(mpi_errno);
-
-                    if (win_ptr->shm_allocated == TRUE) {
-                        intra_start_req[intra_cnt++] = req_ptr->handle;
-                    }
-                    else {
-                        if (!MPIR_Request_is_complete(req_ptr)) {
-                            req_ptr->dev.source_win_handle = win_ptr->handle;
-                            req_ptr->dev.request_completed_cb = start_req_complete;
-                            win_ptr->sync_request_cnt++;
-                        }
-
-                        MPIR_Request_free(req_ptr);
-                    }
-         
-                } 
-                else if (win_ptr->fall_back == 1 && vc->smp.local_nodes == -1) {
-                    mpi_errno = MPID_Irecv(NULL, 0, MPI_INT, src, SYNC_POST_TAG,
-                            comm_ptr, MPIR_CONTEXT_INTRA_PT2PT, &req_ptr);
-                    if (mpi_errno != MPI_SUCCESS)
-                        MPIR_ERR_POP(mpi_errno);
-
-                    if (!MPIR_Request_is_complete(req_ptr)) {
-                        req_ptr->dev.source_win_handle = win_ptr->handle;
-                        req_ptr->dev.request_completed_cb = start_req_complete;
-                        win_ptr->sync_request_cnt++;
-                    }
-
-                    MPIR_Request_free(req_ptr);
-                } 
-#else 
                 MPIDI_Comm_get_vc(comm_ptr, rank, &orig_vc);
                 MPIDI_Comm_get_vc(comm_ptr, src, &target_vc);
 
                 mpi_errno = MPID_Irecv(NULL, 0, MPI_INT, src, SYNC_POST_TAG,
-                                       comm_ptr, MPIR_CONTEXT_INTRA_PT2PT, &req_ptr);
+                                       comm_ptr, 0, &req_ptr);
                 MPIR_ERR_CHECK(mpi_errno);
 
                 if (win_ptr->shm_allocated == TRUE && orig_vc->node_id == target_vc->node_id) {
-                    intra_start_req[intra_cnt++] = req_ptr->handle;
+                    intra_start_req[intra_cnt++] = req_ptr;
                 }
                 else {
                     if (!MPIR_Request_is_complete(req_ptr)) {
@@ -1069,7 +844,6 @@ int MPID_Win_start(MPIR_Group * group_ptr, int assert, MPIR_Win * win_ptr)
 
                     MPIR_Request_free(req_ptr);
                 }
-#endif
             }
         }
 
@@ -1088,28 +862,18 @@ int MPID_Win_start(MPIR_Group * group_ptr, int assert, MPIR_Win * win_ptr)
                 }
             }
             /* --END ERROR HANDLING-- */
+
+            for (i = 0; i < intra_cnt; i++) {
+                MPIR_Request_free(intra_start_req[i]);
+            }
         }
     }
 
     /* Set window access state properly. */
     win_ptr->states.access_state = MPIDI_RMA_PSCW_ISSUED;
 
-
-#if defined(CHANNEL_MRAIL)
-    if (win_ptr->fall_back != 1) {
-        MPIDI_CH3I_RDMA_start(win_ptr, win_ptr->start_grp_size, 
-                win_ptr->start_ranks_in_win_grp);
-        if (win_ptr->sync_request_cnt == 0) {
-            win_ptr->states.access_state = MPIDI_RMA_PSCW_GRANTED;
-            win_ptr->is_active = 1;
-            win_ptr->use_rdma_path = 1;
-        }
-    } else 
-#endif
-    {
-        if (win_ptr->sync_request_cnt == 0) {
-            win_ptr->states.access_state = MPIDI_RMA_PSCW_GRANTED;
-        }
+    if (win_ptr->sync_request_cnt == 0) {
+        win_ptr->states.access_state = MPIDI_RMA_PSCW_GRANTED;
     }
 
     /* Ensure ordering of load/store operations. */
@@ -1119,7 +883,7 @@ int MPID_Win_start(MPIR_Group * group_ptr, int assert, MPIR_Win * win_ptr)
 
   fn_exit:
     MPIR_CHKLMEM_FREEALL();
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPID_WIN_START);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
   fn_fail:
     MPIR_CHKPMEM_REAP();
@@ -1133,9 +897,8 @@ int MPID_Win_complete(MPIR_Win * win_ptr)
     int mpi_errno = MPI_SUCCESS;
     int i, dst, rank = win_ptr->comm_ptr->rank;
     MPIDI_RMA_Target_t *curr_target;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_WIN_COMPLETE);
 
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPID_WIN_COMPLETE);
+    MPIR_FUNC_ENTER;
 
     /* Access epochs on the same window must be disjoint. */
     MPIR_ERR_CHKANDJUMP(win_ptr->states.access_state != MPIDI_RMA_PSCW_ISSUED &&
@@ -1154,16 +917,6 @@ int MPID_Win_complete(MPIR_Win * win_ptr)
         }
     }
 
-#if defined (CHANNEL_MRAIL)
-    if (win_ptr->fall_back != 1){
-        int dest;
-        for (i = 0; i < win_ptr->start_grp_size; ++i) {
-            dest = win_ptr->start_ranks_in_win_grp[i];
-            win_ptr->post_flag[dest] = 0;
-        }
-    } 
-#endif
-
     for (i = 0; i < win_ptr->start_grp_size; i++) {
         dst = win_ptr->start_ranks_in_win_grp[i];
         if (dst == rank) {
@@ -1180,16 +933,9 @@ int MPID_Win_complete(MPIR_Win * win_ptr)
             curr_target->win_complete_flag = 1;
         }
         else {
-#if defined(CHANNEL_MRAIL)
-            if (win_ptr->fall_back != 1) {
-                MPIDI_CH3I_RDMA_set_CC(win_ptr, dst);
-            } else 
-#endif
-            {
-                /* FIXME: do we need to wait for remote completion? */
-                mpi_errno = send_decr_at_cnt_msg(dst, win_ptr, MPIDI_CH3_PKT_FLAG_NONE);
-                MPIR_ERR_CHECK(mpi_errno);
-            }
+            /* FIXME: do we need to wait for remote completion? */
+            mpi_errno = send_decr_at_cnt_msg(dst, win_ptr, MPIDI_CH3_PKT_FLAG_NONE);
+            MPIR_ERR_CHECK(mpi_errno);
         }
     }
 
@@ -1197,26 +943,10 @@ int MPID_Win_complete(MPIR_Win * win_ptr)
     MPIR_ERR_CHECK(mpi_errno);
 
     /* waiting for all outstanding ACKs */
-#if defined (CHANNEL_MRAIL)
-    if (win_ptr->fall_back != 1 && win_ptr->rma_issued != 0){
-            win_ptr->poll_flag = 1;
-            while(win_ptr->poll_flag == 1 || win_ptr->outstanding_acks > 0){
-                mpi_errno = MPIDI_CH3I_Progress_test();
-                if (mpi_errno != MPI_SUCCESS)
-                    MPIR_ERR_POP(mpi_errno);
-            }   
-    } else 
-#endif
-    {
-        while (win_ptr->outstanding_acks > 0) {
-            mpi_errno = wait_progress_engine();
-            MPIR_ERR_CHECK(mpi_errno);
-        }
+    while (win_ptr->outstanding_acks > 0) {
+        mpi_errno = wait_progress_engine();
+        MPIR_ERR_CHECK(mpi_errno);
     }
-
-#if defined (CHANNEL_MRAIL)
-    win_ptr->use_rdma_path = 0;
-#endif
 
     /* Cleanup all targets on this window. */
     mpi_errno = MPIDI_CH3I_RMA_Cleanup_targets_win(win_ptr);
@@ -1230,7 +960,7 @@ int MPID_Win_complete(MPIR_Win * win_ptr)
     win_ptr->start_ranks_in_win_grp = NULL;
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPID_WIN_COMPLETE);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
     /* --BEGIN ERROR HANDLING-- */
   fn_fail:
@@ -1243,58 +973,17 @@ int MPID_Win_complete(MPIR_Win * win_ptr)
 int MPID_Win_wait(MPIR_Win * win_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
-#if defined(CHANNEL_MRAIL)
-    int i, j, newly_finished, num_wait_completions, index;
-#endif /* defined(CHANNEL_MRAIL) */
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_WIN_WAIT);
-
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPID_WIN_WAIT);
+    MPIR_FUNC_ENTER;
 
     MPIR_ERR_CHKANDJUMP(win_ptr->states.exposure_state != MPIDI_RMA_PSCW_EXPO,
                         mpi_errno, MPI_ERR_RMA_SYNC, "**rmasync");
 
     /* wait for all operations from other processes to finish */
-#if defined(CHANNEL_MRAIL)
-    while (win_ptr->outstanding_rma != 0) { 
-        mpi_errno = MPID_Progress_test(NULL);
-        if (mpi_errno != MPI_SUCCESS) {
-            MPIR_ERR_POP(mpi_errno);
-        }
-    }
-
-    num_wait_completions = 0;
-    while (win_ptr->at_completion_counter) {
-        newly_finished = 0; 
-        if (win_ptr->fall_back != 1) {
-            for (i = 0; i < win_ptr->comm_ptr->local_size; ++i) {
-                for (j = 0; j < rdma_num_rails; ++j) {
-                    index = i*rdma_num_rails+j;
-                    if (win_ptr->completion_counter[index] == 1){
-                        win_ptr->completion_counter[index] = 0;
-                        ++num_wait_completions;
-                        if (num_wait_completions == rdma_num_rails) {
-                            ++newly_finished;
-                            num_wait_completions = 0;
-                        }
-                    }
-                }
-            }
-        }
-        win_ptr->at_completion_counter -= newly_finished;
-        if (win_ptr->at_completion_counter == 0)
-            break;
-        mpi_errno = MPID_Progress_test(NULL);
-        if (mpi_errno != MPI_SUCCESS) {
-            MPIR_ERR_POP(mpi_errno);
-        }
-    }
-#else /* CHANNEL_MRAIL */
     while (win_ptr->at_completion_counter) {
         mpi_errno = wait_progress_engine();
         MPIR_ERR_CHECK(mpi_errno);
     }
-#endif /* defined(CHANNEL_MRAIL) */
 
     /* Set window exposure state properly. */
     win_ptr->states.exposure_state = MPIDI_RMA_NONE;
@@ -1305,7 +994,7 @@ int MPID_Win_wait(MPIR_Win * win_ptr)
     }
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPID_WIN_WAIT);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
     /* --BEGIN ERROR HANDLING-- */
   fn_fail:
@@ -1317,36 +1006,14 @@ int MPID_Win_wait(MPIR_Win * win_ptr)
 int MPID_Win_test(MPIR_Win * win_ptr, int *flag)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_WIN_TEST);
 
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPID_WIN_TEST);
+    MPIR_FUNC_ENTER;
 
     MPIR_ERR_CHKANDJUMP(win_ptr->states.exposure_state != MPIDI_RMA_PSCW_EXPO,
                         mpi_errno, MPI_ERR_RMA_SYNC, "**rmasync");
 
     mpi_errno = MPID_Progress_test(NULL);
     MPIR_ERR_CHECK(mpi_errno);
-
-#if defined(CHANNEL_MRAIL)
-    int i, j, newly_finished, index;
-    newly_finished = 0; 
-    if (win_ptr->fall_back != 1) {
-        for (i = 0; i < win_ptr->comm_ptr->local_size; ++i) {
-            for (j = 0; j < rdma_num_rails; ++j) {
-                index = i*rdma_num_rails+j;
-                if (win_ptr->completion_counter[index] == 1){
-                    win_ptr->completion_counter[index] = 0;
-                    win_ptr->num_wait_completions++;
-                    if (win_ptr->num_wait_completions == rdma_num_rails) {
-                        ++newly_finished;
-                        win_ptr->num_wait_completions = 0;
-                    }
-                }
-            }
-        }
-        win_ptr->at_completion_counter -= newly_finished;
-    }
-#endif /* defined(CHANNEL_MRAIL) */
 
     *flag = (win_ptr->at_completion_counter) ? 0 : 1;
     if (*flag) {
@@ -1360,7 +1027,7 @@ int MPID_Win_test(MPIR_Win * win_ptr, int *flag)
     }
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPID_WIN_TEST);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
     /* --BEGIN ERROR HANDLING-- */
   fn_fail:
@@ -1383,9 +1050,8 @@ int MPID_Win_lock(int lock_type, int dest, int assert, MPIR_Win * win_ptr)
     MPIDI_RMA_Target_t *target = NULL;
     MPIDI_VC_t *orig_vc = NULL, *target_vc = NULL;
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_WIN_LOCK);
 
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPID_WIN_LOCK);
+    MPIR_FUNC_ENTER;
 
     /* Note that here we cannot distinguish if this access epoch is overlapped
      * with an access epoch of FENCE (which is not allowed), since FENCE may be
@@ -1409,6 +1075,7 @@ int MPID_Win_lock(int lock_type, int dest, int assert, MPIR_Win * win_ptr)
     MPIR_ERR_CHKANDJUMP(target != NULL, mpi_errno, MPI_ERR_RMA_SYNC, "**rmasync");
 
     /* Error handling is finished. */
+
     if (win_ptr->lock_epoch_count == 0) {
         /* Set window access state properly. */
         win_ptr->states.access_state = MPIDI_RMA_PER_TARGET;
@@ -1455,19 +1122,13 @@ int MPID_Win_lock(int lock_type, int dest, int assert, MPIR_Win * win_ptr)
         }
     }
 
-  finish_lock:
     /* Ensure ordering of load/store operations. */
     if (win_ptr->shm_allocated == TRUE) {
         MPL_atomic_read_write_barrier();
     }
 
-#if defined(CHANNEL_MRAIL)
-    win_ptr->using_lock = 1;
-    win_ptr->is_active = 0;
-#endif
-
   fn_exit:
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPID_WIN_LOCK);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
     /* --BEGIN ERROR HANDLING-- */
   fn_fail:
@@ -1482,9 +1143,8 @@ int MPID_Win_unlock(int dest, MPIR_Win * win_ptr)
     MPIDI_RMA_Target_t *target = NULL;
     enum MPIDI_RMA_sync_types sync_flag;
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_WIN_UNLOCK);
 
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPID_WIN_UNLOCK);
+    MPIR_FUNC_ENTER;
 
     MPIR_ERR_CHKANDJUMP(win_ptr->states.access_state != MPIDI_RMA_PER_TARGET,
                         mpi_errno, MPI_ERR_RMA_SYNC, "**rmasync");
@@ -1517,30 +1177,15 @@ int MPID_Win_unlock(int dest, MPIR_Win * win_ptr)
     MPIR_ERR_CHECK(mpi_errno);
 
     /* Wait for remote completion. */
-#if defined (CHANNEL_MRAIL)
-    if (win_ptr->fall_back != 1){
-        do {
-            MPIDI_CH3I_RMA_ops_completion(win_ptr, target, local_completed, remote_completed);
+    do {
+        MPIDI_CH3I_RMA_ops_completion(win_ptr, target, local_completed, remote_completed);
 
-            if (!remote_completed || win_ptr->put_get_list_size_per_process[dest] != 0) {
-                mpi_errno = wait_progress_engine();
-                MPIR_ERR_CHECK(mpi_errno);
-            }
-        } while (!remote_completed || win_ptr->put_get_list_size_per_process[dest] != 0);
-    } else 
-#endif
-    {
-        do {
-            MPIDI_CH3I_RMA_ops_completion(win_ptr, target, local_completed, remote_completed);
+        if (!remote_completed) {
+            mpi_errno = wait_progress_engine();
+            MPIR_ERR_CHECK(mpi_errno);
+        }
+    } while (!remote_completed);
 
-            if (!remote_completed) {
-                mpi_errno = wait_progress_engine();
-                MPIR_ERR_CHECK(mpi_errno);
-            }
-        } while (!remote_completed);
-    }
-
-  finish_unlock:
     if (win_ptr->comm_ptr->rank == dest) {
         /* In some cases (e.g. target is myself),
          * this function call does not go through the progress engine.
@@ -1565,12 +1210,8 @@ int MPID_Win_unlock(int dest, MPIR_Win * win_ptr)
         MPIR_ERR_CHECK(mpi_errno);
     }
 
-#if defined (CHANNEL_MRAIL)
-    win_ptr->use_rdma_path = 0;
-#endif
-
   fn_exit:
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPID_WIN_UNLOCK);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
     /* --BEGIN ERROR HANDLING-- */
   fn_fail:
@@ -1586,9 +1227,8 @@ int MPID_Win_flush(int dest, MPIR_Win * win_ptr)
     int rank = win_ptr->comm_ptr->rank;
     MPIDI_RMA_Target_t *target = NULL;
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_WIN_FLUSH);
 
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPID_WIN_FLUSH);
+    MPIR_FUNC_ENTER;
 
     MPIR_ERR_CHKANDJUMP(win_ptr->states.access_state != MPIDI_RMA_PER_TARGET &&
                         win_ptr->states.access_state != MPIDI_RMA_LOCK_ALL_CALLED &&
@@ -1627,30 +1267,14 @@ int MPID_Win_flush(int dest, MPIR_Win * win_ptr)
     MPIR_ERR_CHECK(mpi_errno);
 
     /* Wait for remote completion. */
-#if defined (CHANNEL_MRAIL)
-    if (win_ptr->fall_back != 1){
-        win_ptr->use_rdma_path = 1;
-        win_ptr->using_lock = 0;
-        do {
-            MPIDI_CH3I_RMA_ops_completion(win_ptr, target, local_completed, remote_completed);
+    do {
+        MPIDI_CH3I_RMA_ops_completion(win_ptr, target, local_completed, remote_completed);
 
-            if (!remote_completed || win_ptr->put_get_list_size_per_process[dest] != 0) {
-                mpi_errno = wait_progress_engine();
-                MPIR_ERR_CHECK(mpi_errno);
-            }
-        } while (!remote_completed || win_ptr->put_get_list_size_per_process[dest] != 0);
-    } else 
-#endif
-    {
-        do {
-            MPIDI_CH3I_RMA_ops_completion(win_ptr, target, local_completed, remote_completed);
-
-            if (!remote_completed) {
-                mpi_errno = wait_progress_engine();
-                MPIR_ERR_CHECK(mpi_errno);
-            }
-        } while (!remote_completed);
-    }
+        if (!remote_completed) {
+            mpi_errno = wait_progress_engine();
+            MPIR_ERR_CHECK(mpi_errno);
+        }
+    } while (!remote_completed);
 
   finish_flush:
     if (win_ptr->comm_ptr->rank == dest) {
@@ -1666,7 +1290,7 @@ int MPID_Win_flush(int dest, MPIR_Win * win_ptr)
     }
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPID_WIN_FLUSH);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
     /* --BEGIN ERROR HANDLING-- */
   fn_fail:
@@ -1682,9 +1306,8 @@ int MPID_Win_flush_local(int dest, MPIR_Win * win_ptr)
     int rank = win_ptr->comm_ptr->rank;
     MPIDI_RMA_Target_t *target = NULL;
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_WIN_FLUSH_LOCAL);
 
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPID_WIN_FLUSH_LOCAL);
+    MPIR_FUNC_ENTER;
 
     MPIR_ERR_CHKANDJUMP(win_ptr->states.access_state != MPIDI_RMA_PER_TARGET &&
                         win_ptr->states.access_state != MPIDI_RMA_LOCK_ALL_CALLED &&
@@ -1732,7 +1355,7 @@ int MPID_Win_flush_local(int dest, MPIR_Win * win_ptr)
     } while (!local_completed);
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPID_WIN_FLUSH_LOCAL);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
     /* --BEGIN ERROR HANDLING-- */
   fn_fail:
@@ -1745,9 +1368,8 @@ int MPID_Win_lock_all(int assert, MPIR_Win * win_ptr)
 {
     int i, rank = win_ptr->comm_ptr->rank;
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_WIN_LOCK_ALL);
 
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPID_WIN_LOCK_ALL);
+    MPIR_FUNC_ENTER;
 
     /* Note that here we cannot distinguish if this access epoch is overlapped
      * with an access epoch of FENCE (which is not allowed), since FENCE may be
@@ -1803,13 +1425,8 @@ int MPID_Win_lock_all(int assert, MPIR_Win * win_ptr)
         MPL_atomic_read_write_barrier();
     }
 
-#ifdef CHANNEL_MRAIL
-    win_ptr->using_lock = 1;
-    win_ptr->is_active = 0;
-#endif
-
   fn_exit:
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPID_WIN_LOCK_ALL);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
     /* --BEGIN ERROR HANDLING-- */
   fn_fail:
@@ -1826,9 +1443,8 @@ int MPID_Win_unlock_all(MPIR_Win * win_ptr)
     MPIDI_RMA_Target_t *curr_target = NULL;
     enum MPIDI_RMA_sync_types sync_flag;
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_WIN_UNLOCK_ALL);
 
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPID_WIN_UNLOCK_ALL);
+    MPIR_FUNC_ENTER;
 
     MPIR_ERR_CHKANDJUMP(win_ptr->states.access_state != MPIDI_RMA_LOCK_ALL_CALLED &&
                         win_ptr->states.access_state != MPIDI_RMA_LOCK_ALL_ISSUED &&
@@ -1912,27 +1528,13 @@ int MPID_Win_unlock_all(MPIR_Win * win_ptr)
     MPIR_ERR_CHECK(mpi_errno);
 
     /* Wait for remote completion. */
-#if defined (CHANNEL_MRAIL)
-    if (win_ptr->fall_back != 1){
-        do {
-            MPIDI_CH3I_RMA_ops_win_remote_completion(win_ptr, remote_completed);
-
-            if (!remote_completed || win_ptr->rma_issued != 0) {
-                mpi_errno = wait_progress_engine();
-                MPIR_ERR_CHECK(mpi_errno);
-            }
-        } while (!remote_completed || win_ptr->rma_issued != 0);
-    } else 
-#endif
-    {
-        do {
-            MPIDI_CH3I_RMA_ops_win_remote_completion(win_ptr, remote_completed);
-            if (!remote_completed) {
-                mpi_errno = wait_progress_engine();
-                MPIR_ERR_CHECK(mpi_errno);
-            }
-        } while (!remote_completed);
-    }
+    do {
+        MPIDI_CH3I_RMA_ops_win_remote_completion(win_ptr, remote_completed);
+        if (!remote_completed) {
+            mpi_errno = wait_progress_engine();
+            MPIR_ERR_CHECK(mpi_errno);
+        }
+    } while (!remote_completed);
 
     /* Cleanup all targets on this window. */
     mpi_errno = MPIDI_CH3I_RMA_Cleanup_targets_win(win_ptr);
@@ -1944,13 +1546,8 @@ int MPID_Win_unlock_all(MPIR_Win * win_ptr)
     /* reset lock_all assert on window. */
     win_ptr->lock_all_assert = 0;
 
-#if defined(CHANNEL_MRAIL)
-    win_ptr->using_lock = 0;
-    win_ptr->use_rdma_path = 0;
-#endif /* defined(CHANNEL_MRAIL) */
-
   fn_exit:
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPID_WIN_UNLOCK_ALL);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
     /* --BEGIN ERROR HANDLING-- */
   fn_fail:
@@ -1962,9 +1559,7 @@ int MPID_Win_unlock_all(MPIR_Win * win_ptr)
 int MPID_Win_flush_all(MPIR_Win * win_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPIDI_STATE_MPID_WIN_FLUSH_ALL);
-
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPIDI_STATE_MPID_WIN_FLUSH_ALL);
+    MPIR_FUNC_ENTER;
 
     MPIR_ERR_CHKANDJUMP(win_ptr->states.access_state != MPIDI_RMA_PER_TARGET &&
                         win_ptr->states.access_state != MPIDI_RMA_LOCK_ALL_CALLED &&
@@ -1981,7 +1576,7 @@ int MPID_Win_flush_all(MPIR_Win * win_ptr)
     MPIR_ERR_CHECK(mpi_errno);
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPIDI_STATE_MPID_WIN_FLUSH_ALL);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
     /* --BEGIN ERROR HANDLING-- */
   fn_fail:
@@ -1993,9 +1588,8 @@ int MPID_Win_flush_all(MPIR_Win * win_ptr)
 int MPID_Win_flush_local_all(MPIR_Win * win_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_WIN_FLUSH_LOCAL_ALL);
 
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPID_WIN_FLUSH_LOCAL_ALL);
+    MPIR_FUNC_ENTER;
 
     MPIR_ERR_CHKANDJUMP(win_ptr->states.access_state != MPIDI_RMA_PER_TARGET &&
                         win_ptr->states.access_state != MPIDI_RMA_LOCK_ALL_CALLED &&
@@ -2012,7 +1606,7 @@ int MPID_Win_flush_local_all(MPIR_Win * win_ptr)
     MPIR_ERR_CHECK(mpi_errno);
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPID_WIN_FLUSH_LOCAL_ALL);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
     /* --BEGIN ERROR HANDLING-- */
   fn_fail:
@@ -2024,9 +1618,8 @@ int MPID_Win_flush_local_all(MPIR_Win * win_ptr)
 int MPID_Win_sync(MPIR_Win * win_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_WIN_SYNC);
 
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPID_WIN_SYNC);
+    MPIR_FUNC_ENTER;
 
     MPIR_ERR_CHKANDJUMP(win_ptr->states.access_state != MPIDI_RMA_PER_TARGET &&
                         win_ptr->states.access_state != MPIDI_RMA_LOCK_ALL_CALLED &&
@@ -2037,7 +1630,7 @@ int MPID_Win_sync(MPIR_Win * win_ptr)
     MPL_atomic_read_write_barrier();
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPID_WIN_SYNC);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
     /* --BEGIN ERROR HANDLING-- */
   fn_fail:

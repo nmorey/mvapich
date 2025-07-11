@@ -1,0 +1,15 @@
+/*D
+   MPI_Errhandler_f2c - converts Fortran INTEGER to MPI_Errhandler
+
+Synopsis:
+.vb
+MPI_Errhandler MPI_Errhandler_f2c(MPI_Fint errhandler)
+.ve
+
+Input Parameters:
+. errhandler - errhandler (None)
+
+.N ThreadSafe
+
+D*/
+

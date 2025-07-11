@@ -1,0 +1,33 @@
+/*D
+   MPI_Session_get_nth_pset - Get the nth processes set
+
+Synopsis:
+.vb
+int MPI_Session_get_nth_pset(MPI_Session session, MPI_Info info, int n,
+                             int *pset_len, char *pset_name)
+.ve
+
+Input Parameters:
++ session - session (handle)
+. info - info object (handle)
+- n - index of the desired process set name (integer)
+
+Input/Output Parameters:
+. pset_len - length of the pset\_name argument (integer)
+
+Output Parameters:
+. pset_name - name of the nth process set (string)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_INFO
+.N MPI_ERR_SESSION
+.N MPI_ERR_OTHER
+
+D*/
+

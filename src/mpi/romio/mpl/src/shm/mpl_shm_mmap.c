@@ -15,10 +15,6 @@ MPL_SUPPRESS_OSX_HAS_NO_SYMBOLS_WARNING;
 #include <sys/mman.h>
 #endif
 
-#if defined (MPL_HAVE_MKSTEMP) && defined (MPL_NEEDS_MKSTEMP_DECL)
-extern int mkstemp(char *template);
-#endif
-
 inline int MPLI_shm_lhnd_close(MPL_shm_hnd_t hnd)
 {
     MPLI_shm_lhnd_t lhnd = MPLI_SHM_LHND_INVALID;
@@ -74,10 +70,10 @@ static inline int MPL_shm_seg_create_attach_templ(MPL_shm_hnd_t hnd, intptr_t se
         char *chosen_fname = NULL;
 
         chosen_fname = dev_shm_fname;
-        lhnd = mkstemp(chosen_fname);
+        lhnd = MPL_mkstemp(chosen_fname);
         if (lhnd == -1) {
             chosen_fname = tmp_fname;
-            lhnd = mkstemp(chosen_fname);
+            lhnd = MPL_mkstemp(chosen_fname);
             if (lhnd == -1) {
                 rc = MPL_ERR_SHM_INTERN;
                 goto fn_fail;
@@ -89,6 +85,10 @@ static inline int MPL_shm_seg_create_attach_templ(MPL_shm_hnd_t hnd, intptr_t se
         do {
             rc = (int) write(lhnd, "", 1);
         } while ((rc == -1) && (errno == EINTR));
+        if (rc == -1) {
+            rc = MPL_ERR_SHM_INTERN;
+            goto fn_fail;
+        }
 
         rc = MPLI_shm_ghnd_alloc(hnd, MPL_MEM_SHM);
         if (rc != MPL_SUCCESS) {

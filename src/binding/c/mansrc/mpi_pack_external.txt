@@ -1,0 +1,41 @@
+/*D
+   MPI_Pack_external - Packs a datatype into contiguous memory, using the external32 format
+
+Synopsis:
+.vb
+int MPI_Pack_external(const char *datarep, const void *inbuf, int incount,
+                      MPI_Datatype datatype, void *outbuf, MPI_Aint outsize,
+                      MPI_Aint *position)
+.ve
+.vb
+int MPI_Pack_external_c(const char *datarep, const void *inbuf,
+                        MPI_Count incount, MPI_Datatype datatype, void *outbuf,
+                        MPI_Count outsize, MPI_Count *position)
+.ve
+
+Input Parameters:
++ datarep - data representation (string)
+. inbuf - input buffer start (choice)
+. incount - number of input data items (integer)
+. datatype - datatype of each input data item (handle)
+- outsize - output buffer size, in bytes (integer)
+
+Input/Output Parameters:
+. position - current position in buffer, in bytes (integer)
+
+Output Parameters:
+. outbuf - output buffer start (choice)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

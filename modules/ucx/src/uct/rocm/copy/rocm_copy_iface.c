@@ -1,5 +1,5 @@
 /*
- * Copyright (C) Advanced Micro Devices, Inc. 2019. ALL RIGHTS RESERVED.
+ * Copyright (C) Advanced Micro Devices, Inc. 2019-2023. ALL RIGHTS RESERVED.
  * See file LICENSE for terms.
  */
 
@@ -12,15 +12,30 @@
 #include "rocm_copy_ep.h"
 
 #include <uct/rocm/base/rocm_base.h>
+#include <uct/rocm/base/rocm_signal.h>
 #include <ucs/type/class.h>
 #include <ucs/sys/string.h>
 
 
 static ucs_config_field_t uct_rocm_copy_iface_config_table[] = {
 
-    {"", "", NULL,
-     ucs_offsetof(uct_rocm_copy_iface_config_t, super),
+    {"", "", NULL, ucs_offsetof(uct_rocm_copy_iface_config_t, super),
      UCS_CONFIG_TYPE_TABLE(uct_iface_config_table)},
+
+    {"D2H_THRESH", "1k",
+     "Threshold for switching to hsa memcpy for device-to-host copies",
+     ucs_offsetof(uct_rocm_copy_iface_config_t, d2h_thresh),
+     UCS_CONFIG_TYPE_MEMUNITS},
+
+    {"H2D_THRESH", "1m",
+     "Threshold for switching to hsa memcpy for host-to-device copies",
+     ucs_offsetof(uct_rocm_copy_iface_config_t, h2d_thresh),
+     UCS_CONFIG_TYPE_MEMUNITS},
+
+    {"ENABLE_ASYNC_ZCOPY", "y",
+     "Enable asynchronous zcopy operations",
+     ucs_offsetof(uct_rocm_copy_iface_config_t, enable_async_zcopy),
+     UCS_CONFIG_TYPE_BOOL},
 
     {NULL}
 };
@@ -99,6 +114,35 @@ static ucs_status_t uct_rocm_copy_iface_query(uct_iface_h tl_iface,
     return UCS_OK;
 }
 
+static ucs_status_t
+uct_rocm_copy_iface_flush(uct_iface_h tl_iface, unsigned flags,
+                          uct_completion_t *comp)
+{
+    uct_rocm_copy_iface_t *iface = ucs_derived_of(tl_iface,
+                                                  uct_rocm_copy_iface_t);
+
+    if (comp != NULL) {
+        return UCS_ERR_UNSUPPORTED;
+    }
+
+    if (ucs_queue_is_empty(&iface->signal_queue)) {
+        UCT_TL_IFACE_STAT_FLUSH(ucs_derived_of(tl_iface, uct_base_iface_t));
+        return UCS_OK;
+    }
+
+    UCT_TL_IFACE_STAT_FLUSH_WAIT(ucs_derived_of(tl_iface, uct_base_iface_t));
+    return UCS_INPROGRESS;
+}
+
+static unsigned uct_rocm_copy_iface_progress(uct_iface_h tl_iface)
+{
+    uct_rocm_copy_iface_t *iface = ucs_derived_of(tl_iface,
+                                                  uct_rocm_copy_iface_t);
+
+    return uct_rocm_base_progress (&iface->signal_queue);
+}
+
+
 static uct_iface_ops_t uct_rocm_copy_iface_ops = {
     .ep_get_short             = uct_rocm_copy_ep_get_short,
     .ep_put_short             = uct_rocm_copy_ep_put_short,
@@ -110,11 +154,11 @@ static uct_iface_ops_t uct_rocm_copy_iface_ops = {
     .ep_fence                 = uct_base_ep_fence,
     .ep_create                = UCS_CLASS_NEW_FUNC_NAME(uct_rocm_copy_ep_t),
     .ep_destroy               = UCS_CLASS_DELETE_FUNC_NAME(uct_rocm_copy_ep_t),
-    .iface_flush              = uct_base_iface_flush,
+    .iface_flush              = uct_rocm_copy_iface_flush,
     .iface_fence              = uct_base_iface_fence,
-    .iface_progress_enable    = ucs_empty_function,
-    .iface_progress_disable   = ucs_empty_function,
-    .iface_progress           = ucs_empty_function_return_zero,
+    .iface_progress_enable    = uct_base_iface_progress_enable,
+    .iface_progress_disable   = uct_base_iface_progress_disable,
+    .iface_progress           = uct_rocm_copy_iface_progress,
     .iface_close              = UCS_CLASS_DELETE_FUNC_NAME(uct_rocm_copy_iface_t),
     .iface_query              = uct_rocm_copy_iface_query,
     .iface_get_device_address = (uct_iface_get_device_address_func_t)ucs_empty_function_return_success,
@@ -122,22 +166,119 @@ static uct_iface_ops_t uct_rocm_copy_iface_ops = {
     .iface_is_reachable       = uct_rocm_copy_iface_is_reachable,
 };
 
+
+static ucs_status_t
+uct_rocm_copy_estimate_perf(uct_iface_h tl_iface, uct_perf_attr_t *perf_attr)
+{
+    if (perf_attr->field_mask & UCT_PERF_ATTR_FIELD_BANDWIDTH) {
+        perf_attr->bandwidth.dedicated = 0;
+        if (!(perf_attr->field_mask & UCT_PERF_ATTR_FIELD_OPERATION)) {
+            perf_attr->bandwidth.shared = 0;
+        } else {
+            switch (perf_attr->operation) {
+            case UCT_EP_OP_GET_SHORT:
+                perf_attr->bandwidth.shared = 2000.0 * UCS_MBYTE;
+                break;
+            case UCT_EP_OP_GET_ZCOPY:
+                perf_attr->bandwidth.shared = 8000.0 * UCS_MBYTE;
+                break;
+            case UCT_EP_OP_PUT_SHORT:
+                perf_attr->bandwidth.shared = 10500.0 * UCS_MBYTE;
+                break;
+            case UCT_EP_OP_PUT_ZCOPY:
+                perf_attr->bandwidth.shared = 9500.0 * UCS_MBYTE;
+                break;
+            default:
+                perf_attr->bandwidth.shared = 0;
+                break;
+            }
+        }
+    }
+
+    if (perf_attr->field_mask & UCT_PERF_ATTR_FIELD_SEND_PRE_OVERHEAD) {
+        perf_attr->send_pre_overhead = 0;
+    }
+
+    if (perf_attr->field_mask & UCT_PERF_ATTR_FIELD_SEND_POST_OVERHEAD) {
+        perf_attr->send_post_overhead = 0;
+    }
+
+    if (perf_attr->field_mask & UCT_PERF_ATTR_FIELD_RECV_OVERHEAD) {
+        perf_attr->recv_overhead = 0;
+    }
+
+    if (perf_attr->field_mask & UCT_PERF_ATTR_FIELD_LATENCY) {
+        perf_attr->latency = ucs_linear_func_make(10e-6, 0);
+    }
+
+    if (perf_attr->field_mask & UCT_PERF_ATTR_FIELD_MAX_INFLIGHT_EPS) {
+        perf_attr->max_inflight_eps = SIZE_MAX;
+    }
+
+    return UCS_OK;
+}
+
+
+static uct_iface_internal_ops_t uct_rocm_copy_iface_internal_ops = {
+    .iface_estimate_perf   = uct_rocm_copy_estimate_perf,
+    .iface_vfs_refresh     = (uct_iface_vfs_refresh_func_t)ucs_empty_function,
+    .ep_query              = (uct_ep_query_func_t)ucs_empty_function_return_unsupported,
+    .ep_invalidate         = (uct_ep_invalidate_func_t)ucs_empty_function_return_unsupported,
+    .ep_connect_to_ep_v2   = ucs_empty_function_return_unsupported,
+    .iface_is_reachable_v2 = uct_base_iface_is_reachable_v2
+};
+
 static UCS_CLASS_INIT_FUNC(uct_rocm_copy_iface_t, uct_md_h md, uct_worker_h worker,
                            const uct_iface_params_t *params,
                            const uct_iface_config_t *tl_config)
 {
-    UCS_CLASS_CALL_SUPER_INIT(uct_base_iface_t, &uct_rocm_copy_iface_ops, md, worker,
-                              params, tl_config UCS_STATS_ARG(params->stats_root)
+    uct_rocm_copy_iface_config_t *config = ucs_derived_of(tl_config,
+                                                          uct_rocm_copy_iface_config_t);
+    ucs_status_t status;
+    ucs_mpool_params_t mp_params;
+    char target_name[64];
+
+    UCS_CLASS_CALL_SUPER_INIT(uct_base_iface_t, &uct_rocm_copy_iface_ops,
+                              &uct_rocm_copy_iface_internal_ops,
+                              md, worker, params,
+                              tl_config UCS_STATS_ARG(params->stats_root)
                               UCS_STATS_ARG(UCT_ROCM_COPY_TL_NAME));
 
-    self->id = ucs_generate_uuid((uintptr_t)self);
+    self->id                        = ucs_generate_uuid((uintptr_t)self);
+    self->config.d2h_thresh         = config->d2h_thresh;
+    self->config.h2d_thresh         = config->h2d_thresh;
+    self->config.enable_async_zcopy = config->enable_async_zcopy;
+
+    ucs_mpool_params_reset(&mp_params);
+    mp_params.elem_size       = sizeof(uct_rocm_base_signal_desc_t);
+    mp_params.elems_per_chunk = 128;
+    mp_params.max_elems       = 1024;
+    mp_params.ops             = &uct_rocm_base_signal_desc_mpool_ops;
+    mp_params.name            = "ROCM_COPY signal objects";
+    status                    = ucs_mpool_init(&mp_params, &self->signal_pool);
+    if (status != UCS_OK) {
+        ucs_error("rocm/copy signal mpool creation failed");
+        return status;
+    }
+
+    ucs_queue_head_init(&self->signal_queue);
+
+    ucs_snprintf_safe(target_name, sizeof(target_name), "dest:%ld", self->id);
+    status = uct_rocm_copy_create_cache(&self->local_memh_cache, target_name);
+    if (status != UCS_OK) {
+        ucs_error("could not create create rocm copy cache: %s",
+                  ucs_status_string(status));
+    }
 
     return UCS_OK;
 }
 
 static UCS_CLASS_CLEANUP_FUNC(uct_rocm_copy_iface_t)
 {
-
+    uct_base_iface_progress_disable(&self->super.super,
+                                    UCT_PROGRESS_SEND | UCT_PROGRESS_RECV);
+    ucs_mpool_cleanup(&self->signal_pool, 1);
+    uct_rocm_copy_destroy_cache(self->local_memh_cache);
 }
 
 UCS_CLASS_DEFINE(uct_rocm_copy_iface_t, uct_base_iface_t);

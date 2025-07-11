@@ -1,0 +1,41 @@
+/*D
+   MPI_T_event_get_info - Returns additional information about a specific event type
+
+Synopsis:
+.vb
+int MPI_T_event_get_info(int event_index, char *name, int *name_len,
+                         int *verbosity, MPI_Datatype array_of_datatypes[],
+                         MPI_Aint array_of_displacements[], int *num_elements,
+                         MPI_T_enum *enumtype, MPI_Info *info, char *desc,
+                         int *desc_len, int *bind)
+.ve
+
+Input Parameters:
+. event_index - index of the event type to be queried between $0$ and $num_events-1$ (integer)
+
+Input/Output Parameters:
++ name_len - length of the string and/or buffer for name (integer)
+. num_elements - length of array\\_of\\_datatypes and array\\_of\\_displacements arrays (non-negative integer)
+- desc_len - length of the string and/or buffer for desc (integer)
+
+Output Parameters:
++ name - buffer to return the string containing the name of the event type (string)
+. verbosity - verbosity level of this event type (integer)
+. array_of_datatypes - array of mpi basic datatypes used to encode the event data (handle)
+. array_of_displacements - array of byte displacements of the elements in the event buffer (non-negative integer)
+. enumtype - optional descriptor for enumeration information (handle)
+. info - optional info object (handle)
+. desc - buffer to return the string containing a description of the event type (string)
+- bind - type of mpi object to which an event of this type must be bound (integer)
+
+.N ThreadSafe
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_T_ERR_INVALID
+.N MPI_T_ERR_INVALID_INDEX
+.N MPI_T_ERR_NOT_INITIALIZED
+.N MPI_ERR_OTHER
+
+D*/
+

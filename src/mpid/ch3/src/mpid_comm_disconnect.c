@@ -4,6 +4,7 @@
  */
 
 #include "mpidimpl.h"
+
 /*@
    MPID_Comm_disconnect - Disconnect a communicator 
 
@@ -18,9 +19,8 @@
 int MPID_Comm_disconnect(MPIR_Comm *comm_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_COMM_DISCONNECT);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_COMM_DISCONNECT);
+    MPIR_FUNC_ENTER;
 
     /* Check to make sure the communicator hasn't already been revoked */
     if (comm_ptr->revoked) {
@@ -29,7 +29,7 @@ int MPID_Comm_disconnect(MPIR_Comm *comm_ptr)
 
     /* it's more than a comm_release, but ok for now */
     /* FIXME: Describe what more might be required */
-    /* MPIDI_PG_Printall( stdout ); */
+    /* MPIU_PG_Printall( stdout ); */
     comm_ptr->dev.is_disconnected = 1;
     mpi_errno = MPIR_Comm_release(comm_ptr);
     MPIR_ERR_CHECK(mpi_errno);
@@ -37,11 +37,11 @@ int MPID_Comm_disconnect(MPIR_Comm *comm_ptr)
      for those close operations to complete */
     mpi_errno = MPIDI_CH3U_VC_WaitForClose();
     MPIR_ERR_CHECK(mpi_errno);
-    /* MPIDI_PG_Printall( stdout ); */
+    /* MPIU_PG_Printall( stdout ); */
 
 
 fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_COMM_DISCONNECT);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 fn_fail:
     goto fn_exit;

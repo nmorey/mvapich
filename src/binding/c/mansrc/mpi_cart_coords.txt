@@ -1,0 +1,29 @@
+/*D
+   MPI_Cart_coords - Determines process coords in cartesian topology given rank in group
+
+Synopsis:
+.vb
+int MPI_Cart_coords(MPI_Comm comm, int rank, int maxdims, int coords[])
+.ve
+
+Input Parameters:
++ comm - communicator with Cartesian structure (handle)
+. rank - rank of a process within group of comm (integer)
+- maxdims - length of vector coords in the calling program (integer)
+
+Output Parameters:
+. coords - integer array (of size maxdims) containing the Cartesian coordinates of specified process (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_RANK
+.N MPI_ERR_OTHER
+
+D*/
+

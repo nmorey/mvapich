@@ -1,0 +1,301 @@
+stages:          # List of stages for jobs, and their order of execution
+  - rebase
+  - lint
+  - build
+  - test
+  - deploy
+  - clean
+
+rebase-job:
+  stage: rebase
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  script:
+    - echo "--------- Rebasing ---------"
+    - echo "Add upstream repo"
+    - git remote add upstream https://github.com/ofiwg/libfabric.git
+    - date=`date +%d%^b%G`
+    - git checkout -b automated/rebase-main
+    - git fetch upstream
+    - git rebase upstream/main
+    - if [ 0 -ne $? ]; then git rebase --abort; echo "Rebase failed" exit 1; fi
+    - echo "--------- Rebase Complete ---------"
+    - echo "--------- Pushing to Rebase Branch ---------"
+    - git push -u origin automated/rebase-main --force
+
+
+lint-job:   # This job also runs in the test stage.
+  stage: lint    # It can run at the same time as unit-test-job (in parallel).
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == "automated/rebase-main"
+    - if: $CI_COMMIT_TAG
+  script: # need to actually add the format script
+    - echo "Linting code... This will take about 10 seconds."
+    - sleep 2
+    - echo "No lint issues found."
+
+cpu:build:   # This job runs in the build stage.
+  stage: build   # It only starts when the job in the lint stage completes successfully.
+  variables:
+    GIT_STRATEGY: clone
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_COMMIT_REF_NAME/$CI_COMMIT_SHORT_SHA/cpu
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == "automated/rebase-main"
+    - if: $CI_COMMIT_TAG
+  artifacts:
+    untracked: false
+    when: always
+    access: all
+    expire_in: 30 days
+    paths:
+      - config.log
+  script:
+    - date=`date +%d%^b%G-%H%M`
+    - echo "--------- Building ---------"
+    - echo "Running Autogen.sh"
+    - ./autogen.sh
+    - echo "Running Configure"
+    - ./configure --prefix=$PWD/install-cpu --enable-mverbs --enable-ucr
+    - echo "Compiling"
+    - make -j 20 install
+    - echo "--------- Build Complete ---------"
+
+
+cuda:build:   # This job runs in the build stage.
+  stage: build   # It only starts when the job in the build stage completes successfully.
+  variables:
+    GIT_STRATEGY: clone
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_COMMIT_REF_NAME/$CI_COMMIT_SHORT_SHA/cuda
+  rules:
+    - when: never # not currently applicable
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == "automated/rebase-main"
+    - if: $CI_COMMIT_TAG
+  artifacts:
+    untracked: false
+    when: always
+    access: all
+    expire_in: 30 days
+    paths:
+      - config.log
+  script:
+    - date=`date +%d%^b%G-%H%M`
+    - echo "--------- Env Setup ---------"
+    - ml load cuda gdrcopy
+    - echo "--------- Building ---------"
+    - echo "Running Autogen.sh"
+    - ./autogen.sh
+    - echo "Running Configure"
+    - ./configure --prefix=$PWD/install-cuda --enable-mverbs --enable-ucr
+    - echo "Compiling"
+    - make -j 20 install
+    - echo "--------- Build Complete ---------"
+
+hip:build:   # This job runs in the build stage.
+  stage: build   # It only starts when the job in the build stage completes successfully.
+  variables:
+    GIT_STRATEGY: clone
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_COMMIT_REF_NAME/$CI_COMMIT_SHORT_SHA/hip
+  rules:
+    - when: never # not currently applicable
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == "automated/rebase-main"
+    - if: $CI_COMMIT_TAG
+  artifacts:
+    untracked: false
+    when: always
+    access: all
+    expire_in: 30 days
+    paths:
+      - config.log
+  script:
+    - echo "--------- Env Setup ---------"
+    - ml load rocm
+    - date=`date +%d%^b%G-%H%M`
+    - echo "--------- Building ---------"
+    - echo "Running Autogen.sh"
+    - ./autogen.sh
+    - echo "Running Configure"
+    - ./configure --prefix=$PWD/install-hip --enable-mverbs --enable-ucr
+    - echo "Compiling"
+    - make -j 20 install
+    - echo "--------- Build Complete ---------"
+
+mvapich:build:   # This job runs in the build stage.
+  stage: build   # It only starts when the job in the build stage completes successfully.
+  needs: ["cpu:build"]    # Start as soon as the cpu build stage completes successfully.
+  variables:
+    GIT_STRATEGY: none
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_COMMIT_REF_NAME/$CI_COMMIT_SHORT_SHA
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == "automated/rebase-main"
+    - if: $CI_COMMIT_TAG
+  artifacts:
+    untracked: false
+    when: always
+    access: all
+    expire_in: 30 days
+    paths:
+      - config.log
+      - src/mpl/config.log
+      - modules/yaksa/config.log
+  script:
+    - date=`date +%d%^b%G-%H%M`
+    - echo "--------- Cloning MVAPICH ---------"
+    - git clone git@scm.nowlab.cse.ohio-state.edu:mvapich/mvapich-plus.git
+    - cd mvapich-plus
+    - echo "--------- Building ---------"
+    - git submodule update --init
+    - echo "Running Autogen.sh"
+    - ./autogen.sh
+    - echo "Running Configure"
+    - ./configure --prefix=$PWD/install --enable-fast=none --enable-g=all --with-device=ch4:ofi --with-libfabric=$CI_BUILDS_DIR/$CI_COMMIT_REF_NAME/$CI_COMMIT_SHORT_SHA/cpu/install-cpu --disable-gl --disable-nvml --disable-cl --disable-opencl --without-cuda --without-hip --without-ze CC=gcc CXX=g++ FC=gfortran F77=gfortran CFLAGS=-pipe MPICH_CLFAGS=-Werror=discarded-qualifiers
+    - echo "Compiling"
+    - make -j 20 install
+    - echo "--------- Build Complete ---------"
+
+cpu:test:intra:     
+  stage: test 
+  timeout: 1d
+  needs: ["mvapich:build"]    # Start as soon as the cpu build stage completes successfully.
+  variables:
+    GIT_STRATEGY: none
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_COMMIT_REF_NAME/$CI_COMMIT_SHORT_SHA/mvapich-plus
+  rules:
+    - when: never # not currently applicable
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == "automated/rebase-main"
+    - if: $CI_COMMIT_TAG
+  artifacts:
+    untracked: false
+    when: always
+    access: all
+    expire_in: 30 days
+    paths:
+      - slurm-*.out
+      - test/mpi/summary.xml
+      - test/mpi/summary.junit.xml
+    reports:
+      junit: test/mpi/summary.junit.xml
+  script:
+    - date=`date +%d%^b%G-%H%M`
+    - echo "--------- Submitting Testing ---------"
+    - sbatch --wait -N 1 -t 12:00:00 --exclusive -p runbot-test ~/scripts/run_mpich_tests.sh
+    - echo "--------- Testing Complete ---------"
+
+cpu:test:inter:     
+  stage: test 
+  timeout: 1d
+  needs: ["mvapich:build"]    # Start as soon as the cpu build stage completes successfully.
+  variables:
+    GIT_STRATEGY: none
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_COMMIT_REF_NAME/$CI_COMMIT_SHORT_SHA/mvapich-plus
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == "automated/rebase-main"
+    - if: $CI_COMMIT_TAG
+  artifacts:
+    untracked: false
+    when: always
+    access: all
+    expire_in: 30 days
+    paths:
+      - slurm-*.out
+      - test/mpi/summary.xml
+      - test/mpi/summary.junit.xml
+    reports:
+      junit: test/mpi/summary.junit.xml
+  script:
+    - date=`date +%d%^b%G-%H%M`
+    - echo "--------- Submitting Testing ---------"
+    - export FI_PROVIDER="mverbs;ofi_ucr"
+    - sbatch --wait -N 2 -t 12:00:00 --exclusive -p runbot-test ~/scripts/run_mpich_tests.sh
+    - echo "--------- Testing Complete ---------"
+
+cuda:test: 
+  stage: test      
+  timeout: 1d
+  needs: ["cuda:build"]    # Start as soon as the cuda build stage completes successfully.
+  variables:
+    GIT_STRATEGY: none
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_COMMIT_REF_NAME/$CI_COMMIT_SHORT_SHA/mvapich-plus
+  rules:
+    - when: never # not currently applicable
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == "automated/rebase-main"
+    - if: $CI_COMMIT_TAG
+  artifacts:
+    untracked: false
+    when: always
+    access: all
+    expire_in: 30 days
+    paths:
+      - slurm-*.out
+      - test/mpi/summary.xml
+      - test/mpi/summary.junit.xml
+    reports:
+      junit: test/mpi/summary.junit.xml
+  script:
+    - date=`date +%d%^b%G-%H%M`
+    - echo "--------- Env Setup ---------"
+    - ml load cuda gdrcopy
+    - echo "--------- Submitting Testing ---------"
+    - sbatch --wait -N 1 -C cuda -G 2 -t 12:00:00 --exclusive -p runbot-test ~/scripts/run_mpich_tests.sh
+    - echo "--------- Testing Complete ---------"
+
+hip:test:   
+  stage: test     
+  timeout: 1d
+  needs: ["hip:build"]    # Start as soon as the hip build stage completes successfully.
+  variables:
+    GIT_STRATEGY: none
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_COMMIT_REF_NAME/$CI_COMMIT_SHORT_SHA/mvapich-plus
+  rules:
+    - when: never # not currently applicable
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == "automated/rebase-main"
+    - if: $CI_COMMIT_TAG
+  artifacts:
+    untracked: false
+    when: always
+    access: all
+    expire_in: 30 days
+    paths:
+      - slurm-*.out
+      - test/mpi/summary.xml
+      - test/mpi/summary.junit.xml
+    reports:
+      junit: test/mpi/summary.junit.xml
+  allow_failure: true # don't fail the pipeline for testing job (yet)
+  script:
+    - date=`date +%d%^b%G-%H%M`
+    - echo "--------- Env Setup ---------"
+    - ml load rocm
+    - echo "--------- Submitting Testing ---------"
+    - sbatch --wait -N 1 -C amd -G 2 -t 12:00:00 --exclusive -p runbot-test ~/scripts/run_mpich_tests.sh
+    - echo "--------- Testing Complete ---------"
+
+clean-job:
+  stage: clean     
+  variables:
+    GIT_STRATEGY: none
+    GIT_CLONE_PATH: $CI_BUILDS_DIR
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == "automated/rebase-main"
+    - if: $CI_COMMIT_TAG
+  script:
+    rm -rf $CI_COMMIT_REF_NAME/$CI_COMMIT_SHORT_SHA/

@@ -1,0 +1,23 @@
+/*D
+   MPI_Get_version - Return the version number of MPI
+
+Synopsis:
+.vb
+int MPI_Get_version(int *version, int *subversion)
+.ve
+
+Output Parameters:
++ version - version number (integer)
+- subversion - subversion number (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_OTHER
+
+D*/
+

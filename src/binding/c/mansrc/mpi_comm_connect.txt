@@ -1,0 +1,31 @@
+/*D
+   MPI_Comm_connect - Make a request to form a new intercommunicator
+
+Synopsis:
+.vb
+int MPI_Comm_connect(const char *port_name, MPI_Info info, int root,
+                     MPI_Comm comm, MPI_Comm *newcomm)
+.ve
+
+Input Parameters:
++ port_name - network address (string)
+. info - implementation-dependent information (handle)
+. root - rank in comm of root node (integer)
+- comm - intra-communicator over which call is collective (handle)
+
+Output Parameters:
+. newcomm - inter-communicator with server as remote group (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_INFO
+.N MPI_ERR_OTHER
+
+D*/
+

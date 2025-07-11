@@ -1,0 +1,26 @@
+/*D
+   MPI_Info_dup - Returns a duplicate of the info object
+
+Synopsis:
+.vb
+int MPI_Info_dup(MPI_Info info, MPI_Info *newinfo)
+.ve
+
+Input Parameters:
+. info - info object (handle)
+
+Output Parameters:
+. newinfo - info object (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_INFO
+.N MPI_ERR_OTHER
+
+D*/
+

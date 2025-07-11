@@ -6,18 +6,14 @@
 #include "mpiimpl.h"
 #include "group.h"
 
-#ifndef MPID_GROUP_PREALLOC
-#define MPID_GROUP_PREALLOC 8
-#endif
-
 /* Preallocated group objects */
 MPIR_Group MPIR_Group_builtin[MPIR_GROUP_N_BUILTIN];
-MPIR_Group MPIR_Group_direct[MPID_GROUP_PREALLOC];
+MPIR_Group MPIR_Group_direct[MPIR_GROUP_PREALLOC];
 
-MPIR_Object_alloc_t MPIR_Group_mem = { 0, 0, 0, 0, MPIR_GROUP,
+MPIR_Object_alloc_t MPIR_Group_mem = { 0, 0, 0, 0, 0, 0, 0, MPIR_GROUP,
     sizeof(MPIR_Group), MPIR_Group_direct,
-    MPID_GROUP_PREALLOC,
-    NULL
+    MPIR_GROUP_PREALLOC,
+    NULL, {0}
 };
 
 MPIR_Group *const MPIR_Group_empty = &MPIR_Group_builtin[0];
@@ -49,6 +45,10 @@ int MPIR_Group_release(MPIR_Group * group_ptr)
     if (!inuse) {
         /* Only if refcount is 0 do we actually free. */
         MPL_free(group_ptr->lrank_to_lpid);
+        if (group_ptr->session_ptr != NULL) {
+            /* Release session */
+            MPIR_Session_release(group_ptr->session_ptr);
+        }
         MPIR_Handle_obj_free(&MPIR_Group_mem, group_ptr);
     }
     return mpi_errno;
@@ -89,6 +89,8 @@ int MPIR_Group_create(int nproc, MPIR_Group ** new_group_ptr)
     (*new_group_ptr)->idx_of_first_lpid = -1;
 
     (*new_group_ptr)->is_local_dense_monotonic = FALSE;
+
+    (*new_group_ptr)->session_ptr = NULL;
     return mpi_errno;
 }
 
@@ -404,3 +406,13 @@ int MPIR_Group_check_subset(MPIR_Group * group_ptr, MPIR_Comm * comm_ptr)
 }
 
 #endif /* HAVE_ERROR_CHECKING */
+
+void MPIR_Group_set_session_ptr(MPIR_Group * group_ptr, MPIR_Session * session_ptr)
+{
+    /* Set the session pointer of the group
+     * and increase ref counter of the session */
+    if (session_ptr != NULL) {
+        group_ptr->session_ptr = session_ptr;
+        MPIR_Session_add_ref(session_ptr);
+    }
+}

@@ -1,0 +1,27 @@
+/*D
+   MPI_Win_test - Test whether an RMA exposure epoch has completed
+
+Synopsis:
+.vb
+int MPI_Win_test(MPI_Win win, int *flag)
+.ve
+
+Input Parameters:
+. win - window object (handle)
+
+Output Parameters:
+. flag - success flag (logical)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_WIN
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Win_wait, MPI_Win_post
+D*/
+

@@ -25,6 +25,24 @@
  * (2) Mismatched: Server only issues one accept while client tries twice connect.
  *     At least one of the connect call should return MPI_ERR_PORT. */
 
+#ifdef MTEST_LARGE_PORT_NAME
+#define PORT_SIZE 4096
+
+#define INIT_PORT_INFO(info) \
+    do { \
+        MPI_Info_create(&(info)); \
+        MPI_Info_set(info, "port_name_size", "4096"); \
+    } while (0)
+
+#define FREE_PORT_INFO(info) MPI_Info_free(&(info))
+
+#else
+#define PORT_SIZE MPI_MAX_PORT_NAME
+#define INIT_PORT_INFO(info) do {info = MPI_INFO_NULL;} while (0)
+#define FREE_PORT_INFO(info) do { } while (0)
+
+#endif /* MTEST_LARGE_PORT_NAME */
+
 int rank, nproc;
 int verbose = 0;
 
@@ -69,25 +87,27 @@ static inline void open_and_bcast_port(int intra_rank, int gid, char (*port)[])
     if (intra_rank == 0 && gid == SERVER_GID) {
         local_server_rank = rank;
 
-        MPI_Open_port(MPI_INFO_NULL, (*port));
+        MPI_Info info;
+        INIT_PORT_INFO(info);
+        MPI_Open_port(info, (*port));
+        FREE_PORT_INFO(info);
         IF_VERBOSE(1, ("server root: opened port1: <%s>\n", (*port)));
     }
 
     /* broadcast world rank of server root, then broadcast port */
     MPI_Allreduce(&local_server_rank, &server_rank, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-    MPI_Bcast((*port), MPI_MAX_PORT_NAME, MPI_CHAR, server_rank, MPI_COMM_WORLD);
+    MPI_Bcast((*port), PORT_SIZE, MPI_CHAR, server_rank, MPI_COMM_WORLD);
 }
 
 int test_mismatched_accept(MPI_Comm intra_comm, int gid)
 {
-    char port[MPI_MAX_PORT_NAME];
+    char port[PORT_SIZE];
     MPI_Comm comm = MPI_COMM_NULL;
     int mpi_errno = MPI_SUCCESS;
     int errs = 0;
     int intra_rank, intra_nproc;
-    int server_rank = 0, local_server_rank = 0;
 
-    MTEST_VG_MEM_INIT(port, MPI_MAX_PORT_NAME * sizeof(char));
+    MTEST_VG_MEM_INIT(port, PORT_SIZE * sizeof(char));
 
     MPI_Comm_rank(intra_comm, &intra_rank);
     MPI_Comm_size(intra_comm, &intra_nproc);
@@ -102,6 +122,10 @@ int test_mismatched_accept(MPI_Comm intra_comm, int gid)
 
         IF_VERBOSE(intra_rank == 0, ("client: connecting to <%s> with default timeout.\n", port));
         mpi_errno1 = MPI_Comm_connect(port, MPI_INFO_NULL, 0, intra_comm, &comm);
+        if (mpi_errno1 == MPI_SUCCESS) {
+            IF_VERBOSE(intra_rank == 0, ("connection matched, freeing communicator.\n"));
+            MPI_Comm_free(&comm);
+        }
         if (mpi_errno1 != MPI_SUCCESS) {
             errs += check_errno(mpi_errno1, MPI_ERR_PORT);
         }
@@ -109,6 +133,10 @@ int test_mismatched_accept(MPI_Comm intra_comm, int gid)
         /* At least one of the connect calls should return MPI_ERR_PORT */
         IF_VERBOSE(intra_rank == 0, ("client: connecting to <%s> again.\n", port));
         mpi_errno2 = MPI_Comm_connect(port, MPI_INFO_NULL, 0, intra_comm, &comm);
+        if (mpi_errno2 == MPI_SUCCESS) {
+            IF_VERBOSE(intra_rank == 0, ("connection matched, freeing communicator.\n"));
+            MPI_Comm_free(&comm);
+        }
         if (mpi_errno1 == MPI_SUCCESS) {
             errs += check_errno(mpi_errno2, MPI_ERR_PORT);
         } else {
@@ -117,12 +145,12 @@ int test_mismatched_accept(MPI_Comm intra_comm, int gid)
     } else if (gid == SERVER_GID) {
         /* NOTE: if accept hangs, try increase MPIR_CVAR_CH3_COMM_CONN_TIMEOUT. */
         IF_VERBOSE(intra_rank == 0, ("server: accepting connection to <%s>.\n", port));
-        MPI_Comm_accept(port, MPI_INFO_NULL, 0, intra_comm, &comm);
-    }
+        mpi_errno = MPI_Comm_accept(port, MPI_INFO_NULL, 0, intra_comm, &comm);
+        if (mpi_errno == MPI_SUCCESS) {
+            IF_VERBOSE(intra_rank == 0, ("connection matched, freeing communicator.\n"));
+            MPI_Comm_free(&comm);
+        }
 
-    if (comm != MPI_COMM_NULL) {
-        IF_VERBOSE(intra_rank == 0, ("connection matched, freeing communicator.\n"));
-        MPI_Comm_free(&comm);
     }
 
     if (intra_rank == 0 && gid == SERVER_GID) {
@@ -135,15 +163,14 @@ int test_mismatched_accept(MPI_Comm intra_comm, int gid)
 
 int test_no_accept(MPI_Comm intra_comm, int gid)
 {
-    char port[MPI_MAX_PORT_NAME], timeout = 0;
+    char port[PORT_SIZE];
     MPI_Info info = MPI_INFO_NULL;
     MPI_Comm comm = MPI_COMM_NULL;
     int mpi_errno = MPI_SUCCESS;
     int errs = 0;
     int intra_rank, intra_nproc;
-    int server_rank = 0, local_server_rank = 0;
 
-    MTEST_VG_MEM_INIT(port, MPI_MAX_PORT_NAME * sizeof(char));
+    MTEST_VG_MEM_INIT(port, PORT_SIZE * sizeof(char));
 
     MPI_Comm_rank(intra_comm, &intra_rank);
     MPI_Comm_size(intra_comm, &intra_nproc);
@@ -186,8 +213,7 @@ int test_no_accept(MPI_Comm intra_comm, int gid)
 int main(int argc, char *argv[])
 {
     MPI_Comm intra_comm = MPI_COMM_NULL;
-    int sub_rank, sub_nproc;
-    int errs = 0, allerrs = 0;
+    int errs = 0;
 
     if (getenv("MPITEST_VERBOSE")) {
         verbose = 1;

@@ -1,0 +1,29 @@
+/*D
+   MPI_Comm_get_name - Return the print name from the communicator
+
+Synopsis:
+.vb
+int MPI_Comm_get_name(MPI_Comm comm, char *comm_name, int *resultlen)
+.ve
+
+Input Parameters:
+. comm - communicator whose name is to be returned (handle)
+
+Output Parameters:
++ comm_name - the name previously stored on the communicator, or an empty string if no such name exists (string)
+- resultlen - length of returned name (integer)
+
+.N COMMNULL
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+D*/
+

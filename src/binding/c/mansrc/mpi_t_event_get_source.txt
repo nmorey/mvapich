@@ -1,0 +1,26 @@
+/*D
+   MPI_T_event_get_source - Returns the index of the source of the event instance
+
+Synopsis:
+.vb
+int MPI_T_event_get_source(MPI_T_event_instance event_instance,
+                           int *source_index)
+.ve
+
+Input Parameters:
+. event_instance - event instance provided to the callback function (handle)
+
+Output Parameters:
+. source_index - index identifying the source (integer)
+
+.N ThreadSafe
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_T_ERR_INVALID
+.N MPI_T_ERR_INVALID_HANDLE
+.N MPI_T_ERR_NOT_INITIALIZED
+.N MPI_ERR_OTHER
+
+D*/
+

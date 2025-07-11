@@ -1,0 +1,15 @@
+/*D
+   MPI_Comm_f2c - converts Fortran INTEGER to MPI_Comm
+
+Synopsis:
+.vb
+MPI_Comm MPI_Comm_f2c(MPI_Fint comm)
+.ve
+
+Input Parameters:
+. comm - comm (None)
+
+.N ThreadSafe
+
+D*/
+

@@ -1,0 +1,47 @@
+/*D
+   MPI_Type_create_darray - Create a datatype representing a distributed array
+
+Synopsis:
+.vb
+int MPI_Type_create_darray(int size, int rank, int ndims,
+                           const int array_of_gsizes[],
+                           const int array_of_distribs[],
+                           const int array_of_dargs[],
+                           const int array_of_psizes[], int order,
+                           MPI_Datatype oldtype, MPI_Datatype *newtype)
+.ve
+.vb
+int MPI_Type_create_darray_c(int size, int rank, int ndims,
+                             const MPI_Count array_of_gsizes[],
+                             const int array_of_distribs[],
+                             const int array_of_dargs[],
+                             const int array_of_psizes[], int order,
+                             MPI_Datatype oldtype, MPI_Datatype *newtype)
+.ve
+
+Input Parameters:
++ size - size of process group (positive integer)
+. rank - rank in process group (non-negative integer)
+. ndims - number of array dimensions as well as process grid dimensions (positive integer)
+. array_of_gsizes - number of elements of type oldtype in each dimension of global array (positive integer)
+. array_of_distribs - distribution of array in each dimension (state)
+. array_of_dargs - distribution argument in each dimension (positive integer)
+. array_of_psizes - size of process grid in each dimension (positive integer)
+. order - array storage order flag (state)
+- oldtype - old datatype (handle)
+
+Output Parameters:
+. newtype - new datatype (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

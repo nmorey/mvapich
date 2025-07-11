@@ -227,7 +227,6 @@
     <ClCompile Include="..\..\hwloc\topology-xml.c" />
     <ClCompile Include="..\..\hwloc\topology.c" />
     <ClCompile Include="..\..\hwloc\traversal.c" />
-    <ClCompile Include="..\..\hwloc\dolib.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\hwloc\autogen\config.h" />
@@ -242,6 +241,7 @@
     <ClInclude Include="..\..\include\hwloc\inlines.h" />
     <ClInclude Include="..\..\include\hwloc\memattrs.h" />
     <ClInclude Include="..\..\include\hwloc\cpukinds.h" />
+    <ClInclude Include="..\..\include\hwloc\windows.h" />
     <ClInclude Include="..\..\include\hwloc\plugins.h" />
     <ClInclude Include="..\..\include\hwloc\shmem.h" />
     <ClInclude Include="..\..\include\hwloc\rename.h" />

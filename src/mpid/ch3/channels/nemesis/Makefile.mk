@@ -6,8 +6,7 @@
 if BUILD_CH3_NEMESIS
 
 AM_CPPFLAGS += -I$(top_srcdir)/src/mpid/ch3/channels/nemesis/include   \
-               -I$(top_builddir)/src/mpid/ch3/channels/nemesis/include \
-			   -I$(top_srcdir)/src/mpi/coll
+               -I$(top_builddir)/src/mpid/ch3/channels/nemesis/include
 
 noinst_HEADERS +=							\
     src/mpid/ch3/channels/nemesis/include/mpidi_ch3_impl.h		\
@@ -29,6 +28,5 @@ noinst_HEADERS +=							\
 include $(top_srcdir)/src/mpid/ch3/channels/nemesis/src/Makefile.mk
 include $(top_srcdir)/src/mpid/ch3/channels/nemesis/netmod/Makefile.mk
 include $(top_srcdir)/src/mpid/ch3/channels/nemesis/utils/monitor/Makefile.mk
-include $(top_srcdir)/src/mpid/ch3/channels/nemesis/utils/replacements/Makefile.mk
 
 endif BUILD_CH3_NEMESIS

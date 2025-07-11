@@ -5,21 +5,18 @@
 
 #include "mpiimpl.h"
 
-int MPIR_Iallgatherv_intra_sched_ring(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
-                                      void *recvbuf, const int recvcounts[], const int displs[],
+int MPIR_Iallgatherv_intra_sched_ring(const void *sendbuf, MPI_Aint sendcount,
+                                      MPI_Datatype sendtype, void *recvbuf,
+                                      const MPI_Aint recvcounts[], const MPI_Aint displs[],
                                       MPI_Datatype recvtype, MPIR_Comm * comm_ptr, MPIR_Sched_t s)
 {
     int mpi_errno = MPI_SUCCESS;
-    int i, total_count;
-    MPI_Aint recvtype_extent;
+    int i;
+    MPI_Aint recvtype_extent, total_count;
     int rank, comm_size;
     int left, right;
     char *sbuf = NULL;
     char *rbuf = NULL;
-    int soffset, roffset;
-    int torecv, tosend, min;
-    int sendnow, recvnow;
-    int sidx, ridx;
 
     comm_size = comm_ptr->local_size;
     rank = comm_ptr->rank;
@@ -44,6 +41,7 @@ int MPIR_Iallgatherv_intra_sched_ring(const void *sendbuf, int sendcount, MPI_Da
     left = (comm_size + rank - 1) % comm_size;
     right = (rank + 1) % comm_size;
 
+    MPI_Aint torecv, tosend, min;
     torecv = total_count - recvcounts[rank];
     tosend = total_count - recvcounts[right];
 
@@ -58,11 +56,14 @@ int MPIR_Iallgatherv_intra_sched_ring(const void *sendbuf, int sendcount, MPI_Da
     if (!min)
         min = 1;
 
+    MPI_Aint soffset, roffset;
+    int sidx, ridx;
     sidx = rank;
     ridx = left;
     soffset = 0;
     roffset = 0;
     while (tosend || torecv) {  /* While we have data to send or receive */
+        MPI_Aint sendnow, recvnow;
         sendnow = ((recvcounts[sidx] - soffset) > min) ? min : (recvcounts[sidx] - soffset);
         recvnow = ((recvcounts[ridx] - roffset) > min) ? min : (recvcounts[ridx] - roffset);
         sbuf = (char *) recvbuf + ((displs[sidx] + soffset) * recvtype_extent);

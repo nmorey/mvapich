@@ -1,0 +1,40 @@
+/*D
+   MPI_Comm_spawn_multiple - Spawn up multiple MPI applications
+
+Synopsis:
+.vb
+int MPI_Comm_spawn_multiple(int count, char *array_of_commands[],
+                            char **array_of_argv[],
+                            const int array_of_maxprocs[],
+                            const MPI_Info array_of_info[], int root,
+                            MPI_Comm comm, MPI_Comm *intercomm,
+                            int array_of_errcodes[])
+.ve
+
+Input Parameters:
++ count - number of commands (positive integer)
+. array_of_commands - programs to be executed (array of strings)
+. array_of_argv - arguments for commands (array of array of strings)
+. array_of_maxprocs - maximum number of processes to start for each command (integer)
+. array_of_info - info objects telling the runtime system where and how to start processes (handle)
+. root - rank of process in which previous arguments are examined (integer)
+- comm - intra-communicator containing group of spawning processes (handle)
+
+Output Parameters:
++ intercomm - inter-communicator between original group and the newly spawned group (handle)
+- array_of_errcodes - one error code per process (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_INFO
+.N MPI_ERR_OTHER
+
+D*/
+

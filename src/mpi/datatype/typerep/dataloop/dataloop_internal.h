@@ -134,6 +134,8 @@ typedef struct MPII_Dataloop {
     MPI_Aint el_size;
     MPI_Aint el_extent;
     MPI_Datatype el_type;
+    int is_contig;
+    MPI_Aint num_contig;
 
     MPI_Aint dloop_sz;
 } MPII_Dataloop;
@@ -198,8 +200,6 @@ void MPII_Dataloop_alloc(int kind, MPI_Aint count, MPII_Dataloop ** new_loop_p);
 void MPII_Dataloop_alloc_and_copy(int kind,
                                   MPI_Aint count,
                                   MPII_Dataloop * old_loop, MPII_Dataloop ** new_loop_p);
-
-MPI_Aint MPII_Dataloop_get_basic_size_external32(MPI_Datatype el_type);
 
 void MPII_Dataloop_segment_flatten(MPIR_Segment * segp,
                                    MPI_Aint first,

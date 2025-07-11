@@ -1,0 +1,38 @@
+/*D
+   MPI_Type_create_hindexed - Create a datatype for an indexed datatype with displacements in bytes
+
+Synopsis:
+.vb
+int MPI_Type_create_hindexed(int count, const int array_of_blocklengths[],
+                             const MPI_Aint array_of_displacements[],
+                             MPI_Datatype oldtype, MPI_Datatype *newtype)
+.ve
+.vb
+int MPI_Type_create_hindexed_c(MPI_Count count,
+                               const MPI_Count array_of_blocklengths[],
+                               const MPI_Count array_of_displacements[],
+                               MPI_Datatype oldtype, MPI_Datatype *newtype)
+.ve
+
+Input Parameters:
++ count - number of blocks -- also number of entries in array_of_displacements and array_of_blocklengths (non-negative integer)
+. array_of_blocklengths - number of elements in each block (non-negative integer)
+. array_of_displacements - byte displacement of each block (integer)
+- oldtype - old datatype (handle)
+
+Output Parameters:
+. newtype - new datatype (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

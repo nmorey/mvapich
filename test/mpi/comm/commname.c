@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
     char name[MPI_MAX_OBJECT_NAME], nameout[MPI_MAX_OBJECT_NAME];
     MTest_Init(&argc, &argv);
 
-    /* Check world and self firt */
+    /* Check world and self first */
     nameout[0] = 0;
     MPI_Comm_get_name(MPI_COMM_WORLD, nameout, &rlen);
     if (strcmp(nameout, "MPI_COMM_WORLD")) {
@@ -34,6 +34,14 @@ int main(int argc, char *argv[])
         errs++;
         printf("Name of comm self is %s, should be MPI_COMM_SELF\n", nameout);
     }
+#if MTEST_HAVE_MIN_MPI_VERSION(4,1)
+    nameout[0] = 0;
+    MPI_Comm_get_name(MPI_COMM_NULL, nameout, &rlen);
+    if (strcmp(nameout, "MPI_COMM_NULL")) {
+        errs++;
+        printf("Name of comm null is %s, should be MPI_COMM_NULL\n", nameout);
+    }
+#endif
 
     /* Now, handle other communicators, including world/self */
     cnt = 0;

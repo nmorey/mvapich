@@ -1,0 +1,31 @@
+/*D
+   MPIX_Comm_get_failed - This local operation returns the group of processes that are locally known to have failed.
+
+Synopsis:
+.vb
+int MPIX_Comm_get_failed(MPI_Comm comm, MPI_Group *failedgrp)
+.ve
+
+Input Parameters:
+. comm - communicator (handle)
+
+Output Parameters:
+. failedgrp - group of failed processes (handle)
+
+Notes:
+The returned failedgrp can be empty, that is, equal to MPI_GROUP_EMPTY.
+
+For any two groups obtained from calls to this routine at the same MPI process with the same comm, the smaller group is a prefix of the larger group, that is, the same failed process will have the same rank in the returned failedgrp.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+D*/
+

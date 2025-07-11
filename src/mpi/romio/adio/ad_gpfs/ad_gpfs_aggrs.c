@@ -26,9 +26,12 @@
 #define TRACE_ERR(format...)
 #endif
 
+
+#ifndef HAS_ALLTOALLV_C
 static int
 MY_Alltoallv(void *sbuf, int *scounts, MPI_Aint * sdisps, MPI_Datatype stype,
              void *rbuf, int *rcounts, MPI_Aint * rdisps, MPI_Datatype rtype, MPI_Comm comm);
+#endif
 
 /* Comments copied from common:
  * This file contains four functions:
@@ -120,7 +123,7 @@ int ADIOI_GPFS_Calc_aggregator(ADIO_File fd,
      * * wkliao: implementation for file domain alignment
      * fd_start[] and fd_end[] have been aligned with file lock
      * boundaries when returned from ADIOI_Calc_file_domains() so cannot
-     * just use simple arithmatic as above *
+     * just use simple arithmetic as above *
      * rank_index = 0;
      * while (off > fd_end[rank_index]) rank_index++;
      * }
@@ -240,7 +243,7 @@ void ADIOI_GPFS_Calc_file_domains(ADIO_File fd,
     int naggs = nprocs_for_coll;
 
     /* Tweak the file domains so that no fd is smaller than a threshold.  We
-     * have to strike a balance between efficency and parallelism: somewhere
+     * have to strike a balance between efficiency and parallelism: somewhere
      * between 10k processes sending 32-byte requests and one process sending a
      * 320k request is a (system-dependent) sweet spot
 
@@ -250,8 +253,8 @@ void ADIOI_GPFS_Calc_file_domains(ADIO_File fd,
      if (fd_size < min_fd_size)
      fd_size = min_fd_size;
      */
-    fd_size = (ADIO_Offset *) ADIOI_Malloc(nprocs_for_coll * sizeof(ADIO_Offset));
-    *fd_start_ptr = (ADIO_Offset *) ADIOI_Malloc(nprocs_for_coll * 2 * sizeof(ADIO_Offset));
+    fd_size = ADIOI_Malloc(nprocs_for_coll * sizeof(ADIO_Offset));
+    *fd_start_ptr = ADIOI_Malloc(nprocs_for_coll * 2 * sizeof(ADIO_Offset));
     *fd_end_ptr = *fd_start_ptr + nprocs_for_coll;
     fd_start = *fd_start_ptr;
     fd_end = *fd_end_ptr;
@@ -302,13 +305,11 @@ void ADIOI_GPFS_Calc_file_domains(ADIO_File fd,
         /* bridelistoffset: agg rank list offsets using the bridgelist - each
          * entry is created by adding up the indexes for the aggs from all
          * previous bridges */
-        int *bridgelistoffset =
-            (int *) ADIOI_Malloc(fd->hints->fs_hints.bg.numbridges * sizeof(int));
+        int *bridgelistoffset = ADIOI_Malloc(fd->hints->fs_hints.bg.numbridges * sizeof(int));
         /* tmpbridgelistnum: copy of the bridgelistnum whose entries can be
          * decremented to keep track of bridge assignments during the actual
          * large block assignments to the agg rank list*/
-        int *tmpbridgelistnum =
-            (int *) ADIOI_Malloc(fd->hints->fs_hints.bg.numbridges * sizeof(int));
+        int *tmpbridgelistnum = ADIOI_Malloc(fd->hints->fs_hints.bg.numbridges * sizeof(int));
 
         int j;
         for (j = 0; j < fd->hints->fs_hints.bg.numbridges; j++) {
@@ -443,19 +444,17 @@ void ADIOI_GPFS_Calc_file_domains(ADIO_File fd,
  * (including this one)
  */
 void ADIOI_GPFS_Calc_my_req(ADIO_File fd, ADIO_Offset * offset_list, ADIO_Offset * len_list,
-                            int contig_access_count, ADIO_Offset
+                            MPI_Count contig_access_count, ADIO_Offset
                             min_st_offset, ADIO_Offset * fd_start,
                             ADIO_Offset * fd_end, ADIO_Offset fd_size,
                             int nprocs,
-                            int *count_my_req_procs_ptr,
-                            int **count_my_req_per_proc_ptr,
+                            MPI_Count * count_my_req_procs_ptr,
+                            MPI_Count ** count_my_req_per_proc_ptr,
                             ADIOI_Access ** my_req_ptr, MPI_Aint ** buf_idx_ptr)
-/* Possibly reconsider if buf_idx's are ok as int's, or should they be aints/offsets?
-   They are used as memory buffer indices so it seems like the 2G limit is in effect */
 {
-    int *count_my_req_per_proc, count_my_req_procs;
+    MPI_Count *count_my_req_per_proc, count_my_req_procs;
     MPI_Aint *buf_idx;
-    int i, l, proc;
+    MPI_Count l, proc;
     ADIO_Offset fd_len, rem_len, curr_idx, off;
     ADIOI_Access *my_req;
     TRACE_ERR("Entering ADIOI_GPFS_Calc_my_req\n");
@@ -463,27 +462,27 @@ void ADIOI_GPFS_Calc_my_req(ADIO_File fd, ADIO_Offset * offset_list, ADIO_Offset
 #ifdef AGGREGATION_PROFILE
     MPE_Log_event(5024, 0, NULL);
 #endif
-    *count_my_req_per_proc_ptr = (int *) ADIOI_Calloc(nprocs, sizeof(int));
+    *count_my_req_per_proc_ptr = ADIOI_Calloc(nprocs, sizeof(**count_my_req_per_proc_ptr));
     count_my_req_per_proc = *count_my_req_per_proc_ptr;
 /* count_my_req_per_proc[i] gives the no. of contig. requests of this
    process in process i's file domain. calloc initializes to zero.
    I'm allocating memory of size nprocs, so that I can do an
    MPI_Alltoall later on.*/
 
-    buf_idx = (MPI_Aint *) ADIOI_Malloc(nprocs * sizeof(MPI_Aint));
+    buf_idx = ADIOI_Malloc(nprocs * sizeof(MPI_Aint));
 /* buf_idx is relevant only if buftype_is_contig.
    buf_idx[i] gives the index into user_buf where data received
    from proc. i should be placed. This allows receives to be done
    without extra buffer. This can't be done if buftype is not contig. */
 
     /* initialize buf_idx to -1 */
-    for (i = 0; i < nprocs; i++)
+    for (int i = 0; i < nprocs; i++)
         buf_idx[i] = -1;
 
     /* one pass just to calculate how much space to allocate for my_req;
      * contig_access_count was calculated way back in ADIOI_Calc_my_off_len()
      */
-    for (i = 0; i < contig_access_count; i++) {
+    for (MPI_Count i = 0; i < contig_access_count; i++) {
         /* short circuit offset/len processing if len == 0
          *      (zero-byte  read/write */
         if (len_list[i] == 0)
@@ -519,15 +518,13 @@ void ADIOI_GPFS_Calc_my_req(ADIO_File fd, ADIO_Offset * offset_list, ADIO_Offset
 
 /* now allocate space for my_req, offset, and len */
 
-    *my_req_ptr = (ADIOI_Access *)
-        ADIOI_Malloc(nprocs * sizeof(ADIOI_Access));
+    *my_req_ptr = ADIOI_Malloc(nprocs * sizeof(ADIOI_Access));
     my_req = *my_req_ptr;
 
     count_my_req_procs = 0;
-    for (i = 0; i < nprocs; i++) {
+    for (int i = 0; i < nprocs; i++) {
         if (count_my_req_per_proc[i]) {
-            my_req[i].offsets = (ADIO_Offset *)
-                ADIOI_Malloc(count_my_req_per_proc[i] * 2 * sizeof(ADIO_Offset));
+            my_req[i].offsets = ADIOI_Malloc(count_my_req_per_proc[i] * 2 * sizeof(ADIO_Offset));
             my_req[i].lens = my_req[i].offsets + count_my_req_per_proc[i];
             count_my_req_procs++;
         }
@@ -537,7 +534,7 @@ void ADIOI_GPFS_Calc_my_req(ADIO_File fd, ADIO_Offset * offset_list, ADIO_Offset
 
 /* now fill in my_req */
     curr_idx = 0;
-    for (i = 0; i < contig_access_count; i++) {
+    for (MPI_Count i = 0; i < contig_access_count; i++) {
         /* short circuit offset/len processing if len == 0
          *      (zero-byte  read/write */
         if (len_list[i] == 0)
@@ -591,12 +588,12 @@ void ADIOI_GPFS_Calc_my_req(ADIO_File fd, ADIO_Offset * offset_list, ADIO_Offset
 
 
 #ifdef AGG_DEBUG
-    for (i = 0; i < nprocs; i++) {
+    for (int i = 0; i < nprocs; i++) {
         if (count_my_req_per_proc[i] > 0) {
-            DBG_FPRINTF(stderr, "data needed from %d (count = %d):\n", i, my_req[i].count);
+            DBG_FPRINTF(stderr, "data needed from %d (count = %lld):\n", i, my_req[i].count);
             for (l = 0; l < my_req[i].count; l++) {
-                DBG_FPRINTF(stderr, "   off[%d] = %lld, len[%d] = %lld\n", l,
-                            (long long) my_req[i].offsets[l], l, (long long) my_req[i].lens[l]);
+                DBG_FPRINTF(stderr, "   off[%lld] = %lld, len[%lld] = %lld\n", l,
+                            my_req[i].offsets[l], l, my_req[i].lens[l]);
             }
         }
         DBG_FPRINTF(stderr, "buf_idx[%d] = 0x%lx\n", i, buf_idx[i]);
@@ -611,7 +608,7 @@ void ADIOI_GPFS_Calc_my_req(ADIO_File fd, ADIO_Offset * offset_list, ADIO_Offset
     TRACE_ERR("Leaving ADIOI_GPFS_Calc_my_req\n");
 }
 
-void ADIOI_GPFS_Free_my_req(int nprocs, int *count_my_req_per_proc,
+void ADIOI_GPFS_Free_my_req(int nprocs, MPI_Count * count_my_req_per_proc,
                             ADIOI_Access * my_req, MPI_Aint * buf_idx)
 {
     for (int i = 0; i < nprocs; i++) {
@@ -641,12 +638,13 @@ void ADIOI_GPFS_Free_my_req(int nprocs, int *count_my_req_per_proc,
  * param[out] others_req_ptr            Array of other process' requests that lie
  *                                        in my process's file domain
  */
-void ADIOI_GPFS_Calc_others_req(ADIO_File fd, int count_my_req_procs,
-                                int *count_my_req_per_proc,
+void ADIOI_GPFS_Calc_others_req(ADIO_File fd, MPI_Count count_my_req_procs,
+                                MPI_Count * count_my_req_per_proc,
                                 ADIOI_Access * my_req,
                                 int nprocs, int myrank,
-                                int *count_others_req_procs_ptr,
-                                int **count_others_req_per_proc_ptr, ADIOI_Access ** others_req_ptr)
+                                MPI_Count * count_others_req_procs_ptr,
+                                MPI_Count ** count_others_req_per_proc_ptr,
+                                ADIOI_Access ** others_req_ptr)
 {
     TRACE_ERR("Entering ADIOI_GPFS_Calc_others_req\n");
 /* determine what requests of other processes lie in this process's
@@ -657,8 +655,7 @@ void ADIOI_GPFS_Calc_others_req(ADIO_File fd, int count_my_req_procs,
    count_others_req_per_proc[i] indicates how many separate contiguous
    requests of proc. i lie in this process's file domain. */
 
-    int *count_others_req_per_proc, count_others_req_procs;
-    int i;
+    MPI_Count *count_others_req_per_proc, count_others_req_procs;
     ADIOI_Access *others_req;
 
 #if MPI_VERSION >= 4
@@ -680,16 +677,18 @@ void ADIOI_GPFS_Calc_others_req(ADIO_File fd, int count_my_req_procs,
 #ifdef AGGREGATION_PROFILE
     MPE_Log_event(5026, 0, NULL);
 #endif
-    /* Send 1 int to each process.  count_my_req_per_proc[i] is the number of
+    /* Preliminary "how much work will we do?" data exchange:
+     * count_my_req_per_proc[i] is the number of
      * requests that my process will do to the file domain owned by process[i].
-     * Receive 1 int from each process.  count_others_req_per_proc[i] is the number of
+     * count_others_req_per_proc[i] is the number of
      * requests that process[i] will do to the file domain owned by my process.
-     */
-    count_others_req_per_proc = (int *) ADIOI_Malloc(nprocs * sizeof(int));
+     * Just sending/receiving one value here: a few lines later we'll set up
+     * the data structures for the full alltoallv */
+    count_others_req_per_proc = ADIOI_Malloc(nprocs * sizeof(*count_others_req_per_proc));
 /*     cora2a1=timebase(); */
 /*for(i=0;i<nprocs;i++) ?*/
-    MPI_Alltoall(count_my_req_per_proc, 1, MPI_INT,
-                 count_others_req_per_proc, 1, MPI_INT, fd->comm);
+    MPI_Alltoall(count_my_req_per_proc, 1, MPI_COUNT,
+                 count_others_req_per_proc, 1, MPI_COUNT, fd->comm);
 
 /*     total_cora2a+=timebase()-cora2a1; */
 
@@ -697,8 +696,7 @@ void ADIOI_GPFS_Calc_others_req(ADIO_File fd, int count_my_req_procs,
      * node's file domain.  Also allocate storage for the alltoallv
      * parameters.
      */
-    *others_req_ptr = (ADIOI_Access *)
-        ADIOI_Malloc(nprocs * sizeof(ADIOI_Access));
+    *others_req_ptr = ADIOI_Malloc(nprocs * sizeof(ADIOI_Access));
     others_req = *others_req_ptr;
 
     sdispls = ADIOI_Malloc(nprocs * sizeof(MPI_Aint));
@@ -717,19 +715,18 @@ void ADIOI_GPFS_Calc_others_req(ADIO_File fd, int count_my_req_procs,
      *   to be obtained to complete the setting of this structure.
      */
     count_others_req_procs = 0;
-    for (i = 0; i < nprocs; i++) {
+    for (int i = 0; i < nprocs; i++) {
         if (count_others_req_per_proc[i]) {
             others_req[i].count = count_others_req_per_proc[i];
 
-            others_req[i].offsets = (ADIO_Offset *)
+            others_req[i].offsets =
                 ADIOI_Malloc(count_others_req_per_proc[i] * 2 * sizeof(ADIO_Offset));
             others_req[i].lens = others_req[i].offsets + count_others_req_per_proc[i];
 
             if ((uintptr_t) others_req[i].offsets < (uintptr_t) recvBuf)
                 recvBuf = others_req[i].offsets;
 
-            others_req[i].mem_ptrs = (MPI_Aint *)
-                ADIOI_Malloc(count_others_req_per_proc[i] * sizeof(MPI_Aint));
+            others_req[i].mem_ptrs = ADIOI_Malloc(count_others_req_per_proc[i] * sizeof(MPI_Aint));
 
             count_others_req_procs++;
         } else {
@@ -750,7 +747,7 @@ void ADIOI_GPFS_Calc_others_req(ADIO_File fd, int count_my_req_procs,
     /************************/
 
     /* Determine the lowest sendBuf */
-    for (i = 0; i < nprocs; i++) {
+    for (int i = 0; i < nprocs; i++) {
         if ((my_req[i].count) && ((uintptr_t) my_req[i].offsets <= (uintptr_t) sendBuf)) {
             sendBuf = my_req[i].offsets;
         }
@@ -762,13 +759,13 @@ void ADIOI_GPFS_Calc_others_req(ADIO_File fd, int count_my_req_procs,
         sendBuf = NULL;
 
     /* Calculate the displacements from the sendBuf */
-    for (i = 0; i < nprocs; i++) {
+    for (int i = 0; i < nprocs; i++) {
         /* Send these offsets and lengths to process i. */
         scounts[i] = count_my_req_per_proc[i] * 2;
         if (scounts[i] == 0)
             sdispls[i] = 0;
         else
-            sdispls[i] = (int)
+            sdispls[i] = (MPI_Aint)
                 (((uintptr_t) my_req[i].offsets -
                   (uintptr_t) sendBuf) / (uintptr_t) sizeof(ADIO_Offset));
 
@@ -777,7 +774,7 @@ void ADIOI_GPFS_Calc_others_req(ADIO_File fd, int count_my_req_procs,
         if (rcounts[i] == 0)
             rdispls[i] = 0;
         else
-            rdispls[i] = (int)
+            rdispls[i] = (MPI_Aint)
                 (((uintptr_t) others_req[i].offsets -
                   (uintptr_t) recvBuf) / (uintptr_t) sizeof(ADIO_Offset));
     }
@@ -805,7 +802,7 @@ void ADIOI_GPFS_Calc_others_req(ADIO_File fd, int count_my_req_procs,
     TRACE_ERR("Leaving ADIOI_GPFS_Calc_others_req\n");
 }
 
-void ADIOI_GPFS_Free_others_req(int nprocs, int *count_others_req_per_proc,
+void ADIOI_GPFS_Free_others_req(int nprocs, MPI_Count * count_others_req_per_proc,
                                 ADIOI_Access * others_req)
 {
     for (int i = 0; i < nprocs; i++) {
@@ -818,6 +815,7 @@ void ADIOI_GPFS_Free_others_req(int nprocs, int *count_others_req_per_proc,
     ADIOI_Free(count_others_req_per_proc);
 }
 
+#ifndef HAS_ALLTOALLV_C
 /*
  *  Alltoallv with MPI_Aint for sdisps/rdisps
  *
@@ -850,17 +848,21 @@ MY_Alltoallv(void *sbuf, int *scounts, MPI_Aint * sdisps, MPI_Datatype stype,
         }
     }
     for (i = 0; i < nranks && disps_are_small_enough; ++i) {
-        if (rdisps[i] != (int) sdisps[i]) {
+        if (rdisps[i] != (int) rdisps[i]) {
             disps_are_small_enough = 0;
         }
     }
 
     if (disps_are_small_enough) {
         for (i = 0; i < nranks; ++i) {
-            sdisps_int[i] = sdisps[i];
+            /* cast ok: we shouldn't be here if Alltoallv_c available, and
+             * displacement sizes checked right above us */
+            sdisps_int[i] = (int) sdisps[i];
         }
         for (i = 0; i < nranks; ++i) {
-            rdisps_int[i] = rdisps[i];
+            /* cast ok: we shouldn't be here if Alltoallv_c available, and
+             * displacement sizes checked right above us */
+            rdisps_int[i] = (int) rdisps[i];
         }
         rv = MPI_Alltoallv(sbuf, scounts, sdisps_int, stype,
                            rbuf, rcounts, rdisps_int, rtype, comm);
@@ -870,16 +872,23 @@ MY_Alltoallv(void *sbuf, int *scounts, MPI_Aint * sdisps, MPI_Datatype stype,
 
     void *sbuf_copy;
     void *rbuf_copy;
-    int scount_total = 0;
-    int rcount_total = 0;
+    size_t scount_total = 0;
+    size_t rcount_total = 0;
     for (i = 0; i < nranks; i++) {
-        sdisps_int[i] = scount_total;
+        if ((scount_total != (int) scount_total) || (rcount_total != (int) rcount_total)) {
+            FPRINTF(stderr,
+                    "Error in %s: integer overflow / scount_total(%zu) != (int)scount_total(%d)"
+                    " || rcount_total(%zu) != (int)rcount_total(%d)\n",
+                    __func__, scount_total, (int) scount_total, rcount_total, (int) rcount_total);
+            MPI_Abort(MPI_COMM_WORLD, 1);
+        }
+        sdisps_int[i] = (int) scount_total;
+        rdisps_int[i] = (int) rcount_total;
         scount_total += scounts[i];
-        rdisps_int[i] = rcount_total;
         rcount_total += rcounts[i];
     }
-    sbuf_copy = (void *) ADIOI_Malloc(scount_total * sizeof_stype);
-    rbuf_copy = (void *) ADIOI_Malloc(rcount_total * sizeof_rtype);
+    sbuf_copy = ADIOI_Malloc(scount_total * sizeof_stype);
+    rbuf_copy = ADIOI_Malloc(rcount_total * sizeof_rtype);
     for (i = 0; i < nranks; i++) {
         memcpy((char *) sbuf_copy + sdisps_int[i] * sizeof_stype,
                (char *) sbuf + sdisps[i] * sizeof_stype, scounts[i] * sizeof_stype);
@@ -896,3 +905,4 @@ MY_Alltoallv(void *sbuf, int *scounts, MPI_Aint * sdisps, MPI_Datatype stype,
     ADIOI_Free(sdisps_int);
     return rv;
 }
+#endif

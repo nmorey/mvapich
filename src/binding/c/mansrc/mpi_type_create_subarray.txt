@@ -1,0 +1,41 @@
+/*D
+   MPI_Type_create_subarray - Create a datatype for a subarray of a regular, multidimensional array
+
+Synopsis:
+.vb
+int MPI_Type_create_subarray(int ndims, const int array_of_sizes[],
+                             const int array_of_subsizes[],
+                             const int array_of_starts[], int order,
+                             MPI_Datatype oldtype, MPI_Datatype *newtype)
+.ve
+.vb
+int MPI_Type_create_subarray_c(int ndims, const MPI_Count array_of_sizes[],
+                               const MPI_Count array_of_subsizes[],
+                               const MPI_Count array_of_starts[], int order,
+                               MPI_Datatype oldtype, MPI_Datatype *newtype)
+.ve
+
+Input Parameters:
++ ndims - number of array dimensions (positive integer)
+. array_of_sizes - number of elements of type oldtype in each dimension of the full array (positive integer)
+. array_of_subsizes - number of elements of type oldtype in each dimension of the subarray (positive integer)
+. array_of_starts - starting coordinates of the subarray in each dimension (non-negative integer)
+. order - array storage order flag (state)
+- oldtype - old datatype (handle)
+
+Output Parameters:
+. newtype - new datatype (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

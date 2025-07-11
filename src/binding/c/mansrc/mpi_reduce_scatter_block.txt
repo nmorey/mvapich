@@ -1,0 +1,41 @@
+/*D
+   MPI_Reduce_scatter_block - Combines values and scatters the results
+
+Synopsis:
+.vb
+int MPI_Reduce_scatter_block(const void *sendbuf, void *recvbuf, int recvcount,
+                             MPI_Datatype datatype, MPI_Op op, MPI_Comm comm)
+.ve
+.vb
+int MPI_Reduce_scatter_block_c(const void *sendbuf, void *recvbuf,
+                               MPI_Count recvcount, MPI_Datatype datatype,
+                               MPI_Op op, MPI_Comm comm)
+.ve
+
+Input Parameters:
++ sendbuf - starting address of send buffer (choice)
+. recvcount - element count per block (non-negative integer)
+. datatype - data type of elements of send and receive buffers (handle)
+. op - operation (handle)
+- comm - communicator (handle)
+
+Output Parameters:
+. recvbuf - starting address of receive buffer (choice)
+
+.N collops
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_BUFFER
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_OP
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

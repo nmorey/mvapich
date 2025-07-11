@@ -1,6 +1,6 @@
 /**
  * Copyright (c) UT-Battelle, LLC. 2014-2015. ALL RIGHTS RESERVED.
- * Copyright (C) Mellanox Technologies Ltd. 2001-2015.  ALL RIGHTS RESERVED.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2015. ALL RIGHTS RESERVED.
  * Copyright (C) ARM Ltd. 2016.  ALL RIGHTS RESERVED.
  * See file LICENSE for terms.
  */
@@ -11,11 +11,14 @@
 
 #include <uct/sm/mm/base/mm_md.h>
 #include <uct/sm/mm/base/mm_iface.h>
-#include <ucs/debug/memtrack.h>
+#include <ucs/debug/memtrack_int.h>
 #include <ucs/debug/log.h>
 #include <ucs/sys/string.h>
-#include <sys/mman.h>
+#include <ucs/profile/profile.h>
 #include <ucs/sys/sys.h>
+#include <sys/mman.h>
+#include <sys/statvfs.h>
+#include <uct/api/v2/uct_v2.h>
 
 
 /* File open flags */
@@ -48,9 +51,10 @@
 
 
 typedef struct uct_posix_md_config {
-    uct_mm_md_config_t        super;
-    char                      *dir;
-    int                       use_proc_link;
+    uct_mm_md_config_t super;
+    char               *dir;
+    int                use_proc_link;
+    size_t             shm_min_size;
 } uct_posix_md_config_t;
 
 typedef struct uct_posix_packed_rkey {
@@ -61,18 +65,33 @@ typedef struct uct_posix_packed_rkey {
 
 
 static ucs_config_field_t uct_posix_md_config_table[] = {
-  {"MM_", "", NULL,
-   ucs_offsetof(uct_posix_md_config_t, super), UCS_CONFIG_TYPE_TABLE(uct_mm_md_config_table)},
+    {"MM_", "", NULL, ucs_offsetof(uct_posix_md_config_t, super),
+     UCS_CONFIG_TYPE_TABLE(uct_mm_md_config_table)},
 
-  {"DIR", UCT_POSIX_SHM_OPEN_DIR,
-   "The path to the backing file. If it's equal to " UCT_POSIX_SHM_OPEN_DIR " then \n"
-   "shm_open() is used. Otherwise, open() is used.",
-   ucs_offsetof(uct_posix_md_config_t, dir), UCS_CONFIG_TYPE_STRING},
+    {"DIR", UCT_POSIX_SHM_OPEN_DIR,
+     "The path to the backing file. If it's equal to " UCT_POSIX_SHM_OPEN_DIR
+     " then \n"
+     "shm_open() is used. Otherwise, open() is used.",
+     ucs_offsetof(uct_posix_md_config_t, dir), UCS_CONFIG_TYPE_STRING},
 
-  {"USE_PROC_LINK", "y", "Use /proc/<pid>/fd/<fd> to share posix file.\n"
-   " y   - Use /proc/<pid>/fd/<fd> to share posix file.\n"
-   " n   - Use original file path to share posix file.\n",
-   ucs_offsetof(uct_posix_md_config_t, use_proc_link), UCS_CONFIG_TYPE_BOOL},
+    {"SHM_MIN_SIZE", "16mb",
+     "Minimal size of the shared memory file system.\n"
+     "If the file system size is less than this value, the transport will be disabled\n"
+     "since it may not be able to allocate sufficient resources for communications.",
+     ucs_offsetof(uct_posix_md_config_t, shm_min_size),
+     UCS_CONFIG_TYPE_MEMUNITS},
+
+    {"USE_PROC_LINK", "y",
+     "Use /proc/<pid>/fd/<fd> to share posix file.\n"
+     " y   - Use /proc/<pid>/fd/<fd> to share posix file.\n"
+     " n   - Use original file path to share posix file.\n",
+     ucs_offsetof(uct_posix_md_config_t, use_proc_link), UCS_CONFIG_TYPE_BOOL},
+
+    {NULL}
+};
+
+static ucs_config_field_t uct_posix_iface_config_table[] = {
+  {"MM_", "", NULL, 0, UCS_CONFIG_TYPE_TABLE(uct_mm_iface_config_table)},
 
   {NULL}
 };
@@ -80,6 +99,12 @@ static ucs_config_field_t uct_posix_md_config_table[] = {
 static int uct_posix_use_shm_open(const uct_posix_md_config_t *posix_config)
 {
     return !strcmp(posix_config->dir, UCT_POSIX_SHM_OPEN_DIR);
+}
+
+static ucs_status_t uct_posix_query(int *attach_shm_file_p)
+{
+    *attach_shm_file_p = 1;
+    return UCS_OK;
 }
 
 static size_t uct_posix_iface_addr_length(uct_mm_md_t *md)
@@ -100,11 +125,25 @@ static size_t uct_posix_iface_addr_length(uct_mm_md_t *md)
            0 : (strlen(posix_config->dir) + 1);
 }
 
-static ucs_status_t uct_posix_md_query(uct_md_h tl_md, uct_md_attr_t *md_attr)
+static ucs_status_t
+uct_posix_md_query(uct_md_h tl_md, uct_md_attr_v2_t *md_attr)
 {
-    uct_mm_md_t *md = ucs_derived_of(tl_md, uct_mm_md_t);
+    uct_mm_md_t *md                           = ucs_derived_of(tl_md, uct_mm_md_t);
+    const uct_posix_md_config_t *posix_config =
+                    ucs_derived_of(md->config, uct_posix_md_config_t);
+    struct statvfs shm_statvfs;
+    size_t shm_size;
 
-    uct_mm_md_query(&md->super, md_attr, 1);
+    if (statvfs(posix_config->dir, &shm_statvfs) < 0) {
+        ucs_error("could not stat shared memory device %s (%m)",
+                  UCT_POSIX_SHM_OPEN_DIR);
+        return UCS_ERR_NO_DEVICE;
+    }
+
+    shm_size = shm_statvfs.f_bsize * shm_statvfs.f_bavail;
+    uct_mm_md_query(&md->super, md_attr,
+                    (shm_size < posix_config->shm_min_size) ? 0 : shm_size);
+
     md_attr->rkey_packed_size = sizeof(uct_posix_packed_rkey_t) +
                                 uct_posix_iface_addr_length(md);
     return UCS_OK;
@@ -288,7 +327,7 @@ uct_posix_mmap(void **address_p, size_t *length_p, int flags, int fd,
 #endif
 
     result = ucs_mmap(*address_p, aligned_length, UCT_POSIX_MMAP_PROT,
-                      MAP_SHARED | flags, fd, 0 UCS_MEMTRACK_VAL);
+                      MAP_SHARED | flags, fd, 0, alloc_name);
     if (result == MAP_FAILED) {
         ucs_log(err_level,
                 "shared memory mmap(addr=%p, length=%zu, flags=%s%s, fd=%d) failed: %m",
@@ -411,7 +450,8 @@ uct_posix_segment_open(uct_mm_md_t *md, uct_mm_seg_id_t *seg_id_p, int *fd_p)
 
 static ucs_status_t
 uct_posix_mem_alloc(uct_md_h tl_md, size_t *length_p, void **address_p,
-                    unsigned flags, const char *alloc_name, uct_mem_h *memh_p)
+                    ucs_memory_type_t mem_type, unsigned flags,
+                    const char *alloc_name, uct_mem_h *memh_p)
 {
     uct_mm_md_t                     *md = ucs_derived_of(tl_md, uct_mm_md_t);
     uct_posix_md_config_t *posix_config = ucs_derived_of(md->config,
@@ -422,6 +462,10 @@ uct_posix_mem_alloc(uct_md_h tl_md, size_t *length_p, void **address_p,
     int mmap_flags;
     void *address;
     int fd;
+
+    if (mem_type != UCS_MEMORY_TYPE_HOST) {
+        return UCS_ERR_UNSUPPORTED;
+    }
 
     status = uct_mm_seg_new(*address_p, *length_p, &seg);
     if (status != UCS_OK) {
@@ -578,11 +622,13 @@ static ucs_status_t uct_posix_iface_addr_pack(uct_mm_md_t *md, void *buffer)
 }
 
 static ucs_status_t
-uct_posix_md_mkey_pack(uct_md_h tl_md, uct_mem_h memh, void *rkey_buffer)
+uct_posix_md_mkey_pack(uct_md_h tl_md, uct_mem_h memh,
+                       const uct_md_mkey_pack_params_t *params,
+                       void *mkey_buffer)
 {
-    uct_mm_md_t                      *md = ucs_derived_of(tl_md, uct_mm_md_t);
-    uct_mm_seg_t                    *seg = memh;
-    uct_posix_packed_rkey_t *packed_rkey = rkey_buffer;
+    uct_mm_md_t *md                      = ucs_derived_of(tl_md, uct_mm_md_t);
+    uct_mm_seg_t *seg                    = memh;
+    uct_posix_packed_rkey_t *packed_rkey = mkey_buffer;
 
     packed_rkey->seg_id  = seg->seg_id;
     packed_rkey->address = (uintptr_t)seg->address;
@@ -607,9 +653,10 @@ static void uct_posix_mem_detach(uct_mm_md_t *md, const uct_mm_remote_seg_t *rse
     uct_posix_mem_detach_common(rseg);
 }
 
-static ucs_status_t
-uct_posix_rkey_unpack(uct_component_t *component, const void *rkey_buffer,
-                      uct_rkey_t *rkey_p, void **handle_p)
+UCS_PROFILE_FUNC(ucs_status_t, uct_posix_rkey_unpack,
+                 (component, rkey_buffer, rkey_p, handle_p),
+                 uct_component_t *component, const void *rkey_buffer,
+                 uct_rkey_t *rkey_p, void **handle_p)
 {
     const uct_posix_packed_rkey_t *packed_rkey = rkey_buffer;
     uct_mm_remote_seg_t *rseg;
@@ -634,8 +681,8 @@ uct_posix_rkey_unpack(uct_component_t *component, const void *rkey_buffer,
     return UCS_OK;
 }
 
-static ucs_status_t
-uct_posix_rkey_release(uct_component_t *component, uct_rkey_t rkey, void *handle)
+UCS_PROFILE_FUNC(ucs_status_t, uct_posix_rkey_release,(component, rkey, handle),
+                 uct_component_t *component, uct_rkey_t rkey, void *handle)
 {
     uct_mm_remote_seg_t *rseg = handle;
     ucs_status_t status;
@@ -655,21 +702,25 @@ static uct_mm_md_mapper_ops_t uct_posix_md_ops = {
         .query                  = uct_posix_md_query,
         .mem_alloc              = uct_posix_mem_alloc,
         .mem_free               = uct_posix_mem_free,
-        .mem_advise             = (uct_md_mem_advise_func_t)ucs_empty_function_return_unsupported,
-        .mem_reg                = (uct_md_mem_reg_func_t)ucs_empty_function_return_unsupported,
-        .mem_dereg              = (uct_md_mem_dereg_func_t)ucs_empty_function_return_unsupported,
+        .mem_advise             = ucs_empty_function_return_unsupported,
+        .mem_reg                = ucs_empty_function_return_unsupported,
+        .mem_dereg              = ucs_empty_function_return_unsupported,
+        .mem_attach             = ucs_empty_function_return_unsupported,
         .mkey_pack              = uct_posix_md_mkey_pack,
-        .is_sockaddr_accessible = (uct_md_is_sockaddr_accessible_func_t)ucs_empty_function_return_zero,
-        .detect_memory_type     = (uct_md_detect_memory_type_func_t)ucs_empty_function_return_unsupported
+        .is_sockaddr_accessible = ucs_empty_function_return_zero_int,
+        .detect_memory_type     = ucs_empty_function_return_unsupported
     },
-   .query                       = (uct_mm_mapper_query_func_t)
-                                      ucs_empty_function_return_success,
-   .iface_addr_length           = uct_posix_iface_addr_length,
-   .iface_addr_pack             = uct_posix_iface_addr_pack,
-   .mem_attach                  = uct_posix_mem_attach,
-   .mem_detach                  = uct_posix_mem_detach,
-   .is_reachable                = uct_posix_is_reachable
+    .query             = uct_posix_query,
+    .iface_addr_length = uct_posix_iface_addr_length,
+    .iface_addr_pack   = uct_posix_iface_addr_pack,
+    .mem_attach        = uct_posix_mem_attach,
+    .mem_detach        = uct_posix_mem_detach,
+    .is_reachable      = uct_posix_is_reachable
 };
 
 UCT_MM_TL_DEFINE(posix, &uct_posix_md_ops, uct_posix_rkey_unpack,
-                 uct_posix_rkey_release, "POSIX_")
+                 uct_posix_rkey_release, "POSIX_",
+                 uct_posix_iface_config_table);
+
+UCT_SINGLE_TL_INIT(&uct_posix_component.super, posix,,,)
+

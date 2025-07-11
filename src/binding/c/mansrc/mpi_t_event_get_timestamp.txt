@@ -1,0 +1,26 @@
+/*D
+   MPI_T_event_get_timestamp - Returns the timestamp of when the event was initially observed by the implementation
+
+Synopsis:
+.vb
+int MPI_T_event_get_timestamp(MPI_T_event_instance event_instance,
+                              MPI_Count *event_timestamp)
+.ve
+
+Input Parameters:
+. event_instance - event instance provided to the callback function (handle)
+
+Output Parameters:
+. event_timestamp - timestamp the event was observed (integer)
+
+.N ThreadSafe
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_T_ERR_INVALID
+.N MPI_T_ERR_INVALID_HANDLE
+.N MPI_T_ERR_NOT_INITIALIZED
+.N MPI_ERR_OTHER
+
+D*/
+

@@ -1,7 +1,3 @@
-C -*- Mode: Fortran; -*- 
-C
-C  (C) 2015 by Argonne National Laboratory.
-C      See COPYRIGHT in top-level directory.
 C
 C Copyright (C) by Argonne National Laboratory
 C     See COPYRIGHT in top-level directory
@@ -22,7 +18,7 @@ C
 C
 C  initialize the mpi environment
 C
-      call mpi_init(ierr)
+      call mtest_init(ierr)
 
       call mpi_comm_create_keyval(MPI_COMM_DUP_FN,
      $     MPI_NULL_DELETE_FN,

@@ -1,0 +1,15 @@
+/*D
+   MPI_Win_c2f - converts MPI_Win to Fortran INTEGER
+
+Synopsis:
+.vb
+MPI_Fint MPI_Win_c2f(MPI_Win win)
+.ve
+
+Input Parameters:
+. win - window object (handle)
+
+.N ThreadSafe
+
+D*/
+

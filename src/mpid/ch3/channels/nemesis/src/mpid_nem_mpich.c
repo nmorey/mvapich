@@ -3,18 +3,6 @@
  *     See COPYRIGHT in top-level directory
  */
 
-/* Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- *
- */
-
 #include "mpid_nem_impl.h"
 #include "mpid_nem_fbox.h"
 #include "mpid_nem_nets.h"
@@ -40,9 +28,8 @@ MPID_nem_mpich_init(void)
     int mpi_errno = MPI_SUCCESS;
     int i;
     MPIR_CHKPMEM_DECL (2);
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_NEM_MPICH_INIT);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_NEM_MPICH_INIT);
+    MPIR_FUNC_ENTER;
 
     MPID_nem_prefetched_cell = NULL;
 
@@ -71,14 +58,9 @@ MPID_nem_mpich_init(void)
     MPID_nem_curr_fbox_all_poll = &MPID_nem_fboxq_elem_list[0];
     MPID_nem_fboxq_elem_list_last = &MPID_nem_fboxq_elem_list[MPID_nem_mem_region.num_local - 1];
 
-#ifdef _OSU_MVAPICH_
-    MPIDI_Process.my_pg->ch.local_process_id = MPID_nem_mem_region.local_rank;
-    MPIDI_Process.my_pg->ch.num_local_processes = MPID_nem_mem_region.num_local;
-#endif /* _OSU_MVAPICH_ */
-
     MPIR_CHKPMEM_COMMIT();
 fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_NEM_MPICH_INIT);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 fn_fail:
     /* --BEGIN ERROR HANDLING-- */
@@ -97,9 +79,8 @@ int MPID_nem_send_iov(MPIDI_VC_t *vc, MPIR_Request **sreq_ptr, struct iovec *iov
     struct iovec *data_iov = &iov[1]; /* iov of just the data, not the header */
     int data_n_iov = n_iov - 1;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_NEM_SEND_IOV);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_NEM_SEND_IOV);
+    MPIR_FUNC_ENTER;
 
     if (*sreq_ptr == NULL)
     {
@@ -157,7 +138,7 @@ int MPID_nem_send_iov(MPIDI_VC_t *vc, MPIR_Request **sreq_ptr, struct iovec *iov
     *sreq_ptr = sreq;
 
  fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_NEM_SEND_IOV);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
  fn_fail:
     goto fn_exit;

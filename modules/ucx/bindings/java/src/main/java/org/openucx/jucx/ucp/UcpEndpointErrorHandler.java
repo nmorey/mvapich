@@ -1,5 +1,5 @@
 /*
- * Copyright (C) Mellanox Technologies Ltd. 2020. ALL RIGHTS RESERVED.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2020. ALL RIGHTS RESERVED.
  * See file LICENSE for terms.
  */
 package org.openucx.jucx.ucp;
@@ -15,5 +15,5 @@ public interface UcpEndpointErrorHandler {
      *             all subsequent operations on this ep will fail with
      *             the error code passed in {@code status}.
      */
-    void onError(UcpEndpoint ep, int status, String errorMsg);
+    void onError(UcpEndpoint ep, int status, String errorMsg) throws Exception;
 }

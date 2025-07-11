@@ -56,25 +56,25 @@ cvars:
 /* -------------------------------------------------------------------------- */
 
 /*
- * MPIDI_Busy_wait()
+ * MPIU_Busy_wait()
  *
  * Call this in every busy wait loop to periodically yield the processor.  The
  * MPIR_CVAR_POLLS_BEFORE_YIELD parameter can be used to adjust the number of
- * times MPIDI_Busy_wait is called before the yield function is called.
+ * times MPIU_Busy_wait is called before the yield function is called.
  */
 #ifdef USE_NOTHING_FOR_YIELD
 /* optimize if we're not yielding the processor */
-#define MPIDI_Busy_wait() do {} while (0)
+#define MPIU_Busy_wait() do {} while (0)
 #else
 /* MT: Updating the static int poll_count variable isn't thread safe and will
    need to be changed for fine-grained multithreading.  A possible alternative
    is to make it a global thread-local variable. */
-#define MPIDI_Busy_wait() do {                                   \
+#define MPIU_Busy_wait() do {                                   \
         if (MPIR_CVAR_POLLS_BEFORE_YIELD) {                    \
             static int poll_count_ = 0;                         \
             if (poll_count_ >= MPIR_CVAR_POLLS_BEFORE_YIELD) { \
                 poll_count_ = 0;                                \
-                MPL_sched_yield();                              \
+                MPID_Thread_yield();                            \
             } else {                                            \
                 ++poll_count_;                                  \
             }                                                   \
@@ -100,8 +100,7 @@ MPID_nem_mpich_send_header (void* buf, int size, MPIDI_VC_t *vc, int *again)
     int my_rank;
     MPIDI_CH3I_VC *vc_ch = &vc->ch;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_NEM_MPICH_SEND_HEADER);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_NEM_MPICH_SEND_HEADER);
+    MPIR_FUNC_ENTER;
 
     /*DO_PAPI (PAPI_reset (PAPI_EventSet)); */
 
@@ -201,7 +200,7 @@ MPID_nem_mpich_send_header (void* buf, int size, MPIDI_VC_t *vc, int *again)
     *again = 1;
     goto fn_exit;
  fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_NEM_MPICH_SEND_HEADER);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 }
 
@@ -224,9 +223,8 @@ MPID_nem_mpich_sendv (struct iovec **iov, int *n_iov, MPIDI_VC_t *vc, int *again
     intptr_t payload_len;
     int my_rank;
     MPIDI_CH3I_VC *vc_ch = &vc->ch;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_NEM_MPICH_SENDV);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_NEM_MPICH_SENDV);
+    MPIR_FUNC_ENTER;
 
     MPIR_Assert (*n_iov > 0 && (*iov)->iov_len > 0);
     MPIR_Assert(vc_ch->is_local);
@@ -305,7 +303,7 @@ MPID_nem_mpich_sendv (struct iovec **iov, int *n_iov, MPIDI_VC_t *vc, int *again
     *again = 1;
     goto fn_exit;
  fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_NEM_MPICH_SENDV);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 }
 
@@ -321,9 +319,8 @@ MPID_nem_mpich_sendv_header (struct iovec **iov, int *n_iov, MPIDI_VC_t *vc, int
     int my_rank;
     MPIDI_CH3I_VC *vc_ch = &vc->ch;
     MPI_Aint buf_offset = 0;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_NEM_MPICH_SENDV_HEADER);
     
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_NEM_MPICH_SENDV_HEADER);
+    MPIR_FUNC_ENTER;
 
     MPIR_Assert(vc_ch->is_local);
 
@@ -438,10 +435,8 @@ MPID_nem_mpich_sendv_header (struct iovec **iov, int *n_iov, MPIDI_VC_t *vc, int
     *again = 1;
     goto fn_exit;
  fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_NEM_MPICH_SENDV_HEADER);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
- fn_fail:
-    goto fn_exit;
 }
 
 /* send the header and data described by the segment in one cell.  If
@@ -462,8 +457,7 @@ MPID_nem_mpich_send_seg_header (void *buf, MPI_Aint count, MPI_Datatype datatype
                                 intptr_t *msg_offset, intptr_t msgsize,
                                 void *header, intptr_t header_sz, MPIDI_VC_t *vc, int *again)
 {
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_NEM_MPICH_SEND_SEG_HEADER);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_NEM_MPICH_SEND_SEG_HEADER);
+    MPIR_FUNC_ENTER;
 
     MPID_nem_cell_ptr_t el;
     intptr_t datalen;
@@ -511,7 +505,7 @@ MPID_nem_mpich_send_seg_header (void *buf, MPI_Aint count, MPI_Datatype datatype
             MPI_Aint actual_pack_bytes;
             MPIR_Typerep_pack(buf, count, datatype, *msg_offset,
                            (char *)cell_ptr->payload + sizeof(MPIDI_CH3_Pkt_t),
-                           msgsize - *msg_offset, &actual_pack_bytes);
+                           msgsize - *msg_offset, &actual_pack_bytes, MPIR_TYPEREP_FLAG_NONE);
             MPIR_Assert(actual_pack_bytes == msgsize - *msg_offset);
 
             MPL_atomic_release_store_int(&pbox->flag, 1);
@@ -566,7 +560,7 @@ MPID_nem_mpich_send_seg_header (void *buf, MPI_Aint count, MPI_Datatype datatype
 
     MPI_Aint actual_pack_bytes;
     MPIR_Typerep_pack(buf, count, datatype, *msg_offset, (char *)el->payload + buf_offset,
-                   max_pack_bytes, &actual_pack_bytes);
+                   max_pack_bytes, &actual_pack_bytes, MPIR_TYPEREP_FLAG_NONE);
     datalen = buf_offset + actual_pack_bytes;
     *msg_offset += actual_pack_bytes;
 
@@ -596,7 +590,7 @@ MPID_nem_mpich_send_seg_header (void *buf, MPI_Aint count, MPI_Datatype datatype
     *again = 1;
     goto fn_exit;
  fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_NEM_MPICH_SEND_SEG_HEADER);
+    MPIR_FUNC_EXIT;
     return;
 }
 
@@ -606,8 +600,7 @@ static inline void
 MPID_nem_mpich_send_seg (void *buf, MPI_Aint count, MPI_Datatype datatype,
                          intptr_t *msg_offset, intptr_t msgsize, MPIDI_VC_t *vc, int *again)
 {
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_NEM_MPICH_SEND_SEG);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_NEM_MPICH_SEND_SEG);
+    MPIR_FUNC_ENTER;
 
     MPID_nem_cell_ptr_t el;
     intptr_t datalen;
@@ -652,7 +645,7 @@ MPID_nem_mpich_send_seg (void *buf, MPI_Aint count, MPI_Datatype datatype,
 
     MPI_Aint actual_pack_bytes;
     MPIR_Typerep_pack(buf, count, datatype, *msg_offset, (char *)el->payload,
-                   max_pack_bytes, &actual_pack_bytes);
+                   max_pack_bytes, &actual_pack_bytes, MPIR_TYPEREP_FLAG_NONE);
     datalen = actual_pack_bytes;
     *msg_offset += actual_pack_bytes;
     
@@ -681,7 +674,7 @@ MPID_nem_mpich_send_seg (void *buf, MPI_Aint count, MPI_Datatype datatype,
     *again = 1;
     goto fn_exit;
  fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_NEM_MPICH_SEND_SEG_HEADER);
+    MPIR_FUNC_EXIT;
     return;
 }
 
@@ -695,8 +688,7 @@ MPID_nem_mpich_send_seg (void *buf, MPI_Aint count, MPI_Datatype datatype,
 static inline void MPID_nem_mpich_dequeue_fastbox(int local_rank)
 {
     MPID_nem_fboxq_elem_t *el;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_NEM_MPICH_DEQUEUE_FASTBOX);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_NEM_MPICH_DEQUEUE_FASTBOX);
+    MPIR_FUNC_ENTER;
 
     MPIR_Assert(local_rank < MPID_nem_mem_region.num_local);
 
@@ -726,7 +718,7 @@ static inline void MPID_nem_mpich_dequeue_fastbox(int local_rank)
 		MPID_nem_curr_fboxq_elem = el->next;
 	}
     }    
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_NEM_MPICH_DEQUEUE_FASTBOX);
+    MPIR_FUNC_EXIT;
 }
 
 /*
@@ -738,8 +730,7 @@ static inline void MPID_nem_mpich_dequeue_fastbox(int local_rank)
 static inline void MPID_nem_mpich_enqueue_fastbox(int local_rank)
 {
     MPID_nem_fboxq_elem_t *el;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_NEM_MPICH_ENQUEUE_FASTBOX);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_NEM_MPICH_ENQUEUE_FASTBOX);
+    MPIR_FUNC_ENTER;
 
     MPIR_Assert(local_rank < MPID_nem_mem_region.num_local);
 
@@ -767,7 +758,7 @@ static inline void MPID_nem_mpich_enqueue_fastbox(int local_rank)
 	el->next = NULL;
 	MPID_nem_fboxq_tail = el;
     }
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_NEM_MPICH_ENQUEUE_FASTBOX);
+    MPIR_FUNC_EXIT;
 }
 /*
   MPID_nem_recv_seqno_matches (MPID_nem_queue_ptr_t qhead)
@@ -779,13 +770,12 @@ static inline int
 MPID_nem_recv_seqno_matches (MPID_nem_queue_ptr_t qhead)
 {
     int source;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_NEM_RECV_SEQNO_MATCHES);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_NEM_RECV_SEQNO_MATCHES);
+    MPIR_FUNC_ENTER;
 
     MPID_nem_cell_ptr_t cell = MPID_nem_queue_head(qhead);
     source = cell->header.source;
     
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_NEM_RECV_SEQNO_MATCHES);
+    MPIR_FUNC_EXIT;
     return (cell->header.seqno == MPID_nem_recv_seqno[source]);
 }
 
@@ -800,8 +790,7 @@ static inline int
 MPID_nem_mpich_test_recv(MPID_nem_cell_ptr_t *cell, int *in_fbox, int in_blocking_progress)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_NEM_MPICH_TEST_RECV);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_NEM_MPICH_TEST_RECV);
+    MPIR_FUNC_ENTER;
     
     DO_PAPI (PAPI_reset (PAPI_EventSet));
 
@@ -852,7 +841,7 @@ MPID_nem_mpich_test_recv(MPID_nem_cell_ptr_t *cell, int *in_fbox, int in_blockin
     });
 
  fn_fail:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_NEM_MPICH_TEST_RECV);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 
  fbox_l:
@@ -873,8 +862,7 @@ static inline int
 MPID_nem_mpich_test_recv_wait (MPID_nem_cell_ptr_t *cell, int *in_fbox, int timeout)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_NEM_MPICH_TEST_RECV_WAIT);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_NEM_MPICH_TEST_RECV_WAIT);
+    MPIR_FUNC_ENTER;
 #ifdef USE_FASTBOX
     if (poll_active_fboxes(cell)) goto fbox_l;
 #endif/* USE_FASTBOX     */
@@ -909,7 +897,7 @@ MPID_nem_mpich_test_recv_wait (MPID_nem_cell_ptr_t *cell, int *in_fbox, int time
         });
 
  fn_fail:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_NEM_MPICH_TEST_RECV_WAIT);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 
  fbox_l:
@@ -929,8 +917,7 @@ static inline int
 MPID_nem_mpich_blocking_recv(MPID_nem_cell_ptr_t *cell, int *in_fbox, int completions)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_NEM_MPICH_BLOCKING_RECV);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_NEM_MPICH_BLOCKING_RECV);
+    MPIR_FUNC_ENTER;
     DO_PAPI (PAPI_reset (PAPI_EventSet));
 
     /* We should never enter this function in a multithreaded app */
@@ -973,7 +960,7 @@ MPID_nem_mpich_blocking_recv(MPID_nem_cell_ptr_t *cell, int *in_fbox, int comple
             *in_fbox = 0;
             goto exit_l;
         }
-        MPIDI_Busy_wait();
+        MPIU_Busy_wait();
     }
 
     MPID_nem_queue_dequeue (MPID_nem_mem_region.my_recvQ, cell);
@@ -994,7 +981,7 @@ MPID_nem_mpich_blocking_recv(MPID_nem_cell_ptr_t *cell, int *in_fbox, int comple
         });
 
  fn_fail:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_NEM_MPICH_BLOCKING_RECV);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 
  fbox_l:
@@ -1011,15 +998,14 @@ static inline int
 MPID_nem_mpich_release_cell (MPID_nem_cell_ptr_t cell, MPIDI_VC_t *vc)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_NEM_MPICH_RELEASE_CELL);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_NEM_MPICH_RELEASE_CELL);
+    MPIR_FUNC_ENTER;
 
     MPIDI_CH3I_VC *vc_ch = &vc->ch;
     DO_PAPI (PAPI_reset (PAPI_EventSet));
     MPID_nem_queue_enqueue (vc_ch->free_queue, cell);
     DO_PAPI (PAPI_accum_var (PAPI_EventSet,PAPI_vvalues9));
 
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_NEM_MPICH_RELEASE_CELL);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 }
 

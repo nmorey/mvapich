@@ -1,0 +1,22 @@
+/*D
+   MPI_Finalized - Indicates whether 'MPI_Finalize' has been called.
+
+Synopsis:
+.vb
+int MPI_Finalized(int *flag)
+.ve
+
+Output Parameters:
+. flag - true if mpi was finalized (logical)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_OTHER
+
+D*/
+

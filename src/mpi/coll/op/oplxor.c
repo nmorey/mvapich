@@ -17,9 +17,9 @@
 #define MPIR_LLXOR(a,b) (((a)&&(!b))||((!a)&&(b)))
 #endif
 
-void MPIR_LXOR(void *invec, void *inoutvec, int *Len, MPI_Datatype * type)
+void MPIR_LXOR(void *invec, void *inoutvec, MPI_Aint * Len, MPI_Datatype * type)
 {
-    int i, len = *Len;
+    MPI_Aint i, len = *Len;
 
     switch (*type) {
 #undef MPIR_OP_TYPE_MACRO
@@ -55,10 +55,6 @@ void MPIR_LXOR(void *invec, void *inoutvec, int *Len, MPI_Datatype * type)
                 MPIR_OP_TYPE_GROUP(C_INTEGER_EXTRA)
                 MPIR_OP_TYPE_GROUP(FORTRAN_INTEGER)
                 MPIR_OP_TYPE_GROUP(FORTRAN_INTEGER_EXTRA)
-                /* We previously supported floating point types, although I question
-                 * their utility in logical boolean ops [goodell@ 2009-03-16] */
-                MPIR_OP_TYPE_GROUP(FLOATING_POINT)
-                MPIR_OP_TYPE_GROUP(FLOATING_POINT_EXTRA)
 #undef MPIR_OP_TYPE_MACRO
         default:
             MPIR_Assert(0);
@@ -80,10 +76,6 @@ int MPIR_LXOR_check_dtype(MPI_Datatype type)
                 MPIR_OP_TYPE_GROUP(C_INTEGER_EXTRA)
                 MPIR_OP_TYPE_GROUP(FORTRAN_INTEGER)
                 MPIR_OP_TYPE_GROUP(FORTRAN_INTEGER_EXTRA)
-                /* We previously supported floating point types, although I question
-                 * their utility in logical boolean ops [goodell@ 2009-03-16] */
-                MPIR_OP_TYPE_GROUP(FLOATING_POINT)
-                MPIR_OP_TYPE_GROUP(FLOATING_POINT_EXTRA)
 #undef MPIR_OP_TYPE_MACRO
                 return MPI_SUCCESS;
             /* --BEGIN ERROR HANDLING-- */

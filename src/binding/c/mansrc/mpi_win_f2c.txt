@@ -1,0 +1,15 @@
+/*D
+   MPI_Win_f2c - converts Fortran INTEGER to MPI_Win
+
+Synopsis:
+.vb
+MPI_Win MPI_Win_f2c(MPI_Fint win)
+.ve
+
+Input Parameters:
+. win - win (None)
+
+.N ThreadSafe
+
+D*/
+

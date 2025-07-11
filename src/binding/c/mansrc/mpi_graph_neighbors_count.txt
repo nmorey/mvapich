@@ -1,0 +1,28 @@
+/*D
+   MPI_Graph_neighbors_count - Returns the number of neighbors of a node
+
+Synopsis:
+.vb
+int MPI_Graph_neighbors_count(MPI_Comm comm, int rank, int *nneighbors)
+.ve
+
+Input Parameters:
++ comm - communicator with graph topology (handle)
+- rank - rank of process in group of comm (integer)
+
+Output Parameters:
+. nneighbors - number of neighbors of specified process (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_RANK
+.N MPI_ERR_OTHER
+
+D*/
+

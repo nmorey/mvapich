@@ -1,0 +1,29 @@
+/*D
+   MPI_T_event_handle_alloc - Creates a registration handle for the event type identified by event_index
+
+Synopsis:
+.vb
+int MPI_T_event_handle_alloc(int event_index, void *obj_handle, MPI_Info info,
+                             MPI_T_event_registration *event_registration)
+.ve
+
+Input Parameters:
++ event_index - index of event type for which the registration handle is to be allocated (integer)
+. obj_handle - reference to a handle of the mpi object to which this event is supposed to be bound (pointer)
+- info - info object (handle)
+
+Output Parameters:
+. event_registration - event registration (handle)
+
+.N ThreadSafe
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_INFO
+.N MPI_T_ERR_INVALID
+.N MPI_T_ERR_INVALID_INDEX
+.N MPI_T_ERR_NOT_INITIALIZED
+.N MPI_ERR_OTHER
+
+D*/
+

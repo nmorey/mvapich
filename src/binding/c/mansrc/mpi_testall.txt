@@ -1,0 +1,51 @@
+/*D
+   MPI_Testall - Tests for the completion of all previously initiated requests
+
+Synopsis:
+.vb
+int MPI_Testall(int count, MPI_Request array_of_requests[], int *flag,
+                MPI_Status *array_of_statuses)
+.ve
+
+Input Parameters:
+. count - count (non-negative integer)
+
+Input/Output Parameters:
+. array_of_requests - array of requests (handle)
+
+Output Parameters:
++ flag - flag (logical)
+- array_of_statuses - array of status objects (Status)
+
+Notes:
+  'flag' is true only if all requests have completed.  Otherwise, flag is
+  false and neither the 'array_of_requests' nor the 'array_of_statuses' is
+  modified.
+
+If one or more of the requests completes with an error, 'MPI_ERR_IN_STATUS' is
+returned.  An error value will be present is elements of 'array_of_statuses'
+associated with the requests.  Likewise, the 'MPI_ERROR' field in the status
+elements associated with requests that have successfully completed will be
+'MPI_SUCCESS'.  Finally, those requests that have not completed will have a
+value of 'MPI_ERR_PENDING'.
+
+While it is possible to list a request handle more than once in the
+'array_of_requests', such an action is considered erroneous and may cause the
+program to unexecpectedly terminate or produce incorrect results.
+
+.N waitstatus
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COUNT
+.N MPI_ERR_IN_STATUS
+.N MPI_ERR_REQUEST
+.N MPI_ERR_OTHER
+
+D*/
+

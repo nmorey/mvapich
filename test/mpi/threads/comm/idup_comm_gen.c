@@ -21,7 +21,7 @@ int errs[NUM_THREADS] = { 0 };
 
 int verbose = 0;
 
-MTEST_THREAD_RETURN_TYPE test_idup(void *arg)
+static MTEST_THREAD_RETURN_TYPE test_idup(void *arg)
 {
     int i;
     int size, rank;
@@ -112,7 +112,7 @@ MTEST_THREAD_RETURN_TYPE test_idup(void *arg)
         MPI_Comm_free(&idupcomms[i]);
     }
     MPI_Group_free(&ingroup);
-    return NULL;
+    MTEST_THREAD_RETURN_EXPRESSION;
 }
 
 int main(int argc, char **argv)

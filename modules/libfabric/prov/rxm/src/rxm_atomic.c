@@ -186,7 +186,7 @@ rxm_ep_atomic_common(struct rxm_ep *rxm_ep, struct rxm_conn *rxm_conn,
 
 	ret = rxm_ep_send_atomic_req(rxm_ep, rxm_conn, tx_buf, tot_len);
 	if (ret)
-		rxm_free_rx_buf(rxm_ep, tx_buf);
+		rxm_free_tx_buf(rxm_ep, tx_buf);
 
 	return ret;
 }
@@ -198,7 +198,7 @@ rxm_ep_generic_atomic_writemsg(struct rxm_ep *rxm_ep, const struct fi_msg_atomic
 	struct rxm_conn *rxm_conn;
 	ssize_t ret;
 
-	ofi_ep_lock_acquire(&rxm_ep->util_ep);
+	ofi_genlock_lock(&rxm_ep->util_ep.lock);
 	ret = rxm_get_conn(rxm_ep, msg->addr, &rxm_conn);
 	if (ret)
 		goto unlock;
@@ -206,7 +206,7 @@ rxm_ep_generic_atomic_writemsg(struct rxm_ep *rxm_ep, const struct fi_msg_atomic
 	ret = rxm_ep_atomic_common(rxm_ep, rxm_conn, msg, NULL, NULL, 0,
 				   NULL, NULL, 0, ofi_op_atomic, flags);
 unlock:
-	ofi_ep_lock_release(&rxm_ep->util_ep);
+	ofi_genlock_unlock(&rxm_ep->util_ep.lock);
 	return ret;
 }
 
@@ -308,7 +308,7 @@ rxm_ep_generic_atomic_readwritemsg(struct rxm_ep *rxm_ep,
 	struct rxm_conn *rxm_conn;
 	ssize_t ret;
 
-	ofi_ep_lock_acquire(&rxm_ep->util_ep);
+	ofi_genlock_lock(&rxm_ep->util_ep.lock);
 	ret = rxm_get_conn(rxm_ep, msg->addr, &rxm_conn);
 	if (ret)
 		goto unlock;
@@ -317,7 +317,7 @@ rxm_ep_generic_atomic_readwritemsg(struct rxm_ep *rxm_ep,
 				   resultv, result_desc, result_count,
 				   ofi_op_atomic_fetch, flags);
 unlock:
-	ofi_ep_lock_release(&rxm_ep->util_ep);
+	ofi_genlock_unlock(&rxm_ep->util_ep.lock);
 	return ret;
 }
 
@@ -401,7 +401,7 @@ rxm_ep_generic_atomic_compwritemsg(struct rxm_ep *rxm_ep,
 	struct rxm_conn *rxm_conn;
 	ssize_t ret;
 
-	ofi_ep_lock_acquire(&rxm_ep->util_ep);
+	ofi_genlock_lock(&rxm_ep->util_ep.lock);
 	ret = rxm_get_conn(rxm_ep, msg->addr, &rxm_conn);
 	if (ret)
 		goto unlock;
@@ -411,7 +411,7 @@ rxm_ep_generic_atomic_compwritemsg(struct rxm_ep *rxm_ep,
 				   result_desc, result_count,
 				   ofi_op_atomic_compare, flags);
 unlock:
-	ofi_ep_lock_release(&rxm_ep->util_ep);
+	ofi_genlock_unlock(&rxm_ep->util_ep.lock);
 	return ret;
 }
 
@@ -507,6 +507,12 @@ int rxm_ep_query_atomic(struct fid_domain *domain, enum fi_datatype datatype,
 		FI_WARN(&rxm_prov, FI_LOG_EP_DATA,
 			"tagged atomic op not supported\n");
 		return -FI_EINVAL;
+	}
+
+	if ((datatype == FI_INT128) || (datatype == FI_UINT128)) {
+		FI_WARN(&rxm_prov, FI_LOG_EP_CTRL,
+			"128-bit integers not supported\n");
+		return -FI_EOPNOTSUPP;
 	}
 
 	ret = ofi_atomic_valid(&rxm_prov, datatype, op, flags);

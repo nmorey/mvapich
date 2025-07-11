@@ -9,20 +9,9 @@
 #include <mpi.h>
 #include "release_gather_types.h"
 
-#define MPIDI_POSIX_MAX_AM_HDR_SIZE     ((1 << MPIDI_POSIX_AM_HDR_SZ_BITS) - 1)
-
-#define MPIDI_POSIX_AM_KIND_BITS  (1)   /* 0 or 1 */
-#define MPIDI_POSIX_AM_HANDLER_ID_BITS  (7)     /* up to 64 */
-#define MPIDI_POSIX_AM_HDR_SZ_BITS      (8)
-#define MPIDI_POSIX_AM_DATA_SZ_BITS     (48)
-
+#define MPIDI_POSIX_MAX_AM_HDR_SIZE     800     /* constrained by MPIDI_POSIX_AM_HDR_POOL_CELL_SIZE */
 #define MPIDI_POSIX_AM_MSG_HEADER_SIZE  (sizeof(MPIDI_POSIX_am_header_t))
 #define MPIDI_POSIX_MAX_IOV_NUM         (3)     /* am_hdr, [padding], payload */
-
-typedef enum {
-    MPIDI_POSIX_AM_HDR_SHM = 0, /* SHM internal AM header */
-    MPIDI_POSIX_AM_HDR_CH4 = 1  /* CH4 level AM header */
-} MPIDI_POSIX_am_header_kind_t;
 
 typedef enum {
     MPIDI_POSIX_EAGER_RECV_POSTED_HOOK_STATE_INITIALIZED,
@@ -30,10 +19,17 @@ typedef enum {
     MPIDI_POSIX_EAGER_RECV_POSTED_HOOK_STATE_FINALIZED
 } MPIDI_POSIX_EAGER_recv_posted_hook_state_t;
 
+typedef enum {
+    MPIDI_POSIX_AM_TYPE__HDR,
+    MPIDI_POSIX_AM_TYPE__SHORT,
+    MPIDI_POSIX_AM_TYPE__PIPELINE
+} MPIDI_POSIX_am_type_t;
+
 struct MPIR_Request;
 
 typedef struct {
     void *csel_root;
+    void *csel_root_gpu;
 } MPIDI_POSIX_Global_t;
 
 extern char MPIDI_POSIX_coll_generic_json[];
@@ -41,8 +37,11 @@ extern char MPIDI_POSIX_coll_generic_json[];
 /* These structs are populated with dummy variables because empty structs are not supported in all
  * compilers: https://stackoverflow.com/a/755339/491687 */
 typedef struct {
-    MPIDI_POSIX_release_gather_comm_t release_gather;
     void *csel_comm;
+    void *csel_comm_gpu;
+    MPIDI_POSIX_release_gather_comm_t release_gather, nb_release_gather;
+    int nb_bcast_seq_no;        /* Seq number of the release-gather based nonblocking bcast call */
+    int nb_reduce_seq_no;       /* Seq number of the release-gather based nonblocking reduce call */
 } MPIDI_POSIX_comm_t;
 
 typedef struct {
@@ -58,10 +57,10 @@ typedef struct {
 } MPIDI_POSIX_request_t;
 
 typedef struct MPIDI_POSIX_am_header {
-    MPIDI_POSIX_am_header_kind_t kind:MPIDI_POSIX_AM_KIND_BITS;
-    uint32_t handler_id:MPIDI_POSIX_AM_HANDLER_ID_BITS;
-    uint64_t am_hdr_sz:MPIDI_POSIX_AM_HDR_SZ_BITS;
-    uint64_t data_sz:MPIDI_POSIX_AM_DATA_SZ_BITS;
+    int8_t am_type;
+    int8_t handler_id;
+    int16_t am_hdr_sz;
+    int32_t unused;
 } MPIDI_POSIX_am_header_t;
 
 typedef struct MPIDI_POSIX_am_request_header {
@@ -69,25 +68,24 @@ typedef struct MPIDI_POSIX_am_request_header {
     void *rreq_ptr;
     void *am_hdr;
 
+    int8_t src_vci;
+    int8_t dst_vci;
     uint16_t am_hdr_sz;
-    uint8_t pad[6];
+    uint8_t pad[4];
 
     MPIDI_POSIX_am_header_t *msg_hdr;
     MPIDI_POSIX_am_header_t msg_hdr_buf;
 
     uint8_t am_hdr_buf[MPIDI_POSIX_MAX_AM_HDR_SIZE];
 
-    int handler_id;
     int dst_grank;
 
-    struct iovec *iov_ptr;
-    struct iovec iov[MPIDI_POSIX_MAX_IOV_NUM];
-    size_t iov_num;
-    size_t iov_num_total;
-
-    int is_contig;
-
     size_t in_total_data_sz;
+
+    /* For postponed operation */
+    MPI_Datatype datatype;
+    const void *buf;
+    MPI_Aint count;
 
     /* Structure used with POSIX postponed_queue */
     MPIR_Request *request;      /* Store address of MPIR_Request* sreq */
@@ -132,8 +130,19 @@ do { \
     MPIDI_POSIX_eager_recv_completed_hook((request)->dev.ch4.am.shm_am.posix.eager_recv_posted_hook_grank); \
 } while (0)
 
+typedef struct MPIDI_POSIX_rma_req {
+    MPIR_gpu_req yreq;
+    struct MPIDI_POSIX_rma_req *next;
+} MPIDI_POSIX_rma_req_t;
+
 typedef struct {
     MPL_proc_mutex_t *shm_mutex_ptr;    /* interprocess mutex for shm atomic RMA */
+
+    /* Linked list to keep track of outstanding RMA issued via shm.
+     * Host-only copy is always blocking, thus this list should contain only
+     * GPU-involved operations. */
+    MPIDI_POSIX_rma_req_t *outstanding_reqs_head;
+    MPIDI_POSIX_rma_req_t *outstanding_reqs_tail;
 } MPIDI_POSIX_win_t;
 
 /*

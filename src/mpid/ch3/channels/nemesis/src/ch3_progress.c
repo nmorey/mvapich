@@ -99,9 +99,8 @@ static void sigusr1_handler(int sig)
 static int check_terminating_vcs(void)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_CHECK_TERMINATING_VCS);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_CHECK_TERMINATING_VCS);
+    MPIR_FUNC_ENTER;
 
     while (!TERMQ_EMPTY() && MPIR_Request_is_complete(TERMQ_HEAD()->req)) {
         vc_term_element_t *ep;
@@ -113,7 +112,7 @@ static int check_terminating_vcs(void)
     }
     
  fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_CHECK_TERMINATING_VCS);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
  fn_fail:
     goto fn_exit;
@@ -131,9 +130,8 @@ int MPIDI_CH3I_Shm_send_progress(void)
     MPIR_Request *sreq;
     int again = 0;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3I_SHM_SEND_PROGRESS);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_SHM_SEND_PROGRESS);
+    MPIR_FUNC_ENTER;
 
     sreq = MPIDI_CH3I_shm_active_send;
     MPL_DBG_STMT(MPIDI_CH3_DBG_CHANNEL, VERBOSE, {if (sreq) MPL_DBG_MSG (MPIDI_CH3_DBG_CHANNEL, VERBOSE, "Send: cont sreq");});
@@ -235,11 +233,7 @@ int MPIDI_CH3I_Shm_send_progress(void)
 
     if (!sreq->dev.OnDataAvail)
     {
-        /* MT FIXME-N1 race under per-object, harmless to disable here but
-         * its a symptom of a bigger problem... */
-#if !(defined(MPICH_IS_THREADED) && (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__POBJ))
         MPIR_Assert(MPIDI_Request_get_type(sreq) != MPIDI_REQUEST_TYPE_GET_RESP);
-#endif
 
         mpi_errno = MPID_Request_complete(sreq);
         MPIR_ERR_CHECK(mpi_errno);
@@ -268,7 +262,7 @@ int MPIDI_CH3I_Shm_send_progress(void)
     }
         
  fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_SHM_SEND_PROGRESS);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
  fn_fail:
     goto fn_exit;
@@ -281,11 +275,8 @@ int MPIDI_CH3I_Progress (MPID_Progress_state *progress_state, int is_blocking)
 {
     int mpi_errno = MPI_SUCCESS;
     int made_progress = FALSE;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3I_PROGRESS);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_PROGRESS);
-
-    MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+    MPIR_FUNC_ENTER;
 
     /* sanity: if this doesn't hold, we can't track our local view of completion safely */
     if (is_blocking) {
@@ -391,14 +382,9 @@ int MPIDI_CH3I_Progress (MPID_Progress_state *progress_state, int is_blocking)
                     cell_buf += sizeof(MPIDI_CH3_Pkt_t);
                     buflen = payload_len;
 
-                    /* deduct packet header */
-                    payload_len -= sizeof(MPIDI_CH3_Pkt_t);
-                    cell_buf += sizeof(MPIDI_CH3_Pkt_t);
-                    buflen = payload_len;
-
                     MPIDI_PG_Get_vc_set_active(MPIDI_Process.my_pg, MPID_NEM_FBOX_SOURCE(cell), &vc);
 		   
-                    MPIR_Assert(vc->ch.recv_active == NULL &&
+		    MPIR_Assert(vc->ch.recv_active == NULL &&
                                 vc->ch.pending_pkt_len == 0);
                     vc_ch = &vc->ch;
 
@@ -460,7 +446,7 @@ int MPIDI_CH3I_Progress (MPID_Progress_state *progress_state, int is_blocking)
             MPIR_ERR_CHECK(mpi_errno);
         }
 
-        mpi_errno = MPIR_Progress_hook_exec_all(&made_progress);
+        mpi_errno = MPIR_Progress_hook_exec_all(-1, &made_progress);
         MPIR_ERR_CHECK(mpi_errno);
 
         if (made_progress)
@@ -495,14 +481,13 @@ int MPIDI_CH3I_Progress (MPID_Progress_state *progress_state, int is_blocking)
                  * sections besides the MPIDCOMM CS at this point.
                  * Violating this will probably lead to lock-ordering
                  * deadlocks. */
-                MPID_THREAD_CS_YIELD(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
                 MPIDI_CH3I_progress_blocked = FALSE;
                 MPIDI_CH3I_progress_wakeup_signalled = FALSE;
             }
         }
         MPIR_THREAD_CHECK_END;
 #else
-        MPIDI_Busy_wait();
+        MPIU_Busy_wait();
 #endif
     }
     while (is_blocking);
@@ -520,8 +505,7 @@ int MPIDI_CH3I_Progress (MPID_Progress_state *progress_state, int is_blocking)
 #endif
 
  fn_exit:
-    MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_PROGRESS);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
  fn_fail:
     goto fn_exit;
@@ -533,9 +517,8 @@ int MPIDI_CH3I_Progress (MPID_Progress_state *progress_state, int is_blocking)
 static int MPIDI_CH3I_Progress_delay(unsigned int completion_count)
 {
     int mpi_errno = MPI_SUCCESS, err;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3I_PROGRESS_DELAY);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_PROGRESS_DELAY);
+    MPIR_FUNC_ENTER;
     /* FIXME should be appropriately abstracted somehow */
 #   if defined(MPICH_IS_THREADED) && (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__GLOBAL)
     {
@@ -543,7 +526,7 @@ static int MPIDI_CH3I_Progress_delay(unsigned int completion_count)
     }
 #   endif
 
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_PROGRESS_DELAY);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 }
 /* end MPIDI_CH3I_Progress_delay() */
@@ -552,9 +535,8 @@ static int MPIDI_CH3I_Progress_delay(unsigned int completion_count)
 static int MPIDI_CH3I_Progress_continue(unsigned int completion_count/*unused*/)
 {
     int mpi_errno = MPI_SUCCESS,err;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3I_PROGRESS_CONTINUE);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_PROGRESS_CONTINUE);
+    MPIR_FUNC_ENTER;
     /* FIXME should be appropriately abstracted somehow */
 #   if defined(MPICH_IS_THREADED) && (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__GLOBAL)
     {
@@ -563,7 +545,7 @@ static int MPIDI_CH3I_Progress_continue(unsigned int completion_count/*unused*/)
     }
 #   endif
 
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_PROGRESS_CONTINUE);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 }
 /* end MPIDI_CH3I_Progress_continue() */
@@ -571,12 +553,11 @@ static int MPIDI_CH3I_Progress_continue(unsigned int completion_count/*unused*/)
 
 void MPIDI_CH3I_Progress_wakeup(void)
 {
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3I_PROGRESS_WAKEUP);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_PROGRESS_WAKEUP);
+    MPIR_FUNC_ENTER;
 
     /* no processes sleep in nemesis progress */
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_PROGRESS_WAKEUP);
+    MPIR_FUNC_EXIT;
     return;
 }
 #endif /* MPICH_IS_THREADED */
@@ -587,9 +568,8 @@ int MPID_nem_handle_pkt(MPIDI_VC_t *vc, char *buf, intptr_t buflen)
     MPIR_Request *rreq = NULL;
     int complete;
     MPIDI_CH3I_VC *vc_ch = &vc->ch;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_NEM_HANDLE_PKT);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_NEM_HANDLE_PKT);
+    MPIR_FUNC_ENTER;
 
     do
     {
@@ -605,20 +585,6 @@ int MPID_nem_handle_pkt(MPIDI_VC_t *vc, char *buf, intptr_t buflen)
 #endif
 
                 MPL_DBG_MSG(MPIDI_CH3_DBG_CHANNEL, VERBOSE, "received new message");
-
-#ifdef NEEDS_STRICT_ALIGNMENT
-                /* Copy packet header to temporary buffer to ensure aligned access.
-                 * Note that we intentionally perform the extra copy on all platforms
-                 * that require strict alignment without checking whether the original
-                 * buffer is aligned. This is because we cannot find a good way to
-                 * get correct alignment for general structure on all platforms. */
-                MPIR_Memcpy(&aligned_buf, buf, sizeof(MPIDI_CH3_Pkt_t));
-                pkt = &aligned_buf;
-#endif
-                /* deduct packet header */
-                buflen -= sizeof(MPIDI_CH3_Pkt_t);
-                buf += sizeof(MPIDI_CH3_Pkt_t);
-                len = buflen;
 
 #ifdef NEEDS_STRICT_ALIGNMENT
                 /* Copy packet header to temporary buffer to ensure aligned access.
@@ -768,10 +734,7 @@ int MPID_nem_handle_pkt(MPIDI_VC_t *vc, char *buf, intptr_t buflen)
                 reqFn = rreq->dev.OnDataAvail;
                 if (!reqFn)
                 {
-                    /* MT FIXME-N1 */
-#if !(defined(MPICH_IS_THREADED) && (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__POBJ))
                     MPIR_Assert(MPIDI_Request_get_type(rreq) != MPIDI_REQUEST_TYPE_GET_RESP);
-#endif
                     mpi_errno = MPID_Request_complete(rreq);
                     MPIR_ERR_CHECK(mpi_errno);
 
@@ -801,7 +764,7 @@ int MPID_nem_handle_pkt(MPIDI_VC_t *vc, char *buf, intptr_t buflen)
     while (buflen);
 
  fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_NEM_HANDLE_PKT);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
  fn_fail:
     goto fn_exit;
@@ -822,10 +785,11 @@ int MPID_nem_handle_pkt(MPIDI_VC_t *vc, char *buf, intptr_t buflen)
 int MPIDI_CH3I_Progress_init(void)
 {
     int mpi_errno = MPI_SUCCESS;
+#ifdef HAVE_ERROR_CHECKING
     char strerrbuf[MPIR_STRERROR_BUF_SIZE];
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3I_PROGRESS_INIT);
+#endif
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_PROGRESS_INIT);
+    MPIR_FUNC_ENTER;
 
     MPIR_THREAD_CHECK_BEGIN;
     /* FIXME should be appropriately abstracted somehow */
@@ -867,12 +831,14 @@ int MPIDI_CH3I_Progress_init(void)
     prev_sighandler = signal(SIGUSR1, sigusr1_handler);
     MPIR_ERR_CHKANDJUMP1(prev_sighandler == SIG_ERR, mpi_errno, MPI_ERR_OTHER, "**signal", "**signal %s",
                          MPIR_Strerror(errno, strerrbuf, MPIR_STRERROR_BUF_SIZE));
-    if (prev_sighandler == SIG_IGN || prev_sighandler == SIG_DFL)
+    if (prev_sighandler == SIG_IGN || prev_sighandler == SIG_DFL ||
+        prev_sighandler == sigusr1_handler) {
         prev_sighandler = NULL;
+    }
 #endif
 
  fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_PROGRESS_INIT);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
  fn_fail:
     goto fn_exit;
@@ -882,9 +848,8 @@ int MPIDI_CH3I_Progress_finalize(void)
 {
     int mpi_errno = MPI_SUCCESS;
     qn_ent_t *ent;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3I_PROGRESS_FINALIZE);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_PROGRESS_FINALIZE);
+    MPIR_FUNC_ENTER;
 
     while(qn_head) {
         ent = qn_head->next;
@@ -892,20 +857,16 @@ int MPIDI_CH3I_Progress_finalize(void)
         qn_head = ent;
     }
 
- fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_PROGRESS_FINALIZE);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
- fn_fail:
-    goto fn_exit;
 }
 
 static int shm_connection_terminated(MPIDI_VC_t * vc)
 {
     /* This function is called after all sends have completed */
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_SHM_CONNECTION_TERMINATED);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_SHM_CONNECTION_TERMINATED);
+    MPIR_FUNC_ENTER;
 
     if (vc->ch.lmt_vc_terminated) {
         mpi_errno = vc->ch.lmt_vc_terminated(vc);
@@ -922,7 +883,7 @@ static int shm_connection_terminated(MPIDI_VC_t * vc)
 
     MPL_DBG_MSG_D(MPIDI_CH3_DBG_DISCONNECT, TYPICAL, "Terminated VC %d", vc->pg_rank);
  fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_SHM_CONNECTION_TERMINATED);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
  fn_fail:
     goto fn_exit;
@@ -933,9 +894,8 @@ int MPIDI_CH3_Connection_terminate(MPIDI_VC_t * vc)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_CHKPMEM_DECL(1);
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3_CONNECTION_TERMINATE);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3_CONNECTION_TERMINATE);
+    MPIR_FUNC_ENTER;
 
     MPL_DBG_MSG_D(MPIDI_CH3_DBG_DISCONNECT, TYPICAL, "Terminating VC %d", vc->pg_rank);
 
@@ -994,7 +954,7 @@ int MPIDI_CH3_Connection_terminate(MPIDI_VC_t * vc)
     
  fn_exit:
     MPIR_CHKPMEM_COMMIT();
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3_CONNECTION_TERMINATE);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
  fn_fail:
     MPIR_CHKPMEM_REAP();
@@ -1006,17 +966,16 @@ int MPIDI_CH3I_Complete_sendq_with_error(MPIDI_VC_t * vc)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *req, *prev;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3I_COMPLETE_SENDQ_WITH_ERROR);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_COMPLETE_SENDQ_WITH_ERROR);
+    MPIR_FUNC_ENTER;
 
     req = MPIDI_CH3I_shm_sendq.head;
     prev = NULL;
     while (req) {
         if (req->ch.vc == vc) {
-            MPIR_Request *next = req->dev.next;
+            MPIR_Request *next = req->next;
             if (prev)
-                prev->dev.next = next;
+                prev->next = next;
             else
                 MPIDI_CH3I_shm_sendq.head = next;
             if (MPIDI_CH3I_shm_sendq.tail == req)
@@ -1031,12 +990,12 @@ int MPIDI_CH3I_Complete_sendq_with_error(MPIDI_VC_t * vc)
             req = next;
         } else {
             prev = req;
-            req = req->dev.next;
+            req = req->next;
         }
     }
 
  fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_COMPLETE_SENDQ_WITH_ERROR);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
  fn_fail:
     goto fn_exit;
@@ -1049,16 +1008,14 @@ static int pkt_NETMOD_handler(MPIDI_VC_t *vc, MPIDI_CH3_Pkt_t *pkt, void *data, 
     int mpi_errno = MPI_SUCCESS;
     MPID_nem_pkt_netmod_t * const netmod_pkt = (MPID_nem_pkt_netmod_t *)pkt;
     MPIDI_CH3I_VC *vc_ch = &vc->ch;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_PKT_NETMOD_HANDLER);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_PKT_NETMOD_HANDLER);
+    MPIR_FUNC_ENTER;
 
     MPIR_Assert_fmt_msg(vc_ch->pkt_handler && netmod_pkt->subtype < vc_ch->num_pkt_handlers, ("no handler defined for netmod-local packet"));
 
     mpi_errno = vc_ch->pkt_handler[netmod_pkt->subtype](vc, pkt, data, buflen, rreqp);
 
-fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_PKT_NETMOD_HANDLER);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 }
 
@@ -1127,9 +1084,8 @@ static int anysource_matched(MPIR_Request *rreq)
 
 void MPIDI_CH3I_Posted_recv_enqueued(MPIR_Request *rreq)
 {
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3I_POSTED_RECV_ENQUEUED);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_POSTED_RECV_ENQUEUED);
+    MPIR_FUNC_ENTER;
 
     /* MT FIXME acquiring MPIDCOMM here violates lock ordering rules,
      * easily causes deadlock */
@@ -1146,22 +1102,11 @@ void MPIDI_CH3I_Posted_recv_enqueued(MPIR_Request *rreq)
 	MPIDI_Comm_get_vc((rreq)->comm, (rreq)->dev.match.parts.rank, &vc);
 
 #ifdef ENABLE_COMM_OVERRIDES
-        /* MT FIXME causes deadlock b/c of the POBJ ordering (acquired
-         * in reverse in some pkt handlers?) */
-        MPID_THREAD_CS_ENTER(POBJ, vc->pobj_mutex);
         /* call vc-specific handler */
 	if (vc->comm_ops && vc->comm_ops->recv_posted)
             vc->comm_ops->recv_posted(vc, rreq);
-        MPID_THREAD_CS_EXIT(POBJ, vc->pobj_mutex);
 #endif
 
-        /* MT FIXME we unfortunately must disable this optimization for now in
-         * per_object mode. There are possibly other ways to synchronize the
-         * fboxes that won't cause lock-ordering deadlocks.  There might also be
-         * ways to do this that don't require a hook on every request post, but
-         * instead do some sort of caching or something analogous to branch
-         * prediction. */
-#if !(defined(MPICH_IS_THREADED) && (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__POBJ))
         /* enqueue fastbox */
 
         /* don't enqueue a fastbox for yourself */
@@ -1179,11 +1124,10 @@ void MPIDI_CH3I_Posted_recv_enqueued(MPIR_Request *rreq)
         local_rank = MPID_NEM_LOCAL_RANK(vc->pg_rank);
 
         MPID_nem_mpich_enqueue_fastbox(local_rank);
-#endif
     }
 
  fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_POSTED_RECV_ENQUEUED);
+    MPIR_FUNC_EXIT;
 }
 
 /* returns non-zero when req has been matched by channel */
@@ -1192,18 +1136,13 @@ int MPIDI_CH3I_Posted_recv_dequeued(MPIR_Request *rreq)
     int local_rank = -1;
     MPIDI_VC_t *vc;
     int matched = FALSE;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3I_POSTED_RECV_DEQUEUED);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_POSTED_RECV_DEQUEUED);
+    MPIR_FUNC_ENTER;
 
     if (rreq->dev.match.parts.rank == MPI_ANY_SOURCE)
     {
 	matched = anysource_matched(rreq);
     }
-    /* MT FIXME we unfortunately must disable this optimization for now in
-     * per_object mode. There are possibly other ways to synchronize the
-     * fboxes that won't cause lock-ordering deadlocks */
-#if !(defined(MPICH_IS_THREADED) && (MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__POBJ))
     else
     {
         if (rreq->dev.match.parts.rank == rreq->comm->rank)
@@ -1222,10 +1161,9 @@ int MPIDI_CH3I_Posted_recv_dequeued(MPIR_Request *rreq)
 
         MPID_nem_mpich_dequeue_fastbox(local_rank);
     }
-#endif
 
  fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_POSTED_RECV_DEQUEUED);
+    MPIR_FUNC_EXIT;
     return matched;
 }
 

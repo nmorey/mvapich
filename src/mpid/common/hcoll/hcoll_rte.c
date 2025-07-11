@@ -170,7 +170,7 @@ static int send_nb(dte_data_representation_t data,
     dtype = MPI_CHAR;
     request = NULL;
     MPIR_Errflag_t err = MPIR_ERR_NONE;
-    mpi_errno = MPIC_Isend(buffer, size, dtype, ec_h.rank, tag, comm, &request, &err);
+    mpi_errno = MPIC_Isend(buffer, size, dtype, ec_h.rank, tag, comm, &request, err);
     MPIR_Assert(request);
     req->data = (void *) request;
     req->status = HCOLRTE_REQUEST_ACTIVE;
@@ -354,10 +354,8 @@ static int get_mpi_type_envelope(void *mpi_type, int *num_integers,
                                  int *num_addresses, int *num_datatypes,
                                  hcoll_mpi_type_combiner_t * combiner)
 {
-    int mpi_combiner;
     MPI_Datatype dt_handle = (MPI_Datatype) (intptr_t) mpi_type;
-
-    MPIR_Type_get_envelope(dt_handle, num_integers, num_addresses, num_datatypes, &mpi_combiner);
+    int mpi_combiner = MPIR_Type_get_combiner(dt_handle);
 
     *combiner = mpi_combiner_2_hcoll_combiner(mpi_combiner);
 
@@ -371,11 +369,9 @@ static int get_mpi_type_contents(void *mpi_type, int max_integers, int max_addre
     int ret;
     MPI_Datatype dt_handle = (MPI_Datatype) (intptr_t) mpi_type;
 
-    ret = MPIR_Type_get_contents(dt_handle,
-                                 max_integers, max_addresses, max_datatypes,
-                                 array_of_integers,
-                                 (MPI_Aint *) array_of_addresses,
-                                 (MPI_Datatype *) array_of_datatypes);
+    ret = MPIR_Type_get_contents_impl(dt_handle, max_integers, max_addresses, max_datatypes,
+                                      array_of_integers, (MPI_Aint *) array_of_addresses,
+                                      (MPI_Datatype *) array_of_datatypes);
 
     return ret == MPI_SUCCESS ? HCOLL_SUCCESS : HCOLL_ERROR;
 }

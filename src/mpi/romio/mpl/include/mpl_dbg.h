@@ -12,7 +12,7 @@
 /*
  * Multilevel debugging and tracing macros.
  * The design is discussed at
- * http://wiki.mpich.org/mpich/index.php/Debug_Event_Logging
+ * https://github.com/pmodels/mpich/blob/main/doc/wiki/design/Debug_Event_Logging.md
  *
  * Basically, this provide a way to place debugging messages into
  * groups (called *classes*), with levels of detail, and arbitrary
@@ -70,9 +70,6 @@
     {                                                                   \
         if ((_class & MPL_dbg_active_classes) && MPL_DBG_##_level <= MPL_dbg_max_level) { \
             char _s[MPL_DBG_MAXLINE];                                   \
-            int _ret = MPL_snprintf _fmatargs ;                          \
-            /* by checking _ret, we supress -Wformat-trunction in gcc-8 */ \
-            assert(_ret >= 0);                                          \
             MPL_dbg_outevent(__FILE__, __LINE__, _class, 0, "%s", _s);  \
         }                                                               \
     }
@@ -90,7 +87,7 @@
 #define MPL_DBG_OUT_FMT(_class,_fmatargs)                               \
     {                                                                   \
         char _s[MPL_DBG_MAXLINE];                                       \
-        MPL_snprintf _fmatargs ;                                        \
+        snprintf _fmatargs ;                                            \
         MPL_dbg_outevent(__FILE__, __LINE__, _class, 0, "%s", _s);      \
     }
 

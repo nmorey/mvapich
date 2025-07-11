@@ -1,0 +1,26 @@
+/*D
+   MPI_Pready_list - Indicates that a list of portions of the send buffer in a partitioned
+
+Synopsis:
+.vb
+int MPI_Pready_list(int length, const int array_of_partitions[],
+                    MPI_Request request)
+.ve
+
+Input Parameters:
++ length - list length (integer)
+. array_of_partitions - array of partitions (non-negative integer)
+- request - partitioned communication request (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_REQUEST
+.N MPI_ERR_OTHER
+
+D*/
+

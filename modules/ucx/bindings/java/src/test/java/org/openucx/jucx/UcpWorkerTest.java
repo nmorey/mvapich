@@ -1,5 +1,5 @@
 /*
- * Copyright (C) Mellanox Technologies Ltd. 2001-2019.  ALL RIGHTS RESERVED.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2019. ALL RIGHTS RESERVED.
  * See file LICENSE for terms.
  */
 
@@ -19,7 +19,7 @@ public class UcpWorkerTest extends UcxTest {
     private static int numWorkers = Runtime.getRuntime().availableProcessors();
 
     @Test
-    public void testSingleWorker() {
+    public void testSingleWorker() throws Exception {
         UcpContext context = new UcpContext(new UcpParams().requestTagFeature());
         assertEquals(2, UcsConstants.ThreadMode.UCS_THREAD_MODE_MULTI);
         assertNotEquals(context.getNativeId(), null);
@@ -88,6 +88,21 @@ public class UcpWorkerTest extends UcxTest {
     }
 
     @Test
+    public void testWorkerArmAndGetEventFD() {
+        UcpContext context = new UcpContext(new UcpParams()
+                .requestRmaFeature().requestWakeupFeature());
+        UcpWorker worker = context.newWorker(new UcpWorkerParams());
+
+        int eventFD = worker.getEventFD();
+        assertNotEquals(0, eventFD);
+
+        worker.arm(); // Test passes, if no exception is thrown
+
+        worker.close();
+        context.close();
+    }
+
+    @Test
     public void testWorkerSleepWakeup() throws InterruptedException {
         UcpContext context = new UcpContext(new UcpParams()
             .requestRmaFeature().requestWakeupFeature());
@@ -99,8 +114,12 @@ public class UcpWorkerTest extends UcxTest {
             @Override
             public void run() {
                 while (!isInterrupted()) {
-                    if (worker.progress() == 0) {
-                        worker.waitForEvents();
+                    try {
+                        if (worker.progress() == 0) {
+                            worker.waitForEvents();
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
                 }
                 success.set(true);
@@ -120,9 +139,9 @@ public class UcpWorkerTest extends UcxTest {
     }
 
     @Test
-    public void testFlushWorker() {
+    public void testFlushWorker() throws Exception {
         int numRequests = 10;
-        // Crerate 2 contexts + 2 workers
+        // Create 2 contexts + 2 workers
         UcpParams params = new UcpParams().requestRmaFeature();
         UcpWorkerParams rdmaWorkerParams = new UcpWorkerParams().requestWakeupRMA();
         UcpContext context1 = new UcpContext(params);
@@ -166,7 +185,7 @@ public class UcpWorkerTest extends UcxTest {
     }
 
     @Test
-    public void testTagProbe() {
+    public void testTagProbe() throws Exception {
         UcpParams params = new UcpParams().requestTagFeature();
         UcpContext context1 = new UcpContext(params);
         UcpContext context2 = new UcpContext(params);

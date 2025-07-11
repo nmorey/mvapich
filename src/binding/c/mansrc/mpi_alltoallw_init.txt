@@ -1,0 +1,51 @@
+/*D
+   MPI_Alltoallw_init - Create a persistent request for alltoallw.
+
+Synopsis:
+.vb
+int MPI_Alltoallw_init(const void *sendbuf, const int sendcounts[],
+                       const int sdispls[], const MPI_Datatype sendtypes[],
+                       void *recvbuf, const int recvcounts[],
+                       const int rdispls[], const MPI_Datatype recvtypes[],
+                       MPI_Comm comm, MPI_Info info, MPI_Request *request)
+.ve
+.vb
+int MPI_Alltoallw_init_c(const void *sendbuf, const MPI_Count sendcounts[],
+                         const MPI_Aint sdispls[],
+                         const MPI_Datatype sendtypes[], void *recvbuf,
+                         const MPI_Count recvcounts[], const MPI_Aint rdispls[],
+                         const MPI_Datatype recvtypes[], MPI_Comm comm,
+                         MPI_Info info, MPI_Request *request)
+.ve
+
+Input Parameters:
++ sendbuf - starting address of send buffer (choice)
+. sendcounts - integer array (of length group size) specifying the number of elements to send to each rank (non-negative integer)
+. sdispls - integer array (of length group size). Entry j specifies the displacement in bytes (relative to sendbuf) from which to take the outgoing data destined for process j (integer)
+. sendtypes - Array of datatypes (of length group size). Entry j specifies the type of data to send to process j (handle)
+. recvcounts - integer array (of length group size) specifying the number of elements that can be received from each rank (non-negative integer)
+. rdispls - integer array (of length group size). Entry i specifies the displacement in bytes (relative to recvbuf) at which to place the incoming data from process i (integer)
+. recvtypes - array of datatypes (of length group size). Entry i specifies the type of data received from process i (handle)
+. comm - communicator (handle)
+- info - info argument (handle)
+
+Output Parameters:
++ recvbuf - address of receive buffer (choice)
+- request - communication request (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_BUFFER
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_INFO
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

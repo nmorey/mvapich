@@ -39,6 +39,7 @@
 #include <rdma/fi_errno.h>
 
 #include "unit_common.h"
+#include "hmem.h"
 #include "shared.h"
 
 static char err_buf[512];
@@ -55,6 +56,13 @@ static int mr_reg()
 	uint64_t access;
 	uint64_t *access_combinations;
 	int cnt;
+
+	if (opts.iface != FI_HMEM_SYSTEM) {
+		ret = 0;
+		testret = SKIPPED;
+		sprintf(err_buf, "fi_mr_reg cannot be used to register hmem.");
+		goto out;
+	}
 
 	access = ft_info_to_mr_access(fi);
 	ret = ft_alloc_bit_combo(0, access, &access_combinations, &cnt);
@@ -96,6 +104,13 @@ static int mr_regv()
 	struct fid_mr *mr;
 	struct iovec *iov;
 	char *base;
+
+	if (opts.iface != FI_HMEM_SYSTEM) {
+		ret = 0;
+		testret = SKIPPED;
+		sprintf(err_buf, "fi_mr_regv cannot be used to register hmem.");
+		goto out;
+	}
 
 	iov = calloc(fi->domain_attr->mr_iov_limit, sizeof(*iov));
 	if (!iov) {
@@ -142,18 +157,23 @@ static int mr_regattr()
 	int testret = FAIL;
 	struct fid_mr *mr;
 	struct iovec *iov;
+	struct fi_mr_dmabuf *dmabuf = NULL;
+	uint64_t flags = 0;
 	struct fi_mr_attr attr = {0};
 	char *base;
-
-	attr.access = ft_info_to_mr_access(fi);
-	attr.requested_key = FT_MR_KEY;
-	attr.context = NULL;
 
 	iov = calloc(fi->domain_attr->mr_iov_limit, sizeof(*iov));
 	if (!iov) {
 		perror("calloc");
 		ret = -FI_ENOMEM;
 		goto out;
+	}
+
+	dmabuf = calloc(fi->domain_attr->mr_iov_limit, sizeof(*dmabuf));
+	if (!dmabuf) {
+		perror("calloc for dmabuf");
+		ret = -FI_ENOMEM;
+		goto free_iov;
 	}
 
 	for (i = 0; i < test_cnt &&
@@ -167,23 +187,94 @@ static int mr_regattr()
 			base += iov[j].iov_len;
 		}
 
-		attr.iov_count = n;
-		attr.mr_iov = &iov[0];
-		ret = fi_mr_regattr(domain, &attr, 0, &mr);
+		if (opts.options & FT_OPT_REG_DMABUF_MR) {
+			ret = ft_get_dmabuf_from_iov(dmabuf, iov, n, opts.iface);
+			if (ret) {
+				FT_UNIT_STRERR(err_buf, "ft_get_dmabuf_from_iov failed", ret);
+				goto free_dmabuf;
+			}
+			flags |= FI_MR_DMABUF;
+		}
+
+		ft_fill_mr_attr(&iov[0], dmabuf, n, ft_info_to_mr_access(fi),
+				FT_MR_KEY, opts.iface, opts.device, &attr, flags);
+		ret = fi_mr_regattr(domain, &attr, flags, &mr);
 		if (ret) {
 			FT_UNIT_STRERR(err_buf, "fi_mr_regattr failed", ret);
-			goto free;
+			goto free_dmabuf;
 		}
 
 		ret = fi_close(&mr->fid);
 		if (ret) {
 			FT_UNIT_STRERR(err_buf, "fi_close failed", ret);
-			goto free;
+			goto free_dmabuf;
 		}
 	}
 	testret = PASS;
-free:
+free_dmabuf:
+	free(dmabuf);
+free_iov:
 	free(iov);
+out:
+	return TEST_RET_VAL(ret, testret);
+}
+
+static int mr_reg_free_then_alloc()
+{
+	int i, ret, testret;
+	size_t buf_size = test_size[test_cnt-1].size;
+	struct fid_mr *mr;
+	char *buf2;
+	struct iovec iov;
+	struct fi_mr_attr attr = {0};
+	int numtry = 5;
+	uint64_t flags = 0;
+	struct fi_mr_dmabuf dmabuf = {0};
+
+	testret = FAIL;
+	for (i = 0; i < numtry; ++i) {
+		iov.iov_base = buf;
+		iov.iov_len = buf_size;
+		if (opts.options & FT_OPT_REG_DMABUF_MR) {
+			ret = ft_get_dmabuf_from_iov(&dmabuf, &iov, 1, opts.iface);
+			if (ret) {
+				FT_UNIT_STRERR(err_buf, "ft_get_dmabuf_from_iov failed", ret);
+				goto out;
+			}
+			flags |= FI_MR_DMABUF;
+		}
+		ft_fill_mr_attr(&iov, &dmabuf, 1, ft_info_to_mr_access(fi),
+				FT_MR_KEY, opts.iface, opts.device, &attr, flags);
+
+		ret = fi_mr_regattr(domain, &attr, flags, &mr);
+		if (ret) {
+			FT_UNIT_STRERR(err_buf, "fi_mr_reg failed", ret);
+			goto out;
+		}
+
+		ret = fi_close(&mr->fid);
+		if (ret) {
+			FT_UNIT_STRERR(err_buf, "fi_close failed", ret);
+			goto out;
+		}
+
+		ret = ft_hmem_alloc(opts.iface, opts.device,
+				    (void **)&buf2, buf_size);
+		if (ret)
+			goto out;
+
+		ret = ft_hmem_free(opts.iface, buf);
+		if (ret) {
+			FT_UNIT_STRERR(err_buf, "ft_hmem_free failed",
+				       ret);
+			goto out;
+		}
+
+		buf = buf2;
+		iov.iov_base = buf;
+	}
+
+	testret = PASS;
 out:
 	return TEST_RET_VAL(ret, testret);
 }
@@ -192,12 +283,14 @@ struct test_entry test_array[] = {
 	TEST_ENTRY(mr_reg, "Test fi_mr_reg across different access combinations"),
 	TEST_ENTRY(mr_regv, "Test fi_mr_regv across various buffer sizes"),
 	TEST_ENTRY(mr_regattr, "Test fi_mr_regattr across various buffer sizes"),
+	TEST_ENTRY(mr_reg_free_then_alloc, "Test fi_mr_reg on buff that was freed and allocated"),
 	{ NULL, "" }
 };
 
 static void usage(char *name)
 {
 	ft_unit_usage(name, "Unit test for Memory Region (MR)");
+	ft_hmem_usage();
 }
 
 int main(int argc, char **argv)
@@ -211,7 +304,7 @@ int main(int argc, char **argv)
 	if (!hints)
 		return EXIT_FAILURE;
 
-	while ((op = getopt(argc, argv, FAB_OPTS "h")) != -1) {
+	while ((op = getopt(argc, argv, FAB_OPTS HMEM_OPTS "h")) != -1) {
 		switch (op) {
 		default:
 			ft_parseinfo(op, optarg, hints, &opts);
@@ -223,11 +316,19 @@ int main(int argc, char **argv)
 		}
 	}
 
+	ret = ft_init();
+	if (ret) {
+		FT_PRINTERR("ft_init", ret);
+		goto out;
+	}
+
 	hints->mode = ~0;
 	hints->domain_attr->mode = ~0;
-	hints->domain_attr->mr_mode = ~(FI_MR_BASIC | FI_MR_SCALABLE);
+	hints->domain_attr->mr_mode = ~(FI_MR_BASIC | FI_MR_SCALABLE | FI_MR_LOCAL);
 
 	hints->caps |= FI_MSG | FI_RMA;
+	if (opts.options & FT_OPT_ENABLE_HMEM)
+		hints->caps |= FI_HMEM;
 
 	ret = fi_getinfo(FT_FIVERSION, NULL, 0, 0, hints, &fi);
 	if (ret) {
@@ -252,11 +353,10 @@ int main(int argc, char **argv)
 	if (ret)
 		goto out;
 
-	buf = malloc(test_size[test_cnt - 1].size);
-	if (!buf) {
-		ret = -FI_ENOMEM;
+	ret = ft_hmem_alloc(opts.iface, opts.device, (void **)&buf,
+			    test_size[test_cnt - 1].size);
+	if (ret)
 		goto out;
-	}
 
 	printf("Testing MR on fabric %s\n", fi->fabric_attr->name);
 

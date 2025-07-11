@@ -3,24 +3,7 @@
  *     See COPYRIGHT in top-level directory
  */
 
-/* We need to include the conf file first so that we can use
-   the _SVID_SOURCE if needed before any file includes features.h 
-   on GNU systems */
 #include "mpichconf.h"
-
-
-#ifdef USE_NOPOSIX_FOR_IFCONF
-/* This is a very special case.  Allow the use of some extensions for 
-   just the rest of this file so that we can get the ifconf structure */
-#undef _POSIX_C_SOURCE
-#endif
-
-#ifdef USE_SVIDSOURCE_FOR_IFCONF
-/* This is a very special case.  Allow the use of some extensions for just
-   the rest of this file so that we can get the ifconf structure */
-#define _SVID_SOURCE
-#endif
-
 #include "mpidi_ch3_impl.h"
 
 #include <stdlib.h>
@@ -45,7 +28,7 @@ static int dbg_ifname = -1;
  * MPICH_INTERFACE_HOSTNAME
  * MPICH_INTERFACE_HOSTNAME_R%d
  * a single (non-localhost) available IP address, if possible
- * getaddrinfo(gethostname(), null, &hints, &info)
+ * gethostbyname(gethostname())
  *
  * We return the following items:
  *
@@ -76,7 +59,7 @@ int MPIDU_CH3U_GetSockInterfaceAddr(int myRank, char *ifname, int maxIfname,
 	   the process manager only delievers the same values for the 
 	   environment to each process */
 	char namebuf[1024];
-	MPL_snprintf( namebuf, sizeof(namebuf), 
+	snprintf( namebuf, sizeof(namebuf),
 		       "MPICH_INTERFACE_HOSTNAME_R%d", myRank );
 	ifname_string = getenv( namebuf );
 	if (dbg_ifname && ifname_string) {
@@ -123,3 +106,4 @@ fn_exit:
 fn_fail:
     goto fn_exit;
 }
+

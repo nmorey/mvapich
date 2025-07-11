@@ -80,12 +80,27 @@
 #include "utils_macros.h"
 #include "utils_byteorder.h"
 #include "utils_debug.h"
+#include "utils_env.h"
 #include "utils_sysfs.h"
+#ifdef PSM_DSA
+#include "utils_dsa.h"
+#endif
 
 #ifndef PACK_SUFFIX
 /* XXX gcc only */
 #define PACK_SUFFIX __attribute__((packed))
 #endif
+
+/* log2(x) truncated */
+uint32_t psm3_floor_log2(uint64_t x);
+
+/* log2(x) rounded up if x is not a power of 2 */
+uint32_t  psm3_ceil_log2(uint64_t x);
+
+static __inline__ uint32_t psm3_next_power2(uint64_t x)
+{
+	return (1 << psm3_ceil_log2(x));
+}
 
 #define HFI_TF_NFLOWS                       32
 
@@ -145,7 +160,7 @@
 #define HFI_KHDR_TINYLEN_SHIFT 16
 
 
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 extern int is_driver_gpudirect_enabled;
 
 #define PSMI_IS_DRIVER_GPUDIRECT_ENABLED  likely(is_driver_gpudirect_enabled)

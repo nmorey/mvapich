@@ -5,10 +5,11 @@
 
 #include "mpiimpl.h"
 
-int MPIR_Alltoallw_allcomm_nb(const void *sendbuf, const int sendcounts[], const int sdispls[],
-                              const MPI_Datatype sendtypes[], void *recvbuf, const int recvcounts[],
-                              const int rdispls[], const MPI_Datatype recvtypes[],
-                              MPIR_Comm * comm_ptr, MPIR_Errflag_t * errflag)
+int MPIR_Alltoallw_allcomm_nb(const void *sendbuf, const MPI_Aint sendcounts[],
+                              const MPI_Aint sdispls[], const MPI_Datatype sendtypes[],
+                              void *recvbuf, const MPI_Aint recvcounts[], const MPI_Aint rdispls[],
+                              const MPI_Datatype recvtypes[], MPIR_Comm * comm_ptr,
+                              MPIR_Errflag_t errflag)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *req_ptr = NULL;
@@ -19,7 +20,7 @@ int MPIR_Alltoallw_allcomm_nb(const void *sendbuf, const int sendcounts[], const
                         recvtypes, comm_ptr, &req_ptr);
     MPIR_ERR_CHECK(mpi_errno);
 
-    mpi_errno = MPIC_Wait(req_ptr, errflag);
+    mpi_errno = MPIC_Wait(req_ptr);
     MPIR_ERR_CHECK(mpi_errno);
     MPIR_Request_free(req_ptr);
 

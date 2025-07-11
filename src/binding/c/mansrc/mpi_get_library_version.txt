@@ -1,0 +1,23 @@
+/*D
+   MPI_Get_library_version - Return the version number of MPI library
+
+Synopsis:
+.vb
+int MPI_Get_library_version(char *version, int *resultlen)
+.ve
+
+Output Parameters:
++ version - version number (string)
+- resultlen - Length (in printable characters) of the result returned in version (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_OTHER
+
+D*/
+

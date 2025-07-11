@@ -1,0 +1,32 @@
+/*D
+   MPI_Request_get_status - Nondestructive test for the completion of a Request
+
+Synopsis:
+.vb
+int MPI_Request_get_status(MPI_Request request, int *flag, MPI_Status *status)
+.ve
+
+Input Parameters:
+. request - request (handle)
+
+Output Parameters:
++ flag - boolean flag, same as from MPI_TEST (logical)
+- status - status object if flag is true (Status)
+
+Notes:
+Unlike 'MPI_Test', 'MPI_Request_get_status' does not deallocate or
+deactivate the request.  A call to one of the test/wait routines or
+'MPI_Request_free' should be made to release the request object.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_REQUEST
+.N MPI_ERR_OTHER
+
+D*/
+

@@ -1,0 +1,27 @@
+/*D
+   MPIX_Comm_revoke - Prevent a communicator from being used in the future
+
+Synopsis:
+.vb
+int MPIX_Comm_revoke(MPI_Comm comm)
+.ve
+
+Input Parameters:
+. comm - communicator to revoke (handle)
+
+Notes:
+This function notifies all MPI processes in the groups (local and remote) associated with the communicator comm that this communicator is revoked. The revocation of a communicator by any MPIprocess completes non-local MPI operations on comm at all MPI processes by raising an error of class MPI_ERR_REVOKED (with the exception of MPIX_Comm_shrink, MPIX_Comm_agree). This function is not collective and therefore does not have a matching call on remote MPI processes. All non-failed MPIprocesses belonging to comm will be notified of the revocation despite failures.
+
+A communicator is revoked at a given MPI process either when MPIX_Comm_revoke is locally called on it, or when any MPI operation on comm raises an error of class MPI_ERR_REVOKED at that process. Once a communicator has been revoked at an MPI process, all subsequent non-local operations on that communicator (with thesame exceptions as above), are considered local and must complete by raising an error of class MPI_ERR_REVOKED at that MPI process.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+D*/
+

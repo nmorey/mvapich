@@ -1,0 +1,30 @@
+/*D
+   MPI_Comm_remote_group - Accesses the remote group associated with
+
+Synopsis:
+.vb
+int MPI_Comm_remote_group(MPI_Comm comm, MPI_Group *group)
+.ve
+
+Input Parameters:
+. comm - inter-communicator (handle)
+
+Output Parameters:
+. group - remote group corresponding to comm (handle)
+
+Notes:
+The user is responsible for freeing the group when it is no longer needed.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Group_free
+D*/
+

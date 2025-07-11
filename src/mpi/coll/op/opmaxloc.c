@@ -3,18 +3,6 @@
  *     See COPYRIGHT in top-level directory
  */
 
-/*
- * Copyright (c) 2001-2021, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- */
-
 #include "mpiimpl.h"
 
 /* MINLOC and MAXLOC structures */
@@ -42,12 +30,6 @@ typedef struct MPIR_doubleint_loctype {
     double value;
     int loc;
 } MPIR_doubleint_loctype;
-
-#ifdef __ibmxl__
-void real16_maxloc(void *invec, void *inoutvec, int *Len);
-#else
-void real16_maxloc_(void *invec, void *inoutvec, int *Len);
-#endif
 
 #if defined(HAVE_LONG_DOUBLE)
 typedef struct MPIR_longdoubleint_loctype {
@@ -88,9 +70,9 @@ typedef struct MPIR_longdoubleint_loctype {
     break
 
 
-void MPIR_MAXLOC(void *invec, void *inoutvec, int *Len, MPI_Datatype * type)
+void MPIR_MAXLOC(void *invec, void *inoutvec, MPI_Aint * Len, MPI_Datatype * type)
 {
-    int i, len = *Len;
+    MPI_Aint i, len = *Len;
 
 #ifdef HAVE_FORTRAN_BINDING
 #ifndef HAVE_NO_FORTRAN_MPI_TYPES_IN_C
@@ -124,16 +106,6 @@ void MPIR_MAXLOC(void *invec, void *inoutvec, int *Len, MPI_Datatype * type)
             MPIR_MAXLOC_F_CASE(MPIR_FC_REAL_CTYPE);
         case MPI_2DOUBLE_PRECISION:
             MPIR_MAXLOC_F_CASE(MPIR_FC_DOUBLE_CTYPE);
-#ifndef __PGI
-        /* As of v20.1, PGI compilers only support real8 */
-        case MPI_REAL16:
-#ifdef __ibmxl__
-            real16_maxloc(invec, inoutvec, &flen);
-#else
-            real16_maxloc_(invec, inoutvec, &flen);
-#endif
-        break;
-#endif /*ifndef __PGI*/
 #endif
 #endif
         default:
@@ -164,11 +136,6 @@ int MPIR_MAXLOC_check_dtype(MPI_Datatype type)
         case MPI_2INTEGER:
         case MPI_2REAL:
         case MPI_2DOUBLE_PRECISION:
-#ifndef __PGI
-        /* As of v20.1, PGI compilers only support real8 */
-        case MPI_REAL16:
-            break;
-#endif /*ifndef __PGI*/
 #endif
 #endif
             break;

@@ -12,10 +12,18 @@
 
 struct MPIR_Comm;
 struct MPIR_Win;
+struct MPIR_Session;
+struct MPIR_Errhandler;
+struct MPIR_Group;
 
 /* Bindings for internal routines */
 MPICH_API_PUBLIC int MPIR_Err_return_comm(struct MPIR_Comm *, const char[], int);
 MPICH_API_PUBLIC int MPIR_Err_return_win(struct MPIR_Win *, const char[], int);
+MPICH_API_PUBLIC int MPIR_Err_return_session(struct MPIR_Session *, const char[], int);
+MPICH_API_PUBLIC int MPIR_Err_return_session_init(struct MPIR_Errhandler *, const char[], int);
+MPICH_API_PUBLIC int MPIR_Err_return_group(struct MPIR_Group *, const char[], int);
+MPICH_API_PUBLIC int MPIR_Err_return_comm_create_from_group(struct MPIR_Errhandler *, const char[],
+                                                            int);
 #ifdef MPI__FILE_DEFINED
 /* Only define if we have MPI_File */
 MPICH_API_PUBLIC int MPIR_Err_return_file(MPI_File, const char[], int); /* Romio version */
@@ -102,10 +110,11 @@ MPICH_API_PUBLIC int MPIR_Err_return_file(MPI_File, const char[], int); /* Romio
 MPICH_API_PUBLIC int MPIR_Err_create_code(int, int, const char[], int, int, const char[],
                                           const char[], ...);
 
-#ifdef USE_ERR_CODE_VALIST
 int MPIR_Err_create_code_valist(int, int, const char[], int, int, const char[], const char[],
                                 va_list);
-#endif
+
+typedef int (*MPIR_Err_get_class_string_func_t) (int error, char *str, int length);
+void MPIR_Err_get_string(int, char *, int, MPIR_Err_get_class_string_func_t);
 
 /*@
   MPIR_Err_combine_codes - Combine two error codes, or more importantly
@@ -135,9 +144,8 @@ int MPIR_Err_combine_codes(int, int);
 
 int MPIR_Err_is_fatal(int);
 void MPIR_Err_init(void);
-void MPIR_Err_preOrPostInit(void);
-
-int MPIR_Err_set_msg(int code, const char *msg_string);
+void MPIR_Err_Uninitialized(const char *funcname);
+int MPIR_Errutil_is_initialized(void);
 
 /* This routine is called when there is a fatal error. Now public because file
  * error handling is defined in a separate file from comm and win, but all
@@ -215,29 +223,46 @@ cvars:
         goto fn_fail;                                                   \
     }
 
-#define MPIR_ERRTEST_RANK(comm_ptr,rank,err)                            \
-    if ((rank) < 0 || (rank) >= (comm_ptr)->remote_size) {              \
-        err = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, __func__, __LINE__, \
-                                   MPI_ERR_RANK, "**rank", "**rank %d %d", rank, \
-                                   (comm_ptr)->remote_size);            \
-        goto fn_fail;                                                   \
-    }
+#ifdef ENABLE_THREADCOMM
+#define MPIR_ERRTEST_RANK(comm_ptr,rank,err) \
+    do { \
+        int comm_size = (comm_ptr)->remote_size; \
+        if (comm_ptr->threadcomm) { \
+            comm_size = comm_ptr->threadcomm->rank_offset_table[comm_size - 1]; \
+        } \
+        if ((rank) < 0 || (rank) >= comm_size) { \
+            err = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, __func__, __LINE__, \
+                                    MPI_ERR_RANK, "**rank", "**rank %d %d", rank, \
+                                    comm_size); \
+            goto fn_fail; \
+        } \
+    } while (0)
+#else
+#define MPIR_ERRTEST_RANK(comm_ptr,rank,err) \
+    do { \
+        int comm_size = (comm_ptr)->remote_size; \
+        if ((rank) < 0 || (rank) >= comm_size) { \
+            err = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, __func__, __LINE__, \
+                                    MPI_ERR_RANK, "**rank", "**rank %d %d", rank, \
+                                    comm_size); \
+            goto fn_fail; \
+        } \
+    } while (0)
+#endif
 
-#define MPIR_ERRTEST_SEND_RANK(comm_ptr,rank,err)                       \
-    if ((rank) < MPI_PROC_NULL || (rank) >= (comm_ptr)->remote_size) {  \
-        err = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, __func__, __LINE__, \
-                                   MPI_ERR_RANK, "**rank", "**rank %d %d", rank, \
-                                   (comm_ptr)->remote_size);            \
-        goto fn_fail;                                                   \
-    }
+#define MPIR_ERRTEST_SEND_RANK(comm_ptr,rank,err) \
+    do { \
+        if (rank != MPI_PROC_NULL) { \
+            MPIR_ERRTEST_RANK(comm_ptr, rank, err); \
+        } \
+    } while (0)
 
-#define MPIR_ERRTEST_RECV_RANK(comm_ptr,rank,err)                       \
-    if ((rank) < MPI_ANY_SOURCE || (rank) >= (comm_ptr)->remote_size) { \
-        err = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, __func__, __LINE__, \
-                                   MPI_ERR_RANK, "**rank", "**rank %d %d", rank, \
-                                   (comm_ptr)->remote_size);            \
-        goto fn_fail;                                                   \
-    }
+#define MPIR_ERRTEST_RECV_RANK(comm_ptr,rank,err) \
+    do { \
+        if (rank != MPI_PROC_NULL && rank != MPI_ANY_SOURCE) { \
+            MPIR_ERRTEST_RANK(comm_ptr, rank, err); \
+        } \
+    } while (0)
 
 #define MPIR_ERRTEST_COUNT(count,err)                           \
     if ((count) < 0) {                                          \
@@ -248,6 +273,18 @@ cvars:
                                    "**countneg",                \
                                    "**countneg %d",             \
                                    count);                      \
+        goto fn_fail;                                           \
+    }
+
+#define MPIR_ERRTEST_PARTITION(partition,reqp,err)              \
+    if ((partition) < 0 || (partition) >= (reqp)->u.part.partitions) { \
+        err = MPIR_Err_create_code(MPI_SUCCESS,                 \
+                                   MPIR_ERR_RECOVERABLE,        \
+                                   __func__, __LINE__,          \
+                                   MPI_ERR_OTHER,               \
+                                   "**partitioninvalid",        \
+                                   "**partitioninvalid %d",     \
+                                   partition);                  \
         goto fn_fail;                                           \
     }
 
@@ -325,29 +362,55 @@ cvars:
         goto fn_fail;                                                   \
     }
 
-/* We use -2 (MPI_PROC_NULL and MPI_ROOT are negative) for the
-   intercomm test */
 #define MPIR_ERRTEST_INTER_ROOT(comm_ptr,root,err)                      \
-    if ((root) < -3 || (root) >= (comm_ptr)->remote_size) {             \
+    if (((root) < 0 && (root) != MPI_ROOT && (root) != MPI_PROC_NULL) || \
+        (root) >= (comm_ptr)->remote_size) {                            \
         err = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, __func__, __LINE__, \
                                    MPI_ERR_ROOT, "**root", "**root %d", root); \
         goto fn_fail;                                                   \
     }
 
-#define MPIR_ERRTEST_PERSISTENT(reqp,err)                               \
-    if ((reqp)->kind != MPIR_REQUEST_KIND__PREQUEST_SEND && (reqp)->kind != MPIR_REQUEST_KIND__PREQUEST_RECV) { \
+#define MPIR_ERRTEST_STARTREQ(reqp,err)                               \
+    if ((reqp)->kind != MPIR_REQUEST_KIND__PREQUEST_SEND && (reqp)->kind != MPIR_REQUEST_KIND__PREQUEST_RECV   \
+        && (reqp)->kind != MPIR_REQUEST_KIND__PREQUEST_COLL                                                    \
+        && (reqp)->kind != MPIR_REQUEST_KIND__PART_SEND && (reqp)->kind != MPIR_REQUEST_KIND__PART_RECV) {     \
         err = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, __func__, __LINE__, \
-                                   MPI_ERR_REQUEST, "**requestnotpersist", 0); \
+                                   MPI_ERR_REQUEST, "**requestinvalidstart", 0); \
         goto fn_fail;                                                   \
     }
 
-#define MPIR_ERRTEST_PERSISTENT_ACTIVE(reqp,err)                        \
-    if (((reqp)->kind == MPIR_REQUEST_KIND__PREQUEST_SEND ||            \
+#define MPIR_ERRTEST_STARTREQ_ACTIVE(reqp,err)                        \
+    if (((reqp)->kind == MPIR_REQUEST_KIND__PREQUEST_SEND ||          \
          (reqp)->kind == MPIR_REQUEST_KIND__PREQUEST_RECV) && (reqp)->u.persist.real_request != NULL) { \
         err = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, __func__, __LINE__, \
                                    MPI_ERR_REQUEST, "**requestpersistactive", 0); \
         goto fn_fail;                                                   \
+    } else if ((reqp)->kind == MPIR_REQUEST_KIND__PREQUEST_COLL && (reqp)->u.persist_coll.real_request != NULL) { \
+        err = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, __func__, __LINE__, \
+                                   MPI_ERR_REQUEST, "**requestpersistactive", 0); \
+        goto fn_fail;                                                   \
+    } else if (((reqp)->kind == MPIR_REQUEST_KIND__PART_SEND ||                                \
+         (reqp)->kind == MPIR_REQUEST_KIND__PART_RECV) && MPIR_Part_request_is_active(reqp)) { \
+        err = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, __func__, __LINE__, \
+                                   MPI_ERR_REQUEST, "**requestpartactive", 0);            \
+        goto fn_fail;                                                                     \
     }
+
+#define MPIR_ERRTEST_PREADYREQ(reqp,err)                                                 \
+    if ((reqp)->kind != MPIR_REQUEST_KIND__PART_SEND ||                                  \
+                    !MPIR_Part_request_is_active(reqp)) {                                \
+        err = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, __func__, __LINE__,\
+                                   MPI_ERR_REQUEST, "**requestinvalidpready", 0); \
+        goto fn_fail;                                                             \
+    }
+
+#define MPIR_ERRTEST_PARRIVEDREQ(reqp, err)                                    \
+  if ((reqp)->kind != MPIR_REQUEST_KIND__PART_RECV) {                          \
+    err = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, __func__,    \
+                               __LINE__, MPI_ERR_REQUEST,                      \
+                               "**requestinvalidparrived", 0);                 \
+    goto fn_fail;                                                              \
+  }
 
 #define MPIR_ERRTEST_COMM_INTRA(comm_ptr, err)                          \
     if ((comm_ptr)->comm_kind != MPIR_COMM_KIND__INTRACOMM) {           \
@@ -412,6 +475,41 @@ cvars:
             MPIR_ERR_SETANDSTMT1((err_), MPI_ERR_RMA_FLAVOR,    \
                                  goto fn_fail, "**winflavor",   \
                                  "**winflavor %s", #flavor_);   \
+        }                                                       \
+    } while (0)
+
+#define MPIR_ERRTEST_WIN_NOT_DYNAMIC(win_, err_)                \
+    do {                                                        \
+        if ((win_)->create_flavor == MPI_WIN_FLAVOR_DYNAMIC) {  \
+            MPIR_ERR_SETANDSTMT1((err_), MPI_ERR_RMA_FLAVOR,    \
+                                 goto fn_fail, "**winflavor",   \
+                                 "**winflavor %s", "!MPI_WIN_FLAVOR_DYNAMIC");   \
+        }                                                       \
+    } while (0)
+
+#define MPIR_ERRTEST_WIN_SIZE(size_, err_)                      \
+    do {                                                        \
+        if (size_ < 0) {                                        \
+	    err_ = MPIR_Err_create_code(MPI_SUCCESS,            \
+                                        MPIR_ERR_RECOVERABLE,   \
+                                        __func__, __LINE__,     \
+                                        MPI_ERR_SIZE,           \
+                                        "**rmasize",            \
+                                        "**rmasize %d", size_); \
+            goto fn_fail;                                       \
+        }                                                       \
+    } while (0)
+
+#define MPIR_ERRTEST_WIN_DISPUNIT(dispunit_, err_)              \
+    do {                                                        \
+        if (dispunit_ <= 0) {                                   \
+	    err_ = MPIR_Err_create_code(MPI_SUCCESS,            \
+                                        MPIR_ERR_RECOVERABLE,   \
+                                        __func__, __LINE__,     \
+                                        MPI_ERR_DISP,           \
+                                        "**dispunit",           \
+                                        "**dispunit %d", dispunit_);  \
+            goto fn_fail;                                       \
         }                                                       \
     } while (0)
 
@@ -608,11 +706,11 @@ cvars:
 
 #define MPIR_ERRTEST_ERRHANDLER(errhandler_,err_)                       \
     if (errhandler_ == MPI_ERRHANDLER_NULL) {                           \
-        MPIR_ERR_SETANDSTMT(err_,MPI_ERR_ARG,goto fn_fail,"**errhandlernull"); \
+        MPIR_ERR_SETANDSTMT(err_,MPI_ERR_ERRHANDLER,goto fn_fail,"**errhandlernull"); \
     }                                                                   \
     else {                                                              \
         MPIR_ERRTEST_VALID_HANDLE(errhandler_,MPIR_ERRHANDLER,          \
-                                  err_,MPI_ERR_ARG,"**errhandler");     \
+                                  err_,MPI_ERR_ERRHANDLER,"**errhandler");     \
     }
 
 #define MPIR_ERRTEST_INFO(info_, err_)                                  \
@@ -623,7 +721,7 @@ cvars:
         }                                                               \
         else                                                            \
         {                                                               \
-            MPIR_ERRTEST_VALID_HANDLE((info_), MPIR_INFO, (err_), MPI_ERR_ARG, "**info"); \
+            MPIR_ERRTEST_VALID_HANDLE((info_), MPIR_INFO, (err_), MPI_ERR_INFO, "**info"); \
         }                                                               \
     }
 
@@ -631,7 +729,7 @@ cvars:
     {                                                                   \
         if ((info_) != MPI_INFO_NULL)                                   \
         {                                                               \
-            MPIR_ERRTEST_VALID_HANDLE((info_), MPIR_INFO, (err_), MPI_ERR_ARG, "**info"); \
+            MPIR_ERRTEST_VALID_HANDLE((info_), MPIR_INFO, (err_), MPI_ERR_INFO, "**info"); \
         }                                                               \
     }
 
@@ -661,96 +759,17 @@ cvars:
         }                                                               \
     }
 
-#ifdef HAVE_ERROR_CHECKING
-#define MPIR_ERRTEST_MPIT_INITIALIZED(err_)                             \
-    do {                                                                \
-        if (!MPIR_T_is_initialized()) {                                 \
-            MPIR_ERR_SETANDSTMT(err_, MPI_T_ERR_NOT_INITIALIZED, goto fn_fail, "**mpitinit"); \
-        }                                                               \
-    } while (0)
-#else
-#define MPIR_ERRTEST_MPIT_INITIALIZED(err_)
-#endif
-
-#define MPIR_ERRTEST_CAT_INDEX(index_,err_)                             \
-    do {                                                                \
-        if ((index_) < 0 || ((unsigned) index_) >= utarray_len(cat_table)) \
+#define MPIR_ERRTEST_SESSION(session_, err_)                                    \
+    {                                                                   \
+        if ((session_) == MPI_SESSION_NULL)                                     \
         {                                                               \
-            MPIR_ERR_SETANDSTMT(err_, MPI_T_ERR_INVALID_INDEX, goto fn_fail, "**catindex"); \
+            MPIR_ERR_SETANDSTMT((err_), MPI_ERR_SESSION,goto fn_fail, "**sessionnull"); \
         }                                                               \
-    } while (0)
-
-#define MPIR_ERRTEST_ENUM_HANDLE(handle_, err_)                         \
-    do {                                                                \
-        if ((handle_) == MPI_T_ENUM_NULL)                               \
+        else                                                            \
         {                                                               \
-            MPIR_ERR_SETANDSTMT(err_, MPI_T_ERR_INVALID_HANDLE, goto fn_fail, "**enumhandlenull"); \
+            MPIR_ERRTEST_VALID_HANDLE((session_), MPIR_SESSION, (err_), MPI_ERR_SESSION, "**session"); \
         }                                                               \
-        else if ((handle_)->kind != MPIR_T_ENUM_HANDLE)                 \
-        {                                                               \
-            MPIR_ERR_SETANDSTMT(err_, MPI_T_ERR_INVALID_HANDLE, goto fn_fail, "**enumhandle"); \
-        }                                                               \
-    } while (0)
-
-#define MPIR_ERRTEST_ENUM_ITEM(enum_, index_, err_)                     \
-    do {                                                                \
-        if ((index_) < 0 || ((unsigned) index_) >= utarray_len((enum_)->items)) \
-        {                                                               \
-            MPIR_ERR_SETANDSTMT(err_, MPI_T_ERR_INVALID_ITEM, goto fn_fail, "**itemindex"); \
-        }                                                               \
-    } while (0)
-
-#define MPIR_ERRTEST_CVAR_INDEX(index_,err_)                            \
-    do {                                                                \
-        if ((index_) < 0 || ((unsigned) index_) >= utarray_len(cvar_table)) \
-        {                                                               \
-            MPIR_ERR_SETANDSTMT(err_, MPI_T_ERR_INVALID_INDEX, goto fn_fail, "**cvarindex"); \
-        }                                                               \
-    } while (0)
-
-#define MPIR_ERRTEST_CVAR_HANDLE(handle_, err_)                         \
-    do {                                                                \
-        if ((handle_) == MPI_T_CVAR_HANDLE_NULL)                        \
-        {                                                               \
-            MPIR_ERR_SETANDSTMT(err_, MPI_T_ERR_INVALID_HANDLE, goto fn_fail, "**cvarhandlenull"); \
-        }                                                               \
-        else if ((handle_)->kind != MPIR_T_CVAR_HANDLE)                 \
-        {                                                               \
-            MPIR_ERR_SETANDSTMT(err_, MPI_T_ERR_INVALID_HANDLE, goto fn_fail, "**cvarhandle"); \
-        }                                                               \
-    } while (0)
-
-#define MPIR_ERRTEST_PVAR_INDEX(index_,err_)                            \
-    do {                                                                \
-        if ((index_) < 0 || ((unsigned) index_) >= utarray_len(pvar_table)) \
-        {                                                               \
-            MPIR_ERR_SETANDSTMT(err_, MPI_T_ERR_INVALID_INDEX, goto fn_fail, "**pvarindex"); \
-        }                                                               \
-    } while (0)
-
-#define MPIR_ERRTEST_PVAR_HANDLE(handle_, err_)                         \
-    do {                                                                \
-        if (handle_ == MPI_T_PVAR_HANDLE_NULL)                          \
-        {                                                               \
-            MPIR_ERR_SETANDSTMT(err_,MPI_T_ERR_INVALID_HANDLE, goto fn_fail,"**pvarhandlenull"); \
-        }                                                               \
-        else if ((handle_)->kind != MPIR_T_PVAR_HANDLE)                 \
-        {                                                               \
-            MPIR_ERR_SETANDSTMT(err_, MPI_T_ERR_INVALID_HANDLE, goto fn_fail, "**pvarhandle"); \
-        }                                                               \
-    } while (0)
-
-#define MPIR_ERRTEST_PVAR_SESSION(session_,err_)                        \
-    do {                                                                \
-        if ((session_) == MPI_T_PVAR_SESSION_NULL)                      \
-        {                                                               \
-            MPIR_ERR_SETANDSTMT(err_,MPI_T_ERR_INVALID_SESSION, goto fn_fail,"**pvarsessionnull"); \
-        }                                                               \
-        else if ((session_)->kind != MPIR_T_PVAR_SESSION)               \
-        {                                                               \
-            MPIR_ERR_SETANDSTMT(err_, MPI_T_ERR_INVALID_SESSION, goto fn_fail, "**pvarsession"); \
-        }                                                               \
-    } while (0)
+    }
 
 /* some simple memcpy aliasing checks */
 #define MPIR_ERR_CHKMEMCPYANDSTMT(err_,stmt_,src_,dst_,len_)            \
@@ -887,6 +906,27 @@ cvars:
     do {                                                        \
         (err_) = MPIR_Err_combine_codes((err_), (newerr_));     \
     } while (0)
+
+/* For collective communication error, update errflag_ and err_ret_, do not abort */
+#define MPIR_ERR_COLL_CHECKANDCONT(err_, errflag_, err_ret_) \
+    do { \
+        if (err_) { \
+            errflag_ |= (MPIX_ERR_PROC_FAILED == MPIR_ERR_GET_CLASS(err_)) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER; \
+            MPIR_ERR_ADD(err_ret_, err_); \
+        } \
+    } while (0)
+
+/* Propagate the size mismatch error */
+#define MPIR_ERR_COLL_CHECK_SIZE(recv_sz, expect_sz, errflag_, err_ret_) \
+    do {                                                        \
+        if (recv_sz != expect_sz) { \
+            int err = MPI_SUCCESS; \
+            MPIR_ERR_SET2(err, MPI_ERR_OTHER, "**collective_size_mismatch", "**collective_size_mismatch %d %d", recv_sz, expect_sz); \
+            MPIR_ERR_ADD(err_ret_, err); \
+            errflag_ |= MPIR_ERR_OTHER; \
+        } \
+    } while (0)
+
 #else
 /* Simply set the class, being careful not to override a previously
    set class. */
@@ -951,6 +991,16 @@ cvars:
         if (!err_)                              \
             err_ = newerr_;                     \
     } while (0)
+
+#define MPIR_ERR_COLL_CHECKANDCONT(err_, errflag_, err_ret_) \
+    do { \
+        if (err_) { \
+            errflag_ = (MPIX_ERR_PROC_FAILED == MPIR_ERR_GET_CLASS(err_)) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER; \
+        } \
+    } while (0)
+
+#define MPIR_ERR_COLL_CHECK_SIZE(recv_sz, expect_sz, errflag_, err_ret_) do { } while (0)
+
 #endif
 
 /* The following definitions are the same independent of the choice of
@@ -1082,15 +1132,24 @@ cvars:
 #ifdef HAVE_ERROR_CHECKING
 #define MPIR_ERRTEST_INITIALIZED_ORDIE()                                \
     do {                                                                \
-        if (MPL_atomic_load_int(&MPIR_Process.mpich_state) == MPICH_MPI_STATE__PRE_INIT || \
-            MPL_atomic_load_int(&MPIR_Process.mpich_state) == MPICH_MPI_STATE__POST_FINALIZED) \
-            {                                                           \
-                MPIR_Err_preOrPostInit();                               \
-            }                                                           \
+        if (MPL_atomic_load_int(&MPIR_Process.mpich_state) == MPICH_MPI_STATE__UNINITIALIZED) { \
+            MPIR_Err_Uninitialized(__func__);                           \
+        }                                                               \
     } while (0)
 #else
 #define MPIR_ERRTEST_INITIALIZED_ORDIE() do {} while (0)
 #endif
+
+/* used after MPIR_Handle_obj_alloc to check handle object allocation */
+#define MPIR_ERR_CHKHANDLEMEM(ptr_) \
+    do { \
+        if (!(ptr_)) { \
+            mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, \
+                                             __func__, __LINE__, MPI_ERR_OTHER, \
+                                             "**nomem", 0); \
+            goto fn_fail; \
+        } \
+    } while (0)
 
 /* ------------------------------------------------------------------------- */
 /* end of mpir_err.h */

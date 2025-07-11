@@ -1,0 +1,25 @@
+/*D
+   MPI_Comm_delete_attr - Deletes an attribute value associated with a key on a communicator
+
+Synopsis:
+.vb
+int MPI_Comm_delete_attr(MPI_Comm comm, int comm_keyval)
+.ve
+
+Input Parameters:
++ comm - communicator from which the attribute is deleted (handle)
+- comm_keyval - key value (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_KEYVAL
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Comm_set_attr, MPI_Comm_create_keyval
+D*/
+

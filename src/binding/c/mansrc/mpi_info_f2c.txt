@@ -1,0 +1,15 @@
+/*D
+   MPI_Info_f2c - converts Fortran INTEGER to MPI_Info
+
+Synopsis:
+.vb
+MPI_Info MPI_Info_f2c(MPI_Fint info)
+.ve
+
+Input Parameters:
+. info - info (None)
+
+.N ThreadSafe
+
+D*/
+

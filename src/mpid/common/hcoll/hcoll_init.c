@@ -97,12 +97,13 @@ int hcoll_initialize(void)
 
     if (!hcoll_initialized) {
         hcoll_initialized = 1;
-        mpi_errno = MPIR_Progress_hook_register(hcoll_do_progress, &hcoll_progress_hook_id);
+        mpi_errno = MPIR_Progress_hook_register(-1, hcoll_do_progress, &hcoll_progress_hook_id);
         MPIR_ERR_CHECK(mpi_errno);
 
         MPIR_Progress_hook_activate(hcoll_progress_hook_id);
     }
-    MPIR_Add_finalize(hcoll_destroy, 0, 0);
+    /* set priority to finalize before finalizing world comm */
+    MPIR_Add_finalize(hcoll_destroy, 0, MPIR_FINALIZE_CALLBACK_PRIO + 1);
 
     CHECK_ENABLE_ENV_VARS(BARRIER, barrier);
     CHECK_ENABLE_ENV_VARS(BCAST, bcast);
@@ -191,7 +192,7 @@ int hcoll_comm_destroy(MPIR_Comm * comm_ptr, void *param)
     goto fn_exit;
 }
 
-int hcoll_do_progress(int *made_progress)
+int hcoll_do_progress(int vci, int *made_progress)
 {
     *made_progress = 1;
 

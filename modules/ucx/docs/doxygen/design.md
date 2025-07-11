@@ -22,8 +22,8 @@ the differences across various hardware architectures and provides a
 low-level API that enables the implementation of communication protocols.
 The primary goal of the layer is to provide direct and efficient access to
 hardware network functionality. For this purpose,
-UCT relies on vendor provided low-level drivers such as InfiniBand
-Verbs, Cray's uGNI, libfabrics, etc. In addition, the layer provides
+UCT relies on vendor provided low-level drivers such as uGNI, Verbs,
+shared memory, ROCM, CUDA. In addition, the layer provides
 constructs for communication context management (thread-based and application level), and
 allocation and management of device-specific memories including those found
 in accelerators. In terms of communication APIs, UCT defines interfaces for
@@ -36,7 +36,7 @@ in place @anchor uct_short_protocol_desc.
 \b Bcopy: This type of operation is optimized for medium size messages that are typically sent through a
 so-called bouncing-buffer. This auxiliary buffer is typically allocated given network constraints and ready for
 immediate utilization by the hardware. Since a custom data packing routine could  be provided, this method
-can be used for non-contiguos i/o @anchor uct_bcopy_protocol_desc.
+can be used for non-contiguous i/o @anchor uct_bcopy_protocol_desc.
 
 \b Zcopy: This type of operation exposes zero-copy memory-to-memory communication semantics, which means that
 message is sent directly from user buffer, or received directly to user buffer, without being copied between

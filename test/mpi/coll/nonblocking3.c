@@ -12,12 +12,12 @@
  * - post operations on multiple comms from multiple threads
  */
 
+#include "mpitest.h"
 #include "mpi.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include "mpitest.h"
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -95,8 +95,8 @@ struct laundry {
     int *recvcounts;
     int *sdispls;
     int *rdispls;
-    int *sendtypes;
-    int *recvtypes;
+    MPI_Datatype *sendtypes;
+    MPI_Datatype *recvtypes;
 };
 
 static void cleanup_laundry(struct laundry *l)
@@ -122,7 +122,7 @@ static void cleanup_laundry(struct laundry *l)
 }
 
 /* Starts a "random" operation on "comm" corresponding to "rndnum" and returns
- * in (*req) a request handle corresonding to that operation.  This call should
+ * in (*req) a request handle corresponding to that operation.  This call should
  * be considered collective over comm (with a consistent value for "rndnum"),
  * even though the operation may only be a point-to-point request. */
 static void start_random_nonblocking(MPI_Comm comm, unsigned int rndnum, MPI_Request * req,
@@ -136,8 +136,8 @@ static void start_random_nonblocking(MPI_Comm comm, unsigned int rndnum, MPI_Req
     int *recvcounts = NULL;
     int *sdispls = NULL;
     int *rdispls = NULL;
-    int *sendtypes = NULL;
-    int *recvtypes = NULL;
+    MPI_Datatype *sendtypes = NULL;
+    MPI_Datatype *recvtypes = NULL;
     signed char *buf_alias = NULL;
 
     MPI_Comm_rank(comm, &rank);
@@ -414,12 +414,6 @@ static void check_after_completion(struct laundry *l)
     MPI_Comm comm = l->comm;
     int *buf = l->buf;
     int *recvbuf = l->recvbuf;
-    int *sendcounts = l->sendcounts;
-    int *recvcounts = l->recvcounts;
-    int *sdispls = l->sdispls;
-    int *rdispls = l->rdispls;
-    int *sendtypes = l->sendtypes;
-    int *recvtypes = l->recvtypes;
     char *buf_alias = (char *) buf;
 
     MPI_Comm_rank(comm, &rank);
@@ -661,7 +655,12 @@ static void complete_something_somehow(unsigned int rndnum, int numreqs, MPI_Req
 {
     int i, idx, flag;
 
+#if (MPI_VERSION == 4 && MPI_SUBVERSION >= 1) || MPI_VERSION > 4
+#define COMPLETION_CASES (12)
+#else
 #define COMPLETION_CASES (8)
+#endif
+
     switch (rand_range(rndnum, 0, COMPLETION_CASES)) {
         case 0:
             MPI_Waitall(numreqs, reqs, MPI_STATUSES_IGNORE);
@@ -727,14 +726,72 @@ static void complete_something_somehow(unsigned int rndnum, int numreqs, MPI_Req
             break;
 
         case 7:
-            /* select a new random index and wait on it */
+            /* select a new random index and test on it */
             rndnum = gen_prn(rndnum);
             idx = rand_range(rndnum, 0, numreqs);
             MPI_Test(&reqs[idx], &flag, MPI_STATUS_IGNORE);
             *outcount = (flag ? 1 : 0);
             indices[0] = idx;
             break;
+#if (MPI_VERSION == 4 && MPI_SUBVERSION >= 1) || MPI_VERSION > 4
+        case 8:
+            /* select a new random index and run MPI_Request_get_status on it */
+            rndnum = gen_prn(rndnum);
+            idx = rand_range(rndnum, 0, numreqs);
+            MPI_Request_get_status(reqs[idx], &flag, MPI_STATUS_IGNORE);
+            if (flag) {
+                if (reqs[idx] != MPI_REQUEST_NULL) {
+                    MPI_Request_free(&reqs[idx]);
+                }
+                *outcount = 1;
+                indices[0] = idx;
+            } else {
+                *outcount = 0;
+            }
+            break;
 
+        case 9:
+            MPI_Request_get_status_all(numreqs, reqs, &flag, MPI_STATUSES_IGNORE);
+            if (flag) {
+                *outcount = numreqs;
+                for (i = 0; i < numreqs; ++i) {
+                    if (reqs[i] != MPI_REQUEST_NULL) {
+                        MPI_Request_free(&reqs[i]);
+                    }
+                    indices[i] = i;
+                }
+            } else {
+                *outcount = 0;
+            }
+            break;
+
+        case 10:
+            MPI_Request_get_status_any(numreqs, reqs, &idx, &flag, MPI_STATUS_IGNORE);
+            if (idx == MPI_UNDEFINED) {
+                *outcount = 0;
+            } else {
+                *outcount = 1;
+                if (reqs[idx] != MPI_REQUEST_NULL) {
+                    MPI_Request_free(&reqs[idx]);
+                }
+                indices[0] = idx;
+            }
+            break;
+
+        case 11:
+            MPI_Request_get_status_some(numreqs, reqs, outcount, indices, MPI_STATUS_IGNORE);
+            if (*outcount == MPI_UNDEFINED) {
+                *outcount = 0;
+            } else {
+                for (i = 0; i < *outcount; i++) {
+                    if (reqs[indices[i]] != MPI_REQUEST_NULL) {
+                        MPI_Request_free(&reqs[indices[i]]);
+                    }
+                }
+            }
+            break;
+
+#endif
         default:
             assert(0);
             break;

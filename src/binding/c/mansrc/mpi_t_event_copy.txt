@@ -1,0 +1,25 @@
+/*D
+   MPI_T_event_copy - Copy event data as a whole into a user-specified buffer
+
+Synopsis:
+.vb
+int MPI_T_event_copy(MPI_T_event_instance event_instance, void *buffer)
+.ve
+
+Input Parameters:
+. event_instance - event instance provided to the callback function (handle)
+
+Output Parameters:
+. buffer - user-allocated buffer for event data (choice)
+
+.N ThreadSafe
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_T_ERR_INVALID
+.N MPI_T_ERR_INVALID_HANDLE
+.N MPI_T_ERR_NOT_INITIALIZED
+.N MPI_ERR_OTHER
+
+D*/
+

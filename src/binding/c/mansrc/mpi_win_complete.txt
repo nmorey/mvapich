@@ -1,0 +1,22 @@
+/*D
+   MPI_Win_complete - Completes an RMA operations begun after an MPI_Win_start
+
+Synopsis:
+.vb
+int MPI_Win_complete(MPI_Win win)
+.ve
+
+Input Parameters:
+. win - window object (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_WIN
+.N MPI_ERR_OTHER
+
+D*/
+

@@ -1,0 +1,22 @@
+/*D
+   MPIX_Stream_progress - Invoke progress on the given stream
+
+Synopsis:
+.vb
+int MPIX_Stream_progress(MPIX_Stream stream)
+.ve
+
+Input Parameters:
+. stream - stream object (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPIX_ERR_STREAM
+.N MPI_ERR_OTHER
+
+D*/
+

@@ -1,0 +1,26 @@
+/*D
+   MPI_Comm_remote_size - Determines the size of the remote group
+
+Synopsis:
+.vb
+int MPI_Comm_remote_size(MPI_Comm comm, int *size)
+.ve
+
+Input Parameters:
+. comm - inter-communicator (handle)
+
+Output Parameters:
+. size - number of processes in the remote group of comm (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+D*/
+

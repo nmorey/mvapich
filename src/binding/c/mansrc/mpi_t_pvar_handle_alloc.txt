@@ -1,0 +1,32 @@
+/*D
+   MPI_T_pvar_handle_alloc - Allocate a handle for a performance variable
+
+Synopsis:
+.vb
+int MPI_T_pvar_handle_alloc(MPI_T_pvar_session session, int pvar_index,
+                            void *obj_handle, MPI_T_pvar_handle *handle,
+                            int *count)
+.ve
+
+Input Parameters:
++ session - identifier of performance experiment session (handle)
+. pvar_index - index of performance variable for which handle is to be allocated (integer)
+- obj_handle - reference to a handle of the mpi object to which this variable is supposed to be bound (pointer)
+
+Output Parameters:
++ handle - allocated handle (handle)
+- count - number of elements used to represent this variable (integer)
+
+.N ThreadSafe
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_T_ERR_INVALID
+.N MPI_T_ERR_INVALID_INDEX
+.N MPI_T_ERR_INVALID_SESSION
+.N MPI_T_ERR_NOT_INITIALIZED
+.N MPI_T_ERR_OUT_OF_HANDLES
+.N MPI_ERR_OTHER
+
+D*/
+

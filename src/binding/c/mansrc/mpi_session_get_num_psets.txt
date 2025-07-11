@@ -1,0 +1,29 @@
+/*D
+   MPI_Session_get_num_psets - Get number of available processes sets
+
+Synopsis:
+.vb
+int MPI_Session_get_num_psets(MPI_Session session, MPI_Info info,
+                              int *npset_names)
+.ve
+
+Input Parameters:
++ session - session (handle)
+- info - info object (handle)
+
+Output Parameters:
+. npset_names - number of available process sets (non-negative integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_INFO
+.N MPI_ERR_SESSION
+.N MPI_ERR_OTHER
+
+D*/
+

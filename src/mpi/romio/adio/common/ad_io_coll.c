@@ -37,7 +37,7 @@ static void post_client_comm(ADIO_File fd, int rw_type,
  * - persistent file domains
  * - an option to use alltoall instead of point-to-point
  */
-void ADIOI_IOStridedColl(ADIO_File fd, void *buf, int count, int rdwr,
+void ADIOI_IOStridedColl(ADIO_File fd, void *buf, MPI_Aint count, int rdwr,
                          MPI_Datatype datatype, int file_ptr_type,
                          ADIO_Offset offset, ADIO_Status * status, int *error_code)
 {
@@ -49,7 +49,7 @@ void ADIOI_IOStridedColl(ADIO_File fd, void *buf, int count, int rdwr,
     int interleave_count = 0, i, nprocs, myrank, nprocs_for_coll;
     int cb_enable;
     ADIO_Offset bufsize;
-    MPI_Aint extent;
+    MPI_Aint lb, extent;
 #ifdef DEBUG2
     MPI_Aint bufextent;
 #endif
@@ -178,7 +178,7 @@ void ADIOI_IOStridedColl(ADIO_File fd, void *buf, int count, int rdwr,
         return;
     }
 
-    MPI_Type_extent(datatype, &extent);
+    MPI_Type_get_extent(datatype, &lb, &extent);
 #ifdef DEBUG2
     bufextent = extent * count;
 #endif
@@ -663,13 +663,13 @@ void ADIOI_IOStridedColl(ADIO_File fd, void *buf, int count, int rdwr,
 
 /* Some of this code is from the old Calc_my_off_len() function.
  * It calculates the 1st and last byte accessed */
-void ADIOI_Calc_bounds(ADIO_File fd, int count, MPI_Datatype buftype,
+void ADIOI_Calc_bounds(ADIO_File fd, MPI_Aint count, MPI_Datatype buftype,
                        int file_ptr_type, ADIO_Offset offset,
                        ADIO_Offset * st_offset, ADIO_Offset * end_offset)
 {
     MPI_Count filetype_size, buftype_size, etype_size;
     int sum;
-    MPI_Aint filetype_extent;
+    MPI_Aint lb, filetype_extent;
     ADIO_Offset total_io;
     int filetype_is_contig;
     ADIO_Offset i, remainder;
@@ -694,7 +694,7 @@ void ADIOI_Calc_bounds(ADIO_File fd, int count, MPI_Datatype buftype,
 
     MPI_Type_size_x(fd->filetype, &filetype_size);
     ADIOI_Assert(filetype_size != 0);
-    MPI_Type_extent(fd->filetype, &filetype_extent);
+    MPI_Type_get_extent(fd->filetype, &lb, &filetype_extent);
     MPI_Type_size_x(fd->etype, &etype_size);
     MPI_Type_size_x(buftype, &buftype_size);
 
@@ -833,7 +833,7 @@ void ADIOI_Calc_bounds(ADIO_File fd, int count, MPI_Datatype buftype,
  * WriteStrided call without affecting existing code.  For the new 2
  * phase code, we really only need to set a custom_ftype, and we can
  * assume that this uses MPI_BYTE for the etype, and disp is 0 */
-void ADIOI_IOFiletype(ADIO_File fd, void *buf, int count,
+void ADIOI_IOFiletype(ADIO_File fd, void *buf, MPI_Aint count,
                       MPI_Datatype datatype, int file_ptr_type,
                       ADIO_Offset offset, MPI_Datatype custom_ftype,
                       int rdwr, ADIO_Status * status, int *error_code)
@@ -845,7 +845,7 @@ void ADIOI_IOFiletype(ADIO_File fd, void *buf, int count,
     int user_ind_rd_buffer_size;
     int f_is_contig, m_is_contig;
     int user_ds_read, user_ds_write;
-    MPI_Aint f_extent;
+    MPI_Aint lb, f_extent;
     MPI_Count f_size;
     int f_ds_percent;           /* size/extent */
 
@@ -855,9 +855,10 @@ void ADIOI_IOFiletype(ADIO_File fd, void *buf, int count,
     else
         MPE_Log_event(5008, 0, NULL);
 #endif
-    MPI_Type_extent(custom_ftype, &f_extent);
+    MPI_Type_get_extent(custom_ftype, &lb, &f_extent);
     MPI_Type_size_x(custom_ftype, &f_size);
-    f_ds_percent = 100 * f_size / f_extent;
+    /* cast ok: percent is a value between 0 and 100 */
+    f_ds_percent = 100 * (int) (f_size / f_extent);
 
     /* temporarily store file view information */
     user_filetype = fd->filetype;
@@ -895,7 +896,7 @@ void ADIOI_IOFiletype(ADIO_File fd, void *buf, int count,
     ADIOI_Datatype_iscontig(custom_ftype, &f_is_contig);
     ADIOI_Datatype_iscontig(datatype, &m_is_contig);
     if (!f_is_contig)
-        ADIOI_Flatten_datatype(custom_ftype);
+        ADIOI_Flatten_and_find(custom_ftype);
 
     /* make appropriate Read/Write calls.  Let ROMIO figure out file
      * system specific stuff. */

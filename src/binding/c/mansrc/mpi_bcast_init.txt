@@ -1,0 +1,43 @@
+/*D
+   MPI_Bcast_init - Creates a persistent request for broadcast
+
+Synopsis:
+.vb
+int MPI_Bcast_init(void *buffer, int count, MPI_Datatype datatype, int root,
+                   MPI_Comm comm, MPI_Info info, MPI_Request *request)
+.ve
+.vb
+int MPI_Bcast_init_c(void *buffer, MPI_Count count, MPI_Datatype datatype,
+                     int root, MPI_Comm comm, MPI_Info info,
+                     MPI_Request *request)
+.ve
+
+Input Parameters:
++ count - number of entries in buffer (non-negative integer)
+. datatype - data type of buffer (handle)
+. root - rank of broadcast root (integer)
+. comm - communicator (handle)
+- info - info argument (handle)
+
+Input/Output Parameters:
+. buffer - starting address of buffer (choice)
+
+Output Parameters:
+. request - communication request (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_BUFFER
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_INFO
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

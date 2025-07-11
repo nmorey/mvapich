@@ -1,0 +1,22 @@
+/*D
+   MPI_Type_free_keyval - Frees an attribute key for datatypes
+
+Synopsis:
+.vb
+int MPI_Type_free_keyval(int *type_keyval)
+.ve
+
+Input/Output Parameters:
+. type_keyval - key value (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_KEYVAL
+.N MPI_ERR_OTHER
+
+D*/
+

@@ -4,6 +4,8 @@
  */
 
 #include "mpioimpl.h"
+#include <limits.h>
+#include <assert.h>
 
 #ifdef HAVE_WEAK_SYMBOLS
 
@@ -17,6 +19,18 @@
 #elif defined(HAVE_WEAK_ATTRIBUTE)
 int MPI_File_read_all_begin(MPI_File fh, void *buf, int count, MPI_Datatype datatype)
     __attribute__ ((weak, alias("PMPI_File_read_all_begin")));
+#endif
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_File_read_all_begin_c = PMPI_File_read_all_begin_c
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_File_read_all_begin_c MPI_File_read_all_begin_c
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_File_read_all_begin_c as PMPI_File_read_all_begin_c
+/* end of weak pragmas */
+#elif defined(HAVE_WEAK_ATTRIBUTE)
+int MPI_File_read_all_begin_c(MPI_File fh, void *buf, MPI_Count count, MPI_Datatype datatype)
+    __attribute__ ((weak, alias("PMPI_File_read_all_begin_c")));
 #endif
 
 /* Include mapping from MPI->PMPI */
@@ -48,17 +62,44 @@ int MPI_File_read_all_begin(MPI_File fh, void *buf, int count, MPI_Datatype data
     return error_code;
 }
 
+/* large count function */
+
+
+/*@
+    MPI_File_read_all_begin_c - Begin a split collective read using individual file pointer
+
+Input Parameters:
+. fh - file handle (handle)
+. count - number of elements in buffer (nonnegative integer)
+. datatype - datatype of each buffer element (handle)
+
+Output Parameters:
+. buf - initial address of buffer (choice)
+
+.N fortran
+@*/
+int MPI_File_read_all_begin_c(MPI_File fh, void *buf, MPI_Count count, MPI_Datatype datatype)
+{
+    int error_code;
+    static char myname[] = "MPI_FILE_READ_ALL_BEGIN";
+
+    error_code = MPIOI_File_read_all_begin(fh, (MPI_Offset) 0,
+                                           ADIO_INDIVIDUAL, buf, count, datatype, myname);
+
+    return error_code;
+}
+
 /* prevent multiple definitions of this routine */
 #ifdef MPIO_BUILD_PROFILING
 int MPIOI_File_read_all_begin(MPI_File fh,
                               MPI_Offset offset,
                               int file_ptr_type,
-                              void *buf, int count, MPI_Datatype datatype, char *myname)
+                              void *buf, MPI_Aint count, MPI_Datatype datatype, char *myname)
 {
     int error_code;
     MPI_Count datatype_size;
     ADIO_File adio_fh;
-    void *xbuf = NULL, *e32_buf = NULL;
+    void *xbuf = NULL, *e32_buf = NULL, *host_buf = NULL;
 
     ROMIO_THREAD_CS_ENTER();
 
@@ -104,6 +145,11 @@ int MPIOI_File_read_all_begin(MPI_File fh,
 
         e32_buf = ADIOI_Malloc(e32_size * count);
         xbuf = e32_buf;
+    } else {
+        MPIO_GPU_HOST_ALLOC(host_buf, buf, count, datatype);
+        if (host_buf != NULL) {
+            xbuf = host_buf;
+        }
     }
 
     ADIO_ReadStridedColl(adio_fh, xbuf, count, datatype, file_ptr_type,
@@ -118,6 +164,8 @@ int MPIOI_File_read_all_begin(MPI_File fh,
         error_code = MPIU_read_external32_conversion_fn(buf, datatype, count, e32_buf);
         ADIOI_Free(e32_buf);
     }
+
+    MPIO_GPU_SWAP_BACK(host_buf, buf, count, datatype);
 
   fn_exit:
     ROMIO_THREAD_CS_EXIT();

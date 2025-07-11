@@ -1,0 +1,42 @@
+/*D
+   MPI_Unpack - Unpack a buffer according to a datatype into contiguous memory
+
+Synopsis:
+.vb
+int MPI_Unpack(const void *inbuf, int insize, int *position, void *outbuf,
+               int outcount, MPI_Datatype datatype, MPI_Comm comm)
+.ve
+.vb
+int MPI_Unpack_c(const void *inbuf, MPI_Count insize, MPI_Count *position,
+                 void *outbuf, MPI_Count outcount, MPI_Datatype datatype,
+                 MPI_Comm comm)
+.ve
+
+Input Parameters:
++ inbuf - input buffer start (choice)
+. insize - size of input buffer, in bytes (non-negative integer)
+. outcount - number of items to be unpacked (integer)
+. datatype - datatype of each output data item (handle)
+- comm - communicator for packed message (handle)
+
+Input/Output Parameters:
+. position - current position in bytes (integer)
+
+Output Parameters:
+. outbuf - output buffer start (choice)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Pack, MPI_Pack_size
+D*/
+

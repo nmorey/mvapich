@@ -1,0 +1,39 @@
+/*D
+   MPI_Imrecv - Nonblocking receive of message matched by MPI_Mprobe or MPI_Improbe.
+
+Synopsis:
+.vb
+int MPI_Imrecv(void *buf, int count, MPI_Datatype datatype,
+               MPI_Message *message, MPI_Request *request)
+.ve
+.vb
+int MPI_Imrecv_c(void *buf, MPI_Count count, MPI_Datatype datatype,
+                 MPI_Message *message, MPI_Request *request)
+.ve
+
+Input Parameters:
++ count - number of elements in receive buffer (non-negative integer)
+- datatype - datatype of each receive buffer element (handle)
+
+Input/Output Parameters:
+. message - message (handle)
+
+Output Parameters:
++ buf - initial address of receive buffer (choice)
+- request - communication request (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_BUFFER
+.N MPI_ERR_COUNT
+.N MPI_ERR_REQUEST
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

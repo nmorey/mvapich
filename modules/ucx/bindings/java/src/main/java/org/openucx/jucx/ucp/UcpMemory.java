@@ -1,5 +1,5 @@
 /*
- * Copyright (C) Mellanox Technologies Ltd. 2019. ALL RIGHTS RESERVED.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2019. ALL RIGHTS RESERVED.
  * See file LICENSE for terms.
  */
 
@@ -27,11 +27,17 @@ public class UcpMemory extends UcxNativeStruct implements Closeable {
 
     private long length;
 
+    private int memType;
+
     /**
      * To prevent construct outside of JNI.
      */
-    private UcpMemory(long nativeId) {
+    private UcpMemory(long nativeId, UcpContext context, long address, long length, int memType) {
         setNativeId(nativeId);
+        this.address = address;
+        this.length = length;
+        this.memType = memType;
+        this.context = context;
     }
 
     /**
@@ -57,7 +63,7 @@ public class UcpMemory extends UcxNativeStruct implements Closeable {
      * object can be "unpacked" on any platform supported by the
      * UCP library.
      * RKEYs for InfiniBand and Cray Aries networks typically includes
-     * InifiniBand and Aries key.
+     * InfiniBand and Aries key.
      * In order to enable remote direct memory access to the memory associated
      * with the memory handle the application is responsible for sharing the RKEY with
      * the peers that will initiate the access.
@@ -71,6 +77,20 @@ public class UcpMemory extends UcxNativeStruct implements Closeable {
         result.clear();
         // 3. Release an address of the worker object. Memory allocated in JNI must be freed by JNI.
         releaseRkeyBufferNative(rKeyBuffer);
+        return result;
+    }
+
+    public ByteBuffer getExportedMkeyBuffer() {
+        UcpMemPackParams params = new UcpMemPackParams().exported();
+        ByteBuffer mKeyBuffer = getMkeyBufferNative(getNativeId(), params);
+        // 1. Allocating java native ByteBuffer (managed by java's reference count cleaner).
+        ByteBuffer result = ByteBuffer.allocateDirect(mKeyBuffer.capacity());
+        // 2. Copy content of native ucp address to java's buffer.
+        result.put(mKeyBuffer);
+        result.clear();
+        // 3. Release an address of the UCX packed mkey object.
+        // Memory allocated in JNI must be freed by JNI.
+        releaseMkeyBufferNative(mKeyBuffer);
         return result;
     }
 
@@ -96,11 +116,22 @@ public class UcpMemory extends UcxNativeStruct implements Closeable {
         return length;
     }
 
+    /**
+     * Type of allocated memory.
+     */
+    public int getMemType() {
+        return memType;
+    }
+
     private static native void unmapMemoryNative(long contextId, long memoryId);
 
     private static native ByteBuffer getRkeyBufferNative(long contextId, long memoryId);
 
     private static native void releaseRkeyBufferNative(ByteBuffer rkey);
+
+    private static native ByteBuffer getMkeyBufferNative(long memoryId, UcpMemPackParams params);
+
+    private static native void releaseMkeyBufferNative(ByteBuffer mkey);
 
     @Override
     public void close() {

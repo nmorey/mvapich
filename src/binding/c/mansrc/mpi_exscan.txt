@@ -1,0 +1,45 @@
+/*D
+   MPI_Exscan - Computes the exclusive scan (partial reductions) of data on a collection of processes
+
+Synopsis:
+.vb
+int MPI_Exscan(const void *sendbuf, void *recvbuf, int count,
+               MPI_Datatype datatype, MPI_Op op, MPI_Comm comm)
+.ve
+.vb
+int MPI_Exscan_c(const void *sendbuf, void *recvbuf, MPI_Count count,
+                 MPI_Datatype datatype, MPI_Op op, MPI_Comm comm)
+.ve
+
+Input Parameters:
++ sendbuf - starting address of send buffer (choice)
+. count - number of elements in input buffer (non-negative integer)
+. datatype - data type of elements of input buffer (handle)
+. op - operation (handle)
+- comm - intra-communicator (handle)
+
+Output Parameters:
+. recvbuf - starting address of receive buffer (choice)
+
+Notes:
+  'MPI_Exscan' is like 'MPI_Scan', except that the contribution from the
+   calling process is not included in the result at the calling process
+   (it is contributed to the subsequent processes, of course).
+
+.N collops
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_BUFFER
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_OP
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

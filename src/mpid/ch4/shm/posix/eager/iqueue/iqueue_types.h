@@ -33,12 +33,18 @@ typedef struct MPIDI_POSIX_eager_iqueue_transport {
     MPIDU_genq_shmem_pool_t cell_pool;
 } MPIDI_POSIX_eager_iqueue_transport_t;
 
-extern MPIDI_POSIX_eager_iqueue_transport_t MPIDI_POSIX_eager_iqueue_transport_global;
+typedef struct MPIDI_POSIX_eager_iqueue_global {
+    int max_vcis;
+    /* 2d array indexed with [src_vci][dst_vci] */
+    MPIDI_POSIX_eager_iqueue_transport_t transports[MPIDI_CH4_MAX_VCIS][MPIDI_CH4_MAX_VCIS];
+} MPIDI_POSIX_eager_iqueue_global_t;
+
+extern MPIDI_POSIX_eager_iqueue_global_t MPIDI_POSIX_eager_iqueue_global;
 
 MPL_STATIC_INLINE_PREFIX MPIDI_POSIX_eager_iqueue_transport_t
-    * MPIDI_POSIX_eager_iqueue_get_transport()
+    * MPIDI_POSIX_eager_iqueue_get_transport(int vci_src, int vci_dst)
 {
-    return &MPIDI_POSIX_eager_iqueue_transport_global;
+    return &MPIDI_POSIX_eager_iqueue_global.transports[vci_src][vci_dst];
 }
 
 #define MPIDI_POSIX_EAGER_IQUEUE_CELL_PAYLOAD(cell) \

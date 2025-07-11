@@ -1,0 +1,27 @@
+/*D
+   MPI_Topo_test - Determines the type of topology (if any) associated with a communicator
+
+Synopsis:
+.vb
+int MPI_Topo_test(MPI_Comm comm, int *status)
+.ve
+
+Input Parameters:
+. comm - communicator (handle)
+
+Output Parameters:
+. status - topology type of communicator comm (state)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Graph_create, MPI_Cart_create
+D*/
+

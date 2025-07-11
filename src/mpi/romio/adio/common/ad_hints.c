@@ -32,12 +32,10 @@ void ADIOI_GEN_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code)
     }
     ad_get_env_vars();
 
+    /* Interpreting MPI-4.0 to mean ROMIO should only return hints it knows
+     * about when user calls MPI_File_get_info */
     if (fd->info == MPI_INFO_NULL) {
-        if (users_info == MPI_INFO_NULL)
-            MPI_Info_create(&(fd->info));
-        else
-            /* duplicate users_info to preserve hints not used in ROMIO */
-            MPI_Info_dup(users_info, &(fd->info));
+        MPI_Info_create(&(fd->info));
     }
     info = fd->info;
 
@@ -75,7 +73,7 @@ void ADIOI_GEN_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code)
         fd->hints->cb_config_list = NULL;
 
         /* number of processes that perform I/O in collective I/O */
-        MPL_snprintf(value, MPI_MAX_INFO_VAL + 1, "%d", nprocs);
+        snprintf(value, MPI_MAX_INFO_VAL + 1, "%d", nprocs);
         ADIOI_Info_set(info, "cb_nodes", value);
         fd->hints->cb_nodes = nprocs;
 
@@ -127,6 +125,20 @@ void ADIOI_GEN_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code)
          * no good default value so just leave it unset */
         fd->hints->min_fdomain_size = 0;
         fd->hints->striping_unit = 0;
+
+        /* temporally synchronizing flush: I think this is going to be a useful
+         * optimization for all users, but might have surprising hangs if
+         * client code incorrectly treats MPI_File_sync as independent */
+        ADIOI_Info_set(info, "romio_synchronized_flush", "disabled");
+        fd->hints->synchronizing_flush = 0;
+
+        /* While MPI-IO rules say a write from one process is not visible until
+         * sync or close, many file systems implement the more restrictive
+         * POSIX semantics:  under POSIX semantics a write from one process is
+         * visible to everyone.  For counter-example, Unify, NFS and PVFS do
+         * not support this semantic */
+        ADIOI_Info_set(info, "romio_visibility_immediate", "true");
+        fd->hints->visibility_immediate = 1;
 
         fd->hints->initialized = 1;
 
@@ -218,7 +230,7 @@ void ADIOI_GEN_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code)
                 /* can't ask for more aggregators than mpi processes, though it
                  * might be interesting to think what such oversubscription
                  * might mean... someday */
-                MPL_snprintf(value, MPI_MAX_INFO_VAL + 1, "%d", nprocs);
+                snprintf(value, MPI_MAX_INFO_VAL + 1, "%d", nprocs);
                 ADIOI_Info_set(info, "cb_nodes", value);
                 fd->hints->cb_nodes = nprocs;
             }
@@ -245,13 +257,22 @@ void ADIOI_GEN_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code)
         ADIOI_Info_check_and_install_int(fd, users_info, "romio_min_fdomain_size",
                                          &(fd->hints->min_fdomain_size), myname, error_code);
 
-        /* Now we use striping unit in common code so we should
+        /* Now we use striping information in common code so we should
          * process hints for it. */
         ADIOI_Info_check_and_install_int(fd, users_info, "striping_unit",
                                          &(fd->hints->striping_unit), myname, error_code);
+
+        ADIOI_Info_check_and_install_int(fd, users_info, "striping_factor",
+                                         &(fd->hints->striping_factor), myname, error_code);
+
+        ADIOI_Info_check_and_install_int(fd, users_info, "start_iodevice",
+                                         &(fd->hints->start_iodevice), myname, error_code);
+
+        ADIOI_Info_check_and_install_enabled(fd, users_info, "romio_synchronized_flush",
+                                             &(fd->hints->synchronizing_flush), myname, error_code);
     }
 
-    /* Begin hint post-processig: some hints take precidence over or conflict
+    /* Begin hint post-processig: some hints take precedence over or conflict
      * with others, or aren't supported by some file systems */
 
     /* handle cb_config_list default value here; avoids an extra

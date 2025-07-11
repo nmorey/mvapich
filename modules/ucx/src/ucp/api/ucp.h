@@ -1,5 +1,5 @@
 /*
-* Copyright (C) Mellanox Technologies Ltd. 2001-2014.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2020. ALL RIGHTS RESERVED.
 * Copyright (C) UT-Battelle, LLC. 2014-2017. ALL RIGHTS RESERVED.
 * Copyright (C) ARM Ltd. 2016-2017.  ALL RIGHTS RESERVED.
 * Copyright (C) Los Alamos National Security, LLC. 2018 ALL RIGHTS RESERVED.
@@ -16,6 +16,7 @@
 #include <ucs/type/cpu_set.h>
 #include <ucs/config/types.h>
 #include <ucs/sys/compiler_def.h>
+#include <ucs/memory/memory_type.h>
 #include <stdio.h>
 #include <sys/types.h>
 
@@ -123,7 +124,8 @@ enum ucp_params_field {
     UCP_PARAM_FIELD_TAG_SENDER_MASK   = UCS_BIT(4), /**< tag_sender_mask */
     UCP_PARAM_FIELD_MT_WORKERS_SHARED = UCS_BIT(5), /**< mt_workers_shared */
     UCP_PARAM_FIELD_ESTIMATED_NUM_EPS = UCS_BIT(6), /**< estimated_num_eps */
-    UCP_PARAM_FIELD_ESTIMATED_NUM_PPN = UCS_BIT(7)  /**< estimated_num_ppn */
+    UCP_PARAM_FIELD_ESTIMATED_NUM_PPN = UCS_BIT(7), /**< estimated_num_ppn */
+    UCP_PARAM_FIELD_NAME              = UCS_BIT(8)  /**< name */
 };
 
 
@@ -136,19 +138,33 @@ enum ucp_params_field {
  * during @ref ucp_init "UCP initialization" process.
  */
 enum ucp_feature {
-    UCP_FEATURE_TAG          = UCS_BIT(0),  /**< Request tag matching
-                                                 support */
-    UCP_FEATURE_RMA          = UCS_BIT(1),  /**< Request remote memory
-                                                 access support */
-    UCP_FEATURE_AMO32        = UCS_BIT(2),  /**< Request 32-bit atomic
-                                                 operations support */
-    UCP_FEATURE_AMO64        = UCS_BIT(3),  /**< Request 64-bit atomic
-                                                 operations support */
-    UCP_FEATURE_WAKEUP       = UCS_BIT(4),  /**< Request interrupt
-                                                 notification support */
-    UCP_FEATURE_STREAM       = UCS_BIT(5),  /**< Request stream support */
-    UCP_FEATURE_AM           = UCS_BIT(6)   /**< Request Active Message
-                                                 support */
+    /** Request tag matching support */
+    UCP_FEATURE_TAG           = UCS_BIT(0),
+
+    /** Request remote memory access support */
+    UCP_FEATURE_RMA           = UCS_BIT(1),
+
+    /** Request 32-bit atomic operations support */
+    UCP_FEATURE_AMO32         = UCS_BIT(2),
+
+    /** Request 64-bit atomic operations support */
+    UCP_FEATURE_AMO64         = UCS_BIT(3),
+
+    /** Request interrupt notification support */
+    UCP_FEATURE_WAKEUP        = UCS_BIT(4),
+
+    /** Request stream support */
+    UCP_FEATURE_STREAM        = UCS_BIT(5),
+
+    /** Request Active Message support */
+    UCP_FEATURE_AM            = UCS_BIT(6),
+
+    /**
+     * Request support mapping a peer's memory handle that was created by
+     * @ref ucp_mem_map and packed by @ref ucp_memh_pack with the flag
+     * @ref UCP_MEMH_PACK_FLAG_EXPORT and use it for local operations
+     */
+    UCP_FEATURE_EXPORTED_MEMH = UCS_BIT(7)
 };
 
 
@@ -164,9 +180,27 @@ enum ucp_worker_params_field {
     UCP_WORKER_PARAM_FIELD_CPU_MASK     = UCS_BIT(1), /**< Worker's CPU bitmap */
     UCP_WORKER_PARAM_FIELD_EVENTS       = UCS_BIT(2), /**< Worker's events bitmap */
     UCP_WORKER_PARAM_FIELD_USER_DATA    = UCS_BIT(3), /**< User data */
-    UCP_WORKER_PARAM_FIELD_EVENT_FD     = UCS_BIT(4)  /**< External event file
+    UCP_WORKER_PARAM_FIELD_EVENT_FD     = UCS_BIT(4), /**< External event file
                                                            descriptor */
+    UCP_WORKER_PARAM_FIELD_FLAGS        = UCS_BIT(5), /**< Worker flags */
+    UCP_WORKER_PARAM_FIELD_NAME         = UCS_BIT(6), /**< Worker name */
+    UCP_WORKER_PARAM_FIELD_AM_ALIGNMENT = UCS_BIT(7), /**< Alignment of active
+                                                           messages on the receiver */
+    UCP_WORKER_PARAM_FIELD_CLIENT_ID    = UCS_BIT(8)  /**< Client id */
 };
+
+
+/**
+ * @ingroup UCP_WORKER
+ * @brief UCP worker flags
+ *
+ * This enumeration allows specifying flags for @ref ucp_worker_params_t.flags,
+ * which is used as parameter for @ref ucp_worker_create.
+ */
+typedef enum {
+    UCP_WORKER_FLAG_IGNORE_REQUEST_LEAK = UCS_BIT(0) /**< Do not print warnings
+                                                          about request leaks */
+} ucp_worker_flags_t;
 
 
 /**
@@ -227,7 +261,10 @@ enum ucp_ep_params_field {
     UCP_EP_PARAM_FIELD_USER_DATA         = UCS_BIT(3), /**< User data pointer */
     UCP_EP_PARAM_FIELD_SOCK_ADDR         = UCS_BIT(4), /**< Socket address field */
     UCP_EP_PARAM_FIELD_FLAGS             = UCS_BIT(5), /**< Endpoint flags */
-    UCP_EP_PARAM_FIELD_CONN_REQUEST      = UCS_BIT(6)  /**< Connection request field */
+    /**< Connection request field */
+    UCP_EP_PARAM_FIELD_CONN_REQUEST      = UCS_BIT(6),
+    UCP_EP_PARAM_FIELD_NAME              = UCS_BIT(7), /**< Endpoint name */
+    UCP_EP_PARAM_FIELD_LOCAL_SOCK_ADDR   = UCS_BIT(8)  /**< Local socket Address */
 };
 
 
@@ -247,7 +284,7 @@ enum ucp_ep_params_flags_field {
                                                            must be provided and
                                                            contain the address
                                                            of the remote peer */
-    UCP_EP_PARAMS_FLAGS_NO_LOOPBACK    = UCS_BIT(1)   /**< Avoid connecting the
+    UCP_EP_PARAMS_FLAGS_NO_LOOPBACK    = UCS_BIT(1),  /**< Avoid connecting the
                                                            endpoint to itself when
                                                            connecting the endpoint
                                                            to the same worker it
@@ -256,6 +293,14 @@ enum ucp_ep_params_flags_field {
                                                            send to a particular
                                                            remote endpoint, for
                                                            example stream */
+    UCP_EP_PARAMS_FLAGS_SEND_CLIENT_ID = UCS_BIT(2)   /**< Send client id
+                                                           when connecting to remote
+                                                           socket address as part of the
+                                                           connection request payload.
+                                                           On the remote side value
+                                                           can be obtained from
+                                                           @ref ucp_conn_request_h using
+                                                           @ref ucp_conn_request_query */
 };
 
 
@@ -282,34 +327,40 @@ typedef enum {
                                               flag is not set then
                                               @ref ucp_ep_close_nbx schedules
                                               flushes on all outstanding
-                                              operations. */
+                                              operations.
+                                              @note this flag is incompatible
+                                              with @ref UCP_OP_ATTR_FLAG_NO_IMM_CMPL,
+                                              since it forces immediate completion.
+                                              */
 } ucp_ep_close_flags_t;
 
 
 /**
  * @ingroup UCP_ENDPOINT
- * @brief Close UCP endpoint modes.
+ * @brief UCP performance fields and flags
  *
- * The enumeration is used to specify the behavior of @ref ucp_ep_close_nb.
+ * The enumeration allows specifying which fields in @ref ucp_ep_evaluate_perf_param_t are
+ * present and operation flags are used. It is used to enable backward
+ * compatibility support.
  */
-enum ucp_ep_close_mode {
-    UCP_EP_CLOSE_MODE_FORCE         = 0, /**< @ref ucp_ep_close_nb releases
-                                              the endpoint without any
-                                              confirmation from the peer. All
-                                              outstanding requests will be
-                                              completed with
-                                              @ref UCS_ERR_CANCELED error.
-                                              @note This mode may cause
-                                              transport level errors on remote
-                                              side, so it requires set
-                                              @ref UCP_ERR_HANDLING_MODE_PEER
-                                              for all endpoints created on
-                                              both (local and remote) sides to
-                                              avoid undefined behavior. */
-    UCP_EP_CLOSE_MODE_FLUSH         = 1  /**< @ref ucp_ep_close_nb schedules
-                                              flushes on all outstanding
-                                              operations. */
-};
+typedef enum ucp_ep_perf_param_field {
+    /** Enables @ref ucp_ep_evaluate_perf_param_t::message_size */
+    UCP_EP_PERF_PARAM_FIELD_MESSAGE_SIZE       = UCS_BIT(0)
+} ucp_ep_perf_param_field_t;
+
+
+/**
+ * @ingroup UCP_ENDPOINT
+ * @brief UCP performance fields and flags
+ *
+ * The enumeration allows specifying which fields in @ref ucp_ep_evaluate_perf_attr_t are
+ * present and operation flags are used. It is used to enable backward
+ * compatibility support.
+ */
+typedef enum ucp_ep_perf_attr_field {
+    /** Enables @ref ucp_ep_evaluate_perf_attr_t::estimated_time */
+    UCP_EP_PERF_ATTR_FIELD_ESTIMATED_TIME = UCS_BIT(0)
+} ucp_ep_perf_attr_field_t;
 
 
 /**
@@ -320,14 +371,28 @@ enum ucp_ep_close_mode {
  * present. It is used to enable backward compatibility support.
  */
 enum ucp_mem_map_params_field {
-    UCP_MEM_MAP_PARAM_FIELD_ADDRESS = UCS_BIT(0), /**< Address of the memory that
-                                                       will be used in the
-                                                       @ref ucp_mem_map routine. */
-    UCP_MEM_MAP_PARAM_FIELD_LENGTH  = UCS_BIT(1), /**< The size of memory that
-                                                       will be allocated or
-                                                       registered in the
-                                                       @ref ucp_mem_map routine.*/
-    UCP_MEM_MAP_PARAM_FIELD_FLAGS   = UCS_BIT(2)  /**< Allocation flags. */
+    /**
+     * Address of the memory that will be used in the @ref ucp_mem_map routine.
+     */
+    UCP_MEM_MAP_PARAM_FIELD_ADDRESS              = UCS_BIT(0),
+
+    /**
+     * The size of memory that will be allocated or registered in the
+     * @ref ucp_mem_map routine.
+     */
+    UCP_MEM_MAP_PARAM_FIELD_LENGTH               = UCS_BIT(1),
+
+    /** Allocation flags. */
+    UCP_MEM_MAP_PARAM_FIELD_FLAGS                = UCS_BIT(2),
+
+    /** Memory protection mode. */
+    UCP_MEM_MAP_PARAM_FIELD_PROT                 = UCS_BIT(3),
+
+    /** Memory type. */
+    UCP_MEM_MAP_PARAM_FIELD_MEMORY_TYPE          = UCS_BIT(4),
+
+    /** Exported memory handle buffer. */
+    UCP_MEM_MAP_PARAM_FIELD_EXPORTED_MEMH_BUFFER = UCS_BIT(5)
 };
 
 /**
@@ -346,6 +411,19 @@ enum ucp_mem_advise_params_field {
 
 /**
  * @ingroup UCP_CONTEXT
+ * @brief UCP library attributes field mask.
+ *
+ * The enumeration allows specifying which fields in @ref ucp_lib_attr_t are
+ * present. It is used to enable backward compatibility support.
+ */
+enum ucp_lib_attr_field {
+    /**< UCP library maximum supported thread level flag */
+    UCP_LIB_ATTR_FIELD_MAX_THREAD_LEVEL = UCS_BIT(0)
+};
+
+
+/**
+ * @ingroup UCP_CONTEXT
  * @brief UCP context attributes field mask.
  *
  * The enumeration allows specifying which fields in @ref ucp_context_attr_t are
@@ -353,7 +431,9 @@ enum ucp_mem_advise_params_field {
  */
 enum ucp_context_attr_field {
     UCP_ATTR_FIELD_REQUEST_SIZE = UCS_BIT(0), /**< UCP request size */
-    UCP_ATTR_FIELD_THREAD_MODE  = UCS_BIT(1)  /**< UCP context thread flag */
+    UCP_ATTR_FIELD_THREAD_MODE  = UCS_BIT(1), /**< UCP context thread flag */
+    UCP_ATTR_FIELD_MEMORY_TYPES = UCS_BIT(2), /**< UCP supported memory types */
+    UCP_ATTR_FIELD_NAME         = UCS_BIT(3)  /**< UCP context name */
 };
 
 
@@ -365,9 +445,27 @@ enum ucp_context_attr_field {
  * present. It is used to enable backward compatibility support.
  */
 enum ucp_worker_attr_field {
-    UCP_WORKER_ATTR_FIELD_THREAD_MODE   = UCS_BIT(0), /**< UCP thread mode */
-    UCP_WORKER_ATTR_FIELD_ADDRESS       = UCS_BIT(1), /**< UCP address */
-    UCP_WORKER_ATTR_FIELD_ADDRESS_FLAGS = UCS_BIT(2)  /**< UCP address flags */
+    UCP_WORKER_ATTR_FIELD_THREAD_MODE     = UCS_BIT(0), /**< UCP thread mode */
+    UCP_WORKER_ATTR_FIELD_ADDRESS         = UCS_BIT(1), /**< UCP address */
+    UCP_WORKER_ATTR_FIELD_ADDRESS_FLAGS   = UCS_BIT(2), /**< UCP address flags */
+    UCP_WORKER_ATTR_FIELD_MAX_AM_HEADER   = UCS_BIT(3), /**< Maximum header size
+                                                             used by UCP AM API */
+    UCP_WORKER_ATTR_FIELD_NAME            = UCS_BIT(4), /**< UCP worker name */
+    UCP_WORKER_ATTR_FIELD_MAX_INFO_STRING = UCS_BIT(5)  /**< Maximum size of
+                                                             info string */
+};
+
+
+/**
+ * @ingroup UCP_WORKER
+ * @brief UCP worker address attributes field mask.
+ *
+ * The enumeration allows specifying which fields in
+ * @ref ucp_worker_address_attr_t are present. It is used to enable backward
+ * compatibility support.
+ */
+enum ucp_worker_address_attr_field {
+    UCP_WORKER_ADDRESS_ATTR_FIELD_UID = UCS_BIT(0) /**< Unique id of the worker */
 };
 
 
@@ -391,7 +489,8 @@ enum ucp_listener_attr_field {
  * are present. It is used to enable backward compatibility support.
  */
 enum ucp_conn_request_attr_field {
-    UCP_CONN_REQUEST_ATTR_FIELD_CLIENT_ADDR = UCS_BIT(0) /**< Client's address */
+    UCP_CONN_REQUEST_ATTR_FIELD_CLIENT_ADDR = UCS_BIT(0), /**< Client's address */
+    UCP_CONN_REQUEST_ATTR_FIELD_CLIENT_ID   = UCS_BIT(1)  /**< Remote client id */
 };
 
 
@@ -415,6 +514,25 @@ enum ucp_dt_type {
 
 
 /**
+ * @ingroup UCP_DATATYPE
+ * @brief UCP datatype attributes field mask.
+ *
+ * The enumeration allows specifying which fields in @ref ucp_datatype_attr_t
+ * are present and which datatype attributes are queried.
+ */
+enum ucp_datatype_attr_field {
+    /** @ref ucp_datatype_attr_t::packed_size field is queried. */
+    UCP_DATATYPE_ATTR_FIELD_PACKED_SIZE = UCS_BIT(0),
+
+    /** @ref ucp_datatype_attr_t::buffer field is set. */
+    UCP_DATATYPE_ATTR_FIELD_BUFFER      = UCS_BIT(1),
+
+    /** @ref ucp_datatype_attr_t::count field is set. */
+    UCP_DATATYPE_ATTR_FIELD_COUNT       = UCS_BIT(2)
+};
+
+
+/**
  * @ingroup UCP_MEM
  * @brief UCP memory mapping flags.
  *
@@ -422,19 +540,40 @@ enum ucp_dt_type {
  * ucp_mem_map() function.
  */
 enum {
-    UCP_MEM_MAP_NONBLOCK = UCS_BIT(0), /**< Complete the mapping faster, possibly by
-                                            not populating the pages in the mapping
-                                            up-front, and mapping them later when
-                                            they are accessed by communication
-                                            routines. */
-    UCP_MEM_MAP_ALLOCATE = UCS_BIT(1), /**< Identify requirement for allocation,
-                                            if passed address is not a null-pointer
-                                            then it will be used as a hint or direct
-                                            address for allocation. */
-    UCP_MEM_MAP_FIXED    = UCS_BIT(2)  /**< Don't interpret address as a hint:
-                                            place the mapping at exactly that
-                                            address. The address must be a multiple
-                                            of the page size. */
+    /**
+     * Complete the mapping faster, possibly by not populating the pages in the
+     * mapping up-front, and mapping them later when they are accessed by
+     * communication routines.
+     */
+    UCP_MEM_MAP_NONBLOCK = UCS_BIT(0),
+
+    /**
+     * Identify requirement for allocation, if passed address is not a
+     * null-pointer, then it will be used as a hint or direct address for
+     * allocation.
+     */
+    UCP_MEM_MAP_ALLOCATE = UCS_BIT(1),
+
+    /**
+     * Don't interpret address as a hint: place the mapping at exactly that
+     * address. The address must be a multiple of the page size.
+     */
+    UCP_MEM_MAP_FIXED    = UCS_BIT(2)
+};
+
+
+/**
+ * @ingroup UCP_MEM
+ * @brief UCP memory mapping protection mode.
+ *
+ * The enumeration list describes the memory mapping protections supported by the @ref
+ * ucp_mem_map() function.
+ */
+enum {
+    UCP_MEM_MAP_PROT_LOCAL_READ   = UCS_BIT(0),  /**< Enable local read access. */
+    UCP_MEM_MAP_PROT_LOCAL_WRITE  = UCS_BIT(1),  /**< Enable local write access. */
+    UCP_MEM_MAP_PROT_REMOTE_READ  = UCS_BIT(8),  /**< Enable remote read access. */
+    UCP_MEM_MAP_PROT_REMOTE_WRITE = UCS_BIT(9)   /**< Enable remote write access. */
 };
 
 
@@ -442,13 +581,21 @@ enum {
  * @ingroup UCP_WORKER
  * @brief Flags for a UCP Active Message callback.
  *
- * Flags that indicate how to handle UCP Active Messages
- * Currently only UCP_AM_FLAG_WHOLE_MSG is supported,
- * which indicates the entire message is handled in one
- * callback.
+ * Flags that indicate how to handle UCP Active Messages.
  */
 enum ucp_am_cb_flags {
-    UCP_AM_FLAG_WHOLE_MSG = UCS_BIT(0)
+    /**
+     * Indicates that the entire message will be handled in one callback.
+     */
+    UCP_AM_FLAG_WHOLE_MSG       = UCS_BIT(0),
+
+    /**
+     * Guarantees that the specified @ref ucp_am_recv_callback_t callback,
+     * will always be called with @ref UCP_AM_RECV_ATTR_FLAG_DATA flag set,
+     * so the data will be accessible outside the callback, until
+     * @ref ucp_am_data_release is called.
+     */
+    UCP_AM_FLAG_PERSISTENT_DATA = UCS_BIT(1)
 };
 
 
@@ -456,13 +603,37 @@ enum ucp_am_cb_flags {
  * @ingroup UCP_WORKER
  * @brief Flags for sending a UCP Active Message.
  *
- * Flags dictate the behavior of ucp_am_send_nb
- * currently the only flag tells UCP to pass in
- * the sending endpoint to the call
- * back so a reply can be defined.
+ * Flags dictate the behavior of @ref ucp_am_send_nb and @ref ucp_am_send_nbx
+ * routines.
  */
 enum ucp_send_am_flags {
-    UCP_AM_SEND_REPLY = UCS_BIT(0)
+    /**
+     * Force relevant reply endpoint to be passed to the data callback on the receiver.
+     */
+    UCP_AM_SEND_FLAG_REPLY       = UCS_BIT(0),
+
+    /**
+     * Force UCP to use only eager protocol for AM sends.
+     */
+    UCP_AM_SEND_FLAG_EAGER       = UCS_BIT(1),
+
+    /**
+     * Force UCP to use only rendezvous protocol for AM sends.
+     */
+    UCP_AM_SEND_FLAG_RNDV        = UCS_BIT(2),
+
+    /**
+     * The flag indicates that the header should be copied to an internal buffer
+     * in case it's needed after the send function returns. If this flag is
+     * specified, the header can be released immediately after the send
+     * function returns, even if the non-blocking send request is not completed.
+     */
+    UCP_AM_SEND_FLAG_COPY_HEADER = UCS_BIT(3),
+
+    /**
+     * Backward compatibility.
+     */
+    UCP_AM_SEND_REPLY            = UCP_AM_SEND_FLAG_REPLY
 };
 
 
@@ -471,50 +642,14 @@ enum ucp_send_am_flags {
  * @brief Descriptor flags for Active Message callback.
  *
  * In a callback, if flags is set to UCP_CB_PARAM_FLAG_DATA in
- * a callback then data was allocated, so if UCS_INPROGRESS is 
- * returned from the callback, the data parameter will persist 
+ * a callback then data was allocated, so if UCS_INPROGRESS is
+ * returned from the callback, the data parameter will persist
  * and the user has to call @ref ucp_am_data_release when data is
  * no longer needed.
  */
 enum ucp_cb_param_flags {
     UCP_CB_PARAM_FLAG_DATA = UCS_BIT(0)
 };
-
-
-/**
- * @ingroup UCP_COMM
- * @brief Atomic operation requested for ucp_atomic_post
- *
- * This enumeration defines which atomic memory operation should be
- * performed by the ucp_atomic_post family of fuctions. All of these are
- * non-fetching atomics and will not result in a request handle.
- */
-typedef enum {
-    UCP_ATOMIC_POST_OP_ADD, /**< Atomic add */
-    UCP_ATOMIC_POST_OP_AND, /**< Atomic and */
-    UCP_ATOMIC_POST_OP_OR,  /**< Atomic or  */
-    UCP_ATOMIC_POST_OP_XOR, /**< Atomic xor */
-    UCP_ATOMIC_POST_OP_LAST
-} ucp_atomic_post_op_t;
-
-
-/**
- * @ingroup UCP_COMM
- * @brief Atomic operation requested for ucp_atomic_fetch
- *
- * This enumeration defines which atomic memory operation should be performed
- * by the ucp_atomic_fetch family of functions. All of these functions
- * will fetch data from the remote node.
- */
-typedef enum {
-    UCP_ATOMIC_FETCH_OP_FADD,  /**< Atomic Fetch and add    */
-    UCP_ATOMIC_FETCH_OP_SWAP,  /**< Atomic swap             */
-    UCP_ATOMIC_FETCH_OP_CSWAP, /**< Atomic conditional swap */
-    UCP_ATOMIC_FETCH_OP_FAND,  /**< Atomic Fetch and and    */
-    UCP_ATOMIC_FETCH_OP_FOR,   /**< Atomic Fetch and or     */
-    UCP_ATOMIC_FETCH_OP_FXOR,  /**< Atomic Fetch and xor    */
-    UCP_ATOMIC_FETCH_OP_LAST
-} ucp_atomic_fetch_op_t;
 
 
 /**
@@ -566,10 +701,18 @@ typedef enum {
     UCP_OP_ATTR_FIELD_DATATYPE      = UCS_BIT(3),  /**< datatype field */
     UCP_OP_ATTR_FIELD_FLAGS         = UCS_BIT(4),  /**< operation-specific flags */
     UCP_OP_ATTR_FIELD_REPLY_BUFFER  = UCS_BIT(5),  /**< reply_buffer field */
+    UCP_OP_ATTR_FIELD_MEMORY_TYPE   = UCS_BIT(6),  /**< memory type field */
+    UCP_OP_ATTR_FIELD_RECV_INFO     = UCS_BIT(7),  /**< recv_info field */
+    UCP_OP_ATTR_FIELD_MEMH          = UCS_BIT(8),  /**< memory handle field */
 
-    UCP_OP_ATTR_FLAG_NO_IMM_CMPL    = UCS_BIT(16), /**< deny immediate completion */
+    UCP_OP_ATTR_FLAG_NO_IMM_CMPL    = UCS_BIT(16), /**< Deny immediate completion,
+                                                        i.e NULL cannot be returned.
+                                                        If a completion callback is
+                                                        provided, it can be called
+                                                        before the function
+                                                        returns. */
     UCP_OP_ATTR_FLAG_FAST_CMPL      = UCS_BIT(17), /**< expedite local completion,
-                                                        even if it delays remote 
+                                                        even if it delays remote
                                                         data delivery. Note for
                                                         implementer: this option
                                                         can disable zero copy
@@ -578,11 +721,90 @@ typedef enum {
                                                         synchronization with the
                                                         remote peer before releasing
                                                         the local send buffer */
-    UCP_OP_ATTR_FLAG_FORCE_IMM_CMPL = UCS_BIT(18)  /**< force immediate complete
+    UCP_OP_ATTR_FLAG_FORCE_IMM_CMPL = UCS_BIT(18), /**< force immediate complete
                                                         operation, fail if the
                                                         operation cannot be
                                                         completed immediately */
+    UCP_OP_ATTR_FLAG_MULTI_SEND     = UCS_BIT(19)  /**< optimize for bandwidth of
+                                                        multiple in-flight operations,
+                                                        rather than for the latency
+                                                        of a single operation.
+                                                        This flag and UCP_OP_ATTR_FLAG_FAST_CMPL
+                                                        are mutually exclusive. */
 } ucp_op_attr_t;
+
+
+/**
+ * @ingroup UCP_COMM
+ * @brief UCP request query attributes
+ *
+ * The enumeration allows specifying which fields in @ref ucp_request_attr_t are
+ * present. It is used to enable backward compatibility support.
+ */
+typedef enum {
+    UCP_REQUEST_ATTR_FIELD_INFO_STRING      = UCS_BIT(0),
+    UCP_REQUEST_ATTR_FIELD_INFO_STRING_SIZE = UCS_BIT(1),
+    UCP_REQUEST_ATTR_FIELD_STATUS           = UCS_BIT(2),
+    UCP_REQUEST_ATTR_FIELD_MEM_TYPE         = UCS_BIT(3)
+} ucp_req_attr_field;
+
+
+/**
+ * @ingroup UCP_COMM
+ * @brief UCP AM receive data parameter fields and flags
+ *
+ * The enumeration allows specifying which fields in @ref ucp_am_recv_param_t
+ * are present and receive operation flags are used. It is used to enable
+ * backward compatibility support.
+ */
+typedef enum {
+    UCP_AM_RECV_ATTR_FIELD_REPLY_EP    = UCS_BIT(0),  /**< reply_ep field */
+
+    /**
+     * Indicates that the data provided in @ref ucp_am_recv_callback_t callback
+     * can be held by the user. If UCS_INPROGRESS is returned from the callback,
+     * the data parameter will persist and the user has to call
+     * @ref ucp_am_data_release when data is no longer needed. This flag is
+     * mutually exclusive with @a UCP_AM_RECV_ATTR_FLAG_RNDV.
+     */
+    UCP_AM_RECV_ATTR_FLAG_DATA         = UCS_BIT(16),
+
+    /**
+     * Indicates that the arriving data was sent using rendezvous protocol.
+     * In this case @a data parameter of the @ref ucp_am_recv_callback_t points
+     * to the internal UCP descriptor, which can be used for obtaining the actual
+     * data by calling @ref ucp_am_recv_data_nbx routine. This flag is mutually
+     * exclusive with @a UCP_AM_RECV_ATTR_FLAG_DATA.
+     */
+    UCP_AM_RECV_ATTR_FLAG_RNDV         = UCS_BIT(17)
+} ucp_am_recv_attr_t;
+
+
+/**
+ * @ingroup UCP_COMM
+ * @brief UCP AM receive data parameters fields and flags
+ *
+ * The enumeration allows specifying which fields in @ref ucp_am_handler_param_t
+ * are present. It is used to enable backward compatibility support.
+ */
+enum ucp_am_handler_param_field {
+    /**
+     * Indicates that @ref ucp_am_handler_param_t.id field is valid.
+     */
+    UCP_AM_HANDLER_PARAM_FIELD_ID      = UCS_BIT(0),
+    /**
+     * Indicates that @ref ucp_am_handler_param_t.flags field is valid.
+     */
+    UCP_AM_HANDLER_PARAM_FIELD_FLAGS   = UCS_BIT(1),
+    /**
+     * Indicates that @ref ucp_am_handler_param_t.cb field is valid.
+     */
+    UCP_AM_HANDLER_PARAM_FIELD_CB      = UCS_BIT(2),
+    /**
+     * Indicates that @ref ucp_am_handler_param_t.arg field is valid.
+     */
+    UCP_AM_HANDLER_PARAM_FIELD_ARG     = UCS_BIT(3)
+};
 
 
 /**
@@ -612,10 +834,11 @@ typedef enum {
  *
  * @return Data-type identifier.
  *
- * @note In case of partial receive, @ref ucp_dt_iov_t::buffer can be filled
- *       with any number of bytes according to its @ref ucp_dt_iov_t::length.
+ * @note In the event of partial receive, @ref ucp_dt_iov_t::buffer can be
+ *       filled with any number of bytes according to its
+ *       @ref ucp_dt_iov_t::length.
  */
-#define ucp_dt_make_iov() (UCP_DATATYPE_IOV)
+#define ucp_dt_make_iov() ((ucp_datatype_t)UCP_DATATYPE_IOV)
 
 
 /**
@@ -623,7 +846,8 @@ typedef enum {
  * @brief Structure for scatter-gather I/O.
  *
  * This structure is used to specify a list of buffers which can be used
- * within a single data transfer function call.
+ * within a single data transfer function call. This list should remain valid
+ * until the data transfer request is completed.
  *
  * @note If @a length is zero, the memory pointed to by @a buffer
  *       will not be accessed. Otherwise, @a buffer must point to valid memory.
@@ -706,8 +930,8 @@ typedef struct ucp_generic_dt_ops {
      *                             @ref ucp_generic_dt_ops::start_pack
      *                             "start_pack()" routine.
      * @param [in]  offset         Virtual offset in the output stream.
-     * @param [in]  dest           Destination to pack the data to.
-     * @param [in]  max_length     Maximal length to pack.
+     * @param [in]  dest           Destination buffer to pack the data.
+     * @param [in]  max_length     Maximum length to pack.
      *
      * @return The size of the data that was written to the destination buffer.
      *         Must be less than or equal to @e max_length.
@@ -747,6 +971,43 @@ typedef struct ucp_generic_dt_ops {
      */
     void (*finish)(void *state);
 } ucp_generic_dt_ops_t;
+
+
+/**
+ * @ingroup UCP_DATATYPE
+ * @brief UCP datatype attributes
+ *
+ * This structure provides attributes of a UCP datatype.
+ */
+typedef struct ucp_datatype_attr {
+    /**
+     * Mask of valid fields in this structure, using bits from @ref
+     * ucp_datatype_attr_field. Fields not specified in this mask will be
+     * ignored. Provides ABI compatibility with respect to adding new fields.
+     */
+    uint64_t   field_mask;
+
+    /**
+     * Packed size of the given datatype. (output parameter)
+     */
+    size_t     packed_size;
+
+    /**
+     * Pointer to a data buffer of the associated data type.
+     * This field is optional.
+     * If @ref UCP_DATATYPE_ATTR_FIELD_BUFFER is not set in @ref field_mask,
+     * this field defaults to @e NULL.
+     */
+    const void *buffer;
+
+    /**
+     * Number of elements in @a buffer.
+     * This value is optional.
+     * If @ref UCP_DATATYPE_ATTR_FIELD_COUNT is not set in @ref field_mask, the
+     * value of this field defaults to 1.
+     */
+    size_t     count;
+} ucp_datatype_attr_t;
 
 
 /**
@@ -854,14 +1115,50 @@ typedef struct ucp_params {
      * will override the number of endpoints set by @e estimated_num_ppn
      */
     size_t                             estimated_num_ppn;
+
+    /**
+     * Tracing and analysis tools can identify the context using this name.
+     * To retrieve the context's name, use @ref ucp_context_query, as the name
+     * you supply may be changed by UCX under some circumstances, e.g. a name
+     * conflict. This field is only assigned if you set
+     * @ref UCP_PARAM_FIELD_NAME in the field mask. If not, then a default
+     * unique name will be created for you.
+     */
+    const char                         *name;
 } ucp_params_t;
+
+
+/**
+ * @ingroup UCP_CONTEXT
+ * @brief Lib attributes.
+ *
+ * The structure defines the attributes that characterize the Library.
+ */
+typedef struct ucp_lib_attr {
+    /**
+     * Mask of valid fields in this structure, using bits from
+     * @ref ucp_lib_attr_field.
+     * Fields not specified in this mask will be ignored.
+     * Provides ABI compatibility with respect to adding new fields.
+     */
+    uint64_t          field_mask;
+
+    /**
+     * Maximum level of thread support of the library, which is permanent
+     * throughout the lifetime of the library. Accordingly, the user can call
+     * @ref ucp_worker_create with appropriate
+     * @ref ucp_worker_params_t.thread_mode.
+     * For supported thread levels please see @ref ucs_thread_mode_t.
+     */
+    ucs_thread_mode_t max_thread_level;
+} ucp_lib_attr_t;
 
 
 /**
  * @ingroup UCP_CONTEXT
  * @brief Context attributes.
  *
- * The structure defines the attributes which characterize
+ * The structure defines the attributes that characterize
  * the particular context.
  */
 typedef struct ucp_context_attr {
@@ -885,6 +1182,17 @@ typedef struct ucp_context_attr {
      * see @ref ucs_thread_mode_t.
      */
     ucs_thread_mode_t     thread_mode;
+
+    /**
+     * Mask of which memory types are supported, for supported memory types
+     * please see @ref ucs_memory_type_t.
+     */
+    uint64_t              memory_types;
+
+    /**
+     * Tracing and analysis tools can use name to identify this UCX context.
+     */
+    char                  name[UCP_ENTITY_NAME_MAX];
 } ucp_context_attr_t;
 
 
@@ -930,6 +1238,21 @@ typedef struct ucp_worker_attr {
      * Size of worker address in bytes.
      */
     size_t                address_length;
+
+    /**
+     * Maximum allowed header size for @ref ucp_am_send_nbx routine.
+     */
+    size_t                max_am_header;
+
+    /**
+     * Tracing and analysis tools can identify the worker using this name.
+     */
+    char                  name[UCP_ENTITY_NAME_MAX];
+
+    /**
+     * Maximum debug string size that can be filled with @ref ucp_request_query.
+     */
+    size_t                max_debug_string;
 } ucp_worker_attr_t;
 
 
@@ -1005,8 +1328,110 @@ typedef struct ucp_worker_params {
      */
     int                     event_fd;
 
+    /**
+     * Worker flags.
+     * This value is optional.
+     * If @ref UCP_WORKER_PARAM_FIELD_FLAGS is not set in the field_mask, the
+     * value of this field will default to 0.
+     */
+    uint64_t                flags;
+
+    /**
+     * Tracing and analysis tools can identify the worker using this name. To
+     * retrieve the worker's name, use @ref ucp_worker_query, as the name you
+     * supply may be changed by UCX under some circumstances, e.g. a name
+     * conflict. This field is only assigned if you set
+     * @ref UCP_WORKER_PARAM_FIELD_NAME in the field mask. If not, then a
+     * default unique name will be created for you.
+     */
+    const char              *name;
+
+    /**
+     * Minimal address alignment of the active message data pointer as passed
+     * in argument @a data to the active message handler, defined as
+     * @a ucp_am_recv_callback_t.
+     */
+    size_t                  am_alignment;
+
+    /**
+    * Client id that is sent as part of the connection request payload
+    * when connecting to a remote socket address. On the remote side,
+    * this value can be obtained from @ref ucp_conn_request_h
+    * using @ref ucp_conn_request_query.
+    */
+    uint64_t                client_id;
 } ucp_worker_params_t;
 
+
+/**
+ * @ingroup UCP_WORKER
+ * @brief UCP worker address attributes.
+ *
+ * The structure defines the attributes of the particular worker address.
+ */
+typedef struct ucp_worker_address_attr {
+    /**
+     * Mask of valid fields in this structure, using bits from
+     * @ref ucp_worker_address_attr_field.
+     * Fields not specified in this mask will be ignored.
+     * Provides ABI compatibility with respect to adding new fields.
+     */
+    uint64_t              field_mask;
+
+    /**
+     * Unique id of the worker this address belongs to.
+     */
+    uint64_t              worker_uid;
+} ucp_worker_address_attr_t;
+
+
+/**
+ * @ingroup UCP_ENDPOINT
+ * @brief UCP endpoint performance evaluation request attributes.
+ *
+ * The structure defines the attributes which characterize
+ * the request for performance estimation of a particular endpoint.
+ */
+typedef struct {
+    /**
+     * Mask of valid fields in this structure, using bits from
+     * @ref ucp_ep_perf_param_field_t.
+     * Fields not specified in this mask will be ignored.
+     * Provides ABI compatibility with respect to adding new fields.
+     */
+    uint64_t          field_mask;
+
+    /**
+     * Message size to use for determining performance.
+     * This field must be initialized by the caller.
+     */
+    size_t            message_size;
+} ucp_ep_evaluate_perf_param_t;
+
+
+/**
+ * @ingroup UCP_ENDPOINT
+ * @brief UCP endpoint performance evaluation result attributes.
+ *
+ * The structure defines the attributes which characterize
+ * the result of performance estimation of a particular endpoint.
+ */
+typedef struct {
+    /**
+     * Mask of valid fields in this structure, using bits from
+     * @ref ucp_ep_perf_attr_field_t.
+     * Fields not specified in this mask will be ignored.
+     * Provides ABI compatibility with respect to adding new fields.
+     */
+    uint64_t          field_mask;
+
+    /**
+     * Estimated time (in seconds) required to send a message of a given size
+     * on this endpoint.
+     * This field is set by the @ref ucp_ep_evaluate_perf function.
+     */
+    double            estimated_time;
+} ucp_ep_evaluate_perf_attr_t;
 
 /**
  * @ingroup UCP_WORKER
@@ -1053,6 +1478,12 @@ typedef struct ucp_conn_request_attr {
      * server.
      */
     struct sockaddr_storage client_address;
+
+    /**
+     * Remote client id if remote endpoint's flag
+     * @ref UCP_EP_PARAMS_FLAGS_SEND_CLIENT_ID is set.
+     */
+    uint64_t                client_id;
 } ucp_conn_request_attr_t;
 
 
@@ -1094,6 +1525,11 @@ typedef struct ucp_listener_params {
      * flow. In order for the callback inside this handler to be invoked, the
      * @ref UCP_LISTENER_PARAM_FIELD_CONN_HANDLER needs to be set in the
      * field_mask.
+     * @note User is expected to call ucp_ep_create with set
+     *       @ref UCP_EP_PARAM_FIELD_CONN_REQUEST flag to
+     *       @ref ucp_ep_params_t::field_mask and
+     *       @ref ucp_ep_params_t::conn_request in order to be able to receive
+     *       communications.
      */
     ucp_listener_conn_handler_t         conn_handler;
 } ucp_listener_params_t;
@@ -1174,6 +1610,47 @@ typedef struct ucp_mem_map_params {
       * consider the flags as set to zero.
       */
      unsigned               flags;
+
+     /**
+      * Memory protection mode, e.g. @ref UCP_MEM_MAP_PROT_LOCAL_READ.
+      * This value is optional.
+      * If it's not set, the @ref ucp_mem_map routine will consider
+      * the flags as set to UCP_MEM_MAP_PROT_LOCAL_READ|UCP_MEM_MAP_PROT_LOCAL_WRITE|
+      * UCP_MEM_MAP_PROT_REMOTE_READ|UCP_MEM_MAP_PROT_REMOTE_WRITE.
+      */
+     unsigned               prot;
+
+     /*
+      * Memory type (for possible memory types see @ref ucs_memory_type_t)
+      * It is an optimization hint to avoid memory type detection for map buffer.
+      * The meaning of this field depends on the operation type.
+      *
+      * - Memory allocation: (@ref UCP_MEM_MAP_ALLOCATE flag is set) This field
+      *    specifies the type of memory to allocate. If it's not set (along with its
+      *    corresponding bit in the field_mask - @ref UCP_MEM_MAP_PARAM_FIELD_MEMORY_TYPE),
+      *    @ref UCS_MEMORY_TYPE_HOST will be assumed by default.
+      *
+      * - Memory registration: This field specifies the type of memory which is
+      *    pointed by @ref ucp_mem_map_params.address. If it's not set (along with its
+      *    corresponding bit in the field_mask - @ref UCP_MEM_MAP_PARAM_FIELD_MEMORY_TYPE),
+      *    or set to @ref UCS_MEMORY_TYPE_UNKNOWN, the memory type will be detected
+      *    internally.
+      */
+     ucs_memory_type_t      memory_type;
+
+     /**
+      * Exported memory handle buffer as returned by @ref ucp_mem_map
+      * function for a memory handle created and packed by @ref ucp_memh_pack
+      * with @ref UCP_MEMH_PACK_FLAG_EXPORT flag.
+      * If this field is specified for @ref ucp_mem_map function, a resulting
+      * memory handle will be a mapping of peer memory instead of local
+      * memory.
+      * If the field is not set (along with its corresponding bit in the
+      * field_mask - @ref UCP_MEM_MAP_PARAM_FIELD_EXPORTED_MEMH_BUFFER), the
+      * @ref ucp_mem_map routine will consider the memory handle buffer to be
+      * set to NULL by default.
+      */
+    const void              *exported_memh_buffer;
 } ucp_mem_map_params_t;
 
 
@@ -1198,7 +1675,7 @@ struct ucp_tag_recv_info {
  * @ingroup UCP_CONTEXT
  * @brief Operation parameters passed to @ref ucp_tag_send_nbx,
  *        @ref ucp_tag_send_sync_nbx, @ref ucp_tag_recv_nbx, @ref ucp_put_nbx,
- *        @ref ucp_get_nbx
+ *        @ref ucp_get_nbx, @ref ucp_am_send_nbx and @ref ucp_am_recv_data_nbx.
  *
  * The structure @ref ucp_request_param_t is used to specify datatype of
  * operation, provide user request in case the external request is used,
@@ -1217,7 +1694,7 @@ struct ucp_tag_recv_info {
  *         .op_attr_mask               = UCP_OP_ATTR_FIELD_CALLBACK |
  *                                       UCP_OP_ATTR_FIELD_REQUEST,
  *         .request                    = request,
- *         .cb.ucp_send_nbx_callback_t = custom_send_callback_f,
+ *         .cb.send                    = custom_send_callback_f,
  *         .user_data                  = pointer_to_user_context_passed_to_cb
  *     };
  *
@@ -1258,9 +1735,10 @@ typedef struct {
      * send or receive operation is completed.
      */
     union {
-        ucp_send_nbx_callback_t        send;
-        ucp_tag_recv_nbx_callback_t    recv;
-        ucp_stream_recv_nbx_callback_t recv_stream;
+        ucp_send_nbx_callback_t         send;
+        ucp_tag_recv_nbx_callback_t     recv;
+        ucp_stream_recv_nbx_callback_t  recv_stream;
+        ucp_am_recv_data_nbx_callback_t recv_am;
     }              cb;
 
     /**
@@ -1280,7 +1758,148 @@ typedef struct {
      * @ref ucp_atomic_op_nbx.
      */
     void          *reply_buffer;
+
+    /**
+     * Memory type of the buffer. see @ref ucs_memory_type_t for possible memory types.
+     * An optimization hint to avoid memory type detection for request buffer.
+     * If this value is not set (along with its corresponding bit in the op_attr_mask -
+     * @ref UCP_OP_ATTR_FIELD_MEMORY_TYPE), then use default @ref UCS_MEMORY_TYPE_UNKNOWN
+     * which means the memory type will be detected internally.
+     */
+    ucs_memory_type_t memory_type;
+
+    /**
+     * Pointer to the information where received data details are stored
+     * in case of an immediate completion of receive operation. The user has to
+     * provide a pointer to valid memory/variable which will be updated on function
+     * return.
+     */
+    union {
+        size_t              *length;   /* Length of received message in bytes.
+                                          Relevant for non-tagged receive
+                                          operations. */
+        ucp_tag_recv_info_t *tag_info; /* Information about received message.
+                                          Relevant for @a ucp_tag_recv_nbx
+                                          function. */
+    } recv_info;
+
+    /**
+     * Memory handle for pre-registered buffer.
+     * If the handle is provided, protocols that require registered memory can
+     * skip the registration step. As a result, the communication request
+     * overhead can be reduced and the request can be completed faster.
+     * The memory handle should be obtained by calling @ref ucp_mem_map.
+     */
+    ucp_mem_h memh;
+
 } ucp_request_param_t;
+
+
+/**
+ * @ingroup UCP_COMM
+ * @brief Attributes of a particular request.
+ */
+typedef struct {
+    /**
+     * Mask of valid fields in this structure, using bits from
+     * @ref ucp_req_attr_field. Fields not specified in this mask will
+     * be ignored. Provides ABI compatibility with respect to adding new fields.
+     */
+    uint64_t          field_mask;
+
+    /**
+     * Pointer to allocated string of size @ref debug_string_size that will be filled
+     * with debug information about transports and protocols that were selected
+     * to complete the request.
+     */
+    char              *debug_string;
+
+    /**
+     * Size of the @ref debug_string. String will be filled up to this size.
+     * Maximum possible size debug string can be obtained by querying the worker
+     * via @ref ucp_worker_query.
+     */
+    size_t            debug_string_size;
+
+    /**
+     * Status of the request. The same as @ref ucp_request_check_status.
+     */
+    ucs_status_t      status;
+
+    /**
+     * Detected memory type of the buffer passed to the operation.
+     */
+    ucs_memory_type_t mem_type;
+} ucp_request_attr_t;
+
+
+/**
+ * @ingroup UCP_WORKER
+ * @brief Active Message handler parameters passed to
+ *        @ref ucp_worker_set_am_recv_handler routine.
+ */
+typedef struct ucp_am_handler_param {
+    /**
+     * Mask of valid fields in this structure, using bits from
+     * @ref ucp_am_handler_param_field. Fields not specified in this mask will
+     * be ignored. Provides ABI compatibility with respect to adding new fields.
+     */
+    uint64_t                 field_mask;
+
+    /**
+     * Active Message id.
+     */
+    unsigned                 id;
+
+    /**
+     * Handler flags as defined by @ref ucp_am_cb_flags.
+     */
+    uint32_t                 flags;
+
+    /**
+     * Active Message callback. To clear the already set callback, this value
+     * should be set to NULL.
+     */
+    ucp_am_recv_callback_t   cb;
+
+    /**
+     * Active Message argument, which will be passed in to every invocation of
+     * @ref ucp_am_recv_callback_t function as the @a arg argument.
+     */
+    void                     *arg;
+} ucp_am_handler_param_t;
+
+
+/**
+ * @ingroup UCP_WORKER
+ * @brief Operation parameters provided in @ref ucp_am_recv_callback_t callback.
+ */
+struct ucp_am_recv_param {
+    /**
+     * Mask of valid fields in this structure and receive operation flags, using
+     * bits from @ref ucp_am_recv_attr_t. Fields not specified in this mask will
+     * be ignored. Provides ABI compatibility with respect to adding new fields.
+     */
+    uint64_t           recv_attr;
+
+    /**
+     * Endpoint, which can be used for the reply to this message.
+     */
+    ucp_ep_h           reply_ep;
+};
+
+
+/**
+ * @ingroup UCP_CONTEXT
+ * @brief Get attributes of the UCP library.
+ *
+ * This routine fetches information about the UCP library attributes.
+ *
+ * @param [out] attr       Filled with attributes of the UCP library.
+ *
+ * @return Error code as defined by @ref ucs_status_t
+ */
+ucs_status_t ucp_lib_query(ucp_lib_attr_t *attr);
 
 
 /**
@@ -1413,13 +2032,13 @@ ucs_status_t ucp_init_version(unsigned api_major_version, unsigned api_minor_ver
  * This routine checks API version compatibility, then discovers the available
  * network interfaces, and initializes the network resources required for
  * discovering of the network and memory related devices.
- *  This routine is responsible for initialization all information required for
+ * This routine is responsible for initialization all information required for
  * a particular application scope, for example, MPI application, OpenSHMEM
  * application, etc.
  *
  * @note
  * @li Higher level protocols can add additional communication isolation, as
- * MPI does with it's communicator object. A single communication context may
+ * MPI does with its communicator object. A single communication context may
  * be used to support multiple MPI communicators.
  * @li The context can be used to isolate the communication that corresponds to
  * different protocols. For example, if MPI and OpenSHMEM are using UCP to
@@ -1571,27 +2190,6 @@ void ucp_worker_print_info(ucp_worker_h worker, FILE *stream);
 
 /**
  * @ingroup UCP_WORKER
- * @brief Get the address of the worker object.
- *
- * This routine returns the address of the worker object.  This address can be
- * passed to remote instances of the UCP library in order to connect to this
- * worker. The memory for the address handle is allocated by this function, and
- * must be released by using @ref ucp_worker_release_address
- * "ucp_worker_release_address()" routine.
- *
- * @param [in]  worker            Worker object whose address to return.
- * @param [out] address_p         A pointer to the worker address.
- * @param [out] address_length_p  The size in bytes of the address.
- *
- * @return Error code as defined by @ref ucs_status_t
- */
-ucs_status_t ucp_worker_get_address(ucp_worker_h worker,
-                                    ucp_address_t **address_p,
-                                    size_t *address_length_p);
-
-
-/**
- * @ingroup UCP_WORKER
  * @brief Release an address of the worker object.
  *
  * This routine release an @ref ucp_address_t "address handle" associated within
@@ -1603,13 +2201,29 @@ ucs_status_t ucp_worker_get_address(ucp_worker_h worker,
  * @param [in]  worker            Worker object that is associated with the
  *                                address object.
  * @param [in] address            Address to release; the address object has to
- *                                be allocated using @ref ucp_worker_get_address
- *                                "ucp_worker_get_address()" routine.
+ *                                be allocated using @ref ucp_worker_query
+ *                                "ucp_worker_query()" routine.
  *
  * @todo We should consider to change it to return int so we can catch the
  * errors when worker != address
  */
 void ucp_worker_release_address(ucp_worker_h worker, ucp_address_t *address);
+
+
+/**
+ * @ingroup UCP_WORKER
+ * @brief Get attributes of the particular worker address.
+ *
+ * This routine fetches information about the worker address. The address can be
+ * either of local or remote worker.
+ *
+ * @param [in]  address    Worker address to query.
+ * @param [out] attr       Filled with attributes of the worker address.
+ *
+ * @return Error code as defined by @ref ucs_status_t.
+ */
+ucs_status_t ucp_worker_address_query(ucp_address_t *address,
+                                      ucp_worker_address_attr_t *attr);
 
 
 /**
@@ -1645,7 +2259,7 @@ unsigned ucp_worker_progress(ucp_worker_h worker);
  * @param [in]   worker    Worker to poll.
  * @param [out]  poll_eps  Pointer to array of endpoints, should be
  *                         allocated by user.
- * @param [in]   max_eps   Maximal number of endpoints which should be filled
+ * @param [in]   max_eps   Maximum number of endpoints that should be filled
  *                         in @a poll_eps.
  * @param [in]   flags     Reserved for future use.
  *
@@ -1773,13 +2387,13 @@ void ucp_worker_wait_mem(ucp_worker_h worker, void *address);
  * @code {.c}
  * void application_initialization() {
  * // should be called once in application init flow and before
- * // process_comminucation() is used
+ * // process_communication() is used
  *     ...
  *     status = ucp_worker_get_efd(worker, &fd);
  *     ...
  * }
  *
- * void process_comminucation() {
+ * void process_communication() {
  * // should be called every time need to wait for some condition such as
  * // ucp request completion in sleep mode.
  *
@@ -1844,22 +2458,28 @@ ucs_status_t ucp_worker_signal(ucp_worker_h worker);
 
 /**
  * @ingroup UCP_WORKER
- * @brief Accept connections on a local address of the worker object.
+ * @brief Create a listener to accept connections on. Connection requests on
+ * the listener will arrive at a local address specified by the user.
  *
- * This routine binds the worker object to a @ref ucs_sock_addr_t sockaddr
- * which is set by the user.
- * The worker will listen to incoming connection requests and upon receiving such
- * a request from the remote peer, an endpoint to it will be created.
- * The user's call-back will be invoked once the endpoint is created.
+ * This routine creates a new listener object that is bound to a specific
+ * local address.
+ * The listener will listen to incoming connection requests.
+ * After receiving a request from the remote peer, an endpoint to this peer
+ * will be created - either right away or by calling @ref ucp_ep_create,
+ * as specified by the callback type in @ref ucp_listener_params_t.
+ * The user's callback will be invoked once the endpoint is created.
  *
- * @param [in]  worker           Worker object that is associated with the
- *                               params object.
+ * @param [in]  worker           Worker object to create the listener on.
  * @param [in]  params           User defined @ref ucp_listener_params_t
  *                               configurations for the @ref ucp_listener_h.
  * @param [out] listener_p       A handle to the created listener, can be released
  *                               by calling @ref ucp_listener_destroy
  *
  * @return Error code as defined by @ref ucs_status_t
+ *
+ * @note @ref ucp_listener_params_t::conn_handler or
+ *       @ref ucp_listener_params_t::accept_handler must be provided to be
+ *       able to handle incoming connections.
  */
 ucs_status_t ucp_listener_create(ucp_worker_h worker,
                                  const ucp_listener_params_t *params,
@@ -1909,6 +2529,18 @@ ucs_status_t ucp_conn_request_query(ucp_conn_request_h conn_request,
 
 
 /**
+ * @ingroup UCP_COMM
+ * @brief Get information about ucp_request.
+ *
+ * @param [in]  request Non-blocking request to query.
+ * @param [out] attr    Filled with attributes of the request.
+ *
+ * @return Error code as defined by @ref ucs_status_t
+ */
+ucs_status_t ucp_request_query(void *request, ucp_request_attr_t *attr);
+
+
+/**
  * @ingroup UCP_ENDPOINT
  * @brief Create and connect an endpoint.
  *
@@ -1942,35 +2574,6 @@ ucs_status_t ucp_conn_request_query(ucp_conn_request_h conn_request,
  */
 ucs_status_t ucp_ep_create(ucp_worker_h worker, const ucp_ep_params_t *params,
                            ucp_ep_h *ep_p);
-
-
-/**
- * @ingroup UCP_ENDPOINT
- *
- * @brief Non-blocking @ref ucp_ep_h "endpoint" closure.
- *
- * This routine releases the @ref ucp_ep_h "endpoint". The endpoint closure
- * process depends on the selected @a mode.
- *
- * @param [in]  ep      Handle to the endpoint to close.
- * @param [in]  mode    One from @ref ucp_ep_close_mode value.
- *
- * @return UCS_OK           - The endpoint is closed successfully.
- * @return UCS_PTR_IS_ERR(_ptr) - The closure failed and an error code indicates
- *                                the transport level status. However, resources
- *                                are released and the @a endpoint can no longer
- *                                be used.
- * @return otherwise        - The closure process is started, and can be
- *                            completed at any point in time. A request handle
- *                            is returned to the application in order to track
- *                            progress of the endpoint closure. The application
- *                            is responsible for releasing the handle using the
- *                            @ref ucp_request_free routine.
- *
- * @note @ref ucp_ep_close_nb replaces deprecated @ref ucp_disconnect_nb and
- *       @ref ucp_ep_destroy
- */
-ucs_status_ptr_t ucp_ep_close_nb(ucp_ep_h ep, unsigned mode);
 
 
 /**
@@ -2044,32 +2647,26 @@ void ucp_ep_print_info(ucp_ep_h ep, FILE *stream);
  * @ref ucp_ep_h "endpoint" when this call returns.
  *
  * @param [in] ep        UCP endpoint.
- * @param [in] flags     Flags for flush operation. Reserved for future use.
- * @param [in] cb        Callback which will be called when the flush operation
- *                       completes.
+ * @param [in] param     Operation parameters, see @ref ucp_request_param_t.
  *
- * @return NULL             - The flush operation was completed immediately.
+ * @return NULL                 - The flush operation was completed immediately.
  * @return UCS_PTR_IS_ERR(_ptr) - The flush operation failed.
- * @return otherwise        - Flush operation was scheduled and can be completed
- *                          in any point in time. The request handle is returned
- *                          to the application in order to track progress. The
- *                          application is responsible for releasing the handle
- *                          using @ref ucp_request_free "ucp_request_free()"
- *                          routine.
+ * @return otherwise            - Flush operation was scheduled and can be
+ *                                completed in any point in time. The request
+ *                                handle is returned to the application in
+ *                                order to track progress.
  *
  *
  * The following example demonstrates how blocking flush can be implemented
  * using non-blocking flush:
  * @code {.c}
- * void empty_function(void *request, ucs_status_t status)
- * {
- * }
- *
  * ucs_status_t blocking_ep_flush(ucp_ep_h ep, ucp_worker_h worker)
  * {
+ *     ucp_request_param_t param;
  *     void *request;
  *
- *     request = ucp_ep_flush_nb(ep, 0, empty_function);
+ *     param.op_attr_mask = 0;
+ *     request            = ucp_ep_flush_nbx(ep, &param);
  *     if (request == NULL) {
  *         return UCS_OK;
  *     } else if (UCS_PTR_IS_ERR(request)) {
@@ -2084,33 +2681,27 @@ void ucp_ep_print_info(ucp_ep_h ep, FILE *stream);
  *         return status;
  *     }
  * }
- * @endcode */
-ucs_status_ptr_t ucp_ep_flush_nb(ucp_ep_h ep, unsigned flags,
-                                 ucp_send_callback_t cb);
+ * @endcode
+ */
+ucs_status_ptr_t ucp_ep_flush_nbx(ucp_ep_h ep, const ucp_request_param_t *param);
 
 
 /**
  * @ingroup UCP_ENDPOINT
+ * @brief Estimate performance characteristics of a specific endpoint.
  *
- * @brief Non-blocking flush of outstanding AMO and RMA operations on the
- * @ref ucp_ep_h "endpoint".
+ * This routine fetches information about the endpoint.
  *
- * This routine flushes all outstanding AMO and RMA communications on the
- * @ref ucp_ep_h "endpoint". All the AMO and RMA operations issued on the
- * @a ep prior to this call are completed both at the origin and at the target
- * @ref ucp_ep_h "endpoint" when this call returns.
+ * @param [in]  ep    Endpoint to query.
+ * @param [in]  param Filled by the user with request params.
+ * @param [out] attr  Filled with performance estimation of the given operation
+ *                    on the endpoint.
  *
- * @param [in] ep        UCP endpoint.
- * @param [in] param     Operation parameters, see @ref ucp_request_param_t.
- *
- * @return NULL                 - The flush operation was completed immediately.
- * @return UCS_PTR_IS_ERR(_ptr) - The flush operation failed.
- * @return otherwise            - Flush operation was scheduled and can be
- *                                completed in any point in time. The request
- *                                handle is returned to the application in
- *                                order to track progress.
+ * @return Error code as defined by @ref ucs_status_t
  */
-ucs_status_ptr_t ucp_ep_flush_nbx(ucp_ep_h ep, const ucp_request_param_t *param);
+ucs_status_t ucp_ep_evaluate_perf(ucp_ep_h ep,
+                                  const ucp_ep_evaluate_perf_param_t *param,
+                                  ucp_ep_evaluate_perf_attr_t *attr);
 
 
 /**
@@ -2245,11 +2836,16 @@ ucs_status_t ucp_mem_query(const ucp_mem_h memh, ucp_mem_attr_t *attr);
  * including the mapped memory length, the allocation method, and other useful
  * information associated with the memory handle.
  *
- * @param [in] mem_size     Size of the memory to map.
+ * @param [in] mem_spec     Size and optional type of the memory to map.
+ *                          The format of the string is: "<size>[,<type>]".
+ *                          For example:
+ *                           - "32768"   : allocate 32 kilobytes of host memory.
+ *                           - "1m,cuda" : allocate 1 megabayte of cuda memory.
  * @param [in] context      The context on which the memory is mapped.
  * @param [in] stream       Output stream on which to print the information.
  */
-void ucp_mem_print_info(const char *mem_size, ucp_context_h context, FILE *stream);
+void ucp_mem_print_info(const char *mem_spec, ucp_context_h context,
+                        FILE *stream);
 
 
 /**
@@ -2287,17 +2883,17 @@ typedef struct ucp_mem_advise_params {
     /**
      * Memory base address.
      */
-     void                   *address;
+    void                    *address;
 
-     /**
-      * Length (in bytes) to allocate or map (register).
-      */
-     size_t                 length;
+    /**
+     * Length (in bytes) to allocate or map (register).
+     */
+    size_t                  length;
 
-     /**
-      * Memory use advice @ref ucp_mem_advice
-      */
-     ucp_mem_advice_t       advice;
+    /**
+     * Memory use advice @ref ucp_mem_advice
+     */
+    ucp_mem_advice_t        advice;
 } ucp_mem_advise_params_t;
 
 
@@ -2326,55 +2922,140 @@ ucs_status_t ucp_mem_advise(ucp_context_h context, ucp_mem_h memh,
 
 /**
  * @ingroup UCP_MEM
- * @brief Pack memory region remote access key.
+ * @brief UCP memory handle packing parameters field mask.
  *
- * This routine allocates memory buffer and packs into the buffer
- * a remote access key (RKEY) object. RKEY is an opaque object that provides
- * the information that is necessary for remote memory access.
- * This routine packs the RKEY object in a portable format such that the
- * object can be @ref ucp_ep_rkey_unpack "unpacked" on any platform supported by the
- * UCP library. In order to release the memory buffer allocated by this routine
- * the application is responsible for calling the @ref ucp_rkey_buffer_release
- * "ucp_rkey_buffer_release()" routine.
- *
- *
- * @note
- * @li RKEYs for InfiniBand and Cray Aries networks typically includes
- * InifiniBand and Aries key.
- * @li In order to enable remote direct memory access to the memory associated
- * with the memory handle the application is responsible for sharing the RKEY with
- * the peers that will initiate the access.
- *
- * @param [in]  context       Application @ref ucp_context_h "context" which was
- *                            used to allocate/map the memory.
- * @param [in]  memh          @ref ucp_mem_h "Handle" to memory region.
- * @param [out] rkey_buffer_p Memory buffer allocated by the library.
- *                            The buffer contains packed RKEY.
- * @param [out] size_p        Size (in bytes) of the packed RKEY.
- *
- * @return Error code as defined by @ref ucs_status_t
+ * The enumeration allows specifying which fields in
+ * @ref ucp_memh_pack_params_t are present. It is used to enable backward
+ * compatibility support.
  */
-ucs_status_t ucp_rkey_pack(ucp_context_h context, ucp_mem_h memh,
-                           void **rkey_buffer_p, size_t *size_p);
+enum ucp_memh_pack_params_field {
+    /**
+     * Memory handle packing field that will be used in the @ref ucp_memh_pack
+     * routine.
+     */
+    UCP_MEMH_PACK_PARAM_FIELD_FLAGS = UCS_BIT(0)
+};
 
 
 /**
  * @ingroup UCP_MEM
- * @brief Release packed remote key buffer.
+ * @brief UCP memory handle flags.
  *
- * This routine releases the buffer that was allocated using @ref ucp_rkey_pack
- * "ucp_rkey_pack()".
+ * The enumeration list describes the memory handle packing flags supported by
+ * @ref ucp_memh_pack() function.
+ */
+enum ucp_memh_pack_flags {
+    /**
+     * Pack a memory handle to be exported and used by peers for their local
+     * operations on a memory buffer allocated from same or another virtual
+     * memory space, but physically registered on the same network device.
+     * A peer should call @ref ucp_mem_map with the
+     * flag @ref UCP_MEM_MAP_PARAM_FIELD_EXPORTED_MEMH_BUFFER in order to
+     * import and use a memory handle buffer obtained from @ref ucp_memh_pack.
+     */
+    UCP_MEMH_PACK_FLAG_EXPORT = UCS_BIT(0)
+};
+
+
+/**
+ * @ingroup UCP_MEM
+ * @brief Memory handle pack parameters passed to @ref ucp_memh_pack.
+ *
+ * This structure defines the parameters that are used for packing the
+ * UCP memory handle during the @ref ucp_memh_pack "ucp_memh_pack"
+ * routine.
+ */
+typedef struct ucp_memh_pack_params {
+    /**
+     * Mask of valid fields in this structure. Fields not specified in this
+     * mask will be ignored. Provides ABI compatibility with respect to adding
+     * new fields.
+     */
+    uint64_t                field_mask;
+
+    /**
+     * Flags to control packing of a memory handle.
+     */
+    uint64_t                flags;
+} ucp_memh_pack_params_t;
+
+
+/**
+ * @ingroup UCP_MEM
+ * @brief Pack a memory handle to a buffer specified by the user.
+ *
+ * This routine allocates a memory buffer and packs a memory handle into the
+ * buffer. A packed memory key is an opaque object that provides
+ * the information that is necessary for a peer.
+ * This routine packs the memory handle in a portable format such that the
+ * object can be unpacked on any platform supported by the UCP library, e.g.
+ * if the memory handle was packed as a remote memory key (RKEY), it should be
+ * unpacked by @ref ucp_ep_rkey_unpack "ucp_ep_rkey_unpack()".
+ * In order to release the memory buffer allocated by this routine,
+ * the application is responsible for calling the @ref ucp_memh_buffer_release
+ * "ucp_memh_buffer_release()" routine.
+ *
+ *
+ * @note
+ * @li RKEYs for InfiniBand and Cray Aries networks typically includes
+ * InfiniBand and Aries key.
+ * @li In order to enable remote direct memory access to the memory associated
+ * with the memory handle the application is responsible for sharing the RKEY with
+ * the peers that will initiate the access.
+ *
+ * @param [in]  memh          @ref ucp_mem_h "Handle" to memory region.
+ * @param [in]  params        Memory handle packing parameters, as defined by
+ *                            @ref ucp_memh_pack_params_t.
+ * @param [out] buffer_p      Memory buffer allocated by the library.
+ *                            The buffer contains the packed memory handle.
+ * @param [out] buffer_size_p Size (in bytes) of the buffer which contains
+ *                            packed memory handle.
+ *
+ * @return Error code as defined by @ref ucs_status_t
+ */
+ucs_status_t
+ucp_memh_pack(ucp_mem_h memh, const ucp_memh_pack_params_t *params,
+              void **buffer_p, size_t *buffer_size_p);
+
+
+/**
+ * @ingroup UCP_MEM
+ * @brief Memory handle release parameters passed to
+ * @ref ucp_memh_buffer_release.
+ *
+ * This structure defines the parameters that are used for releasing the
+ * UCP memory handle buffer during the @ref ucp_memh_buffer_release
+ * "ucp_memh_buffer_release" routine.
+ */
+typedef struct ucp_memh_buffer_release_params {
+    /**
+     * Mask of valid fields in this structure. All fields are mandatory.
+     * Provides ABI compatibility with respect to adding new fields.
+     */
+    uint64_t                field_mask;
+} ucp_memh_buffer_release_params_t;
+
+
+/**
+ * @ingroup UCP_MEM
+ * @brief Release packed memory handle buffer.
+ *
+ * This routine releases the buffer that was allocated using @ref ucp_memh_pack
+ * "ucp_memh_pack()".
  *
  * @warning
- * @li Once memory is released an access to the memory may cause a
- * failure.
+ * @li Once memory is released, an access to the memory may cause undefined
+ * behavior.
  * @li If the input memory address was not allocated using
- * @ref ucp_rkey_pack "ucp_rkey_pack()" routine the behaviour of this routine
+ * @ref ucp_memh_pack "ucp_memh_pack()" routine, the behavior of this routine
  * is undefined.
  *
- * @param [in]  rkey_buffer   Buffer to release.
+ * @param [in]  buffer   Buffer to release.
+ * @param [in]  params   Memory handle buffer release parameters, as defined by
+ *                       @ref ucp_memh_buffer_release_params_t.
  */
-void ucp_rkey_buffer_release(void *rkey_buffer);
+void ucp_memh_buffer_release(void *buffer,
+                             const ucp_memh_buffer_release_params_t *params);
 
 
 /**
@@ -2454,58 +3135,132 @@ void ucp_rkey_destroy(ucp_rkey_h rkey);
  * @brief Add user defined callback for Active Message.
  *
  * This routine installs a user defined callback to handle incoming Active
- * Messages with a specific id. This callback is called whenever an Active 
- * Message that was sent from the remote peer by @ref ucp_am_send_nb is 
+ * Messages with a specific id. This callback is called whenever an Active
+ * Message that was sent from the remote peer by @ref ucp_am_send_nbx is
  * received on this worker.
  *
- * @param [in]  worker      UCP worker on which to set the Active Message 
+ * @warning Handlers set by this function are not compatible with
+            @ref ucp_am_send_nb routine.
+ *
+ * @param [in]  worker      UCP worker on which to set the Active Message
  *                          handler.
- * @param [in]  id          Active Message id.
- * @param [in]  cb          Active Message callback. NULL to clear.
- * @param [in]  arg         Active Message argument, which will be passed
- *                          in to every invocation of the callback as the
- *                          arg argument.
- * @param [in]  flags       Dictates how an Active Message is handled on the
- *                          remote endpoint. Currently only
- *                          UCP_AM_FLAG_WHOLE_MSG is supported, which
- *                          indicates the callback will not be invoked
- *                          until all data has arrived.
+ * @param [in]  param       Active Message handler parameters, as defined by
+ *                          @ref ucp_am_handler_param_t.
  *
  * @return error code if the worker does not support Active Messages or
  *         requested callback flags.
  */
-ucs_status_t ucp_worker_set_am_handler(ucp_worker_h worker, uint16_t id,
-                                       ucp_am_callback_t cb, void *arg,
-                                       uint32_t flags);
+ucs_status_t ucp_worker_set_am_recv_handler(ucp_worker_h worker,
+                                            const ucp_am_handler_param_t *param);
 
 
 /**
  * @ingroup UCP_COMM
  * @brief Send Active Message.
  *
- * This routine sends an Active Message to an ep. It does not support
- * CUDA memory.
+ * This routine sends an Active Message to an ep. If the operation completes
+ * immediately, then the routine returns NULL and the callback function is
+ * ignored, even if specified. Otherwise, if no error is reported and a callback
+ * is requested (i.e. the UCP_OP_ATTR_FIELD_CALLBACK flag is set in the
+ * op_attr_mask field of @a param), then the UCP library will schedule
+ * invocation of the callback routine @a param->cb.send upon completion of the
+ * operation.
  *
- * @param [in]  ep          UCP endpoint where the Active Message will be run.
- * @param [in]  id          Active Message id. Specifies which registered
- *                          callback to run.
- * @param [in]  buffer      Pointer to the data to be sent to the target node
- *                          of the Active Message.
- * @param [in]  count       Number of elements to send.
- * @param [in]  datatype    Datatype descriptor for the elements in the buffer.
- * @param [in]  cb          Callback that is invoked upon completion of the 
- *                          data transfer if it is not completed immediately.
- * @param [in]  flags       For Future use.
+ * @note If UCP_OP_ATTR_FLAG_NO_IMM_CMPL flag is set in the op_attr_mask field
+ *       of @a param, then the operation will return a request handle, even if
+ *       it completes immediately.
+ * @note This operation supports specific flags, which can be passed
+ *       in @a param by @ref ucp_request_param_t.flags. The exact set of flags
+ *       is defined by @ref ucp_send_am_flags.
  *
- * @return NULL             Active Message was sent immediately.
- * @return UCS_PTR_IS_ERR(_ptr) Error sending Active Message.
- * @return otherwise        Pointer to request, and Active Message is known
- *                          to be completed after cb is run.
+ * @param [in]  ep            UCP endpoint where the Active Message will be run.
+ * @param [in]  id            Active Message id. Specifies which registered
+ *                            callback to run.
+ * @param [in]  header        User defined Active Message header. NULL value is
+ *                            allowed if no header needed. In this case
+ *                            @a header_length must be set to 0.
+ *                            By default the header must be valid until
+ *                            the active message send operation completes.
+ *                            If the flag @ref UCP_AM_SEND_FLAG_COPY_HEADER
+ *                            is specified, the header is only required to be
+ *                            valid until this function call returns.
+ * @param [in]  header_length Active message header length in bytes.
+ * @param [in]  buffer        Pointer to the data to be sent to the target node
+ *                            of the Active Message.
+ * @param [in]  count         Number of elements to send.
+ * @param [in]  param         Operation parameters, see @ref ucp_request_param_t.
+ *
+ * @note Sending only header without actual data is allowed and is recommended
+ *       for transferring a latency-critical amount of data.
+ * @note The maximum allowed header size can be obtained by querying worker
+ *       attributes by the @ref ucp_worker_query routine.
+ *
+ *
+ * @return NULL                 - Active Message was sent immediately.
+ * @return UCS_PTR_IS_ERR(_ptr) - Error sending Active Message.
+ * @return otherwise            - Operation was scheduled for send and can be
+ *                                completed at any point in time. The request
+ *                                handle is returned to the application in order
+ *                                to track progress of the message. If user
+ *                                request was not provided in @a param->request,
+ *                                the application is responsible for releasing
+ *                                the handle using @ref ucp_request_free routine.
  */
-ucs_status_ptr_t ucp_am_send_nb(ucp_ep_h ep, uint16_t id,
-                                const void *buffer, size_t count,
-                                ucp_datatype_t datatype,
-                                ucp_send_callback_t cb, unsigned flags);
+ucs_status_ptr_t ucp_am_send_nbx(ucp_ep_h ep, unsigned id,
+                                 const void *header, size_t header_length,
+                                 const void *buffer, size_t count,
+                                 const ucp_request_param_t *param);
+
+
+/**
+ * @ingroup UCP_COMM
+ * @brief Receive Active Message as defined by provided data descriptor.
+ *
+ * This routine receives a message that is described by the data descriptor
+ * @a data_desc, local address @a buffer, size @a count and @a param
+ * parameters on the @a worker. The routine is non-blocking and therefore
+ * returns immediately. The receive operation is considered completed when the
+ * message is delivered to the @a buffer. If the receive operation cannot be
+ * started the routine returns an error.
+ *
+ * @note This routine can be performed on any valid data descriptor delivered in
+ *       @ref ucp_am_recv_callback_t.
+ *       Data descriptor is considered to be valid if:
+ *       - It is a rendezvous request (@a UCP_AM_RECV_ATTR_FLAG_RNDV is set in
+ *         @ref ucp_am_recv_param_t.recv_attr) or
+ *       - It is a persistent data pointer (@a UCP_AM_RECV_ATTR_FLAG_DATA is set
+ *         in @ref ucp_am_recv_param_t.recv_attr). In this case receive
+ *         operation may be needed to unpack data to device memory (for example
+ *         GPU device) or some specific datatype.
+ * @note After this call UCP takes ownership of @a data_desc descriptor, so
+ *       there is no need to release it even if the operation fails.
+ *       The routine returns a request handle instead, which can be used for
+ *       tracking operation progress.
+ *
+ * @param [in]  worker     Worker that is used for the receive operation.
+ * @param [in]  data_desc  Data descriptor, provided in
+                           @ref ucp_am_recv_callback_t routine.
+ * @param [in]  buffer     Pointer to the buffer to receive the data.
+ * @param [in]  count      Number of elements to receive into @a buffer.
+ * @param [in]  param      Operation parameters, see @ref ucp_request_param_t.
+ *
+ * @return NULL                 - The receive operation was completed
+ *                                immediately. In this case, if
+ *                                @a param->recv_info.length is specified in the
+ *                                @a param, the value to which it points is updated
+ *                                with the size of the received message.
+ * @return UCS_PTR_IS_ERR(_ptr) - The receive operation failed.
+ * @return otherwise            - Receive operation was scheduled and can be
+ *                                completed at any point in time. The request
+ *                                handle is returned to the application in order
+ *                                to track operation progress. If user
+ *                                request was not provided in @a param->request,
+ *                                the application is responsible for releasing
+ *                                the handle using @ref ucp_request_free routine.
+ */
+ucs_status_ptr_t ucp_am_recv_data_nbx(ucp_worker_h worker, void *data_desc,
+                                      void *buffer, size_t count,
+                                      const ucp_request_param_t *param);
 
 
 /**
@@ -2521,49 +3276,6 @@ ucs_status_ptr_t ucp_am_send_nb(ucp_ep_h ep, uint16_t id,
  *                          parameter.
  */
 void ucp_am_data_release(ucp_worker_h worker, void *data);
-
-
-/**
- * @ingroup UCP_COMM
- * @brief Non-blocking stream send operation.
- *
- * This routine sends data that is described by the local address @a buffer,
- * size @a count, and @a datatype object to the destination endpoint @a ep.
- * The routine is non-blocking and therefore returns immediately, however
- * the actual send operation may be delayed. The send operation is considered
- * completed when it is safe to reuse the source @e buffer. If the send
- * operation is completed immediately the routine returns UCS_OK and the
- * call-back function @a cb is @b not invoked. If the operation is
- * @b not completed immediately and no error reported, then the UCP library will
- * schedule invocation of the call-back @a cb upon completion of the send
- * operation. In other words, the completion of the operation will be signaled
- * either by the return code or by the call-back.
- *
- * @note The user should not modify any part of the @a buffer after this
- *       operation is called, until the operation completes.
- *
- * @param [in]  ep          Destination endpoint handle.
- * @param [in]  buffer      Pointer to the message buffer (payload).
- * @param [in]  count       Number of elements to send.
- * @param [in]  datatype    Datatype descriptor for the elements in the buffer.
- * @param [in]  cb          Callback function that is invoked whenever the
- *                          send operation is completed. It is important to note
- *                          that the call-back is only invoked in a case when
- *                          the operation cannot be completed in place.
- * @param [in]  flags       Reserved for future use.
- *
- * @return NULL             - The send operation was completed immediately.
- * @return UCS_PTR_IS_ERR(_ptr) - The send operation failed.
- * @return otherwise        - Operation was scheduled for send and can be
- *                          completed in any point in time. The request handle
- *                          is returned to the application in order to track
- *                          progress of the message. The application is
- *                          responsible for releasing the handle using
- *                          @ref ucp_request_free routine.
- */
-ucs_status_ptr_t ucp_stream_send_nb(ucp_ep_h ep, const void *buffer, size_t count,
-                                    ucp_datatype_t datatype, ucp_send_callback_t cb,
-                                    unsigned flags);
 
 
 /**
@@ -2594,167 +3306,6 @@ ucs_status_ptr_t ucp_stream_send_nb(ucp_ep_h ep, const void *buffer, size_t coun
  */
 ucs_status_ptr_t ucp_stream_send_nbx(ucp_ep_h ep, const void *buffer, size_t count,
                                      const ucp_request_param_t *param);
-
-
-/**
- * @ingroup UCP_COMM
- * @brief Non-blocking tagged-send operations
- *
- * This routine sends a messages that is described by the local address @a
- * buffer, size @a count, and @a datatype object to the destination endpoint
- * @a ep. Each message is associated with a @a tag value that is used for
- * message matching on the @ref ucp_tag_recv_nb "receiver". The routine is
- * non-blocking and therefore returns immediately, however the actual send
- * operation may be delayed. The send operation is considered completed when
- * it is safe to reuse the source @e buffer. If the send operation is
- * completed immediately the routine return UCS_OK and the call-back function
- * @a cb is @b not invoked. If the operation is @b not completed immediately
- * and no error reported then the UCP library will schedule to invoke the
- * call-back @a cb whenever the send operation will be completed. In other
- * words, the completion of a message can be signaled by the return code or
- * the call-back.
- *
- * @note The user should not modify any part of the @a buffer after this
- *       operation is called, until the operation completes.
- *
- * @param [in]  ep          Destination endpoint handle.
- * @param [in]  buffer      Pointer to the message buffer (payload).
- * @param [in]  count       Number of elements to send
- * @param [in]  datatype    Datatype descriptor for the elements in the buffer.
- * @param [in]  tag         Message tag.
- * @param [in]  cb          Callback function that is invoked whenever the
- *                          send operation is completed. It is important to note
- *                          that the call-back is only invoked in a case when
- *                          the operation cannot be completed in place.
- *
- * @return NULL            - The send operation was completed immediately.
- * @return UCS_PTR_IS_ERR(_ptr) - The send operation failed.
- * @return otherwise        - Operation was scheduled for send and can be
- *                          completed in any point in time. The request handle
- *                          is returned to the application in order to track
- *                          progress of the message. The application is
- *                          responsible for releasing the handle using
- *                          @ref ucp_request_free "ucp_request_free()" routine.
- */
-ucs_status_ptr_t ucp_tag_send_nb(ucp_ep_h ep, const void *buffer, size_t count,
-                                 ucp_datatype_t datatype, ucp_tag_t tag,
-                                 ucp_send_callback_t cb);
-
-/**
- * @ingroup UCP_COMM
- * @brief Non-blocking tagged-send operations with user provided request
- *
- * This routine provides a convenient and efficient way to implement a
- * blocking send pattern. It also completes requests faster than
- * @ref ucp_tag_send_nb() because:
- * @li it always uses @ref uct_ep_am_bcopy() to send data up to the
- *     rendezvous threshold.
- * @li its rendezvous threshold is higher than the one used by
- *     the @ref ucp_tag_send_nb(). The threshold is controlled by
- *     the @b UCX_SEND_NBR_RNDV_THRESH environment variable.
- * @li its request handling is simpler. There is no callback and no need
- *     to allocate and free requests. In fact request can be allocated by
- *     caller on the stack.
- *
- * This routine sends a messages that is described by the local address @a
- * buffer, size @a count, and @a datatype object to the destination endpoint
- * @a ep. Each message is associated with a @a tag value that is used for
- * message matching on the @ref ucp_tag_recv_nbr "receiver".
- *
- * The routine is non-blocking and therefore returns immediately, however
- * the actual send operation may be delayed. The send operation is considered
- * completed when it is safe to reuse the source @e buffer. If the send
- * operation is completed immediately the routine returns UCS_OK.
- *
- * If the operation is @b not completed immediately and no error reported
- * then the UCP library will fill a user provided @a req and
- * return UCS_INPROGRESS status. In order to monitor completion of the
- * operation @ref ucp_request_check_status() should be used.
- *
- * Following pseudo code implements a blocking send function:
- * @code
- * MPI_send(...)
- * {
- *     char *request;
- *     ucs_status_t status;
- *
- *     // allocate request on the stack
- *     // ucp_context_query() was used to get ucp_request_size
- *     request = alloca(ucp_request_size);
- *
- *     // note: make sure that there is enough memory before the
- *     // request handle
- *     status = ucp_tag_send_nbr(ep, ..., request + ucp_request_size);
- *     if (status != UCS_INPROGRESS) {
- *         return status;
- *     }
- *
- *     do {
- *         ucp_worker_progress(worker);
- *         status = ucp_request_check_status(request + ucp_request_size);
- *     } while (status == UCS_INPROGRESS);
- *
- *     return status;
- * }
- * @endcode
- *
- * @note The user should not modify any part of the @a buffer after this
- *       operation is called, until the operation completes.
- *
- *
- * @param [in]  ep          Destination endpoint handle.
- * @param [in]  buffer      Pointer to the message buffer (payload).
- * @param [in]  count       Number of elements to send
- * @param [in]  datatype    Datatype descriptor for the elements in the buffer.
- * @param [in]  tag         Message tag.
- * @param [in]  req         Request handle allocated by the user. There should
- *                          be at least UCP request size bytes of available
- *                          space before the @a req. The size of UCP request
- *                          can be obtained by @ref ucp_context_query function.
- *
- * @return UCS_OK           - The send operation was completed immediately.
- * @return UCS_INPROGRESS   - The send was not completed and is in progress.
- *                            @ref ucp_request_check_status() should be used to
- *                            monitor @a req status.
- * @return Error code as defined by @ref ucs_status_t
- */
-ucs_status_t ucp_tag_send_nbr(ucp_ep_h ep, const void *buffer, size_t count,
-                              ucp_datatype_t datatype, ucp_tag_t tag, void *req);
-
-/**
- * @ingroup UCP_COMM
- * @brief Non-blocking synchronous tagged-send operation.
- *
- * Same as @ref ucp_tag_send_nb, except the request completes only after there
- * is a remote tag match on the message (which does not always mean the remote
- * receive has been completed). This function never completes "in-place", and
- * always returns a request handle.
- *
- * @note The user should not modify any part of the @a buffer after this
- *       operation is called, until the operation completes.
- * @note Returns @ref UCS_ERR_UNSUPPORTED if @ref UCP_ERR_HANDLING_MODE_PEER is
- *       enabled. This is a temporary implementation-related constraint that
- *       will be addressed in future releases.
- *
- * @param [in]  ep          Destination endpoint handle.
- * @param [in]  buffer      Pointer to the message buffer (payload).
- * @param [in]  count       Number of elements to send
- * @param [in]  datatype    Datatype descriptor for the elements in the buffer.
- * @param [in]  tag         Message tag.
- * @param [in]  cb          Callback function that is invoked whenever the
- *                          send operation is completed.
- *
- * @return UCS_PTR_IS_ERR(_ptr) - The send operation failed.
- * @return otherwise        - Operation was scheduled for send and can be
- *                          completed in any point in time. The request handle
- *                          is returned to the application in order to track
- *                          progress of the message. The application is
- *                          responsible for releasing the handle using
- *                          @ref ucp_request_free "ucp_request_free()" routine.
- */
-ucs_status_ptr_t ucp_tag_send_sync_nb(ucp_ep_h ep, const void *buffer, size_t count,
-                                      ucp_datatype_t datatype, ucp_tag_t tag,
-                                      ucp_send_callback_t cb);
 
 
 /**
@@ -2838,57 +3389,10 @@ ucs_status_ptr_t ucp_tag_send_sync_nbx(ucp_ep_h ep, const void *buffer,
  *        user-supplied buffer.
  *
  * This routine receives data that is described by the local address @a buffer,
- * size @a count, and @a datatype object on the endpoint @a ep. The routine is
- * non-blocking and therefore returns immediately. The receive operation is
- * considered complete when the message is delivered to the buffer. If data is
- * not immediately available, the operation will be scheduled for receive and
- * a request handle will be returned. In order to notify the application about
- * completion of a scheduled receive operation, the UCP library will invoke
- * the call-back @a cb when data is in the receive buffer and ready for
- * application access. If the receive operation cannot be started, the routine
- * returns an error.
- *
- * @param [in]     ep       UCP endpoint that is used for the receive operation.
- * @param [in]     buffer   Pointer to the buffer to receive the data to.
- * @param [in]     count    Number of elements to receive into @a buffer.
- * @param [in]     datatype Datatype descriptor for the elements in the buffer.
- * @param [in]     cb       Callback function that is invoked whenever the
- *                          receive operation is completed and the data is ready
- *                          in the receive @a buffer. It is important to note
- *                          that the call-back is only invoked in a case when
- *                          the operation cannot be completed immediately.
- * @param [out]    length   Size of the received data in bytes. The value is
- *                          valid only if return code is UCS_OK.
- * @note                    The amount of data received, in bytes, is always an
- *                          integral multiple of the @a datatype size.
- * @param [in]     flags    Flags defined in @ref ucp_stream_recv_flags_t.
- *
- * @return NULL                 - The receive operation was completed
- *                                immediately.
- * @return UCS_PTR_IS_ERR(_ptr) - The receive operation failed.
- * @return otherwise            - Operation was scheduled for receive. A request
- *                                handle is returned to the application in order
- *                                to track progress of the operation.
- *                                The application is responsible for releasing
- *                                the handle by calling the
- *                                @ref ucp_request_free routine.
- */
-ucs_status_ptr_t ucp_stream_recv_nb(ucp_ep_h ep, void *buffer, size_t count,
-                                    ucp_datatype_t datatype,
-                                    ucp_stream_recv_callback_t cb,
-                                    size_t *length, unsigned flags);
-
-
-/**
- * @ingroup UCP_COMM
- * @brief Non-blocking stream receive operation of structured data into a
- *        user-supplied buffer.
- *
- * This routine receives data that is described by the local address @a buffer,
  * size @a count object on the endpoint @a ep. The routine is non-blocking
  * and therefore returns immediately. The receive operation is considered
  * complete when the message is delivered to the buffer. If the receive
- * operation cannot be started, the routine returns an error.
+ * operation cannot be started, then the routine returns an error.
  *
  * @param [in]     ep       UCP endpoint that is used for the receive operation.
  * @param [in]     buffer   Pointer to the buffer that will receive the data.
@@ -2904,7 +3408,8 @@ ucs_status_ptr_t ucp_stream_recv_nb(ucp_ep_h ep, void *buffer, size_t count,
  * @return NULL                 - The receive operation was completed
  *                                immediately. In this case the value pointed by
  *                                @a length is updated by the size of received
- *                                data.
+ *                                data. Note @a param->recv_info is not relevant
+ *                                for this function.
  * @return UCS_PTR_IS_ERR(_ptr) - The receive operation failed.
  * @return otherwise            - Operation was scheduled for receive. A request
  *                                handle is returned to the application in order
@@ -2958,83 +3463,6 @@ ucs_status_ptr_t ucp_stream_recv_data_nb(ucp_ep_h ep, size_t *length);
  * @brief Non-blocking tagged-receive operation.
  *
  * This routine receives a message that is described by the local address @a
- * buffer, size @a count, and @a datatype object on the @a worker. The tag
- * value of the receive message has to match the @a tag and @a tag_mask values,
- * where the @a tag_mask indicates which bits of the tag have to be matched. The
- * routine is non-blocking and therefore returns immediately. The receive
- * operation is considered completed when the message is delivered to the @a
- * buffer.  In order to notify the application about completion of the receive
- * operation the UCP library will invoke the call-back @a cb when the received
- * message is in the receive buffer and ready for application access.  If the
- * receive operation cannot be stated the routine returns an error.
- *
- * @note This routine cannot return UCS_OK. It always returns a request
- *       handle or an error.
- *
- * @param [in]  worker      UCP worker that is used for the receive operation.
- * @param [in]  buffer      Pointer to the buffer to receive the data to.
- * @param [in]  count       Number of elements to receive
- * @param [in]  datatype    Datatype descriptor for the elements in the buffer.
- * @param [in]  tag         Message tag to expect.
- * @param [in]  tag_mask    Bit mask that indicates the bits that are used for
- *                          the matching of the incoming tag
- *                          against the expected tag.
- * @param [in]  cb          Callback function that is invoked whenever the
- *                          receive operation is completed and the data is ready
- *                          in the receive @a buffer.
- *
- * @return UCS_PTR_IS_ERR(_ptr) - The receive operation failed.
- * @return otherwise          - Operation was scheduled for receive. The request
- *                              handle is returned to the application in order
- *                              to track progress of the operation. The
- *                              application is responsible for releasing the
- *                              handle using @ref ucp_request_free
- *                              "ucp_request_free()" routine.
- */
-ucs_status_ptr_t ucp_tag_recv_nb(ucp_worker_h worker, void *buffer, size_t count,
-                                 ucp_datatype_t datatype, ucp_tag_t tag,
-                                 ucp_tag_t tag_mask, ucp_tag_recv_callback_t cb);
-
-
-/**
- * @ingroup UCP_COMM
- * @brief Non-blocking tagged-receive operation.
- *
- * This routine receives a message that is described by the local address @a
- * buffer, size @a count, and @a datatype object on the @a worker. The tag
- * value of the receive message has to match the @a tag and @a tag_mask values,
- * where the @a tag_mask indicates which bits of the tag have to be matched. The
- * routine is non-blocking and therefore returns immediately. The receive
- * operation is considered completed when the message is delivered to the @a
- * buffer. In order to monitor completion of the operation
- * @ref ucp_request_check_status or @ref ucp_tag_recv_request_test should be
- * used.
- *
- * @param [in]  worker      UCP worker that is used for the receive operation.
- * @param [in]  buffer      Pointer to the buffer to receive the data to.
- * @param [in]  count       Number of elements to receive
- * @param [in]  datatype    Datatype descriptor for the elements in the buffer.
- * @param [in]  tag         Message tag to expect.
- * @param [in]  tag_mask    Bit mask that indicates the bits that are used for
- *                          the matching of the incoming tag
- *                          against the expected tag.
- * @param [in]  req         Request handle allocated by the user. There should
- *                          be at least UCP request size bytes of available
- *                          space before the @a req. The size of UCP request
- *                          can be obtained by @ref ucp_context_query function.
- *
- * @return Error code as defined by @ref ucs_status_t
- */
-ucs_status_t ucp_tag_recv_nbr(ucp_worker_h worker, void *buffer, size_t count,
-                              ucp_datatype_t datatype, ucp_tag_t tag,
-                              ucp_tag_t tag_mask, void *req);
-
-
-/**
- * @ingroup UCP_COMM
- * @brief Non-blocking tagged-receive operation.
- *
- * This routine receives a message that is described by the local address @a
  * buffer, size @a count, and @a info object on the @a worker. The tag
  * value of the receive message has to match the @a tag and @a tag_mask values,
  * where the @a tag_mask indicates what bits of the tag have to be matched. The
@@ -3043,13 +3471,10 @@ ucs_status_t ucp_tag_recv_nbr(ucp_worker_h worker, void *buffer, size_t count,
  * buffer.  In order to notify the application about completion of the receive
  * operation the UCP library will invoke the call-back @a cb when the received
  * message is in the receive buffer and ready for application access.  If the
- * receive operation cannot be stated the routine returns an error.
- *
- * @note This routine cannot return UCS_OK. It always returns a request
- *       handle or an error.
+ * receive operation cannot be started, then the routine returns an error.
  *
  * @param [in]  worker      UCP worker that is used for the receive operation.
- * @param [in]  buffer      Pointer to the buffer to receive the data to.
+ * @param [in]  buffer      Pointer to the buffer to receive the data.
  * @param [in]  count       Number of elements to receive
  * @param [in]  tag         Message tag to expect.
  * @param [in]  tag_mask    Bit mask that indicates the bits that are used for
@@ -3057,13 +3482,18 @@ ucs_status_t ucp_tag_recv_nbr(ucp_worker_h worker, void *buffer, size_t count,
  *                          against the expected tag.
  * @param [in]  param       Operation parameters, see @ref ucp_request_param_t
  *
+ * @return NULL                 - The receive operation was completed
+ *                                immediately. In this case, if
+ *                                @a param->recv_info.tag_info is specified in the
+ *                                @a param, the value to which it points is updated
+ *                                with the information about the received message.
  * @return UCS_PTR_IS_ERR(_ptr) - The receive operation failed.
- * @return otherwise          - Operation was scheduled for receive. The request
- *                              handle is returned to the application in order
- *                              to track progress of the operation. The
- *                              application is responsible for releasing the
- *                              handle using @ref ucp_request_free
- *                              "ucp_request_free()" routine.
+ * @return otherwise            - Operation was scheduled for receive. The request
+ *                                handle is returned to the application in order
+ *                                to track progress of the operation. The
+ *                                application is responsible for releasing the
+ *                                handle using @ref ucp_request_free
+ *                                "ucp_request_free()" routine.
  */
 ucs_status_ptr_t ucp_tag_recv_nbx(ucp_worker_h worker, void *buffer, size_t count,
                                   ucp_tag_t tag, ucp_tag_t tag_mask,
@@ -3120,115 +3550,34 @@ ucp_tag_message_h ucp_tag_probe_nb(ucp_worker_h worker, ucp_tag_t tag,
  * @brief Non-blocking receive operation for a probed message.
  *
  * This routine receives a message that is described by the local address @a
- * buffer, size @a count, @a message handle, and @a datatype object on the @a
- * worker. The @a message handle can be obtained by calling the @ref
- * ucp_tag_probe_nb "ucp_tag_probe_nb()" routine.  @ref ucp_tag_msg_recv_nb
- * "ucp_tag_msg_recv_nb()" routine is non-blocking and therefore returns
+ * buffer, size @a count, and @a message handle on the @a worker.
+ * The @a message handle can be obtained by calling the @ref
+ * ucp_tag_probe_nb "ucp_tag_probe_nb()" routine. The @ref ucp_tag_msg_recv_nbx
+ * "ucp_tag_msg_recv_nbx()" routine is non-blocking and therefore returns
  * immediately. The receive operation is considered completed when the message
  * is delivered to the @a buffer. In order to notify the application about
  * completion of the receive operation the UCP library will invoke the
  * call-back @a cb when the received message is in the receive buffer and ready
- * for application access. If the receive operation cannot be started the
+ * for application access. If the receive operation cannot be started, then the
  * routine returns an error.
  *
  * @param [in]  worker      UCP worker that is used for the receive operation.
- * @param [in]  buffer      Pointer to the buffer to receive the data to.
+ * @param [in]  buffer      Pointer to the buffer that will receive the data.
  * @param [in]  count       Number of elements to receive
- * @param [in]  datatype    Datatype descriptor for the elements in the buffer.
  * @param [in]  message     Message handle.
- * @param [in]  cb          Callback function that is invoked whenever the
- *                          receive operation is completed and the data is ready
- *                          in the receive @a buffer.
+ * @param [in]  param       Operation parameters, see @ref ucp_request_param_t
  *
  * @return UCS_PTR_IS_ERR(_ptr) - The receive operation failed.
- * @return otherwise          - Operation was scheduled for receive. The request
- *                              handle is returned to the application in order
- *                              to track progress of the operation. The
- *                              application is responsible for releasing the
- *                              handle using @ref ucp_request_free
- *                              "ucp_request_free()" routine.
+ * @return otherwise            - Operation was scheduled for receive. The request
+ *                                handle is returned to the application in order
+ *                                to track progress of the operation. The
+ *                                application is responsible for releasing the
+ *                                handle using @ref ucp_request_free
+ *                                "ucp_request_free()" routine.
  */
-ucs_status_ptr_t ucp_tag_msg_recv_nb(ucp_worker_h worker, void *buffer,
-                                     size_t count, ucp_datatype_t datatype,
-                                     ucp_tag_message_h message,
-                                     ucp_tag_recv_callback_t cb);
-
-
-/**
- * @ingroup UCP_COMM
- * @brief Non-blocking implicit remote memory put operation.
- *
- * This routine initiates a storage of contiguous block of data that is
- * described by the local address @a buffer in the remote contiguous memory
- * region described by @a remote_addr address and the @ref ucp_rkey_h "memory
- * handle" @a rkey. The routine returns immediately and @b does @b not
- * guarantee re-usability of the source address @e buffer. If the operation is
- * completed immediately the routine return UCS_OK, otherwise UCS_INPROGRESS
- * or an error is returned to user.
- *
- * @note A user can use @ref ucp_worker_flush_nb "ucp_worker_flush_nb()"
- * in order to guarantee re-usability of the source address @e buffer.
- *
- * @param [in]  ep           Remote endpoint handle.
- * @param [in]  buffer       Pointer to the local source address.
- * @param [in]  length       Length of the data (in bytes) stored under the
- *                           source address.
- * @param [in]  remote_addr  Pointer to the destination remote memory address
- *                           to write to.
- * @param [in]  rkey         Remote memory key associated with the
- *                           remote memory address.
- *
- * @return Error code as defined by @ref ucs_status_t
- */
-ucs_status_t ucp_put_nbi(ucp_ep_h ep, const void *buffer, size_t length,
-                         uint64_t remote_addr, ucp_rkey_h rkey);
-
-/**
- * @ingroup UCP_COMM
- * @brief Non-blocking remote memory put operation.
- *
- * This routine initiates a storage of contiguous block of data that is
- * described by the local address @a buffer in the remote contiguous memory
- * region described by @a remote_addr address and the @ref ucp_rkey_h "memory
- * handle" @a rkey.  The routine returns immediately and @b does @b not
- * guarantee re-usability of the source address @e buffer. If the operation is
- * completed immediately the routine return UCS_OK, otherwise UCS_INPROGRESS
- * or an error is returned to user. If the put operation completes immediately,
- * the routine returns UCS_OK and the call-back routine @a cb is @b not
- * invoked. If the operation is @b not completed immediately and no error is
- * reported, then the UCP library will schedule invocation of the call-back
- * routine @a cb upon completion of the put operation. In other words, the
- * completion of a put operation can be signaled by the return code or
- * execution of the call-back.
- *
- * @note A user can use @ref ucp_worker_flush_nb "ucp_worker_flush_nb()"
- * in order to guarantee re-usability of the source address @e buffer.
- *
- * @param [in]  ep           Remote endpoint handle.
- * @param [in]  buffer       Pointer to the local source address.
- * @param [in]  length       Length of the data (in bytes) stored under the
- *                           source address.
- * @param [in]  remote_addr  Pointer to the destination remote memory address
- *                           to write to.
- * @param [in]  rkey         Remote memory key associated with the
- *                           remote memory address.
- * @param [in]  cb           Call-back function that is invoked whenever the
- *                           put operation is completed and the local buffer
- *                           can be modified. Does not guarantee remote
- *                           completion.
- *
- * @return NULL                 - The operation was completed immediately.
- * @return UCS_PTR_IS_ERR(_ptr) - The operation failed.
- * @return otherwise            - Operation was scheduled and can be
- *                              completed at any point in time. The request handle
- *                              is returned to the application in order to track
- *                              progress of the operation. The application is
- *                              responsible for releasing the handle using
- *                              @ref ucp_request_free "ucp_request_free()" routine.
- */
-ucs_status_ptr_t ucp_put_nb(ucp_ep_h ep, const void *buffer, size_t length,
-                            uint64_t remote_addr, ucp_rkey_h rkey,
-                            ucp_send_callback_t cb);
+ucs_status_ptr_t ucp_tag_msg_recv_nbx(ucp_worker_h worker, void *buffer,
+                                      size_t count, ucp_tag_message_h message,
+                                      const ucp_request_param_t *param);
 
 
 /**
@@ -3277,88 +3626,13 @@ ucs_status_ptr_t ucp_put_nb(ucp_ep_h ep, const void *buffer, size_t length,
  *                                progress of the operation. The application is
  *                                responsible for releasing the handle using
  *                                @ref ucp_request_free "ucp_request_free()" routine.
- * 
+ *
  * @note Only the datatype ucp_dt_make_contig(1) is supported
  * for @a param->datatype, see @ref ucp_dt_make_contig.
  */
 ucs_status_ptr_t ucp_put_nbx(ucp_ep_h ep, const void *buffer, size_t count,
                              uint64_t remote_addr, ucp_rkey_h rkey,
                              const ucp_request_param_t *param);
-
-
-/**
- * @ingroup UCP_COMM
- * @brief Non-blocking implicit remote memory get operation.
- *
- * This routine initiate a load of contiguous block of data that is described
- * by the remote memory address @a remote_addr and the @ref ucp_rkey_h "memory handle"
- * @a rkey in the local contiguous memory region described by @a buffer
- * address. The routine returns immediately and @b does @b not guarantee that
- * remote data is loaded and stored under the local address @e buffer.
- *
- * @note A user can use @ref ucp_worker_flush_nb "ucp_worker_flush_nb()" in order
- * guarantee that remote data is loaded and stored under the local address
- * @e buffer.
- *
- * @param [in]  ep           Remote endpoint handle.
- * @param [in]  buffer       Pointer to the local destination address.
- * @param [in]  length       Length of the data (in bytes) stored under the
- *                           destination address.
- * @param [in]  remote_addr  Pointer to the source remote memory address
- *                           to read from.
- * @param [in]  rkey         Remote memory key associated with the
- *                           remote memory address.
- *
- * @return Error code as defined by @ref ucs_status_t
- */
-ucs_status_t ucp_get_nbi(ucp_ep_h ep, void *buffer, size_t length,
-                         uint64_t remote_addr, ucp_rkey_h rkey);
-
-/**
- * @ingroup UCP_COMM
- * @brief Non-blocking remote memory get operation.
- *
- * This routine initiates a load of a contiguous block of data that is
- * described by the remote memory address @a remote_addr and the @ref ucp_rkey_h
- * "memory handle" @a rkey in the local contiguous memory region described
- * by @a buffer address. The routine returns immediately and @b does @b not
- * guarantee that remote data is loaded and stored under the local address @e
- * buffer. If the operation is completed immediately the routine return UCS_OK,
- * otherwise UCS_INPROGRESS or an error is returned to user. If the get
- * operation completes immediately, the routine returns UCS_OK and the
- * call-back routine @a cb is @b not invoked. If the operation is @b not
- * completed immediately and no error is reported, then the UCP library will
- * schedule invocation of the call-back routine @a cb upon completion of the
- * get operation. In other words, the completion of a get operation can be
- * signaled by the return code or execution of the call-back.
- *
- * @note A user can use @ref ucp_worker_flush_nb "ucp_worker_flush_nb()"
- * in order to guarantee re-usability of the source address @e buffer.
- *
- * @param [in]  ep           Remote endpoint handle.
- * @param [in]  buffer       Pointer to the local destination address.
- * @param [in]  length       Length of the data (in bytes) stored under the
- *                           destination address.
- * @param [in]  remote_addr  Pointer to the source remote memory address
- *                           to read from.
- * @param [in]  rkey         Remote memory key associated with the
- *                           remote memory address.
- * @param [in]  cb           Call-back function that is invoked whenever the
- *                           get operation is completed and the data is
- *                           visible to the local process.
- *
- * @return NULL                 - The operation was completed immediately.
- * @return UCS_PTR_IS_ERR(_ptr) - The operation failed.
- * @return otherwise            - Operation was scheduled and can be
- *                              completed at any point in time. The request handle
- *                              is returned to the application in order to track
- *                              progress of the operation. The application is
- *                              responsible for releasing the handle using
- *                              @ref ucp_request_free "ucp_request_free()" routine.
- */
-ucs_status_ptr_t ucp_get_nb(ucp_ep_h ep, void *buffer, size_t length,
-                            uint64_t remote_addr, ucp_rkey_h rkey,
-                            ucp_send_callback_t cb);
 
 
 /**
@@ -3403,91 +3677,13 @@ ucs_status_ptr_t ucp_get_nb(ucp_ep_h ep, void *buffer, size_t length,
  *                                progress of the operation. The application is
  *                                responsible for releasing the handle using
  *                                @ref ucp_request_free "ucp_request_free()" routine.
- * 
+ *
  * @note Only the datatype ucp_dt_make_contig(1) is supported
  * for @a param->datatype, see @ref ucp_dt_make_contig.
  */
 ucs_status_ptr_t ucp_get_nbx(ucp_ep_h ep, void *buffer, size_t count,
                              uint64_t remote_addr, ucp_rkey_h rkey,
                              const ucp_request_param_t *param);
-
-
-/**
- * @ingroup UCP_COMM
- * @brief Post an atomic memory operation.
- *
- * This routine posts an atomic memory operation to a remote value.
- * The remote value is described by the combination of the remote
- * memory address @a remote_addr and the @ref ucp_rkey_h "remote memory handle"
- * @a rkey.
- * Return from the function does not guarantee completion. A user must
- * call @ref ucp_ep_flush_nb or @ref ucp_worker_flush_nb to guarantee that the
- * remote value has been updated.
- *
- * @param [in] ep          UCP endpoint.
- * @param [in] opcode      One of @ref ucp_atomic_post_op_t.
- * @param [in] value       Source operand for the atomic operation.
- * @param [in] op_size     Size of value in bytes
- * @param [in] remote_addr Remote address to operate on.
- * @param [in] rkey        Remote key handle for the remote memory address.
- *
- * @return Error code as defined by @ref ucs_status_t
- */
-ucs_status_t ucp_atomic_post(ucp_ep_h ep, ucp_atomic_post_op_t opcode, uint64_t value,
-                             size_t op_size, uint64_t remote_addr, ucp_rkey_h rkey);
-
-
-/**
- * @ingroup UCP_COMM
- * @brief Post an atomic fetch operation.
- *
- * This routine will post an atomic fetch operation to remote memory.
- * The remote value is described by the combination of the remote
- * memory address @a remote_addr and the @ref ucp_rkey_h "remote memory handle"
- * @a rkey.
- * The routine is non-blocking and therefore returns immediately. However the
- * actual atomic operation may be delayed. The atomic operation is not considered complete
- * until the values in remote and local memory are completed. If the atomic operation
- * completes immediately, the routine returns UCS_OK and the call-back routine
- * @a cb is @b not invoked. If the operation is @b not completed immediately and no
- * error is reported, then the UCP library will schedule invocation of the call-back
- * routine @a cb upon completion of the atomic operation. In other words, the completion
- * of an atomic operation can be signaled by the return code or execution of the call-back.
- *
- * @note The user should not modify any part of the @a result after this
- *       operation is called, until the operation completes.
- *
- * @param [in] ep          UCP endpoint.
- * @param [in] opcode      One of @ref ucp_atomic_fetch_op_t.
- * @param [in] value       Source operand for atomic operation. In the case of CSWAP
- *                         this is the conditional for the swap. For SWAP this is
- *                         the value to be placed in remote memory.
- * @param [inout] result   Local memory address to store resulting fetch to.
- *                         In the case of CSWAP the value in result will be
- *                         swapped into the @a remote_addr if the condition
- *                         is true.
- * @param [in] op_size     Size of value in bytes and pointer type for result
- * @param [in] remote_addr Remote address to operate on.
- * @param [in] rkey        Remote key handle for the remote memory address.
- * @param [in] cb          Call-back function that is invoked whenever the
- *                         send operation is completed. It is important to note
- *                         that the call-back function is only invoked in a case when
- *                         the operation cannot be completed in place.
- *
- * @return NULL                 - The operation was completed immediately.
- * @return UCS_PTR_IS_ERR(_ptr) - The operation failed.
- * @return otherwise            - Operation was scheduled and can be
- *                              completed at any point in time. The request handle
- *                              is returned to the application in order to track
- *                              progress of the operation. The application is
- *                              responsible for releasing the handle using
- *                              @ref ucp_request_free "ucp_request_free()" routine.
- */
-ucs_status_ptr_t
-ucp_atomic_fetch_nb(ucp_ep_h ep, ucp_atomic_fetch_op_t opcode,
-                    uint64_t value, void *result, size_t op_size,
-                    uint64_t remote_addr, ucp_rkey_h rkey,
-                    ucp_send_callback_t cb);
 
 
 /**
@@ -3507,7 +3703,9 @@ ucp_atomic_fetch_nb(ucp_ep_h ep, ucp_atomic_fetch_op_t opcode,
  *          @a param->reply_buffer for fetch operations), until the operation
  *          completes.
  * @note    Only ucp_dt_make_config(4) and ucp_dt_make_contig(8) are supported
- *          in @a param->datatype, see @ref ucp_dt_make_contig.
+ *          in @a param->datatype, see @ref ucp_dt_make_contig. Also, currently
+ *          atomic operations can handle one element only. Thus, @a count
+ *          argument must be set to 1.
  *
  * <table>
  * <caption id="atomic_ops">Atomic Operations Semantic</caption>
@@ -3612,6 +3810,7 @@ ucs_status_t ucp_tag_recv_request_test(void *request, ucp_tag_recv_info_t *info)
  * @return Error code as defined by @ref ucs_status_t
  */
 ucs_status_t ucp_stream_recv_request_test(void *request, size_t *length_p);
+
 
 /**
  * @ingroup UCP_COMM
@@ -3725,15 +3924,31 @@ void ucp_dt_destroy(ucp_datatype_t datatype);
 
 
 /**
+ * @ingroup UCP_DATATYPE
+ * @brief Query attributes of a datatype.
+ *
+ * This routine fetches information about the attributes of a datatype.
+ * When @ref UCP_DATATYPE_ATTR_FIELD_PACKED_SIZE is set in @a field_mask of @a attr,
+ * the field @a packed_size is set to the packed size (bytes) of the datatype.
+ *
+ * @param [in]    datatype   Datatype object to query.
+ * @param [inout] attr       Filled with attributes of the datatype.
+ *
+ * @return Error code as defined by @ref ucs_status_t
+ */
+ucs_status_t ucp_dt_query(ucp_datatype_t datatype, ucp_datatype_attr_t *attr);
+
+
+/**
  * @ingroup UCP_WORKER
  *
  * @brief Assures ordering between non-blocking operations
  *
  * This routine ensures ordering of non-blocking communication operations on
- * the @ref ucp_worker_h "UCP worker".  Communication operations issued on the
- * @a worker prior to this call are guaranteed to be completed before any
- * subsequent communication operations to the same @ref ucp_worker_h "worker"
- * which follow the call to @ref ucp_worker_fence "fence".
+ * the @ref ucp_worker_h "UCP worker". Communication operations issued on a
+ * particular endpoint created on the @a worker prior to this call are
+ * guaranteed to be completed before any communication operations issued on the
+ * same endpoint after this call.
  *
  * @note The primary difference between @ref ucp_worker_fence "ucp_worker_fence()"
  * and the @ref ucp_worker_flush_nb "ucp_worker_flush_nb()" is the fact the fence
@@ -3747,39 +3962,6 @@ void ucp_dt_destroy(ucp_datatype_t datatype);
  * @return Error code as defined by @ref ucs_status_t
  */
 ucs_status_t ucp_worker_fence(ucp_worker_h worker);
-
-
-/**
- * @ingroup UCP_WORKER
- *
- * @brief Flush outstanding AMO and RMA operations on the @ref ucp_worker_h
- * "worker"
- *
- * This routine flushes all outstanding AMO and RMA communications on the
- * @ref ucp_worker_h "worker". All the AMO and RMA operations issued on the
- * @a worker prior to this call are completed both at the origin and at the
- * target when this call returns.
- *
- * @note For description of the differences between @ref ucp_worker_flush_nb
- * "flush" and @ref ucp_worker_fence "fence" operations please see
- * @ref ucp_worker_fence "ucp_worker_fence()"
- *
- * @param [in] worker    UCP worker.
- * @param [in] flags     Flags for flush operation. Reserved for future use.
- * @param [in] cb        Callback which will be called when the flush operation
- *                       completes.
- *
- * @return NULL             - The flush operation was completed immediately.
- * @return UCS_PTR_IS_ERR(_ptr) - The flush operation failed.
- * @return otherwise        - Flush operation was scheduled and can be completed
- *                          in any point in time. The request handle is returned
- *                          to the application in order to track progress. The
- *                          application is responsible for releasing the handle
- *                          using @ref ucp_request_free "ucp_request_free()"
- *                          routine.
- */
-ucs_status_ptr_t ucp_worker_flush_nb(ucp_worker_h worker, unsigned flags,
-                                     ucp_send_callback_t cb);
 
 
 /**
@@ -3812,8 +3994,88 @@ ucs_status_ptr_t ucp_worker_flush_nbx(ucp_worker_h worker,
 
 
 /**
+ * @ingroup UCP_ENDPOINT
+ * @brief UCP endpoint attributes field mask.
+ *
+ * The enumeration allows specifying which fields in @ref ucp_ep_attr_t are
+ * present. It is used to enable backward compatibility support.
+ */
+enum ucp_ep_attr_field {
+    UCP_EP_ATTR_FIELD_NAME            = UCS_BIT(0), /**< UCP endpoint name */
+    UCP_EP_ATTR_FIELD_LOCAL_SOCKADDR  = UCS_BIT(1), /**< Sockaddr used by the endpoint */
+    UCP_EP_ATTR_FIELD_REMOTE_SOCKADDR = UCS_BIT(2), /**< Sockaddr the endpoint is connected to */
+    UCP_EP_ATTR_FIELD_TRANSPORTS      = UCS_BIT(3)  /**< Transport and device used by endpoint */
+};
+
+
+/**
+ * @ingroup UCP_ENDPOINT
+ * @brief UCP endpoint attributes.
+ *
+ * The structure defines the attributes that characterize the particular
+ * endpoint.
+ */
+typedef struct ucp_ep_attr {
+    /**
+     * Mask of valid fields in this structure, using bits from
+     * @ref ucp_ep_attr_field.
+     * Fields not specified in this mask will be ignored.
+     * Provides ABI compatibility with respect to adding new fields.
+     */
+    uint64_t field_mask;
+
+    /**
+     * Endpoint name. Tracing and analysis tools can identify the endpoint using
+     * this name.
+     */
+    char     name[UCP_ENTITY_NAME_MAX];
+
+    /**
+     * Local socket address for this endpoint. Valid only for endpoints created
+     * by connecting to a socket address.
+     * If this field is specified for an endpoint not connected to a socket address,
+     * UCS_ERR_NOT_CONNECTED will be returned.
+     */
+    struct sockaddr_storage local_sockaddr;
+
+    /**
+     * Remote socket address this endpoint is connected to. Valid only for endpoints
+     * created by connecting to a socket address.
+     * If this field is specified for an endpoint not connected to a socket address,
+     * UCS_ERR_NOT_CONNECTED will be returned.
+     */
+    struct sockaddr_storage remote_sockaddr;
+
+    /**
+     * Structure defining an array containing transport and device names used
+     * by this endpoint. The caller is responsible for allocation and
+     * deallocation of this array.
+     */
+    ucp_transports_t        transports;
+
+} ucp_ep_attr_t;
+
+
+/**
+ * @ingroup UCP_ENDPOINT
+ * @brief Get attributes of a given endpoint.
+ *
+ * This routine fetches information about the endpoint.
+ *
+ * @param [in]  ep   Endpoint object to query.
+ * @param [out] attr Filled with attributes of the endpoint.
+ *
+ * @return Error code as defined by @ref ucs_status_t
+ */
+ucs_status_t ucp_ep_query(ucp_ep_h ep, ucp_ep_attr_t *attr);
+
+
+/**
  * @example ucp_hello_world.c
  * UCP hello world client / server example utility.
+ *
+ * @example ucp_client_server.c
+ * UCP client / server example using different APIs (tag, stream, am) utility.
  */
 
 END_C_DECLS

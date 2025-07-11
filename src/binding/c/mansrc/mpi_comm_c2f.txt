@@ -1,0 +1,15 @@
+/*D
+   MPI_Comm_c2f - converts MPI_Comm to Fortran INTEGER
+
+Synopsis:
+.vb
+MPI_Fint MPI_Comm_c2f(MPI_Comm comm)
+.ve
+
+Input Parameters:
+. comm - communicator (handle)
+
+.N ThreadSafe
+
+D*/
+

@@ -27,7 +27,7 @@ int fi_close(struct fid *fabric);
 
 char * fi_tostr(const void *data, enum fi_type datatype);
 
-char * fi_tostr(char *buf, size_t len, const void *data,
+char * fi_tostr_r(char *buf, size_t len, const void *data,
     enum fi_type datatype);
 ```
 
@@ -170,6 +170,12 @@ datatype or field value.
 
 *FI_TYPE_CQ_FORMAT*
 : enum fi_cq_format
+
+*FI_TYPE_LOG_LEVEL*
+: enum fi_log_level
+
+*FI_TYPE_LOG_SUBSYS*
+: enum fi_log_subsys
 
 fi_tostr() will return a pointer to an internal libfabric buffer that
 should not be modified, and will be overwritten the next time

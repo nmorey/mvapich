@@ -1,0 +1,15 @@
+/*D
+   MPI_Group_c2f - converts MPI_Group to Fortran INTEGER
+
+Synopsis:
+.vb
+MPI_Fint MPI_Group_c2f(MPI_Group group)
+.ve
+
+Input Parameters:
+. group - group (handle)
+
+.N ThreadSafe
+
+D*/
+

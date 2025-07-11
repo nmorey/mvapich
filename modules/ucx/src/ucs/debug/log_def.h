@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2020. ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2020. ALL RIGHTS RESERVED.
 *
 * See file LICENSE for terms.
 */
@@ -8,7 +8,7 @@
 #define UCS_LOG_DEF_H_
 
 #ifndef UCS_MAX_LOG_LEVEL
-#  define UCS_MAX_LOG_LEVEL  UCS_LOG_LEVEL_TRACE_LAST
+#  define UCS_MAX_LOG_LEVEL  UCS_LOG_LEVEL_LAST
 #endif
 
 #include <ucs/sys/compiler_def.h>
@@ -52,6 +52,14 @@ BEGIN_C_DECLS
 #define ucs_trace_async(_fmt, ...)  ucs_log(UCS_LOG_LEVEL_TRACE_ASYNC, _fmt, ## __VA_ARGS__)
 #define ucs_trace_func(_fmt, ...)   ucs_log(UCS_LOG_LEVEL_TRACE_FUNC, "%s(" _fmt ")", __FUNCTION__, ## __VA_ARGS__)
 #define ucs_trace_poll(_fmt, ...)   ucs_log(UCS_LOG_LEVEL_TRACE_POLL, _fmt, ## __VA_ARGS__)
+
+#define ucs_log_indent_level(_level, _delta) \
+    do { \
+        if (ucs_log_component_is_enabled(_level, \
+                                         &ucs_global_opts.log_component)) { \
+            ucs_log_indent(_delta); \
+        } \
+    } while (0)
 
 
 /**
@@ -134,6 +142,14 @@ size_t ucs_log_get_buffer_size();
 
 
 /**
+ * Print a compact log line (without file/line prefixes) to the log stream.
+ *
+ * @param [in] str   Log line to print.
+ */
+void ucs_log_print_compact(const char *str);
+
+
+/**
  * Default log handler, which prints the message to the output configured in
  * UCS global options. See @ref ucs_log_func_t.
  */
@@ -147,7 +163,7 @@ ucs_log_default_handler(const char *file, unsigned line, const char *function,
 /**
  * Show a fatal error
  */
-void ucs_log_fatal_error(const char *format, ...);
+void ucs_log_fatal_error(const char *format, ...) UCS_F_PRINTF(1, 2);
 
 
 /**
@@ -170,11 +186,35 @@ unsigned ucs_log_num_handlers();
 
 
 /**
+ * Add indentation to all subsequent log messages.
+ *
+ * @param [in] delta   How much indentation to add, on top of the current
+ *                     indentation level.
+ *                     A negative number will reduce the indentation level.
+ */
+void ucs_log_indent(int delta);
+
+
+/**
+ * @return Current log indent level.
+ */
+int ucs_log_get_current_indent();
+
+
+/**
  * Log backtrace.
  *
  * @param level          Log level.
  */
 void ucs_log_print_backtrace(ucs_log_level_t level);
+
+
+/**
+ * Set the name fo current thread, to appear in log messages
+ *
+ * @param name           Thread name to set
+ */
+void ucs_log_set_thread_name(const char *format, ...) UCS_F_PRINTF(1, 2);
 
 END_C_DECLS
 

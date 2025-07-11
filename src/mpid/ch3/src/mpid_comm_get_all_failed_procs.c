@@ -1,25 +1,9 @@
 /*
- *
- * Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- *
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
 
 #include "mpidimpl.h"
-#ifdef USE_PMI2_API
-#include "pmi2.h"
-#else
-#include "pmi.h"
-#endif
 
 /* Generates a bitarray based on orig_comm where all procs in group are marked with 1 */
 static void group_to_bitarray(MPIR_Group *group, MPIR_Comm *orig_comm, int **bitarray, int *bitarray_size) {
@@ -95,13 +79,11 @@ static MPIR_Group *bitarray_to_group(MPIR_Comm *comm_ptr, int *bitarray)
 int MPID_Comm_get_all_failed_procs(MPIR_Comm *comm_ptr, MPIR_Group **failed_group, int tag)
 {
     int mpi_errno = MPI_SUCCESS, ret_errno;
-    MPIR_Errflag_t errflag = MPIR_ERR_NONE;
     int i, j, bitarray_size;
     int *bitarray, *remote_bitarray;
     MPIR_Group *local_fail;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_COMM_GET_ALL_FAILED_PROCS);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_COMM_GET_ALL_FAILED_PROCS);
+    MPIR_FUNC_ENTER;
 
     /* Kick the progress engine in case it's been a while so we get all the
      * latest updates about failures */
@@ -125,7 +107,7 @@ int MPID_Comm_get_all_failed_procs(MPIR_Comm *comm_ptr, MPIR_Group **failed_grou
         for (i = 1; i < comm_ptr->local_size; i++) {
             /* Get everyone's list of failed processes to aggregate */
             ret_errno = MPIC_Recv(remote_bitarray, bitarray_size, MPI_INT,
-                i, tag, comm_ptr, MPI_STATUS_IGNORE, &errflag);
+                i, tag, comm_ptr, MPI_STATUS_IGNORE);
             if (ret_errno) continue;
 
             /* Combine the received bitarray with my own */
@@ -139,7 +121,7 @@ int MPID_Comm_get_all_failed_procs(MPIR_Comm *comm_ptr, MPIR_Group **failed_grou
         for (i = 1; i < comm_ptr->local_size; i++) {
             /* Send the list to each rank to be processed locally */
             ret_errno = MPIC_Send(bitarray, bitarray_size, MPI_INT, i,
-                tag, comm_ptr, &errflag);
+                tag, comm_ptr, MPIR_ERR_NONE);
             if (ret_errno) continue;
         }
 
@@ -148,11 +130,11 @@ int MPID_Comm_get_all_failed_procs(MPIR_Comm *comm_ptr, MPIR_Group **failed_grou
     } else {
         /* Send my bitarray to rank 0 */
         mpi_errno = MPIC_Send(bitarray, bitarray_size, MPI_INT, 0,
-            tag, comm_ptr, &errflag);
+            tag, comm_ptr, MPIR_ERR_NONE);
 
         /* Get the resulting bitarray back from rank 0 */
         mpi_errno = MPIC_Recv(remote_bitarray, bitarray_size, MPI_INT, 0,
-            tag, comm_ptr, MPI_STATUS_IGNORE, &errflag);
+            tag, comm_ptr, MPI_STATUS_IGNORE);
 
         /* Convert the bitarray into a group */
         *failed_group = bitarray_to_group(comm_ptr, remote_bitarray);
@@ -162,7 +144,7 @@ int MPID_Comm_get_all_failed_procs(MPIR_Comm *comm_ptr, MPIR_Group **failed_grou
     MPL_free(remote_bitarray);
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_COMM_GET_ALL_FAILED_PROCS);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
   fn_fail:
     goto fn_exit;

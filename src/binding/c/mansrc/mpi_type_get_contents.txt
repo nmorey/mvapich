@@ -1,0 +1,44 @@
+/*D
+   MPI_Type_get_contents - get type contents
+
+Synopsis:
+.vb
+int MPI_Type_get_contents(MPI_Datatype datatype, int max_integers,
+                          int max_addresses, int max_large_counts,
+                          int max_datatypes, int array_of_integers[],
+                          MPI_Aint array_of_addresses[],
+                          MPI_Count array_of_large_counts[],
+                          MPI_Datatype array_of_datatypes[])
+.ve
+.vb
+int MPI_Type_get_contents_c(MPI_Datatype datatype, MPI_Count max_integers,
+                            MPI_Count max_addresses, MPI_Count max_large_counts,
+                            MPI_Count max_datatypes, int array_of_integers[],
+                            MPI_Aint array_of_addresses[],
+                            MPI_Count array_of_large_counts[],
+                            MPI_Datatype array_of_datatypes[])
+.ve
+
+Input Parameters:
++ datatype - datatype to access (handle)
+. max_integers - number of elements in array_of_integers (non-negative integer)
+. max_addresses - number of elements in array_of_addresses (non-negative integer)
+. max_large_counts - number of elements in array_of_large_counts (non-negative integer)
+- max_datatypes - number of elements in array_of_datatypes (non-negative integer)
+
+Output Parameters:
++ array_of_integers - contains integer arguments used in constructing datatype (integer)
+. array_of_addresses - contains address arguments used in constructing datatype (integer)
+. array_of_large_counts - contains large count arguments used in constructing datatype (integer)
+- array_of_datatypes - contains datatype arguments used in constructing datatype (handle)
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

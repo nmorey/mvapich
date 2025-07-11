@@ -11,14 +11,13 @@
  * Cost = lgp.alpha + n.lgp.beta
  */
 int MPIR_Bcast_intra_binomial(void *buffer,
-                              int count,
+                              MPI_Aint count,
                               MPI_Datatype datatype,
-                              int root, MPIR_Comm * comm_ptr, MPIR_Errflag_t * errflag)
+                              int root, MPIR_Comm * comm_ptr, MPIR_Errflag_t errflag)
 {
     int rank, comm_size, src, dst;
     int relative_rank, mask;
     int mpi_errno = MPI_SUCCESS;
-    int mpi_errno_ret = MPI_SUCCESS;
     MPI_Aint nbytes = 0;
     MPI_Status *status_p;
 #ifdef HAVE_ERROR_CHECKING
@@ -33,12 +32,7 @@ int MPIR_Bcast_intra_binomial(void *buffer,
     void *tmp_buf = NULL;
     MPIR_CHKLMEM_DECL(1);
 
-    comm_size = comm_ptr->local_size;
-    rank = comm_ptr->rank;
-
-    /* If there is only one process, return */
-    if (comm_size == 1)
-        goto fn_exit;
+    MPIR_THREADCOMM_RANK_SIZE(comm_ptr, rank, comm_size);
 
     if (HANDLE_IS_BUILTIN(datatype))
         is_contig = 1;
@@ -80,7 +74,7 @@ int MPIR_Bcast_intra_binomial(void *buffer,
      *
      * Do subdivision.  There are two phases:
      * 1. Wait for arrival of data.  Because of the power of two nature
-     * of the subtree roots, the source of this message is alwyas the
+     * of the subtree roots, the source of this message is always the
      * process whose relative rank has the least significant 1 bit CLEARED.
      * That is, process 4 (100) receives from process 0, process 7 (111)
      * from process 6 (110), etc.
@@ -97,29 +91,18 @@ int MPIR_Bcast_intra_binomial(void *buffer,
                 src += comm_size;
             if (!is_contig)
                 mpi_errno = MPIC_Recv(tmp_buf, nbytes, MPI_BYTE, src,
-                                      MPIR_BCAST_TAG, comm_ptr, status_p, errflag);
+                                      MPIR_BCAST_TAG, comm_ptr, status_p);
             else
                 mpi_errno = MPIC_Recv(buffer, count, datatype, src,
-                                      MPIR_BCAST_TAG, comm_ptr, status_p, errflag);
-            if (mpi_errno) {
-                /* for communication errors, just record the error but continue */
-                *errflag =
-                    MPIX_ERR_PROC_FAILED ==
-                    MPIR_ERR_GET_CLASS(mpi_errno) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER;
-                MPIR_ERR_SET(mpi_errno, *errflag, "**fail");
-                MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-            }
+                                      MPIR_BCAST_TAG, comm_ptr, status_p);
+            MPIR_ERR_CHECK(mpi_errno);
 #ifdef HAVE_ERROR_CHECKING
             /* check that we received as much as we expected */
             MPIR_Get_count_impl(status_p, MPI_BYTE, &recvd_size);
-            if (recvd_size != nbytes) {
-                if (*errflag == MPIR_ERR_NONE)
-                    *errflag = MPIR_ERR_OTHER;
-                MPIR_ERR_SET2(mpi_errno, MPI_ERR_OTHER,
-                              "**collective_size_mismatch",
-                              "**collective_size_mismatch %d %d", recvd_size, nbytes);
-                MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-            }
+            MPIR_ERR_CHKANDJUMP2(recvd_size != nbytes, mpi_errno, MPI_ERR_OTHER,
+                                 "**collective_size_mismatch",
+                                 "**collective_size_mismatch %d %d",
+                                 (int) recvd_size, (int) nbytes);
 #endif
             break;
         }
@@ -127,7 +110,7 @@ int MPIR_Bcast_intra_binomial(void *buffer,
     }
 
     /* This process is responsible for all processes that have bits
-     * set from the LSB upto (but not including) mask.  Because of
+     * set from the LSB up to (but not including) mask.  Because of
      * the "not including", we start by shifting mask back down one.
      *
      * We can easily change to a different algorithm at any power of two
@@ -149,14 +132,7 @@ int MPIR_Bcast_intra_binomial(void *buffer,
             else
                 mpi_errno = MPIC_Send(buffer, count, datatype, dst,
                                       MPIR_BCAST_TAG, comm_ptr, errflag);
-            if (mpi_errno) {
-                /* for communication errors, just record the error but continue */
-                *errflag =
-                    MPIX_ERR_PROC_FAILED ==
-                    MPIR_ERR_GET_CLASS(mpi_errno) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER;
-                MPIR_ERR_SET(mpi_errno, *errflag, "**fail");
-                MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-            }
+            MPIR_ERR_CHECK(mpi_errno);
         }
         mask >>= 1;
     }
@@ -171,12 +147,6 @@ int MPIR_Bcast_intra_binomial(void *buffer,
 
   fn_exit:
     MPIR_CHKLMEM_FREEALL();
-    /* --BEGIN ERROR HANDLING-- */
-    if (mpi_errno_ret)
-        mpi_errno = mpi_errno_ret;
-    else if (*errflag != MPIR_ERR_NONE)
-        MPIR_ERR_SET(mpi_errno, *errflag, "**coll_fail");
-    /* --END ERROR HANDLING-- */
     return mpi_errno;
   fn_fail:
     goto fn_exit;

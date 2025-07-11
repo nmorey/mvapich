@@ -123,7 +123,7 @@ fi # is not cross compiling
 dnl
 dnl ------------------------------------------------------------------------
 dnl Special characteristics that have no autoconf counterpart but that
-dnl we need as part of the Fortran 90 support.  To distinquish these, they
+dnl we need as part of the Fortran 90 support.  To distinguish these, they
 dnl have a [PAC] prefix.
 dnl 
 dnl At least one version of the Cray compiler needs the option -em to
@@ -274,7 +274,7 @@ AC_COMPILE_IFELSE([],[
 rm -rf conftest.dSYM
 rm -f conftest.$ac_ext
 
-dnl Create the conftest here so the test isn't created everytime inside loop.
+dnl Create the conftest here so the test isn't created every time inside loop.
 AC_LANG_CONFTEST([AC_LANG_PROGRAM([],[use conf])])
 
 # Save the original FCFLAGS
@@ -312,7 +312,7 @@ if test "X$pac_cv_fc_module_incflag" = "X" ; then
         #     fullpathname.pc
         # The "fullpathname.pc" is generated, I believe, when a module is 
         # compiled.  
-        # Intel compilers use a wierd system: -cl,filename.pcl .  If no file is
+        # Intel compilers use a weird system: -cl,filename.pcl .  If no file is
         # specified, work.pcl and work.pc are created.  However, if you specify
         # a file, it must contain the name of a file ending in .pc .  Ugh!
         pac_cv_fc_module_incflag="unknown"
@@ -553,7 +553,6 @@ dnl
 dnl
 dnl
 AC_DEFUN([PAC_PROG_FC_AND_C_STDIO_LIBS],[
-AC_REQUIRE([AC_HEADER_STDC])
 # To simply the code in the cache_check macro, chose the routine name
 # first, in case we need it
 confname=conf1_
@@ -573,9 +572,7 @@ pac_cv_prog_fc_and_c_stdio_libs=unknown
 AC_LANG_PUSH(C)
 AC_COMPILE_IFELSE([
     AC_LANG_SOURCE([
-#if defined(HAVE_STDIO_H) || defined(STDC_HEADERS)
 #include <stdio.h>
-#endif
 int $confname( int a )
 { printf( "The answer is %d\n", a ); fflush(stdout); return 0; }
     ])
@@ -777,8 +774,6 @@ for arg in --version -V -v ; do
     if test -f conftest.txt ; then
         if grep 'Portland Group' conftest.txt >/dev/null 2>&1 ; then
             pac_cv_fc_vendor=pgi
-        elif grep 'PathScale' conftest.txt >/dev/null 2>&1 ; then
-            pac_cv_fc_vendor=pathscale
         elif grep 'Sun Workshop' conftest.txt >/dev/null 2>&1 ; then
             pac_cv_fc_vendor=sun
 	elif grep 'Sun Fortran 9' conftest.txt >/dev/null 2>&1 ; then 
@@ -792,8 +787,6 @@ for arg in --version -V -v ; do
             pac_cv_fc_vendor=gnu
         elif grep Intel conftest.txt >/dev/null 2>&1 ; then
             pac_cv_fc_vendor=intel
-        elif grep Open64 conftest.txt >/dev/null 2>&1 ; then
-            pac_cv_fc_vendor=open64
         fi
     fi
     if test "$pac_cv_fc_vendor" != "unknown" ; then break ; fi
@@ -1077,7 +1070,6 @@ if test "$pac_ccompile_ok" = "yes" ; then
 fi
 ])
 
-
 AC_DEFUN([PAC_FC_2008_SUPPORT],[
 AC_MSG_CHECKING([for Fortran 2008 support])
 
@@ -1099,6 +1091,7 @@ int foo_c(CFI_cdesc_t * a_desc, CFI_cdesc_t * b_desc)
 
 void test_assumed_rank_async_impl_c(CFI_cdesc_t * a_desc)
 {
+	CFI_is_contiguous(a_desc);
 	return;
 }
 ]])],[mv conftest.$OBJEXT conftest1.$OBJEXT],[f08_works=no])
@@ -1147,7 +1140,7 @@ END INTERFACE TEST_ASSUMED_RANK_ASYNC
 
 CONTAINS
 
-! Test TS 29113 asychronous attribute and optional
+! Test TS 29113 asynchronous attribute and optional
 SUBROUTINE test1(buf, count, ierr)
     INTEGER, ASYNCHRONOUS :: buf(*)
     INTEGER               :: count
@@ -1198,4 +1191,98 @@ else
 fi
 rm -f conftest1.$OBJEXT F08TS_MODULE.* f08ts_module.*
 AC_MSG_RESULT([$f08_works])
+])
+
+dnl
+dnl PAC_FC_CHECK_REAL128 check whether real128 is supported (for use_mpi_f08)
+dnl set pac_fc_has_real128 to yes if it's supported, otherwise, no.
+dnl
+AC_DEFUN([PAC_FC_CHECK_REAL128],[
+    AC_LANG_PUSH(Fortran)
+    AC_MSG_CHECKING([for Fortran 90 real128])
+    AC_COMPILE_IFELSE([AC_LANG_SOURCE([
+        program main
+            use iso_fortran_env
+            real(real128) x
+            x = 1.0
+        end
+    ])],[pac_fc_has_real128=yes],[pac_fc_has_real128=no])
+    AC_MSG_RESULT([$pac_fc_has_real128])
+    AC_LANG_POP(Fortran)
+])
+
+dnl
+dnl PAC_FC_CHECK_IGNORE_TKR check directives to ignore type-kind-rank checks
+dnl set pac_fc_ignore_tkr to a type if supported, otherwise, no.
+dnl
+AC_DEFUN([PAC_FC_CHECK_IGNORE_TKR],[
+    AC_LANG_PUSH(Fortran)
+    AC_MSG_CHECKING([directives for Fortran compiler to ignore TKR check])
+    pac_fc_ignore_tkr=no
+    for a in gcc dec pragma dir ibm assumed; do
+        case $a in
+            gcc)
+                # gfortran since 4.9
+                decl='!GCC$ ATTRIBUTES NO_ARG_CHECK :: buf'
+                ;;
+            dec)
+                # ifort
+                decl='!DEC$ ATTRIBUTES NO_ARG_CHECK :: buf'
+                ;;
+            pragma)
+                # sunfort
+                decl='!$PRAGMA IGNORE_TKR buf'
+                ;;
+            dir)
+                # flang
+                decl='!DIR$ IGNORE_TKR buf'
+                ;;
+            ibm)
+                # ibm
+                decl='!IBM* IGNORE_TKR buf'
+                ;;
+            assumed)
+                decl='TYPE(*), DIMENSION(..) :: buf'
+                ;;
+        esac
+
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE([
+            program main
+                IMPLICIT NONE
+                INTERFACE
+                  SUBROUTINE FUNC_A(buf)
+                    REAL buf
+                    $decl
+                  END SUBROUTINE
+                END INTERFACE
+
+                INTEGER A(10)
+                CALL FUNC_A(A)
+            end
+        ])],[pac_fc_ignore_tkr=$a],[])
+        if test $pac_fc_ignore_tkr != no ; then
+            break
+        fi
+    done
+    AC_MSG_RESULT([$pac_fc_ignore_tkr])
+    AC_LANG_POP(Fortran)
+])
+
+dnl
+dnl PAC_FC_ISO_C_BINDING check whether ISO_C_BINDING is supported.
+dnl set pac_fc_iso_c_binding to yes if it's supported, otherwise, no.
+dnl
+AC_DEFUN([PAC_FC_ISO_C_BINDING],[
+    AC_LANG_PUSH(Fortran)
+    AC_MSG_CHECKING([Whether Fortran compiler supports ISO_C_BINDING])
+    AC_COMPILE_IFELSE([AC_LANG_SOURCE([
+        program main
+            USE, INTRINSIC :: ISO_C_BINDING, ONLY : C_PTR, C_LOC
+            type(c_ptr) :: ptr
+            integer, target :: a
+            ptr = c_loc(a)
+        end
+    ])],[pac_fc_iso_c_binding=yes],[pac_fc_iso_c_binding=no])
+    AC_MSG_RESULT([$pac_fc_iso_c_binding])
+    AC_LANG_POP(Fortran)
 ])

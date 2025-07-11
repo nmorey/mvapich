@@ -1,0 +1,32 @@
+/*D
+   MPI_Comm_create_group - Creates a new communicator
+
+Synopsis:
+.vb
+int MPI_Comm_create_group(MPI_Comm comm, MPI_Group group, int tag,
+                          MPI_Comm *newcomm)
+.ve
+
+Input Parameters:
++ comm - intra-communicator (handle)
+. group - group, which is a subset of the group of comm (handle)
+- tag - tag (integer)
+
+Output Parameters:
+. newcomm - new communicator (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_GROUP
+.N MPI_ERR_TAG
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Comm_free
+D*/
+

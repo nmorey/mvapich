@@ -19,25 +19,23 @@
  * *** Modification: We post only a small number of isends and irecvs at a time
  * and wait on them as suggested by Tony Ladd. ***
  */
-int MPIR_Alltoallw_intra_scattered(const void *sendbuf, const int sendcounts[], const int sdispls[],
-                                   const MPI_Datatype sendtypes[], void *recvbuf,
-                                   const int recvcounts[], const int rdispls[],
-                                   const MPI_Datatype recvtypes[], MPIR_Comm * comm_ptr,
-                                   MPIR_Errflag_t * errflag)
+int MPIR_Alltoallw_intra_scattered(const void *sendbuf, const MPI_Aint sendcounts[],
+                                   const MPI_Aint sdispls[], const MPI_Datatype sendtypes[],
+                                   void *recvbuf, const MPI_Aint recvcounts[],
+                                   const MPI_Aint rdispls[], const MPI_Datatype recvtypes[],
+                                   MPIR_Comm * comm_ptr, MPIR_Errflag_t errflag)
 {
     int comm_size, i;
     int mpi_errno = MPI_SUCCESS;
-    int mpi_errno_ret = MPI_SUCCESS;
     MPI_Status *starray;
     MPIR_Request **reqarray;
     int dst, rank;
     int outstanding_requests;
     int ii, ss, bblock;
-    int type_size;
+    MPI_Aint type_size;
     MPIR_CHKLMEM_DECL(2);
 
-    comm_size = comm_ptr->local_size;
-    rank = comm_ptr->rank;
+    MPIR_THREADCOMM_RANK_SIZE(comm_ptr, rank, comm_size);
 
 #ifdef HAVE_ERROR_CHECKING
     /* When MPI_IN_PLACE, we use pair-wise sendrecv_replace in order to conserve memory usage,
@@ -95,23 +93,15 @@ int MPIR_Alltoallw_intra_scattered(const void *sendbuf, const int sendcounts[], 
             }
         }
 
-        mpi_errno = MPIC_Waitall(outstanding_requests, reqarray, starray, errflag);
-        if (mpi_errno && mpi_errno != MPI_ERR_IN_STATUS)
-            MPIR_ERR_POP(mpi_errno);
+        mpi_errno = MPIC_Waitall(outstanding_requests, reqarray, starray);
+        MPIR_ERR_CHECK(mpi_errno);
 
         /* --BEGIN ERROR HANDLING-- */
         if (mpi_errno == MPI_ERR_IN_STATUS) {
             for (i = 0; i < outstanding_requests; i++) {
                 if (starray[i].MPI_ERROR != MPI_SUCCESS) {
                     mpi_errno = starray[i].MPI_ERROR;
-                    if (mpi_errno) {
-                        /* for communication errors, just record the error but continue */
-                        *errflag =
-                            MPIX_ERR_PROC_FAILED ==
-                            MPIR_ERR_GET_CLASS(mpi_errno) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER;
-                        MPIR_ERR_SET(mpi_errno, *errflag, "**fail");
-                        MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-                    }
+                    MPIR_ERR_CHECK(mpi_errno);
                 }
             }
         }
@@ -120,12 +110,7 @@ int MPIR_Alltoallw_intra_scattered(const void *sendbuf, const int sendcounts[], 
 
   fn_exit:
     MPIR_CHKLMEM_FREEALL();
-    if (mpi_errno_ret)
-        mpi_errno = mpi_errno_ret;
-    else if (*errflag != MPIR_ERR_NONE)
-        MPIR_ERR_SET(mpi_errno, *errflag, "**coll_fail");
     return mpi_errno;
-
   fn_fail:
     goto fn_exit;
 }

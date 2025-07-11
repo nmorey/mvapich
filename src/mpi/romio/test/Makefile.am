@@ -8,35 +8,45 @@
 # friends.
 
 # override the normal compilers for the tests
-CC = $(TEST_CC)
-F77 = $(TEST_F77)
+CC = @TEST_CC@
+F77 = @TEST_F77@
 
-# because := is not universally avalible, we have to play games to use the
+# because := is not universally available, we have to play games to use the
 # user-specified LDFLAGS and OUR_LIBS env. variables (if set)
-OUR_LIBS = $(TEST_LIBNAME) $(MPI_LIB)
+OUR_LIBS = @TEST_LIBNAME@ @MPI_LIB@
 
 LDADD = $(OUR_LIBS)
 
 AM_CPPFLAGS = $(ROMIO_INCLUDE)
+AM_CPPFLAGS += -I$(top_builddir)/include -I$(top_srcdir)/include
+AM_CPPFLAGS += -I$(top_builddir)/adio/include -I$(top_srcdir)/adio/include @mpl_includedir@
 AM_CFLAGS = $(USER_CFLAGS)
 AM_FFLAGS = $(USER_FFLAGS)
 
 CTESTS = simple perf async coll_test coll_perf misc file_info excl large_array \
      atomicity noncontig i_noncontig noncontig_coll split_coll shared_fp \
      large_file psimple error status noncontig_coll2 aggregation1 aggregation2 \
-     async-multiple ordered_fp hindexed external32 types_with_zeros darray_read syshints
+     async-multiple ordered_fp hindexed external32 types_with_zeros darray_read syshints \
+     fstype_prefix
 FTESTS = fcoll_test fperf fmisc pfcoll_test 
 
-
-noinst_PROGRAMS = $(CTESTS)
+check_PROGRAMS = $(CTESTS)
 
 if BUILD_F77_TESTS
 
-noinst_PROGRAMS += $(FTESTS)
-fperf_SOURCES = fperf.f
-fcoll_test_SOURCES = fcoll_test.f
-fmisc_SOURCES = fmisc.f
-pfcoll_test_SOURCES = pfcoll_test.f
+check_PROGRAMS += $(FTESTS)
+nodist_fperf_SOURCES = fperf.f
+nodist_fcoll_test_SOURCES = fcoll_test.f
+nodist_fmisc_SOURCES = fmisc.f
+nodist_pfcoll_test_SOURCES = pfcoll_test.f
 
 endif BUILD_F77_TESTS
 
+TESTS_ENVIRONMENT = export srcdir="$(srcdir)";
+
+TESTS = $(check_PROGRAMS)
+TEST_EXTENSIONS = .sh
+LOG_COMPILER = $(builddir)/parallel_run.sh
+SH_LOG_COMPILER =
+
+EXTRA_DIST = romio_hintfile

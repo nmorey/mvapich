@@ -1,5 +1,5 @@
 /*
- * Copyright (C) Mellanox Technologies Ltd. 2019. ALL RIGHTS RESERVED.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2019. ALL RIGHTS RESERVED.
  * See file LICENSE for terms.
  */
 
@@ -45,6 +45,14 @@ public class UcpContext extends UcxNativeStruct implements Closeable {
     }
 
     /**
+     * @return - mask which memory types are supported, for supported memory types
+     * please see {@link org.openucx.jucx.ucs.UcsConstants.MEMORY_TYPE#isMemTypeSupported}
+     */
+    public long getMemoryTypesMask() {
+        return queryMemTypesNative(getNativeId());
+    }
+
+    /**
      * Creates new UcpWorker on current context.
      */
     public UcpWorker newWorker(UcpWorkerParams params) {
@@ -70,6 +78,14 @@ public class UcpContext extends UcxNativeStruct implements Closeable {
         return result;
     }
 
+    public UcpMemory importMemory(ByteBuffer buf) {
+        UcpMemMapParams params = new UcpMemMapParams().setExportedMemh(UcxUtils.getAddress(buf));
+        UcpMemory result = memoryMapNative(getNativeId(), params);
+
+        result.setByteBufferReference(buf);
+        return result;
+    }
+
     /**
      * Associates memory allocated/mapped region with communication operations.
      * The network stack associated with an application context
@@ -82,6 +98,8 @@ public class UcpContext extends UcxNativeStruct implements Closeable {
     }
 
     private static native long createContextNative(UcpParams params);
+
+    private static native long queryMemTypesNative(long contextId);
 
     private static native void cleanupContextNative(long contextId);
 

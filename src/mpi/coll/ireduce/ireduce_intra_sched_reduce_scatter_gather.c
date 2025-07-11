@@ -32,18 +32,16 @@
    Cost = (2.floor(lgp)+1).alpha + (2.((p-1)/p) + 1).n.beta +
            n.(1+(p-1)/p).gamma
 */
-int MPIR_Ireduce_intra_sched_reduce_scatter_gather(const void *sendbuf, void *recvbuf, int count,
-                                                   MPI_Datatype datatype, MPI_Op op, int root,
-                                                   MPIR_Comm * comm_ptr, MPIR_Sched_t s)
+int MPIR_Ireduce_intra_sched_reduce_scatter_gather(const void *sendbuf, void *recvbuf,
+                                                   MPI_Aint count, MPI_Datatype datatype, MPI_Op op,
+                                                   int root, MPIR_Comm * comm_ptr, MPIR_Sched_t s)
 {
     int mpi_errno = MPI_SUCCESS;
     int i, j, comm_size, rank, pof2, is_commutative ATTRIBUTE((unused));
     int rem, dst, newrank, newdst, mask, send_idx, recv_idx, last_idx;
-    int send_cnt, recv_cnt, newroot, newdst_tree_root, newroot_tree_root;
+    int newroot, newdst_tree_root, newroot_tree_root;
     void *tmp_buf = NULL;
-    int *cnts, *disps;
     MPI_Aint true_lb, true_extent, extent;
-    MPIR_SCHED_CHKPMEM_DECL(2);
     MPIR_CHKLMEM_DECL(2);
 
     comm_size = comm_ptr->local_size;
@@ -60,8 +58,8 @@ int MPIR_Ireduce_intra_sched_reduce_scatter_gather(const void *sendbuf, void *re
     MPIR_Type_get_true_extent_impl(datatype, &true_lb, &true_extent);
     MPIR_Datatype_get_extent_macro(datatype, extent);
 
-    MPIR_SCHED_CHKPMEM_MALLOC(tmp_buf, void *, count * (MPL_MAX(extent, true_extent)),
-                              mpi_errno, "temporary buffer", MPL_MEM_BUFFER);
+    tmp_buf = MPIR_Sched_alloc_state(s, count * (MPL_MAX(extent, true_extent)));
+    MPIR_ERR_CHKANDJUMP(!tmp_buf, mpi_errno, MPI_ERR_OTHER, "**nomem");
     /* adjust for potential negative lower bound in datatype */
     tmp_buf = (void *) ((char *) tmp_buf - true_lb);
 
@@ -78,8 +76,8 @@ int MPIR_Ireduce_intra_sched_reduce_scatter_gather(const void *sendbuf, void *re
     /* If I'm not the root, then my recvbuf may not be valid, therefore
      * I have to allocate a temporary one */
     if (rank != root) {
-        MPIR_SCHED_CHKPMEM_MALLOC(recvbuf, void *, count * (MPL_MAX(extent, true_extent)),
-                                  mpi_errno, "receive buffer", MPL_MEM_BUFFER);
+        recvbuf = MPIR_Sched_alloc_state(s, count * (MPL_MAX(extent, true_extent)));
+        MPIR_ERR_CHKANDJUMP(!recvbuf, mpi_errno, MPI_ERR_OTHER, "**nomem");
         recvbuf = (void *) ((char *) recvbuf - true_lb);
     }
 
@@ -140,8 +138,10 @@ int MPIR_Ireduce_intra_sched_reduce_scatter_gather(const void *sendbuf, void *re
     /* We allocate these arrays on all processes, even if newrank=-1,
      * because if root is one of the excluded processes, we will
      * need them on the root later on below. */
-    MPIR_CHKLMEM_MALLOC(cnts, int *, pof2 * sizeof(int), mpi_errno, "counts", MPL_MEM_BUFFER);
-    MPIR_CHKLMEM_MALLOC(disps, int *, pof2 * sizeof(int), mpi_errno, "displacements",
+    MPI_Aint *cnts, *disps;
+    MPIR_CHKLMEM_MALLOC(cnts, MPI_Aint *, pof2 * sizeof(MPI_Aint), mpi_errno, "counts",
+                        MPL_MEM_BUFFER);
+    MPIR_CHKLMEM_MALLOC(disps, MPI_Aint *, pof2 * sizeof(MPI_Aint), mpi_errno, "displacements",
                         MPL_MEM_BUFFER);
 
     last_idx = send_idx = 0;    /* suppress spurious compiler warnings */
@@ -164,6 +164,7 @@ int MPIR_Ireduce_intra_sched_reduce_scatter_gather(const void *sendbuf, void *re
             /* find real rank of dest */
             dst = (newdst < rem) ? newdst * 2 : newdst + rem;
 
+            MPI_Aint send_cnt, recv_cnt;
             send_cnt = recv_cnt = 0;
             if (newrank < newdst) {
                 send_idx = recv_idx + pof2 / (mask * 2);
@@ -279,6 +280,7 @@ int MPIR_Ireduce_intra_sched_reduce_scatter_gather(const void *sendbuf, void *re
             newroot_tree_root = newroot >> j;
             newroot_tree_root <<= j;
 
+            MPI_Aint send_cnt, recv_cnt;
             send_cnt = recv_cnt = 0;
             if (newrank < newdst) {
                 /* update last_idx except on first iteration */
@@ -322,11 +324,9 @@ int MPIR_Ireduce_intra_sched_reduce_scatter_gather(const void *sendbuf, void *re
         }
     }
 
-    MPIR_SCHED_CHKPMEM_COMMIT(s);
   fn_exit:
     MPIR_CHKLMEM_FREEALL();
     return mpi_errno;
   fn_fail:
-    MPIR_SCHED_CHKPMEM_REAP(s);
     goto fn_exit;
 }

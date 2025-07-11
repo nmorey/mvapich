@@ -2,23 +2,8 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- *
- */
 
 #include "mpidimpl.h"
-/* #include "mpidi_ch3_post.h" */
-
-/* MVP unified pmi interface */
-#include "upmi.h"
 
 #if defined(HAVE_LIMITS_H)
 #include <limits.h>
@@ -30,12 +15,6 @@
 #include <errno.h>
 #endif
 #include <ctype.h>
-#include <timestamp.h>
-
-#if defined(CHANNEL_MRAIL)
-#include "mpir_nodemap.h"
-static int MVP_populate_ids_from_mapping(char* mapping, int *max_node_id, MPIDI_PG_t *pg, int *did_map);
-#endif
 
 /*
 === BEGIN_MPI_T_CVAR_INFO_BLOCK ===
@@ -80,11 +59,10 @@ int MPIDI_VCRT_Create(int size, struct MPIDI_VCRT **vcrt_ptr)
     MPIDI_VCRT_t * vcrt;
     int mpi_errno = MPI_SUCCESS;
     MPIR_CHKPMEM_DECL(1);
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_VCRT_CREATE);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_VCRT_CREATE);
+    MPIR_FUNC_ENTER;
 
-    MPIR_CHKPMEM_MALLOC(vcrt, MPIDI_VCRT_t *, sizeof(MPIDI_VCRT_t) + (size - 1) * sizeof(MPIDI_VC_t *), mpi_errno, "**nomem", MPL_MEM_ADDRESS);
+    MPIR_CHKPMEM_MALLOC(vcrt, MPIDI_VCRT_t *, sizeof(MPIDI_VCRT_t) + (size - 1) * sizeof(MPIDI_VC_t *),	mpi_errno, "**nomem", MPL_MEM_ADDRESS);
     vcrt->handle = HANDLE_SET_KIND(0, HANDLE_KIND_INVALID);
     MPIR_Object_set_ref(vcrt, 1);
     vcrt->size = size;
@@ -92,7 +70,7 @@ int MPIDI_VCRT_Create(int size, struct MPIDI_VCRT **vcrt_ptr)
 
  fn_exit:
     MPIR_CHKPMEM_COMMIT();
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_VCRT_CREATE);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
  fn_fail:
     /* --BEGIN ERROR HANDLING-- */
@@ -112,12 +90,11 @@ int MPIDI_VCRT_Create(int size, struct MPIDI_VCRT **vcrt_ptr)
   @*/
 int MPIDI_VCRT_Add_ref(struct MPIDI_VCRT *vcrt)
 {
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_VCRT_ADD_REF);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_VCRT_ADD_REF);
+    MPIR_FUNC_ENTER;
     MPIR_Object_add_ref(vcrt);
     MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_REFCOUNT,TYPICAL,(MPL_DBG_FDEST, "Incr VCRT %p ref count",vcrt));
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_VCRT_ADD_REF);
+    MPIR_FUNC_EXIT;
     return MPI_SUCCESS;
 }
 
@@ -133,9 +110,8 @@ int MPIDI_VCRT_Release(struct MPIDI_VCRT *vcrt, int isDisconnect )
 {
     int in_use;
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_VCRT_RELEASE);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_VCRT_RELEASE);
+    MPIR_FUNC_ENTER;
 
     MPIR_Object_release_ref(vcrt, &in_use);
     MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_REFCOUNT,TYPICAL,(MPL_DBG_FDEST, "Decr VCRT %p ref count",vcrt));
@@ -146,13 +122,13 @@ int MPIDI_VCRT_Release(struct MPIDI_VCRT *vcrt, int isDisconnect )
        ref count on the process group and so on. 
     */
     if (!in_use) {
-    int i, inuse;
+	int i, inuse;
 
-    for (i = 0; i < vcrt->size; i++)
-    {
-        MPIDI_VC_t * const vc = vcrt->vcr_table[i];
-        
-        MPIDI_VC_release_ref(vc, &in_use);
+	for (i = 0; i < vcrt->size; i++)
+	{
+	    MPIDI_VC_t * const vc = vcrt->vcr_table[i];
+	    
+	    MPIDI_VC_release_ref(vc, &in_use);
 
             /* Dynamic connections start with a refcount of 2 instead of 1.
              * That way we can distinguish between an MPI_Free and an
@@ -171,86 +147,58 @@ int MPIDI_VCRT_Release(struct MPIDI_VCRT *vcrt, int isDisconnect )
                 MPIR_Object_release_ref(vc, &in_use);
             }
 #endif
-        if (isDisconnect && MPIR_Object_get_ref(vc) == 1) {
-        MPIDI_VC_release_ref(vc, &in_use);
-        }
+	    if (isDisconnect && MPIR_Object_get_ref(vc) == 1) {
+		MPIDI_VC_release_ref(vc, &in_use);
+	    }
 
-        if (!in_use)
-        {
-        /* If the VC is myself then skip the close message */
-        if (vc->pg == MPIDI_Process.my_pg && 
-            vc->pg_rank == MPIDI_Process.my_pg_rank)
-        {
+	    if (!in_use)
+	    {
+		/* If the VC is myself then skip the close message */
+		if (vc->pg == MPIDI_Process.my_pg && 
+		    vc->pg_rank == MPIDI_Process.my_pg_rank)
+		{
                     MPIDI_PG_release_ref(vc->pg, &inuse);
                     if (inuse == 0)
                     {
                         MPIDI_PG_Destroy(vc->pg);
                     }
-            continue;
-        }
-        
-#ifdef _ENABLE_XRC_
-        if (USE_XRC) {
-            MPICM_lock();
-            VC_XST_SET (vc, XF_CONN_CLOSING);
-            PRINT_DEBUG(DEBUG_XRC_verbose>0, "CONNCLOSING2");
-            PRINT_DEBUG(DEBUG_XRC_verbose>0, "SC %d 0x%08x %d\n", vc->pg_rank, vc->ch.xrc_flags, 
-                    vc->state);
-            MPICM_unlock();
-        }
-#endif
-        
-        /* FIXME: the correct test is ACTIVE or REMOTE_CLOSE */
-        /*if (vc->state != MPIDI_VC_STATE_INACTIVE) { */
-#ifdef _ENABLE_XRC_
-        if ((!USE_XRC || VC_XST_ISSET (vc, (XF_SMP_VC | XF_DPM_INI)))?
-                (vc->state == MPIDI_VC_STATE_ACTIVE || 
-                vc->state == MPIDI_VC_STATE_LOCAL_ACTIVE ||
-                vc->state == MPIDI_VC_STATE_REMOTE_CLOSE) : 
-                (VC_XST_ISUNSET (vc, XF_TERMINATED) && 
-                 VC_XST_ISSET (vc, (XF_SEND_IDLE 
-                                    | XF_SEND_CONNECTING))))
-#else
-        if (vc->state == MPIDI_VC_STATE_ACTIVE ||
-            vc->state == MPIDI_VC_STATE_LOCAL_ACTIVE ||
-            vc->state == MPIDI_VC_STATE_REMOTE_CLOSE)
-#endif
-        {
-#ifdef _ENABLE_XRC_
-        PRINT_DEBUG(DEBUG_XRC_verbose>0, "SendClose2 %d 0x%08x %d\n", vc->pg_rank, vc->ch.xrc_flags, 
-                vc->ch.state);
-#endif
-            MPIDI_CH3U_VC_SendClose( vc, i );
-        }
-        else if(vc->pg != NULL)
-        {
+		    continue;
+		}
+		
+		/* FIXME: the correct test is ACTIVE or REMOTE_CLOSE */
+		/*if (vc->state != MPIDI_VC_STATE_INACTIVE) { */
+		if (vc->state == MPIDI_VC_STATE_ACTIVE ||
+		    vc->state == MPIDI_VC_STATE_REMOTE_CLOSE)
+		{
+		    MPIDI_CH3U_VC_SendClose( vc, i );
+		}
+		else
+		{
                     MPIDI_PG_release_ref(vc->pg, &inuse);
                     if (inuse == 0)
                     {
                         MPIDI_PG_Destroy(vc->pg);
                     }
 
-            MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_OTHER,VERBOSE,(MPL_DBG_FDEST,
+		    MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_OTHER,VERBOSE,(MPL_DBG_FDEST,
                             "vc=%p: not sending a close to %d, vc in state %s",
-                 vc, i, MPIDI_VC_GetStateString(vc->state)));
-        }
+			     vc, i, MPIDI_VC_GetStateString(vc->state)));
+		}
 
                 /* NOTE: we used to * MPIDI_CH3_VC_Destroy(&(pg->vct[i])))
                    here but that is incorrect.  According to the standard, it's
                    entirely possible (likely even) that this VC might still be
                    connected.  VCs are now destroyed when the PG that "owns"
                    them is destroyed (see MPIDI_PG_Destroy). [goodell@ 2008-06-13] */
-        }
+	    }
+	}
+
+	MPL_free(vcrt);
     }
 
-    MPL_free(vcrt);
-    }
-
- fn_exit:    
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_VCRT_RELEASE);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 }
-
 
 /*@
   MPIDI_VCR_Dup - Duplicate a virtual connection reference
@@ -268,9 +216,8 @@ int MPIDI_VCRT_Release(struct MPIDI_VCRT *vcrt, int isDisconnect )
   @*/
 int MPIDI_VCR_Dup(MPIDI_VCR orig_vcr, MPIDI_VCR * new_vcr)
 {
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_VCR_DUP);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_VCR_DUP);
+    MPIR_FUNC_ENTER;
 
     /* We are allowed to create a vc that belongs to no process group 
      as part of the initial connect/accept action, so in that case,
@@ -278,27 +225,26 @@ int MPIDI_VCR_Dup(MPIDI_VCR orig_vcr, MPIDI_VCR * new_vcr)
     /* XXX DJG FIXME-MT should we be checking this? */
     /* we probably need a test-and-incr operation or equivalent to avoid races */
     if (MPIR_Object_get_ref(orig_vcr) == 0 && orig_vcr->pg) {
-    MPIDI_VC_add_ref( orig_vcr );
-    MPIDI_VC_add_ref( orig_vcr );
-    MPIDI_PG_add_ref( orig_vcr->pg );
+	MPIDI_VC_add_ref( orig_vcr );
+	MPIDI_VC_add_ref( orig_vcr );
+	MPIDI_PG_add_ref( orig_vcr->pg );
     }
     else {
-    MPIDI_VC_add_ref(orig_vcr);
+	MPIDI_VC_add_ref(orig_vcr);
     }
     MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_REFCOUNT,TYPICAL,(MPL_DBG_FDEST,"Incr VCR %p ref count",orig_vcr));
     *new_vcr = orig_vcr;
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_VCR_DUP);
+    MPIR_FUNC_EXIT;
     return MPI_SUCCESS;
 }
 
 /*@
   MPID_Comm_get_lpid - Get the local process ID for a given VC reference
   @*/
-int MPID_Comm_get_lpid(MPIR_Comm *comm_ptr, int idx, int * lpid_ptr, bool is_remote)
+int MPID_Comm_get_lpid(MPIR_Comm *comm_ptr, int idx, uint64_t *lpid_ptr, bool is_remote)
 {
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_VCR_GET_LPID);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_VCR_GET_LPID);
+    MPIR_FUNC_ENTER;
 
     if (comm_ptr->comm_kind == MPIR_COMM_KIND__INTRACOMM)
         *lpid_ptr = comm_ptr->dev.vcrt->vcr_table[idx]->lpid;
@@ -307,7 +253,7 @@ int MPID_Comm_get_lpid(MPIR_Comm *comm_ptr, int idx, int * lpid_ptr, bool is_rem
     else
         *lpid_ptr = comm_ptr->dev.local_vcrt->vcr_table[idx]->lpid;
 
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_VCR_GET_LPID);
+    MPIR_FUNC_EXIT;
     return MPI_SUCCESS;
 }
 
@@ -325,33 +271,32 @@ int MPIDI_GPID_GetAllInComm( MPIR_Comm *comm_ptr, int local_size,
     int *gpid = (int*)&local_gpids[0];
     int lastPGID = -1, pgid;
     MPIDI_VCR vc;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_GPID_GETALLINCOMM);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_GPID_GETALLINCOMM);
+    MPIR_FUNC_ENTER;
 
     MPIR_Assert(comm_ptr->local_size == local_size);
     
     *singlePG = 1;
     for (i=0; i<comm_ptr->local_size; i++) {
-    vc = comm_ptr->dev.vcrt->vcr_table[i];
+	vc = comm_ptr->dev.vcrt->vcr_table[i];
 
-    /* Get the process group id as an int */
-    MPIDI_PG_IdToNum( vc->pg, &pgid );
+	/* Get the process group id as an int */
+	MPIDI_PG_IdToNum( vc->pg, &pgid );
 
-    *gpid++ = pgid;
-    if (lastPGID != pgid) { 
-        if (lastPGID != -1)
-        *singlePG = 0;
-        lastPGID = pgid;
-    }
-    *gpid++ = vc->pg_rank;
+	*gpid++ = pgid;
+	if (lastPGID != pgid) { 
+	    if (lastPGID != -1)
+		*singlePG = 0;
+	    lastPGID = pgid;
+	}
+	*gpid++ = vc->pg_rank;
 
         MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_OTHER,VERBOSE, (MPL_DBG_FDEST,
                          "pgid=%d vc->pg_rank=%d",
                          pgid, vc->pg_rank));
     }
     
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_GPID_GETALLINCOMM);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 }
 
@@ -376,7 +321,7 @@ int MPIDI_GPID_Get( MPIR_Comm *comm_ptr, int rank, MPIDI_Gpid *in_gpid )
  * the GPIDs.  Note that this code requires that all processes
  * have information on the process groups.
  */
-int MPIDI_GPID_ToLpidArray( int size, MPIDI_Gpid in_gpid[], int lpid[] )
+int MPIDI_GPID_ToLpidArray( int size, MPIDI_Gpid in_gpid[], uint64_t lpid[] )
 {
     int i, mpi_errno = MPI_SUCCESS;
     int pgid;
@@ -386,59 +331,61 @@ int MPIDI_GPID_ToLpidArray( int size, MPIDI_Gpid in_gpid[], int lpid[] )
 
     for (i=0; i<size; i++) {
         MPIDI_PG_Get_iterator(&iter);
-    do {
-        MPIDI_PG_Get_next( &iter, &pg );
-        if (!pg) {
-        /* --BEGIN ERROR HANDLING-- */
-        /* Internal error.  This gpid is unknown on this process */
-        /* A printf is NEVER valid in code that might be executed
-           by the user, even in an error case (use 
-           MPL_internal_error_printf if you need to print
-           an error message and its not appropriate to use the
-           regular error code system */
-        /* printf("No matching pg foung for id = %d\n", pgid ); */
-        lpid[i] = -1;
-        MPIR_ERR_SET2(mpi_errno,MPI_ERR_INTERN, "**unknowngpid",
-                  "**unknowngpid %d %d", gpid[0], gpid[1] );
-        return mpi_errno;
-        /* --END ERROR HANDLING-- */
-        }
-        MPIDI_PG_IdToNum( pg, &pgid );
+	do {
+	    MPIDI_PG_Get_next( &iter, &pg );
+	    if (!pg) {
+		/* --BEGIN ERROR HANDLING-- */
+		/* Internal error.  This gpid is unknown on this process */
+		/* A printf is NEVER valid in code that might be executed
+		   by the user, even in an error case (use 
+		   MPL_internal_error_printf if you need to print
+		   an error message and its not appropriate to use the
+		   regular error code system */
+		/* printf("No matching pg foung for id = %d\n", pgid ); */
+		lpid[i] = -1;
+		MPIR_ERR_SET2(mpi_errno,MPI_ERR_INTERN, "**unknowngpid",
+			      "**unknowngpid %d %d", gpid[0], gpid[1] );
+		return mpi_errno;
+		/* --END ERROR HANDLING-- */
+	    }
+	    MPIDI_PG_IdToNum( pg, &pgid );
 
-        if (pgid == gpid[0]) {
-        /* found the process group.  gpid[1] is the rank in 
-           this process group */
-        /* Sanity check on size */
-        if (pg->size > gpid[1]) {
-            lpid[i] = pg->vct[gpid[1]].lpid;
-        }
-        else {
-            /* --BEGIN ERROR HANDLING-- */
-            lpid[i] = -1;
-            MPIR_ERR_SET2(mpi_errno,MPI_ERR_INTERN, "**unknowngpid",
-                  "**unknowngpid %d %d", gpid[0], gpid[1] );
-            return mpi_errno;
-            /* --END ERROR HANDLING-- */
-        }
-        /* printf( "lpid[%d] = %d for gpid = (%d)%d\n", i, lpid[i], 
-           gpid[0], gpid[1] ); */
-        break;
-        }
-    } while (1);
-    gpid += 2;
+	    if (pgid == gpid[0]) {
+		/* found the process group.  gpid[1] is the rank in 
+		   this process group */
+		/* Sanity check on size */
+		if (pg->size > gpid[1]) {
+		    lpid[i] = pg->vct[gpid[1]].lpid;
+		}
+		else {
+		    /* --BEGIN ERROR HANDLING-- */
+		    lpid[i] = -1;
+		    MPIR_ERR_SET2(mpi_errno,MPI_ERR_INTERN, "**unknowngpid",
+				  "**unknowngpid %d %d", gpid[0], gpid[1] );
+		    return mpi_errno;
+		    /* --END ERROR HANDLING-- */
+		}
+		/* printf( "lpid[%d] = %d for gpid = (%d)%d\n", i, lpid[i], 
+		   gpid[0], gpid[1] ); */
+		break;
+	    }
+	} while (1);
+	gpid += 2;
     }
 
     return mpi_errno;
 }
 
 static inline int MPIDI_LPID_GetAllInComm(MPIR_Comm *comm_ptr, int local_size,
-                                          int local_lpids[])
+                                          uint64_t local_lpids[])
 {
     int i;
     int mpi_errno = MPI_SUCCESS;
     MPIR_Assert( comm_ptr->local_size == local_size );
     for (i=0; i<comm_ptr->local_size; i++) {
-    mpi_errno |= MPID_Comm_get_lpid( comm_ptr, i, &local_lpids[i], FALSE );
+        uint64_t tmp_lpid;
+	mpi_errno |= MPID_Comm_get_lpid( comm_ptr, i, &tmp_lpid, FALSE );
+        local_lpids[i] = tmp_lpid;
     }
     return mpi_errno;
 }
@@ -448,9 +395,10 @@ static inline int MPIDI_LPID_GetAllInComm(MPIR_Comm *comm_ptr, int local_size,
 /*@
   check_disjoint_lpids - Exchange address mapping for intercomm creation.
  @*/
-static int check_disjoint_lpids(int lpids1[], int n1, int lpids2[], int n2)
+static int check_disjoint_lpids(uint64_t lpids1[], int n1, uint64_t lpids2[], int n2)
 {
-    int i, mask_size, idx, bit, maxlpid = -1;
+    int i, mask_size, idx, bit;
+    uint64_t maxlpid = 0;
     int mpi_errno = MPI_SUCCESS;
     uint32_t lpidmaskPrealloc[N_STATIC_LPID32];
     uint32_t *lpidmask;
@@ -461,8 +409,10 @@ static int check_disjoint_lpids(int lpids1[], int n1, int lpids2[], int n2)
         if (lpids1[i] > maxlpid) maxlpid = lpids1[i];
     }
     for (i=0; i<n2; i++) {
+        MPIR_Assert(lpids2[i] <= INT_MAX);
         if (lpids2[i] > maxlpid) maxlpid = lpids2[i];
     }
+    MPIR_Assert(maxlpid <= INT_MAX);
 
     mask_size = (maxlpid / 32) + 1;
 
@@ -511,16 +461,16 @@ static int check_disjoint_lpids(int lpids1[], int n1, int lpids2[], int n2)
  @*/
 int MPID_Intercomm_exchange_map(MPIR_Comm *local_comm_ptr, int local_leader,
                                 MPIR_Comm *peer_comm_ptr, int remote_leader,
-                                int *remote_size, int **remote_lpids,
+                                int *remote_size, uint64_t **remote_lpids,
                                 int *is_low_group)
 {
     int mpi_errno = MPI_SUCCESS;
     int singlePG;
-    int local_size,*local_lpids=0;
+    int local_size;
+    uint64_t *local_lpids=0;
     MPIDI_Gpid *local_gpids=NULL, *remote_gpids=NULL;
     int comm_info[2];
     int cts_tag;
-    MPIR_Errflag_t errflag = MPIR_ERR_NONE;
     MPIR_CHKLMEM_DECL(3);
 
     cts_tag = 0 | MPIR_TAG_COLL_BIT;
@@ -542,7 +492,7 @@ int MPID_Intercomm_exchange_map(MPIR_Comm *local_comm_ptr, int local_leader,
                                       remote_leader, cts_tag,
                                       remote_size, 1, MPI_INT,
                                       remote_leader, cts_tag,
-                                      peer_comm_ptr, MPI_STATUS_IGNORE, &errflag );
+                                      peer_comm_ptr, MPI_STATUS_IGNORE, MPIR_ERR_NONE );
         MPIR_ERR_CHECK(mpi_errno);
 
         MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_OTHER,VERBOSE,(MPL_DBG_FDEST, "local size = %d, remote size = %d", local_size,
@@ -550,9 +500,9 @@ int MPID_Intercomm_exchange_map(MPIR_Comm *local_comm_ptr, int local_leader,
         /* With this information, we can now send and receive the
            global process ids from the peer. */
         MPIR_CHKLMEM_MALLOC(remote_gpids,MPIDI_Gpid*,(*remote_size)*sizeof(MPIDI_Gpid), mpi_errno,"remote_gpids", MPL_MEM_DYNAMIC);
-        *remote_lpids = (int*) MPL_malloc((*remote_size)*sizeof(int), MPL_MEM_ADDRESS);
+        *remote_lpids = (uint64_t*) MPL_malloc((*remote_size)*sizeof(uint64_t), MPL_MEM_ADDRESS);
         MPIR_CHKLMEM_MALLOC(local_gpids,MPIDI_Gpid*,local_size*sizeof(MPIDI_Gpid), mpi_errno,"local_gpids", MPL_MEM_DYNAMIC);
-        MPIR_CHKLMEM_MALLOC(local_lpids,int*,local_size*sizeof(int), mpi_errno,"local_lpids", MPL_MEM_DYNAMIC);
+        MPIR_CHKLMEM_MALLOC(local_lpids,uint64_t*,local_size*sizeof(uint64_t), mpi_errno,"local_lpids", MPL_MEM_DYNAMIC);
 
         mpi_errno = MPIDI_GPID_GetAllInComm( local_comm_ptr, local_size, local_gpids, &singlePG );
         MPIR_ERR_CHECK(mpi_errno);
@@ -562,7 +512,7 @@ int MPID_Intercomm_exchange_map(MPIR_Comm *local_comm_ptr, int local_leader,
                                       remote_leader, cts_tag,
                                       remote_gpids, (*remote_size)*sizeof(MPIDI_Gpid), MPI_BYTE,
                                       remote_leader, cts_tag, peer_comm_ptr,
-                                      MPI_STATUS_IGNORE, &errflag );
+                                      MPI_STATUS_IGNORE, MPIR_ERR_NONE );
         MPIR_ERR_CHECK(mpi_errno);
 
 
@@ -587,7 +537,7 @@ int MPID_Intercomm_exchange_map(MPIR_Comm *local_comm_ptr, int local_leader,
         }
 #       endif /* HAVE_ERROR_CHECKING */
 
-        /* Make an arbitrary decision about which group of processs is
+        /* Make an arbitrary decision about which group of process is
            the low group.  The LEADERS do this by comparing the
            local process ids of the 0th member of the two groups */
         (*is_low_group) = local_lpids[0] < (*remote_lpids)[0];
@@ -604,13 +554,11 @@ int MPID_Intercomm_exchange_map(MPIR_Comm *local_comm_ptr, int local_leader,
         comm_info[0] = *remote_size;
         comm_info[1] = *is_low_group;
         MPL_DBG_MSG(MPIDI_CH3_DBG_OTHER,VERBOSE,"About to bcast on local_comm");
-        mpi_errno = MPIR_Bcast( comm_info, 2, MPI_INT, local_leader, local_comm_ptr, &errflag );
+        mpi_errno = MPIR_Bcast( comm_info, 2, MPI_INT, local_leader, local_comm_ptr, MPIR_ERR_NONE );
         MPIR_ERR_CHECK(mpi_errno);
-        MPIR_ERR_CHKANDJUMP(errflag, mpi_errno, MPI_ERR_OTHER, "**coll_fail");
         mpi_errno = MPIR_Bcast( remote_gpids, (*remote_size)*sizeof(MPIDI_Gpid), MPI_BYTE, local_leader,
-                                     local_comm_ptr, &errflag );
+                                     local_comm_ptr, MPIR_ERR_NONE );
         MPIR_ERR_CHECK(mpi_errno);
-        MPIR_ERR_CHKANDJUMP(errflag, mpi_errno, MPI_ERR_OTHER, "**coll_fail");
         MPL_DBG_MSG_D(MPIDI_CH3_DBG_OTHER,VERBOSE,"end of bcast on local_comm of size %d",
                        local_comm_ptr->local_size );
     }
@@ -618,18 +566,16 @@ int MPID_Intercomm_exchange_map(MPIR_Comm *local_comm_ptr, int local_leader,
     {
         /* we're the other processes */
         MPL_DBG_MSG(MPIDI_CH3_DBG_OTHER,VERBOSE,"About to receive bcast on local_comm");
-        mpi_errno = MPIR_Bcast( comm_info, 2, MPI_INT, local_leader, local_comm_ptr, &errflag );
+        mpi_errno = MPIR_Bcast( comm_info, 2, MPI_INT, local_leader, local_comm_ptr, MPIR_ERR_NONE );
         MPIR_ERR_CHECK(mpi_errno);
-        MPIR_ERR_CHKANDJUMP(errflag, mpi_errno, MPI_ERR_OTHER, "**coll_fail");
         *remote_size = comm_info[0];
         MPIR_CHKLMEM_MALLOC(remote_gpids,MPIDI_Gpid*,(*remote_size)*sizeof(MPIDI_Gpid), mpi_errno,"remote_gpids", MPL_MEM_DYNAMIC);
-        *remote_lpids = (int*) MPL_malloc((*remote_size)*sizeof(int), MPL_MEM_ADDRESS);
+        *remote_lpids = (uint64_t*) MPL_malloc((*remote_size)*sizeof(uint64_t), MPL_MEM_ADDRESS);
         mpi_errno = MPIR_Bcast( remote_gpids, (*remote_size)*sizeof(MPIDI_Gpid), MPI_BYTE, local_leader,
-                                     local_comm_ptr, &errflag );
+                                     local_comm_ptr, MPIR_ERR_NONE );
         MPIR_ERR_CHECK(mpi_errno);
-        MPIR_ERR_CHKANDJUMP(errflag, mpi_errno, MPI_ERR_OTHER, "**coll_fail");
 
-        /* Extract the context and group sign informatin */
+        /* Extract the context and group sign information */
         *is_low_group     = comm_info[1];
     }
 
@@ -675,7 +621,7 @@ fn_fail:
   'MPI_Comm_connect/MPI_Comm_accept'.  Thus, it is only used for intercommunicators.
  @*/
 int MPID_Create_intercomm_from_lpids( MPIR_Comm *newcomm_ptr,
-                int size, const int lpids[] )
+			    int size, const uint64_t lpids[] )
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Comm *commworld_ptr;
@@ -686,51 +632,51 @@ int MPID_Create_intercomm_from_lpids( MPIR_Comm *newcomm_ptr,
     /* Setup the communicator's vc table: remote group */
     MPIDI_VCRT_Create( size, &newcomm_ptr->dev.vcrt );
     for (i=0; i<size; i++) {
-    MPIDI_VC_t *vc = 0;
+	MPIDI_VC_t *vc = 0;
 
-    /* For rank i in the new communicator, find the corresponding
-       virtual connection.  For lpids less than the size of comm_world,
-       we can just take the corresponding entry from comm_world.
-       Otherwise, we need to search through the process groups.
-    */
-    /* printf( "[%d] Remote rank %d has lpid %d\n", 
-       MPIR_Process.comm_world->rank, i, lpids[i] ); */
-    if (lpids[i] < commworld_ptr->remote_size) {
-        vc = commworld_ptr->dev.vcrt->vcr_table[lpids[i]];
-    }
-    else {
-        /* We must find the corresponding vcr for a given lpid */   
-        /* For now, this means iterating through the process groups */
-        MPIDI_PG_t *pg = 0;
-        int j;
+	/* For rank i in the new communicator, find the corresponding
+	   virtual connection.  For lpids less than the size of comm_world,
+	   we can just take the corresponding entry from comm_world.
+	   Otherwise, we need to search through the process groups.
+	*/
+	/* printf( "[%d] Remote rank %d has lpid %d\n", 
+	   MPIR_Process.comm_world->rank, i, lpids[i] ); */
+	if (lpids[i] < commworld_ptr->remote_size) {
+	    vc = commworld_ptr->dev.vcrt->vcr_table[lpids[i]];
+	}
+	else {
+	    /* We must find the corresponding vcr for a given lpid */	
+	    /* For now, this means iterating through the process groups */
+	    MPIDI_PG_t *pg = 0;
+	    int j;
 
-        MPIDI_PG_Get_iterator(&iter);
-        /* Skip comm_world */
-        MPIDI_PG_Get_next( &iter, &pg );
-        do {
-        MPIDI_PG_Get_next( &iter, &pg );
+	    MPIDI_PG_Get_iterator(&iter);
+	    /* Skip comm_world */
+	    MPIDI_PG_Get_next( &iter, &pg );
+	    do {
+		MPIDI_PG_Get_next( &iter, &pg );
                 MPIR_ERR_CHKINTERNAL(!pg, mpi_errno, "no pg");
-        /* FIXME: a quick check on the min/max values of the lpid
-           for this process group could help speed this search */
-        for (j=0; j<pg->size; j++) {
-            /*printf( "Checking lpid %d against %d in pg %s\n",
-                lpids[i], pg->vct[j].lpid, (char *)pg->id );
-                fflush(stdout); */
-            if (pg->vct[j].lpid == lpids[i]) {
-            vc = &pg->vct[j];
-            /*printf( "found vc %x for lpid = %d in another pg\n", 
-              (int)vc, lpids[i] );*/
-            break;
-            }
-        }
-        } while (!vc);
-    }
+		/* FIXME: a quick check on the min/max values of the lpid
+		   for this process group could help speed this search */
+		for (j=0; j<pg->size; j++) {
+		    /*printf( "Checking lpid %d against %d in pg %s\n",
+			    lpids[i], pg->vct[j].lpid, (char *)pg->id );
+			    fflush(stdout); */
+		    if (pg->vct[j].lpid == lpids[i]) {
+			vc = &pg->vct[j];
+			/*printf( "found vc %x for lpid = %d in another pg\n", 
+			  (int)vc, lpids[i] );*/
+			break;
+		    }
+		}
+	    } while (!vc);
+	}
 
-    /* printf( "about to dup vc %x for lpid = %d in another pg\n", 
-       (int)vc, lpids[i] ); */
-    /* Note that his will increment the ref count for the associate
-       PG if necessary.  */
-    MPIDI_VCR_Dup( vc, &newcomm_ptr->dev.vcrt->vcr_table[i] );
+	/* printf( "about to dup vc %x for lpid = %d in another pg\n", 
+	   (int)vc, lpids[i] ); */
+	/* Note that his will increment the ref count for the associate
+	   PG if necessary.  */
+	MPIDI_VCR_Dup( vc, &newcomm_ptr->dev.vcrt->vcr_table[i] );
     }
 fn_exit:
     return mpi_errno;
@@ -754,14 +700,13 @@ fn_fail:
    contacting any process in the process groups).
 */
 int MPIDI_PG_ForwardPGInfo( MPIR_Comm *peer_ptr, MPIR_Comm *comm_ptr,
-               int nPGids, const MPIDI_Gpid in_gpids[],
-               int root )
+			   int nPGids, const MPIDI_Gpid in_gpids[],
+			   int root )
 {
     int mpi_errno = MPI_SUCCESS;
     int i, allfound = 1, pgid, pgidWorld;
     MPIDI_PG_t *pg = 0;
     MPIDI_PG_iterator iter;
-    MPIR_Errflag_t errflag = MPIR_ERR_NONE;
     
     const int *gpids = (const int*)&in_gpids[0];
 
@@ -773,27 +718,26 @@ int MPIDI_PG_ForwardPGInfo( MPIR_Comm *peer_ptr, MPIR_Comm *comm_ptr,
     
     /* Extract the unique process groups */
     for (i=0; i<nPGids && allfound; i++) {
-    if (gpids[0] != pgidWorld) {
-        /* Add this gpid to the list of values to check */
-        /* FIXME: For testing, we just test in place */
+	if (gpids[0] != pgidWorld) {
+	    /* Add this gpid to the list of values to check */
+	    /* FIXME: For testing, we just test in place */
             MPIDI_PG_Get_iterator(&iter);
-        do {
+	    do {
                 MPIDI_PG_Get_next( &iter, &pg );
-        if (!pg) {
-            /* We don't know this pgid */
-            allfound = 0;
-            break;
-        }
-        MPIDI_PG_IdToNum( pg, &pgid );
-        } while (pgid != gpids[0]);
-    }
-    gpids += 2;
+		if (!pg) {
+		    /* We don't know this pgid */
+		    allfound = 0;
+		    break;
+		}
+		MPIDI_PG_IdToNum( pg, &pgid );
+	    } while (pgid != gpids[0]);
+	}
+	gpids += 2;
     }
 
     /* See if everyone is happy */
-    mpi_errno = MPIR_Allreduce( MPI_IN_PLACE, &allfound, 1, MPI_INT, MPI_LAND, comm_ptr, &errflag );
+    mpi_errno = MPIR_Allreduce( MPI_IN_PLACE, &allfound, 1, MPI_INT, MPI_LAND, comm_ptr, MPIR_ERR_NONE );
     MPIR_ERR_CHECK(mpi_errno);
-    MPIR_ERR_CHKANDJUMP(errflag, mpi_errno, MPI_ERR_OTHER, "**coll_fail");
     
     if (allfound) return MPI_SUCCESS;
 
@@ -821,7 +765,7 @@ int MPIDI_PG_ForwardPGInfo( MPIR_Comm *peer_ptr, MPIR_Comm *comm_ptr,
 /*
  * The lpid counter counts new processes that this process knows about.
  */
-static int lpid_counter = 0;
+int MPIDI_lpid_counter = 0;
 
 /* Fully initialize a VC.  This invokes the channel-specific 
    VC initialization routine MPIDI_CH3_VC_Init . */
@@ -832,41 +776,19 @@ int MPIDI_VC_Init( MPIDI_VC_t *vc, MPIDI_PG_t *pg, int rank )
     MPIR_Object_set_ref(vc, 0);
     vc->pg      = pg;
     vc->pg_rank = rank;
-    vc->lpid    = lpid_counter++;
+    vc->lpid    = MPIDI_lpid_counter++;
     vc->node_id = -1;
     MPIDI_VC_Init_seqnum_send(vc);
     MPIDI_VC_Init_seqnum_recv(vc);
     vc->rndvSend_fn      = MPIDI_CH3_RndvSend;
     vc->rndvRecv_fn      = MPIDI_CH3_RecvRndv;
-    vc->use_eager_fast_fn       = 0;
-    vc->use_eager_fast_rfp_fn   = 0;
-#if defined(CHANNEL_MRAIL)
-    vc->free_vc = 0;
-    vc->tmp_dpmvc = 0;
-    vc->rma_issued = 0;
-    vc->disconnect = 0;
-    vc->pending_close_ops = 0; 
-    /* The eager max message size must be set at the end of SMP
-     * initialization when the status of SMP (SMP_INIT) is known.
-     */
-#else /* defined(CHANNEL_MRAIL) */
     vc->ready_eager_max_msg_sz = -1; /* no limit */;
     vc->eager_max_msg_sz = MPIR_CVAR_CH3_EAGER_MAX_MSG_SIZE;
-#endif /* defined(CHANNEL_MRAIL) */
 
     vc->sendNoncontig_fn = MPIDI_CH3_SendNoncontig_iov;
 #ifdef ENABLE_COMM_OVERRIDES
     vc->comm_ops         = NULL;
 #endif
-    /* FIXME: We need a better abstraction for initializing the thread state 
-       for an object */
-#if MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__POBJ
-    {
-        int err;
-        MPID_Thread_mutex_create(&vc->pobj_mutex,&err);
-        MPIR_Assert(err == 0);
-    }
-#endif /* MPICH_THREAD_GRANULARITY */
     MPIDI_CH3_VC_Init(vc);
     MPIDI_DBG_PrintVCState(vc);
 
@@ -877,13 +799,16 @@ int MPIDI_VC_Init( MPIDI_VC_t *vc, MPIDI_PG_t *pg, int rank )
 /* Routines to vend topology information. */
 
 static int g_max_node_id = -1;
-char MPID_hostname[MAX_HOSTNAME_LEN] = "_UNKNOWN_"; /* '_' is an illegal char for a hostname so */
+char MPIU_hostname[MAX_HOSTNAME_LEN] = "_UNKNOWN_"; /* '_' is an illegal char for a hostname so */
                                                     /* this will never match */
 
 int MPID_Get_node_id(MPIR_Comm *comm, int rank, int *id_p)
 {
-    MPIR_Assert(rank >= 0);
-    *id_p = comm->dev.vcrt->vcr_table[rank]->node_id;
+    if (comm->comm_kind == MPIR_COMM_KIND__INTRACOMM) {
+        *id_p = comm->dev.vcrt->vcr_table[rank]->node_id;
+    } else {
+        *id_p = comm->dev.local_vcrt->vcr_table[rank]->node_id;
+    }
     return MPI_SUCCESS;
 }
 
@@ -909,25 +834,6 @@ int MPIDI_Populate_vc_node_ids(MPIDI_PG_t *pg, int our_pg_rank)
         pg->vct[i].node_id = out_nodemap[i];
     }
 
-fn_exit:
     return mpi_errno;
-fn_fail:
-    goto fn_exit;
 }
 
-#if defined(CHANNEL_MRAIL)
-int MPIDI_MVP_Get_num_nodes()
-{
-    return g_max_node_id + 1;
-}
-
-int MPIDI_MVP_Get_local_process_id(MPIDI_PG_t *pg)
-{
-    return pg->ch.local_process_id;
-}
-
-int MPIDI_MVP_Num_local_processes(MPIDI_PG_t *pg)
-{
-    return pg->ch.num_local_processes;
-}
-#endif /* defined(CHANNEL_MRAIL) */

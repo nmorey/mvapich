@@ -1,0 +1,23 @@
+/*D
+   MPI_Comm_call_errhandler - Call the error handler installed on a communicator
+
+Synopsis:
+.vb
+int MPI_Comm_call_errhandler(MPI_Comm comm, int errorcode)
+.ve
+
+Input Parameters:
++ comm - communicator with error handler (handle)
+- errorcode - error code (integer)
+
+.N ThreadSafeNoUpdate
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+D*/
+

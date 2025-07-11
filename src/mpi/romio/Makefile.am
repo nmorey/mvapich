@@ -56,7 +56,7 @@ nodist_include_HEADERS += include/mpio.h include/mpiof.h
 
 # ------------------------------------------------------------------------
 
-SUBDIRS = $(external_subdirs)
+SUBDIRS = $(external_subdirs) . test
 DIST_SUBDIRS = test test-internal $(external_dist_subdirs)
 
 # for the sake of parallel make and avoiding an excessive number of convenience
@@ -77,7 +77,7 @@ libromio_la_SOURCES = $(romio_mpi_sources) $(romio_other_sources) $(glue_sources
 ## MPICH, these are the objects that need to go into libmpi, while the foo.o
 ## objects should go into libpmpi.  Furthermore, the -D option for ROMIO's
 ## source files is different and inverted (in the boolean sense) compared with
-## MPICH's defintion.  And ROMIO was dumping all of the symbols into the main
+## MPICH's definition.  And ROMIO was dumping all of the symbols into the main
 ## libmpi library, regardless of the separate profiling library's existence.
 ##
 ## Annoying, right?
@@ -96,6 +96,23 @@ libromio_la_LDFLAGS = $(external_ldflags)
 libromio_la_LIBADD = $(external_libs)
 endif !BUILD_PROFILING_LIB
 
+if BUILD_ABI_LIB
+noinst_LTLIBRARIES += libromio_abi.la
+libromio_abi_la_SOURCES = $(romio_mpi_sources) $(romio_other_sources) $(glue_sources)
+libromio_abi_la_CPPFLAGS = $(AM_CPPFLAGS) -DBUILD_MPI_ABI
+
+if BUILD_PROFILING_LIB
+noinst_LTLIBRARIES += libpromio_abi.la
+libpromio_abi_la_SOURCES = $(romio_mpi_sources)
+libpromio_abi_la_CPPFLAGS = $(AM_CPPFLAGS) -DMPIO_BUILD_PROFILING -DBUILD_MPI_ABI
+libpromio_abi_la_LDFLAGS = $(external_ldflags)
+libpromio_abi_la_LIBADD = $(external_libs)
+endif BUILD_PROFILING_LIB
+libromio_abi_la_LDFLAGS = $(external_ldflags)
+libromio_abi_la_LIBADD = $(external_libs)
+endif BUILD_ABI_LIB
+
+# ---------------------------
 else !BUILD_ROMIO_EMBEDDED
 lib_LTLIBRARIES = libromio.la
 libromio_la_SOURCES = $(romio_mpi_sources) $(romio_other_sources) $(glue_sources)
@@ -129,14 +146,12 @@ coverage:
 SUFFIXES += .man-phony .html-phony .man1-phony .html1-phony .txt
 
 # "make V=1" support for our documentation recipes
-doctextman_verbose = $(doctextman_verbose_@AM_V@)
-doctextman_verbose_ = $(doctextman_verbose_@AM_DEFAULT_V@)
+doctextman_verbose = $(doctextman_verbose_$(V))
+doctextman_verbose_ = $(doctextman_verbose_$(AM_DEFAULT_VERBOSITY))
 doctextman_verbose_0 = @echo "   DOCTEXTMAN  " $@;
-doctextman_verbose_1 =
-doctexthtml_verbose = $(doctexthtml_verbose_@AM_V@)
-doctexthtml_verbose_ = $(doctexthtml_verbose_@AM_DEFAULT_V@)
+doctexthtml_verbose = $(doctexthtml_verbose_$(V))
+doctexthtml_verbose_ = $(doctexthtml_verbose_$(AM_DEFAULT_VERBOSITY))
 doctexthtml_verbose_0 = @echo "   DOCTEXTHTML  " $@;
-doctexthtml_verbose_1 =
 
 # Build dir paths where the man pages will be created.  Will usually be
 # overridden by MPICH make.

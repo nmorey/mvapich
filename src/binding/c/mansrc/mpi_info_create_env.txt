@@ -1,0 +1,37 @@
+/*D
+   MPI_Info_create_env - Creates an info object containing information about the application
+
+Synopsis:
+.vb
+int MPI_Info_create_env(int argc, char *argv[], MPI_Info *info)
+.ve
+
+Input/Output Parameters:
++ argc - argc (None)
+- argv - argv (None)
+
+Output Parameters:
+. info - info object (handle)
+
+Notes for C:
+    'MPI_Info_create_env' accepts NULL as input parameters. Doing so impacts
+    the returned value.
+
+Notes for Fortran:
+    The Fortran binding for 'MPI_Info_create_env' does not take argc and argv.
+    .vb
+        subroutine MPI_INFO_CREATE_ENV(info, ierr)
+        integer info, ierr
+    .ve
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_OTHER
+
+D*/
+

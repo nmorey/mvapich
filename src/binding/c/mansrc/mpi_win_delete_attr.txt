@@ -1,0 +1,24 @@
+/*D
+   MPI_Win_delete_attr - Deletes an attribute value associated with a key on a window
+
+Synopsis:
+.vb
+int MPI_Win_delete_attr(MPI_Win win, int win_keyval)
+.ve
+
+Input Parameters:
++ win - window from which the attribute is deleted (handle)
+- win_keyval - key value (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_KEYVAL
+.N MPI_ERR_WIN
+.N MPI_ERR_OTHER
+
+D*/
+

@@ -1,5 +1,5 @@
 /**
- * Copyright (C) Mellanox Technologies Ltd. 2001-2019.  ALL RIGHTS RESERVED.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2019. ALL RIGHTS RESERVED.
  *
  * See file LICENSE for terms.
  */
@@ -15,17 +15,20 @@
 #include "module.h"
 
 #include <ucs/sys/preprocessor.h>
-#include <ucs/debug/memtrack.h>
+#include <ucs/debug/memtrack_int.h>
 #include <ucs/debug/assert.h>
 #include <ucs/debug/log.h>
 #include <ucs/sys/string.h>
 #include <ucs/sys/math.h>
+#include <ucs/sys/sys.h>
 #include <string.h>
 #include <limits.h>
 #include <dlfcn.h>
 #include <link.h>
 #include <libgen.h>
 
+
+#ifdef UCX_SHARED_LIB
 
 #define UCS_MODULE_PATH_MEMTRACK_NAME   "module_path"
 #define UCS_MODULE_SRCH_PATH_MAX        2
@@ -55,7 +58,8 @@ static void ucs_module_loader_add_dl_dir()
     char *dlpath_dup = NULL;
     size_t max_length;
     Dl_info dl_info;
-    char *p, *path;
+    const char *p;
+    char *path;
     int ret;
 
     (void)dlerror();
@@ -74,7 +78,7 @@ static void ucs_module_loader_add_dl_dir()
         return;
     }
 
-    p = basename(dlpath_dup);
+    p = ucs_basename(dlpath_dup);
     p = strchr(p, '.');
     if (p != NULL) {
         strncpy(ucs_module_loader_state.module_ext, p,
@@ -181,8 +185,6 @@ static void ucs_module_init(const char *module_path, void *dl)
     init_func = (init_func_t)ucs_module_dlsym_shallow(module_path, dl,
                                                       module_init_name);
     if (init_func == NULL) {
-        ucs_module_trace("not calling constructor '%s' in %s", module_init_name,
-                         module_path);
         return;
     }
 
@@ -196,6 +198,22 @@ static void ucs_module_init(const char *module_path, void *dl)
     }
 }
 
+
+static int ucs_module_is_enabled(const char *module_name)
+{
+    ucs_config_allow_list_mode_t mode = ucs_global_opts.modules.mode;
+    int found;
+
+    if (mode == UCS_CONFIG_ALLOW_LIST_ALLOW_ALL) {
+        return 1;
+    }
+
+    found = ucs_config_names_search(&ucs_global_opts.modules.array,
+                                    module_name) >= 0;
+    return ((mode == UCS_CONFIG_ALLOW_LIST_ALLOW) && found) ||
+           ((mode == UCS_CONFIG_ALLOW_LIST_NEGATE) && !found);
+}
+
 static void ucs_module_load_one(const char *framework, const char *module_name,
                                 unsigned flags)
 {
@@ -204,6 +222,12 @@ static void ucs_module_load_one(const char *framework, const char *module_name,
     unsigned i;
     void *dl;
     int mode;
+
+    if (!ucs_module_is_enabled(module_name)) {
+        ucs_module_trace("module '%s' is disabled by configuration",
+                         module_name);
+        return;
+    }
 
     mode = RTLD_LAZY;
     if (flags & UCS_MODULE_LOAD_FLAG_NODELETE) {
@@ -214,6 +238,8 @@ static void ucs_module_load_one(const char *framework, const char *module_name,
     } else {
         mode |= RTLD_LOCAL;
     }
+
+    ucs_module_trace("loading module '%s' with mode 0x%x", module_name, mode);
 
     for (i = 0; i < ucs_module_loader_state.srchpath_cnt; ++i) {
         snprintf(module_path, sizeof(module_path) - 1, "%s/lib%s_%s%s",
@@ -236,10 +262,12 @@ static void ucs_module_load_one(const char *framework, const char *module_name,
 
     /* coverity[leaked_storage] : a loaded module is never unloaded */
 }
+#endif /* UCX_SHARED_LIB */
 
 void ucs_load_modules(const char *framework, const char *modules,
                       ucs_init_once_t *init_once, unsigned flags)
 {
+#ifdef UCX_SHARED_LIB
     char *modules_str;
     char *saveptr;
     char *module_name;
@@ -247,6 +275,8 @@ void ucs_load_modules(const char *framework, const char *modules,
     ucs_module_loader_init_paths();
 
     UCS_INIT_ONCE(init_once) {
+        ucs_assert(ucs_sys_is_dynamic_lib());
+
         ucs_module_debug("loading modules for %s", framework);
         modules_str = ucs_strdup(modules, "modules_list");
         if (modules_str != NULL) {
@@ -261,4 +291,5 @@ void ucs_load_modules(const char *framework, const char *modules,
             ucs_error("failed to allocate module names list");
         }
     }
+#endif /* UCX_SHARED_LIB */
 }

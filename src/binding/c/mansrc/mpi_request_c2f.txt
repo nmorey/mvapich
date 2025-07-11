@@ -1,0 +1,15 @@
+/*D
+   MPI_Request_c2f - converts MPI_Request to Fortran INTEGER
+
+Synopsis:
+.vb
+MPI_Fint MPI_Request_c2f(MPI_Request request)
+.ve
+
+Input Parameters:
+. request - communication request (handle)
+
+.N ThreadSafe
+
+D*/
+

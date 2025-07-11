@@ -17,16 +17,16 @@
  * single buffer across the whole loop.  Something like MADRE is probably the
  * best solution for the MPI_IN_PLACE scenario.
  */
-int MPIR_Alltoallw_intra_pairwise_sendrecv_replace(const void *sendbuf, const int sendcounts[],
-                                                   const int sdispls[],
+int MPIR_Alltoallw_intra_pairwise_sendrecv_replace(const void *sendbuf, const MPI_Aint sendcounts[],
+                                                   const MPI_Aint sdispls[],
                                                    const MPI_Datatype sendtypes[], void *recvbuf,
-                                                   const int recvcounts[], const int rdispls[],
+                                                   const MPI_Aint recvcounts[],
+                                                   const MPI_Aint rdispls[],
                                                    const MPI_Datatype recvtypes[],
-                                                   MPIR_Comm * comm_ptr, MPIR_Errflag_t * errflag)
+                                                   MPIR_Comm * comm_ptr, MPIR_Errflag_t errflag)
 {
     int comm_size, i, j;
     int mpi_errno = MPI_SUCCESS;
-    int mpi_errno_ret = MPI_SUCCESS;
     MPI_Status status;
     int rank;
 
@@ -56,14 +56,7 @@ int MPIR_Alltoallw_intra_pairwise_sendrecv_replace(const void *sendbuf, const in
                                                   j, MPIR_ALLTOALLW_TAG,
                                                   j, MPIR_ALLTOALLW_TAG,
                                                   comm_ptr, &status, errflag);
-                if (mpi_errno) {
-                    /* for communication errors, just record the error but continue */
-                    *errflag =
-                        MPIX_ERR_PROC_FAILED ==
-                        MPIR_ERR_GET_CLASS(mpi_errno) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER;
-                    MPIR_ERR_SET(mpi_errno, *errflag, "**fail");
-                    MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-                }
+                MPIR_ERR_CHECK(mpi_errno);
             } else if (rank == j) {
                 /* same as above with i/j args reversed */
                 mpi_errno = MPIC_Sendrecv_replace(((char *) recvbuf + rdispls[i]),
@@ -71,21 +64,13 @@ int MPIR_Alltoallw_intra_pairwise_sendrecv_replace(const void *sendbuf, const in
                                                   i, MPIR_ALLTOALLW_TAG,
                                                   i, MPIR_ALLTOALLW_TAG,
                                                   comm_ptr, &status, errflag);
-                if (mpi_errno) {
-                    /* for communication errors, just record the error but continue */
-                    *errflag =
-                        MPIX_ERR_PROC_FAILED ==
-                        MPIR_ERR_GET_CLASS(mpi_errno) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER;
-                    MPIR_ERR_SET(mpi_errno, *errflag, "**fail");
-                    MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-                }
+                MPIR_ERR_CHECK(mpi_errno);
             }
         }
     }
 
-    if (mpi_errno_ret)
-        mpi_errno = mpi_errno_ret;
-    else if (*errflag != MPIR_ERR_NONE)
-        MPIR_ERR_SET(mpi_errno, *errflag, "**coll_fail");
+  fn_exit:
     return mpi_errno;
+  fn_fail:
+    goto fn_exit;
 }

@@ -17,12 +17,12 @@ struct ADIOI_Fns_struct ADIO_NFS_operations = {
     ADIOI_GEN_WriteStridedColl, /* WriteStridedColl */
     ADIOI_GEN_SeekIndividual,   /* SeekIndividual */
     ADIOI_NFS_Fcntl,    /* Fcntl */
-    ADIOI_GEN_SetInfo,  /* SetInfo */
+    ADIOI_NFS_SetInfo,  /* SetInfo */
     ADIOI_NFS_ReadStrided,      /* ReadStrided */
     ADIOI_NFS_WriteStrided,     /* WriteStrided */
     ADIOI_GEN_Close,    /* Close */
     /* Even with lockd running and NFS mounted 'noac', we have been unable to
-     * gaurantee correct behavior over NFS with asyncronous I/O operations */
+     * guarantee correct behavior over NFS with asynchronous I/O operations */
     ADIOI_FAKE_IreadContig,     /* IreadContig */
     ADIOI_FAKE_IwriteContig,    /* IwriteContig */
     ADIOI_NFS_ReadDone, /* ReadDone */

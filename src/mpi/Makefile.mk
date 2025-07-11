@@ -16,22 +16,17 @@ include $(top_srcdir)/src/mpi/misc/Makefile.mk
 include $(top_srcdir)/src/mpi/pt2pt/Makefile.mk
 include $(top_srcdir)/src/mpi/request/Makefile.mk
 include $(top_srcdir)/src/mpi/rma/Makefile.mk
+include $(top_srcdir)/src/mpi/session/Makefile.mk
 include $(top_srcdir)/src/mpi/spawn/Makefile.mk
-include $(top_srcdir)/src/mpi/timer/Makefile.mk
 include $(top_srcdir)/src/mpi/topo/Makefile.mk
+include $(top_srcdir)/src/mpi/stream/Makefile.mk
+include $(top_srcdir)/src/mpi/threadcomm/Makefile.mk
 
 if BUILD_ROMIO
 SUBDIRS += src/mpi/romio
 DIST_SUBDIRS += src/mpi/romio
 MANDOC_SUBDIRS += src/mpi/romio
 HTMLDOC_SUBDIRS += src/mpi/romio
-mpi_convenience_libs += src/mpi/romio/libromio.la
-
-# libpromio contains the PMPI symbols (unlike libpmpi, which contains MPI
-# symbols) and should be added to libmpi as well
-if BUILD_PROFILING_LIB
-pmpi_convenience_libs += src/mpi/romio/libpromio.la
-endif BUILD_PROFILING_LIB
 
 # This was previously a hard copy (not a symlink) performed by config.status
 # (specified via AC_CONFIG_COMMANDS).  Ideally we would eliminate this "copy"
@@ -54,7 +49,3 @@ endif BUILD_ROMIO
 
 # dir is present but currently intentionally unbuilt
 #include $(top_srcdir)/src/mpi/io/Makefile.mk
-
-if BUILD_OSU_MVAPICH
-include $(top_srcdir)/src/mpi/mvp/Makefile.mk
-endif

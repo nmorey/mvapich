@@ -1,0 +1,38 @@
+/*D
+   MPI_Reduce_local - Applies a reduction operator to local arguments.
+
+Synopsis:
+.vb
+int MPI_Reduce_local(const void *inbuf, void *inoutbuf, int count,
+                     MPI_Datatype datatype, MPI_Op op)
+.ve
+.vb
+int MPI_Reduce_local_c(const void *inbuf, void *inoutbuf, MPI_Count count,
+                       MPI_Datatype datatype, MPI_Op op)
+.ve
+
+Input Parameters:
++ inbuf - input buffer (choice)
+. count - number of elements in inbuf and inoutbuf buffers (non-negative integer)
+. datatype - data type of elements of inbuf and inoutbuf buffers (handle)
+- op - operation (handle)
+
+Input/Output Parameters:
+. inoutbuf - combined input and output buffer (choice)
+
+.N collops
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_BUFFER
+.N MPI_ERR_COUNT
+.N MPI_ERR_OP
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

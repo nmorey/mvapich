@@ -1,0 +1,23 @@
+/*D
+   MPI_Grequest_complete - Notify MPI that a user-defined request is complete
+
+Synopsis:
+.vb
+int MPI_Grequest_complete(MPI_Request request)
+.ve
+
+Input Parameters:
+. request - generalized request (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_REQUEST
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Grequest_start
+D*/
+

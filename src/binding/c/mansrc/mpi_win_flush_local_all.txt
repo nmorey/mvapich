@@ -1,0 +1,23 @@
+/*D
+   MPI_Win_flush_local_all - Complete locally all outstanding RMA operations at all targets
+
+Synopsis:
+.vb
+int MPI_Win_flush_local_all(MPI_Win win)
+.ve
+
+Input Parameters:
+. win - window object (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_WIN
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Win_flush MPI_Win_flush_all MPI_Win_flush_local MPI_Win_lock MPI_Win_lock_all
+D*/
+

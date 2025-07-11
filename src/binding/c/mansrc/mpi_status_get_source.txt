@@ -1,0 +1,24 @@
+/*D
+   MPI_Status_get_source - Get MPI_SOURCE field from the status
+
+Synopsis:
+.vb
+int MPI_Status_get_source(MPI_Status *status, int *source)
+.ve
+
+Input Parameters:
+. status - status from which to retrieve source rank (Status)
+
+Output Parameters:
+. source - rank set in the MPI_SOURCE field (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_OTHER
+
+D*/
+

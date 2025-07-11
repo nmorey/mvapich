@@ -1,5 +1,5 @@
 /*
- * Copyright (C) Mellanox Technologies Ltd. 2019. ALL RIGHTS RESERVED.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2019. ALL RIGHTS RESERVED.
  * See file LICENSE for terms.
  */
 
@@ -7,6 +7,7 @@ package org.openucx.jucx.ucp;
 
 import java.io.Closeable;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 
 import org.openucx.jucx.*;
 
@@ -31,6 +32,13 @@ import org.openucx.jucx.*;
  */
 public class UcpWorker extends UcxNativeStruct implements Closeable {
 
+    /**
+     * To keep a reference to AmRecvCallback class to prevent it from GC.
+     */
+    private final HashMap<Integer, Object[]> amRecvHandlers = new HashMap<>();
+
+    private long maxAmHeaderSize = 0L;
+
     public UcpWorker(UcpContext context, UcpWorkerParams params) {
         setNativeId(createWorkerNative(params, context.getNativeId()));
     }
@@ -53,20 +61,88 @@ public class UcpWorker extends UcxNativeStruct implements Closeable {
     public void close() {
         releaseWorkerNative(getNativeId());
         setNativeId(null);
+        amRecvHandlers.clear();
     }
+
+    /**
+     * Maximal allowed header size for {@link UcpEndpoint#sendAmNonBlocking} routine.
+     */
+    public long getMaxAmHeaderSize() {
+        return maxAmHeaderSize;
+    }
+
+    /**
+     * This routine installs a user defined callback to handle incoming Active
+     * Messages with a specific id. This callback is called whenever an Active
+     * Message that was sent from the remote peer by @ref ucp_am_send_nbx is
+     * received on this worker.
+     *
+     * @param callback - Active Message callback. To clear the already set callback,
+     *                   this value should be set to null.
+     */
+    public void setAmRecvHandler(int amId, UcpAmRecvCallback callback, long flags) {
+        if (callback == null) {
+            removeAmRecvHandler(amId);
+            return;
+        }
+        Object[] callbackAndWorker = new Object[2];
+        callbackAndWorker[0] = callback;
+        callbackAndWorker[1] = this;
+        amRecvHandlers.put(amId, callbackAndWorker);
+        setAmRecvHandlerNative(getNativeId(), amId, callbackAndWorker, flags);
+    }
+
+    public void setAmRecvHandler(int amId, UcpAmRecvCallback callback) {
+        setAmRecvHandler(amId, callback, 0L);
+    }
+
+    /**
+     * Clears Active Message callback.
+     */
+    public void removeAmRecvHandler(int amId) {
+        amRecvHandlers.remove(amId);
+        setAmRecvHandlerNative(getNativeId(), amId, null, 0L);
+    }
+
+    /**
+     * This routine releases data that persisted through an Active Message
+     * callback because that callback returned UCS_INPROGRESS.
+     */
+    public void amDataRelease(long address) {
+        amDataReleaseNative(getNativeId(), address);
+    }
+
+    /**
+     * This routine receives a message that is described by the data descriptor
+     * {@code dataDesc}, local address {@code address} and size {@code size} on a worker.
+     * The routine is non-blocking and therefore returns immediately.
+     * The receive operation is considered completed when the message is delivered to the buffer.
+     */
+    public UcpRequest recvAmDataNonBlocking(long dataDesc, long address, long size,
+                                            UcxCallback callback, UcpRequestParams params) {
+        return recvAmDataNonBlockingNative(getNativeId(), dataDesc, address, size, callback,
+            params);
+    }
+
+    public UcpRequest recvAmDataNonBlocking(long dataDesc, long address, long size,
+                                            UcxCallback callback, int memoryType) {
+        return recvAmDataNonBlocking(dataDesc, address, size, callback,
+            new UcpRequestParams().setMemoryType(memoryType));
+    }
+
 
     /**
      * This routine explicitly progresses all communication operations on a worker.
      * @return Non-zero if any communication was progressed, zero otherwise.
      */
-    public int progress() {
+    public int progress() throws Exception {
         return progressWorkerNative(getNativeId());
     }
 
     /**
      * Blocking progress for request until it's not completed.
      */
-    public void progressRequest(UcpRequest request) {
+    public void progressRequest(UcpRequest request) throws Exception {
         while (!request.isCompleted()) {
             progress();
         }
@@ -109,6 +185,50 @@ public class UcpWorker extends UcxNativeStruct implements Closeable {
     }
 
     /**
+     * This routine needs to be called before waiting on each notification on this worker,
+     * so will typically be called once the processing of the previous event is over,
+     * as part of the wake-up mechanism.
+     *
+     * The worker must be armed before waiting on an event (must be re-armed after it has been
+     * signaled for re-use) with {@link UcpWorker#arm()}. The events triggering a signal of the
+     * file descriptor from {@link UcpWorker#getEventFD()} depend on the interfaces used by
+     * the worker and defined in the transport layer, and typically represent a request completion
+     * or newly available resources. It can also be triggered by calling {@link UcpWorker#signal()}.
+     *
+     * The file descriptor is guaranteed to become signaled only if new communication events
+     * occur on the worker. Therefore one must drain all existing events before waiting on
+     * the file descriptor. This can be achieved by calling {@link UcpWorker#progress()}
+     * repeatedly until it returns 0.
+     */
+    public void arm() {
+        armWorkerNative(getNativeId());
+    }
+
+    /**
+     * This routine returns a valid file descriptor for polling functions.
+     * The file descriptor will get signaled when an event occurs, as part of the wake-up mechanism.
+     * Signaling means a call to poll() or select() with this file descriptor will return at
+     * this point, with this descriptor marked as the reason (or one of the reasons)
+     * the function has returned. The user does not need to release the obtained file descriptor.
+     *
+     * The wake-up mechanism exists to allow for the user process to register for notifications
+     * on events of the underlying interfaces, and wait until such occur.
+     * This is an alternative to repeated polling for request completion.
+     * The goal is to allow for waiting while consuming minimal resources from the system.
+     * This is recommended for cases where traffic is infrequent,
+     * and latency can be traded for lower resource consumption while waiting for it.
+     *
+     * There are two alternative ways to use the wakeup mechanism:
+     * the first is the file descriptor obtained per worker (this function) and the second is the
+     * {@link UcpWorker#waitForEvents()} function for waiting on the next event internally.
+     *
+     * @return The internal file descriptor, which this worker reports to.
+     */
+    public int getEventFD() {
+        return getEventFDNative(getNativeId());
+    }
+
+    /**
      * Non-blocking tagged-receive operation.
      * This routine receives a messages that is described by the local {@code recvBuffer}
      * buffer on the current worker. The tag value of the receive message has to match
@@ -128,14 +248,25 @@ public class UcpWorker extends UcxNativeStruct implements Closeable {
         if (!recvBuffer.isDirect()) {
             throw new UcxException("Recv buffer must be direct.");
         }
-        return recvTaggedNonBlockingNative(getNativeId(), UcxUtils.getAddress(recvBuffer),
+        return recvTaggedNonBlocking(UcxUtils.getAddress(recvBuffer),
             recvBuffer.remaining(), tag, tagMask, callback);
     }
 
     public UcpRequest recvTaggedNonBlocking(long localAddress, long size, long tag, long tagMask,
                                             UcxCallback callback) {
+        return recvTaggedNonBlocking(localAddress, size, tag, tagMask, callback, null);
+    }
+
+    public UcpRequest recvTaggedNonBlocking(long localAddress, long size, long tag, long tagMask,
+                                            UcxCallback callback, int memoryType) {
+        return recvTaggedNonBlocking(localAddress, size, tag, tagMask, callback,
+            new UcpRequestParams().setMemoryType(memoryType));
+    }
+
+    public UcpRequest recvTaggedNonBlocking(long localAddress, long size, long tag, long tagMask,
+                                            UcxCallback callback, UcpRequestParams params) {
         return recvTaggedNonBlockingNative(getNativeId(), localAddress, size,
-            tag, tagMask, callback);
+            tag, tagMask, callback, params);
     }
 
     /**
@@ -145,6 +276,32 @@ public class UcpWorker extends UcxNativeStruct implements Closeable {
      */
     public UcpRequest recvTaggedNonBlocking(ByteBuffer recvBuffer, UcxCallback callback) {
         return recvTaggedNonBlocking(recvBuffer, 0, 0, callback);
+    }
+
+    public UcpRequest recvTaggedNonBlocking(long[] localAddresses, long[] sizes,
+                                            long tag, long tagMask,
+                                            UcxCallback callback) {
+
+        return recvTaggedNonBlocking(localAddresses, sizes, tag, tagMask, callback,
+            null);
+    }
+
+    public UcpRequest recvTaggedNonBlocking(long[] localAddresses, long[] sizes,
+                                            long tag, long tagMask,
+                                            UcxCallback callback, UcpRequestParams params) {
+        UcxParams.checkArraySizes(localAddresses, sizes);
+
+        return recvTaggedIovNonBlockingNative(getNativeId(), localAddresses, sizes, tag,
+            tagMask, callback, params);
+    }
+
+    public UcpRequest recvTaggedNonBlocking(long[] localAddresses, long[] sizes,
+                                            long tag, long tagMask,
+                                            UcxCallback callback, int memoryType) {
+        UcxParams.checkArraySizes(localAddresses, sizes);
+
+        return recvTaggedNonBlocking(localAddresses, sizes, tag, tagMask, callback,
+            new UcpRequestParams().setMemoryType(memoryType));
     }
 
     /**
@@ -192,9 +349,20 @@ public class UcpWorker extends UcxNativeStruct implements Closeable {
      * If the receive operation cannot be stated the routine returns an error.
      */
     public UcpRequest recvTaggedMessageNonBlocking(long address, long size, UcpTagMessage message,
-                                                   UcxCallback callback) {
+                                                   UcxCallback callback, UcpRequestParams params) {
         return recvTaggedMessageNonBlockingNative(getNativeId(), address, size,
-            message.getNativeId(), callback);
+            message.getNativeId(), callback, params);
+    }
+
+    public UcpRequest recvTaggedMessageNonBlocking(long address, long size, UcpTagMessage message,
+                                                   UcxCallback callback, int memoryType) {
+        return recvTaggedMessageNonBlocking(address, size, message, callback,
+            new UcpRequestParams().setMemoryType(memoryType));
+    }
+
+    public UcpRequest recvTaggedMessageNonBlocking(long address, long size, UcpTagMessage message,
+                                                   UcxCallback callback) {
+        return recvTaggedMessageNonBlocking(address, size, message, callback, null);
     }
 
     public UcpRequest recvTaggedMessageNonBlocking(ByteBuffer buffer, UcpTagMessage message,
@@ -202,6 +370,7 @@ public class UcpWorker extends UcxNativeStruct implements Closeable {
         return recvTaggedMessageNonBlocking(UcxUtils.getAddress(buffer), buffer.remaining(),
             message, callback);
     }
+
 
     /**
      * This routine tries to cancels an outstanding communication request. After
@@ -213,6 +382,9 @@ public class UcpWorker extends UcxNativeStruct implements Closeable {
      * case it is canceled the status argument is set to UCS_ERR_CANCELED.
      */
     public void cancelRequest(UcpRequest request) {
+        if (request.getNativeId() == null) {
+            throw new UcxException("Request is not valid");
+        }
         cancelRequestNative(getNativeId(), request.getNativeId());
     }
 
@@ -234,7 +406,7 @@ public class UcpWorker extends UcxNativeStruct implements Closeable {
         return result;
     }
 
-    private static native long createWorkerNative(UcpWorkerParams params, long ucpContextId);
+    private native long createWorkerNative(UcpWorkerParams params, long ucpContextId);
 
     private static native void releaseWorkerNative(long workerId);
 
@@ -242,7 +414,7 @@ public class UcpWorker extends UcxNativeStruct implements Closeable {
 
     private static native void releaseAddressNative(long workerId, ByteBuffer addressId);
 
-    private static native int progressWorkerNative(long workerId);
+    private static native int progressWorkerNative(long workerId) throws Exception;
 
     private static native UcpRequest flushNonBlockingNative(long workerId, UcxCallback callback);
 
@@ -250,16 +422,40 @@ public class UcpWorker extends UcxNativeStruct implements Closeable {
 
     private static native void signalWorkerNative(long workerId);
 
+    private static native void armWorkerNative(long workerId);
+
+    private static native int getEventFDNative(long workerId);
+
+    private static native void setAmRecvHandlerNative(long workerId, int amId,
+                                                      Object[] callbackAndWorker,
+                                                      long flags);
+
+    private static native UcpRequest recvAmDataNonBlockingNative(long workerId, long dataDesc,
+                                                                 long address, long size,
+                                                                 UcxCallback callback,
+                                                                 UcpRequestParams params);
+
+    private static native void amDataReleaseNative(long workerId, long dataAddress);
+
     private static native UcpRequest recvTaggedNonBlockingNative(long workerId, long localAddress,
                                                                  long size, long tag, long tagMask,
-                                                                 UcxCallback callback);
+                                                                 UcxCallback callback,
+                                                                 UcpRequestParams params);
+
+    private static native UcpRequest recvTaggedIovNonBlockingNative(long workerId,
+                                                                    long[] localAddresses,
+                                                                    long[] sizes,
+                                                                    long tag, long tagMask,
+                                                                    UcxCallback callback,
+                                                                    UcpRequestParams params);
 
     private static native UcpTagMessage tagProbeNonBlockingNative(long workerId, long tag,
                                                                   long tagMask, boolean remove);
 
     private static native UcpRequest recvTaggedMessageNonBlockingNative(long workerId, long address,
                                                                         long size, long tagMsgId,
-                                                                        UcxCallback callback);
+                                                                        UcxCallback callback,
+                                                                        UcpRequestParams params);
 
     private static native void cancelRequestNative(long workerId, long requestId);
 }

@@ -1,0 +1,44 @@
+/*D
+   MPI_Iscatter - Sends data from one process to all other processes in a communicator in a nonblocking way
+
+Synopsis:
+.vb
+int MPI_Iscatter(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+                 void *recvbuf, int recvcount, MPI_Datatype recvtype, int root,
+                 MPI_Comm comm, MPI_Request *request)
+.ve
+.vb
+int MPI_Iscatter_c(const void *sendbuf, MPI_Count sendcount,
+                   MPI_Datatype sendtype, void *recvbuf, MPI_Count recvcount,
+                   MPI_Datatype recvtype, int root, MPI_Comm comm,
+                   MPI_Request *request)
+.ve
+
+Input Parameters:
++ sendbuf - address of send buffer (choice)
+. sendcount - number of elements sent to each process (non-negative integer)
+. sendtype - data type of send buffer elements (handle)
+. recvcount - number of elements in receive buffer (non-negative integer)
+. recvtype - data type of receive buffer elements (handle)
+. root - rank of sending process (integer)
+- comm - communicator (handle)
+
+Output Parameters:
++ recvbuf - address of receive buffer (choice)
+- request - communication request (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_BUFFER
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

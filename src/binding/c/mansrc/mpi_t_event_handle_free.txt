@@ -1,0 +1,25 @@
+/*D
+   MPI_T_event_handle_free - Initiates deallocation of the event-registration handle specified by event_registration
+
+Synopsis:
+.vb
+int MPI_T_event_handle_free(MPI_T_event_registration event_registration,
+                            void *user_data,
+                            MPI_T_event_free_cb_function free_cb_function)
+.ve
+
+Input Parameters:
++ event_registration - event registration (handle)
+. user_data - pointer to a user-controlled buffer (None)
+- free_cb_function - pointer to user-defined callback function (function)
+
+.N ThreadSafe
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_T_ERR_INVALID_HANDLE
+.N MPI_T_ERR_NOT_INITIALIZED
+.N MPI_ERR_OTHER
+
+D*/
+

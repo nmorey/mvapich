@@ -1,0 +1,29 @@
+/*D
+   MPIX_Comm_failure_get_acked - Get the group of acknowledged failures.
+
+Synopsis:
+.vb
+int MPIX_Comm_failure_get_acked(MPI_Comm comm, MPI_Group *failedgrp)
+.ve
+
+Input Parameters:
+. comm - communicator (handle)
+
+Output Parameters:
+. failedgrp - group of failed processes (handle)
+
+Notes:
+This local operation returns the group failedgrp of processes, from the communicatorcomm, that have been locally acknowledged as failed by preceding calls to MPIX_Comm_failure_ack. The failedgrp can be empty, that is, equal to MPI_GROUP_EMPTY.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+D*/
+

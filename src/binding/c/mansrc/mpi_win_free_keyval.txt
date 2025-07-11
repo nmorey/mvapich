@@ -1,0 +1,22 @@
+/*D
+   MPI_Win_free_keyval - Frees an attribute key for MPI RMA windows
+
+Synopsis:
+.vb
+int MPI_Win_free_keyval(int *win_keyval)
+.ve
+
+Input/Output Parameters:
+. win_keyval - key value (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_KEYVAL
+.N MPI_ERR_OTHER
+
+D*/
+

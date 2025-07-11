@@ -1,5 +1,5 @@
 /**
- * Copyright (C) Mellanox Technologies Ltd. 2019.  ALL RIGHTS RESERVED.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2019. ALL RIGHTS RESERVED.
  *
  * See file LICENSE for terms.
  */
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
     ptr2 = mmap(NULL, alloc_size, PROT_READ|PROT_WRITE,
                 MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
     if (ptr2 == MAP_FAILED) {
-        fprintf(stderr, "mmmap() failed: %m\n");
+        fprintf(stderr, "mmap() failed: %m\n");
         ret = -1;
         goto failed_mmap;
     }

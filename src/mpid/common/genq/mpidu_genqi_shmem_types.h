@@ -49,11 +49,13 @@ typedef union MPIDU_genq_shmem_queue {
 typedef struct MPIDU_genqi_shmem_pool {
     uintptr_t cell_size;
     uintptr_t cell_alloc_size;
-    uintptr_t cells_per_proc;
+    uintptr_t cells_per_free_queue;
     uintptr_t num_proc;
+    uintptr_t num_free_queue;
     int rank;
 
     void *slab;
+    bool gpu_registered;
     MPIDU_genqi_shmem_cell_header_s *cell_header_base;
     MPIDU_genqi_shmem_cell_header_s **cell_headers;
     union MPIDU_genq_shmem_queue *free_queues;

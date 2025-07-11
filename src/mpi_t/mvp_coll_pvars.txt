@@ -1,0 +1,3050 @@
+=== BEGIN_MPI_T_MVP_PVAR_INFO_BLOCK ===
+pvars:
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_barrier_intra_k_dissemination_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : barrier-intra Algorithms
+      description : >-
+        Number of calls to barrier_intra_k_dissemination
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_barrier_intra_recexch_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : barrier-intra Algorithms
+      description : >-
+        Number of calls to barrier_intra_recexch
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_barrier_intra_smp_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : barrier-intra Algorithms
+      description : >-
+        Number of calls to barrier_intra_smp
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_barrier_intra_osu_pairwise_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : barrier-intra Algorithms
+      description : >-
+        Number of calls to barrier_intra_osu_pairwise
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_barrier_inter_bcast_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : barrier-inter Algorithms
+      description : >-
+        Number of calls to barrier_inter_bcast
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ibarrier_intra_sched_recursive_doubling_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ibarrier-intra Algorithms
+      description : >-
+        Number of calls to ibarrier_intra_sched_recursive_doubling
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ibarrier_intra_tsp_recexch_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ibarrier-intra Algorithms
+      description : >-
+        Number of calls to ibarrier_intra_tsp_recexch
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ibarrier_intra_tsp_k_dissemination_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ibarrier-intra Algorithms
+      description : >-
+        Number of calls to ibarrier_intra_tsp_k_dissemination
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ibarrier_inter_sched_bcast_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ibarrier-inter Algorithms
+      description : >-
+        Number of calls to ibarrier_inter_sched_bcast
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_bcast_intra_binomial_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : bcast-intra Algorithms
+      description : >-
+        Number of calls to bcast_intra_binomial
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_bcast_intra_scatter_recursive_doubling_allgather_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : bcast-intra Algorithms
+      description : >-
+        Number of calls to bcast_intra_scatter_recursive_doubling_allgather
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_bcast_intra_scatter_ring_allgather_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : bcast-intra Algorithms
+      description : >-
+        Number of calls to bcast_intra_scatter_ring_allgather
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_bcast_intra_smp_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : bcast-intra Algorithms
+      description : >-
+        Number of calls to bcast_intra_smp
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_bcast_intra_tree_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : bcast-intra Algorithms
+      description : >-
+        Number of calls to bcast_intra_tree
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_bcast_intra_pipelined_tree_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : bcast-intra Algorithms
+      description : >-
+        Number of calls to bcast_intra_pipelined_tree
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_bcast_intra_osu_knomial_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : bcast-intra Algorithms
+      description : >-
+        Number of calls to bcast_intra_osu_knomial
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_bcast_intra_osu_pipelined_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : bcast-intra Algorithms
+      description : >-
+        Number of calls to bcast_intra_osu_pipelined
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ibcast_intra_sched_binomial_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ibcast-intra Algorithms
+      description : >-
+        Number of calls to ibcast_intra_sched_binomial
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ibcast_intra_sched_smp_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ibcast-intra Algorithms
+      description : >-
+        Number of calls to ibcast_intra_sched_smp
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ibcast_intra_sched_scatter_recursive_doubling_allgather_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ibcast-intra Algorithms
+      description : >-
+        Number of calls to ibcast_intra_sched_scatter_recursive_doubling_allgather
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ibcast_intra_sched_scatter_ring_allgather_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ibcast-intra Algorithms
+      description : >-
+        Number of calls to ibcast_intra_sched_scatter_ring_allgather
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ibcast_intra_tsp_tree_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ibcast-intra Algorithms
+      description : >-
+        Number of calls to ibcast_intra_tsp_tree
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ibcast_intra_tsp_scatterv_recexch_allgatherv_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ibcast-intra Algorithms
+      description : >-
+        Number of calls to ibcast_intra_tsp_scatterv_recexch_allgatherv
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ibcast_intra_tsp_scatterv_ring_allgatherv_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ibcast-intra Algorithms
+      description : >-
+        Number of calls to ibcast_intra_tsp_scatterv_ring_allgatherv
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ibcast_intra_tsp_ring_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ibcast-intra Algorithms
+      description : >-
+        Number of calls to ibcast_intra_tsp_ring
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_bcast_inter_remote_send_local_bcast_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : bcast-inter Algorithms
+      description : >-
+        Number of calls to bcast_inter_remote_send_local_bcast
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ibcast_inter_sched_flat_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ibcast-inter Algorithms
+      description : >-
+        Number of calls to ibcast_inter_sched_flat
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_gather_intra_binomial_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : gather-intra Algorithms
+      description : >-
+        Number of calls to gather_intra_binomial
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_gather_intra_osu_direct_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : gather-intra Algorithms
+      description : >-
+        Number of calls to gather_intra_osu_direct
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_gather_intra_osu_direct_block_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : gather-intra Algorithms
+      description : >-
+        Number of calls to gather_intra_osu_direct_block
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_gather_inter_linear_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : gather-inter Algorithms
+      description : >-
+        Number of calls to gather_inter_linear
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_gather_inter_local_gather_remote_send_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : gather-inter Algorithms
+      description : >-
+        Number of calls to gather_inter_local_gather_remote_send
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_igather_intra_sched_binomial_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : igather-intra Algorithms
+      description : >-
+        Number of calls to igather_intra_sched_binomial
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_igather_intra_tsp_tree_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : igather-intra Algorithms
+      description : >-
+        Number of calls to igather_intra_tsp_tree
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_igather_inter_sched_long_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : igather-inter Algorithms
+      description : >-
+        Number of calls to igather_inter_sched_long
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_igather_inter_sched_short_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : igather-inter Algorithms
+      description : >-
+        Number of calls to igather_inter_sched_short
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_gatherv_intra_linear_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : gatherv-intra Algorithms
+      description : >-
+        Number of calls to gatherv_intra_linear
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_gatherv_inter_linear_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : gatherv-inter Algorithms
+      description : >-
+        Number of calls to gatherv_inter_linear
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_igatherv_intra_sched_linear_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : igatherv-intra Algorithms
+      description : >-
+        Number of calls to igatherv_intra_sched_linear
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_igatherv_intra_tsp_linear_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : igatherv-intra Algorithms
+      description : >-
+        Number of calls to igatherv_intra_tsp_linear
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_igatherv_inter_sched_linear_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : igatherv-inter Algorithms
+      description : >-
+        Number of calls to igatherv_inter_sched_linear
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_igatherv_inter_tsp_linear_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : igatherv-inter Algorithms
+      description : >-
+        Number of calls to igatherv_inter_tsp_linear
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_scatter_intra_binomial_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : scatter-intra Algorithms
+      description : >-
+        Number of calls to scatter_intra_binomial
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_scatter_intra_osu_direct_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : scatter-intra Algorithms
+      description : >-
+        Number of calls to scatter_intra_osu_direct
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_scatter_inter_linear_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : scatter-inter Algorithms
+      description : >-
+        Number of calls to scatter_inter_linear
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_scatter_inter_remote_send_local_scatter_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : scatter-inter Algorithms
+      description : >-
+        Number of calls to scatter_inter_remote_send_local_scatter
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iscatter_intra_sched_binomial_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iscatter-intra Algorithms
+      description : >-
+        Number of calls to iscatter_intra_sched_binomial
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iscatter_intra_tsp_tree_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iscatter-intra Algorithms
+      description : >-
+        Number of calls to iscatter_intra_tsp_tree
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iscatter_inter_sched_linear_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iscatter-inter Algorithms
+      description : >-
+        Number of calls to iscatter_inter_sched_linear
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iscatter_inter_sched_remote_send_local_scatter_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iscatter-inter Algorithms
+      description : >-
+        Number of calls to iscatter_inter_sched_remote_send_local_scatter
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_scatterv_intra_linear_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : scatterv-intra Algorithms
+      description : >-
+        Number of calls to scatterv_intra_linear
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_scatterv_inter_linear_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : scatterv-inter Algorithms
+      description : >-
+        Number of calls to scatterv_inter_linear
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iscatterv_intra_sched_linear_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iscatterv-intra Algorithms
+      description : >-
+        Number of calls to iscatterv_intra_sched_linear
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iscatterv_intra_tsp_linear_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iscatterv-intra Algorithms
+      description : >-
+        Number of calls to iscatterv_intra_tsp_linear
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iscatterv_inter_sched_linear_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iscatterv-inter Algorithms
+      description : >-
+        Number of calls to iscatterv_inter_sched_linear
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iscatterv_inter_tsp_linear_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iscatterv-inter Algorithms
+      description : >-
+        Number of calls to iscatterv_inter_tsp_linear
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allgather_intra_brucks_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : allgather-intra Algorithms
+      description : >-
+        Number of calls to allgather_intra_brucks
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allgather_intra_k_brucks_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : allgather-intra Algorithms
+      description : >-
+        Number of calls to allgather_intra_k_brucks
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allgather_intra_recursive_doubling_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : allgather-intra Algorithms
+      description : >-
+        Number of calls to allgather_intra_recursive_doubling
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allgather_intra_ring_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : allgather-intra Algorithms
+      description : >-
+        Number of calls to allgather_intra_ring
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allgather_intra_recexch_doubling_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : allgather-intra Algorithms
+      description : >-
+        Number of calls to allgather_intra_recexch_doubling
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allgather_intra_recexch_halving_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : allgather-intra Algorithms
+      description : >-
+        Number of calls to allgather_intra_recexch_halving
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allgather_intra_osu_direct_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : allgather-intra Algorithms
+      description : >-
+        Number of calls to allgather_intra_osu_direct
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allgather_intra_osu_direct_spread_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : allgather-intra Algorithms
+      description : >-
+        Number of calls to allgather_intra_osu_direct_spread
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allgather_intra_osu_gather_bcast_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : allgather-intra Algorithms
+      description : >-
+        Number of calls to allgather_intra_osu_gather_bcast
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allgather_inter_local_gather_remote_bcast_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : allgather-inter Algorithms
+      description : >-
+        Number of calls to allgather_inter_local_gather_remote_bcast
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallgather_intra_sched_ring_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallgather-intra Algorithms
+      description : >-
+        Number of calls to iallgather_intra_sched_ring
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallgather_intra_sched_brucks_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallgather-intra Algorithms
+      description : >-
+        Number of calls to iallgather_intra_sched_brucks
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallgather_intra_sched_recursive_doubling_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallgather-intra Algorithms
+      description : >-
+        Number of calls to iallgather_intra_sched_recursive_doubling
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallgather_intra_tsp_ring_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallgather-intra Algorithms
+      description : >-
+        Number of calls to iallgather_intra_tsp_ring
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallgather_intra_tsp_brucks_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallgather-intra Algorithms
+      description : >-
+        Number of calls to iallgather_intra_tsp_brucks
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallgather_intra_tsp_recexch_doubling_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallgather-intra Algorithms
+      description : >-
+        Number of calls to iallgather_intra_tsp_recexch_doubling
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallgather_intra_tsp_recexch_halving_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallgather-intra Algorithms
+      description : >-
+        Number of calls to iallgather_intra_tsp_recexch_halving
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallgather_inter_sched_local_gather_remote_bcast_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallgather-inter Algorithms
+      description : >-
+        Number of calls to iallgather_inter_sched_local_gather_remote_bcast
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allgatherv_intra_brucks_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : allgatherv-intra Algorithms
+      description : >-
+        Number of calls to allgatherv_intra_brucks
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allgatherv_intra_recursive_doubling_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : allgatherv-intra Algorithms
+      description : >-
+        Number of calls to allgatherv_intra_recursive_doubling
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allgatherv_intra_ring_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : allgatherv-intra Algorithms
+      description : >-
+        Number of calls to allgatherv_intra_ring
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allgatherv_inter_remote_gather_local_bcast_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : allgatherv-inter Algorithms
+      description : >-
+        Number of calls to allgatherv_inter_remote_gather_local_bcast
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallgatherv_intra_sched_brucks_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallgatherv-intra Algorithms
+      description : >-
+        Number of calls to iallgatherv_intra_sched_brucks
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallgatherv_intra_sched_recursive_doubling_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallgatherv-intra Algorithms
+      description : >-
+        Number of calls to iallgatherv_intra_sched_recursive_doubling
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallgatherv_intra_sched_ring_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallgatherv-intra Algorithms
+      description : >-
+        Number of calls to iallgatherv_intra_sched_ring
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallgatherv_intra_tsp_recexch_doubling_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallgatherv-intra Algorithms
+      description : >-
+        Number of calls to iallgatherv_intra_tsp_recexch_doubling
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallgatherv_intra_tsp_recexch_halving_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallgatherv-intra Algorithms
+      description : >-
+        Number of calls to iallgatherv_intra_tsp_recexch_halving
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallgatherv_intra_tsp_ring_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallgatherv-intra Algorithms
+      description : >-
+        Number of calls to iallgatherv_intra_tsp_ring
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallgatherv_intra_tsp_brucks_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallgatherv-intra Algorithms
+      description : >-
+        Number of calls to iallgatherv_intra_tsp_brucks
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallgatherv_inter_sched_remote_gather_local_bcast_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallgatherv-inter Algorithms
+      description : >-
+        Number of calls to iallgatherv_inter_sched_remote_gather_local_bcast
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_alltoall_intra_brucks_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : alltoall-intra Algorithms
+      description : >-
+        Number of calls to alltoall_intra_brucks
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_alltoall_intra_k_brucks_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : alltoall-intra Algorithms
+      description : >-
+        Number of calls to alltoall_intra_k_brucks
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_alltoall_intra_pairwise_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : alltoall-intra Algorithms
+      description : >-
+        Number of calls to alltoall_intra_pairwise
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_alltoall_intra_pairwise_sendrecv_replace_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : alltoall-intra Algorithms
+      description : >-
+        Number of calls to alltoall_intra_pairwise_sendrecv_replace
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_alltoall_intra_scattered_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : alltoall-intra Algorithms
+      description : >-
+        Number of calls to alltoall_intra_scattered
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_alltoall_inter_pairwise_exchange_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : alltoall-inter Algorithms
+      description : >-
+        Number of calls to alltoall_inter_pairwise_exchange
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ialltoall_intra_sched_brucks_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ialltoall-intra Algorithms
+      description : >-
+        Number of calls to ialltoall_intra_sched_brucks
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ialltoall_intra_sched_inplace_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ialltoall-intra Algorithms
+      description : >-
+        Number of calls to ialltoall_intra_sched_inplace
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ialltoall_intra_sched_pairwise_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ialltoall-intra Algorithms
+      description : >-
+        Number of calls to ialltoall_intra_sched_pairwise
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ialltoall_intra_sched_permuted_sendrecv_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ialltoall-intra Algorithms
+      description : >-
+        Number of calls to ialltoall_intra_sched_permuted_sendrecv
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ialltoall_intra_tsp_ring_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ialltoall-intra Algorithms
+      description : >-
+        Number of calls to ialltoall_intra_tsp_ring
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ialltoall_intra_tsp_brucks_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ialltoall-intra Algorithms
+      description : >-
+        Number of calls to ialltoall_intra_tsp_brucks
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ialltoall_intra_tsp_scattered_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ialltoall-intra Algorithms
+      description : >-
+        Number of calls to ialltoall_intra_tsp_scattered
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ialltoall_inter_sched_pairwise_exchange_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ialltoall-inter Algorithms
+      description : >-
+        Number of calls to ialltoall_inter_sched_pairwise_exchange
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_alltoallv_intra_pairwise_sendrecv_replace_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : alltoallv-intra Algorithms
+      description : >-
+        Number of calls to alltoallv_intra_pairwise_sendrecv_replace
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_alltoallv_intra_scattered_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : alltoallv-intra Algorithms
+      description : >-
+        Number of calls to alltoallv_intra_scattered
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_alltoallv_inter_pairwise_exchange_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : alltoallv-inter Algorithms
+      description : >-
+        Number of calls to alltoallv_inter_pairwise_exchange
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ialltoallv_intra_sched_blocked_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ialltoallv-intra Algorithms
+      description : >-
+        Number of calls to ialltoallv_intra_sched_blocked
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ialltoallv_intra_sched_inplace_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ialltoallv-intra Algorithms
+      description : >-
+        Number of calls to ialltoallv_intra_sched_inplace
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ialltoallv_intra_tsp_scattered_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ialltoallv-intra Algorithms
+      description : >-
+        Number of calls to ialltoallv_intra_tsp_scattered
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ialltoallv_intra_tsp_blocked_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ialltoallv-intra Algorithms
+      description : >-
+        Number of calls to ialltoallv_intra_tsp_blocked
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ialltoallv_intra_tsp_inplace_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ialltoallv-intra Algorithms
+      description : >-
+        Number of calls to ialltoallv_intra_tsp_inplace
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ialltoallv_inter_sched_pairwise_exchange_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ialltoallv-inter Algorithms
+      description : >-
+        Number of calls to ialltoallv_inter_sched_pairwise_exchange
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_alltoallw_intra_pairwise_sendrecv_replace_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : alltoallw-intra Algorithms
+      description : >-
+        Number of calls to alltoallw_intra_pairwise_sendrecv_replace
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_alltoallw_intra_scattered_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : alltoallw-intra Algorithms
+      description : >-
+        Number of calls to alltoallw_intra_scattered
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_alltoallw_inter_pairwise_exchange_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : alltoallw-inter Algorithms
+      description : >-
+        Number of calls to alltoallw_inter_pairwise_exchange
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ialltoallw_intra_sched_blocked_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ialltoallw-intra Algorithms
+      description : >-
+        Number of calls to ialltoallw_intra_sched_blocked
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ialltoallw_intra_sched_inplace_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ialltoallw-intra Algorithms
+      description : >-
+        Number of calls to ialltoallw_intra_sched_inplace
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ialltoallw_intra_tsp_blocked_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ialltoallw-intra Algorithms
+      description : >-
+        Number of calls to ialltoallw_intra_tsp_blocked
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ialltoallw_intra_tsp_inplace_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ialltoallw-intra Algorithms
+      description : >-
+        Number of calls to ialltoallw_intra_tsp_inplace
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ialltoallw_inter_sched_pairwise_exchange_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ialltoallw-inter Algorithms
+      description : >-
+        Number of calls to ialltoallw_inter_sched_pairwise_exchange
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_reduce_intra_binomial_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : reduce-intra Algorithms
+      description : >-
+        Number of calls to reduce_intra_binomial
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_reduce_intra_smp_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : reduce-intra Algorithms
+      description : >-
+        Number of calls to reduce_intra_smp
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_reduce_intra_reduce_scatter_gather_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : reduce-intra Algorithms
+      description : >-
+        Number of calls to reduce_intra_reduce_scatter_gather
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_reduce_intra_osu_knomial_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : reduce-intra Algorithms
+      description : >-
+        Number of calls to reduce_intra_osu_knomial
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_reduce_intra_osu_allreduce_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : reduce-intra Algorithms
+      description : >-
+        Number of calls to reduce_intra_osu_allreduce
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_reduce_inter_local_reduce_remote_send_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : reduce-inter Algorithms
+      description : >-
+        Number of calls to reduce_inter_local_reduce_remote_send
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ireduce_intra_sched_smp_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ireduce-intra Algorithms
+      description : >-
+        Number of calls to ireduce_intra_sched_smp
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ireduce_intra_sched_binomial_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ireduce-intra Algorithms
+      description : >-
+        Number of calls to ireduce_intra_sched_binomial
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ireduce_intra_sched_reduce_scatter_gather_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ireduce-intra Algorithms
+      description : >-
+        Number of calls to ireduce_intra_sched_reduce_scatter_gather
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ireduce_intra_tsp_tree_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ireduce-intra Algorithms
+      description : >-
+        Number of calls to ireduce_intra_tsp_tree
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ireduce_intra_tsp_ring_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ireduce-intra Algorithms
+      description : >-
+        Number of calls to ireduce_intra_tsp_ring
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ireduce_inter_sched_local_reduce_remote_send_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ireduce-inter Algorithms
+      description : >-
+        Number of calls to ireduce_inter_sched_local_reduce_remote_send
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allreduce_intra_smp_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : allreduce-intra Algorithms
+      description : >-
+        Number of calls to allreduce_intra_smp
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allreduce_intra_recursive_doubling_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : allreduce-intra Algorithms
+      description : >-
+        Number of calls to allreduce_intra_recursive_doubling
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allreduce_intra_recursive_multiplying_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : allreduce-intra Algorithms
+      description : >-
+        Number of calls to allreduce_intra_recursive_multiplying
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allreduce_intra_reduce_scatter_allgather_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : allreduce-intra Algorithms
+      description : >-
+        Number of calls to allreduce_intra_reduce_scatter_allgather
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allreduce_intra_tree_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : allreduce-intra Algorithms
+      description : >-
+        Number of calls to allreduce_intra_tree
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allreduce_intra_recexch_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : allreduce-intra Algorithms
+      description : >-
+        Number of calls to allreduce_intra_recexch
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allreduce_intra_ring_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : allreduce-intra Algorithms
+      description : >-
+        Number of calls to allreduce_intra_ring
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allreduce_intra_k_reduce_scatter_allgather_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : allreduce-intra Algorithms
+      description : >-
+        Number of calls to allreduce_intra_k_reduce_scatter_allgather
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allreduce_inter_reduce_exchange_bcast_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : allreduce-inter Algorithms
+      description : >-
+        Number of calls to allreduce_inter_reduce_exchange_bcast
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallreduce_intra_sched_naive_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallreduce-intra Algorithms
+      description : >-
+        Number of calls to iallreduce_intra_sched_naive
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallreduce_intra_sched_smp_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallreduce-intra Algorithms
+      description : >-
+        Number of calls to iallreduce_intra_sched_smp
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallreduce_intra_sched_recursive_doubling_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallreduce-intra Algorithms
+      description : >-
+        Number of calls to iallreduce_intra_sched_recursive_doubling
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallreduce_intra_sched_reduce_scatter_allgather_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallreduce-intra Algorithms
+      description : >-
+        Number of calls to iallreduce_intra_sched_reduce_scatter_allgather
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallreduce_intra_tsp_recexch_single_buffer_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallreduce-intra Algorithms
+      description : >-
+        Number of calls to iallreduce_intra_tsp_recexch_single_buffer
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallreduce_intra_tsp_recexch_multiple_buffer_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallreduce-intra Algorithms
+      description : >-
+        Number of calls to iallreduce_intra_tsp_recexch_multiple_buffer
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallreduce_intra_tsp_tree_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallreduce-intra Algorithms
+      description : >-
+        Number of calls to iallreduce_intra_tsp_tree
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallreduce_intra_tsp_ring_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallreduce-intra Algorithms
+      description : >-
+        Number of calls to iallreduce_intra_tsp_ring
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallreduce_intra_tsp_recexch_reduce_scatter_recexch_allgatherv_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallreduce-intra Algorithms
+      description : >-
+        Number of calls to iallreduce_intra_tsp_recexch_reduce_scatter_recexch_allgatherv
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallreduce_inter_sched_remote_reduce_local_bcast_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iallreduce-inter Algorithms
+      description : >-
+        Number of calls to iallreduce_inter_sched_remote_reduce_local_bcast
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_reduce_scatter_intra_noncommutative_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : reduce_scatter-intra Algorithms
+      description : >-
+        Number of calls to reduce_scatter_intra_noncommutative
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_reduce_scatter_intra_pairwise_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : reduce_scatter-intra Algorithms
+      description : >-
+        Number of calls to reduce_scatter_intra_pairwise
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_reduce_scatter_intra_recursive_doubling_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : reduce_scatter-intra Algorithms
+      description : >-
+        Number of calls to reduce_scatter_intra_recursive_doubling
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_reduce_scatter_intra_recursive_halving_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : reduce_scatter-intra Algorithms
+      description : >-
+        Number of calls to reduce_scatter_intra_recursive_halving
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_reduce_scatter_intra_osu_basic_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : reduce_scatter-intra Algorithms
+      description : >-
+        Number of calls to reduce_scatter_intra_osu_basic
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_reduce_scatter_intra_osu_ring_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : reduce_scatter-intra Algorithms
+      description : >-
+        Number of calls to reduce_scatter_intra_osu_ring
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_reduce_scatter_inter_remote_reduce_local_scatter_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : reduce_scatter-inter Algorithms
+      description : >-
+        Number of calls to reduce_scatter_inter_remote_reduce_local_scatter
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ireduce_scatter_intra_sched_noncommutative_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ireduce_scatter-intra Algorithms
+      description : >-
+        Number of calls to ireduce_scatter_intra_sched_noncommutative
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ireduce_scatter_intra_sched_recursive_doubling_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ireduce_scatter-intra Algorithms
+      description : >-
+        Number of calls to ireduce_scatter_intra_sched_recursive_doubling
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ireduce_scatter_intra_sched_pairwise_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ireduce_scatter-intra Algorithms
+      description : >-
+        Number of calls to ireduce_scatter_intra_sched_pairwise
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ireduce_scatter_intra_sched_recursive_halving_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ireduce_scatter-intra Algorithms
+      description : >-
+        Number of calls to ireduce_scatter_intra_sched_recursive_halving
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ireduce_scatter_intra_tsp_recexch_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ireduce_scatter-intra Algorithms
+      description : >-
+        Number of calls to ireduce_scatter_intra_tsp_recexch
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ireduce_scatter_inter_sched_remote_reduce_local_scatterv_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ireduce_scatter-inter Algorithms
+      description : >-
+        Number of calls to ireduce_scatter_inter_sched_remote_reduce_local_scatterv
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_reduce_scatter_block_intra_noncommutative_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : reduce_scatter_block-intra Algorithms
+      description : >-
+        Number of calls to reduce_scatter_block_intra_noncommutative
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_reduce_scatter_block_intra_recursive_doubling_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : reduce_scatter_block-intra Algorithms
+      description : >-
+        Number of calls to reduce_scatter_block_intra_recursive_doubling
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_reduce_scatter_block_intra_pairwise_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : reduce_scatter_block-intra Algorithms
+      description : >-
+        Number of calls to reduce_scatter_block_intra_pairwise
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_reduce_scatter_block_intra_recursive_halving_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : reduce_scatter_block-intra Algorithms
+      description : >-
+        Number of calls to reduce_scatter_block_intra_recursive_halving
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_reduce_scatter_block_inter_remote_reduce_local_scatter_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : reduce_scatter_block-inter Algorithms
+      description : >-
+        Number of calls to reduce_scatter_block_inter_remote_reduce_local_scatter
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ireduce_scatter_block_intra_sched_noncommutative_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ireduce_scatter_block-intra Algorithms
+      description : >-
+        Number of calls to ireduce_scatter_block_intra_sched_noncommutative
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ireduce_scatter_block_intra_sched_recursive_doubling_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ireduce_scatter_block-intra Algorithms
+      description : >-
+        Number of calls to ireduce_scatter_block_intra_sched_recursive_doubling
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ireduce_scatter_block_intra_sched_pairwise_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ireduce_scatter_block-intra Algorithms
+      description : >-
+        Number of calls to ireduce_scatter_block_intra_sched_pairwise
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ireduce_scatter_block_intra_sched_recursive_halving_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ireduce_scatter_block-intra Algorithms
+      description : >-
+        Number of calls to ireduce_scatter_block_intra_sched_recursive_halving
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ireduce_scatter_block_intra_tsp_recexch_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ireduce_scatter_block-intra Algorithms
+      description : >-
+        Number of calls to ireduce_scatter_block_intra_tsp_recexch
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ireduce_scatter_block_inter_sched_remote_reduce_local_scatterv_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ireduce_scatter_block-inter Algorithms
+      description : >-
+        Number of calls to ireduce_scatter_block_inter_sched_remote_reduce_local_scatterv
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_scan_intra_smp_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : scan-intra Algorithms
+      description : >-
+        Number of calls to scan_intra_smp
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_scan_intra_recursive_doubling_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : scan-intra Algorithms
+      description : >-
+        Number of calls to scan_intra_recursive_doubling
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iscan_intra_sched_smp_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iscan-intra Algorithms
+      description : >-
+        Number of calls to iscan_intra_sched_smp
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iscan_intra_sched_recursive_doubling_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iscan-intra Algorithms
+      description : >-
+        Number of calls to iscan_intra_sched_recursive_doubling
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iscan_intra_tsp_recursive_doubling_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iscan-intra Algorithms
+      description : >-
+        Number of calls to iscan_intra_tsp_recursive_doubling
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_exscan_intra_recursive_doubling_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : exscan-intra Algorithms
+      description : >-
+        Number of calls to exscan_intra_recursive_doubling
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iexscan_intra_sched_recursive_doubling_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : iexscan-intra Algorithms
+      description : >-
+        Number of calls to iexscan_intra_sched_recursive_doubling
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ineighbor_allgather_intra_sched_linear_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ineighbor_allgather-intra Algorithms
+      description : >-
+        Number of calls to ineighbor_allgather_intra_sched_linear
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ineighbor_allgather_intra_tsp_linear_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ineighbor_allgather-intra Algorithms
+      description : >-
+        Number of calls to ineighbor_allgather_intra_tsp_linear
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ineighbor_allgatherv_intra_sched_linear_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ineighbor_allgatherv-intra Algorithms
+      description : >-
+        Number of calls to ineighbor_allgatherv_intra_sched_linear
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ineighbor_allgatherv_intra_tsp_linear_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ineighbor_allgatherv-intra Algorithms
+      description : >-
+        Number of calls to ineighbor_allgatherv_intra_tsp_linear
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ineighbor_alltoall_intra_sched_linear_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ineighbor_alltoall-intra Algorithms
+      description : >-
+        Number of calls to ineighbor_alltoall_intra_sched_linear
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ineighbor_alltoall_intra_tsp_linear_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ineighbor_alltoall-intra Algorithms
+      description : >-
+        Number of calls to ineighbor_alltoall_intra_tsp_linear
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ineighbor_alltoallv_intra_sched_linear_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ineighbor_alltoallv-intra Algorithms
+      description : >-
+        Number of calls to ineighbor_alltoallv_intra_sched_linear
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ineighbor_alltoallv_intra_tsp_linear_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ineighbor_alltoallv-intra Algorithms
+      description : >-
+        Number of calls to ineighbor_alltoallv_intra_tsp_linear
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ineighbor_alltoallw_intra_sched_linear_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ineighbor_alltoallw-intra Algorithms
+      description : >-
+        Number of calls to ineighbor_alltoallw_intra_sched_linear
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ineighbor_alltoallw_intra_tsp_linear_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : ineighbor_alltoallw-intra Algorithms
+      description : >-
+        Number of calls to ineighbor_alltoallw_intra_tsp_linear
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_barrier_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Barrier Collective
+      description : >-
+        Number of calls to Barrier
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_barrier_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Barrier Collective
+      description : >-
+        Total time spent in Barrier
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ibarrier_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Ibarrier Collective
+      description : >-
+        Number of calls to Ibarrier
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_ibarrier_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Ibarrier Collective
+      description : >-
+        Total time spent in Ibarrier
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_bcast_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Bcast Collective
+      description : >-
+        Number of calls to Bcast
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_bcast_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Bcast Collective
+      description : >-
+        Total time spent in Bcast
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ibcast_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Ibcast Collective
+      description : >-
+        Number of calls to Ibcast
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_ibcast_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Ibcast Collective
+      description : >-
+        Total time spent in Ibcast
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_gather_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Gather Collective
+      description : >-
+        Number of calls to Gather
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_gather_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Gather Collective
+      description : >-
+        Total time spent in Gather
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_igather_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Igather Collective
+      description : >-
+        Number of calls to Igather
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_igather_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Igather Collective
+      description : >-
+        Total time spent in Igather
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_gatherv_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Gatherv Collective
+      description : >-
+        Number of calls to Gatherv
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_gatherv_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Gatherv Collective
+      description : >-
+        Total time spent in Gatherv
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_igatherv_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Igatherv Collective
+      description : >-
+        Number of calls to Igatherv
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_igatherv_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Igatherv Collective
+      description : >-
+        Total time spent in Igatherv
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_scatter_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Scatter Collective
+      description : >-
+        Number of calls to Scatter
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_scatter_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Scatter Collective
+      description : >-
+        Total time spent in Scatter
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iscatter_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Iscatter Collective
+      description : >-
+        Number of calls to Iscatter
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_iscatter_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Iscatter Collective
+      description : >-
+        Total time spent in Iscatter
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_scatterv_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Scatterv Collective
+      description : >-
+        Number of calls to Scatterv
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_scatterv_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Scatterv Collective
+      description : >-
+        Total time spent in Scatterv
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iscatterv_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Iscatterv Collective
+      description : >-
+        Number of calls to Iscatterv
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_iscatterv_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Iscatterv Collective
+      description : >-
+        Total time spent in Iscatterv
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allgather_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Allgather Collective
+      description : >-
+        Number of calls to Allgather
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_allgather_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Allgather Collective
+      description : >-
+        Total time spent in Allgather
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallgather_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Iallgather Collective
+      description : >-
+        Number of calls to Iallgather
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_iallgather_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Iallgather Collective
+      description : >-
+        Total time spent in Iallgather
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allgatherv_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Allgatherv Collective
+      description : >-
+        Number of calls to Allgatherv
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_allgatherv_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Allgatherv Collective
+      description : >-
+        Total time spent in Allgatherv
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallgatherv_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Iallgatherv Collective
+      description : >-
+        Number of calls to Iallgatherv
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_iallgatherv_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Iallgatherv Collective
+      description : >-
+        Total time spent in Iallgatherv
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_alltoall_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Alltoall Collective
+      description : >-
+        Number of calls to Alltoall
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_alltoall_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Alltoall Collective
+      description : >-
+        Total time spent in Alltoall
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ialltoall_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Ialltoall Collective
+      description : >-
+        Number of calls to Ialltoall
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_ialltoall_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Ialltoall Collective
+      description : >-
+        Total time spent in Ialltoall
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_alltoallv_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Alltoallv Collective
+      description : >-
+        Number of calls to Alltoallv
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_alltoallv_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Alltoallv Collective
+      description : >-
+        Total time spent in Alltoallv
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ialltoallv_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Ialltoallv Collective
+      description : >-
+        Number of calls to Ialltoallv
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_ialltoallv_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Ialltoallv Collective
+      description : >-
+        Total time spent in Ialltoallv
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_alltoallw_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Alltoallw Collective
+      description : >-
+        Number of calls to Alltoallw
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_alltoallw_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Alltoallw Collective
+      description : >-
+        Total time spent in Alltoallw
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ialltoallw_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Ialltoallw Collective
+      description : >-
+        Number of calls to Ialltoallw
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_ialltoallw_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Ialltoallw Collective
+      description : >-
+        Total time spent in Ialltoallw
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_reduce_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Reduce Collective
+      description : >-
+        Number of calls to Reduce
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_reduce_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Reduce Collective
+      description : >-
+        Total time spent in Reduce
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ireduce_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Ireduce Collective
+      description : >-
+        Number of calls to Ireduce
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_ireduce_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Ireduce Collective
+      description : >-
+        Total time spent in Ireduce
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_allreduce_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Allreduce Collective
+      description : >-
+        Number of calls to Allreduce
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_allreduce_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Allreduce Collective
+      description : >-
+        Total time spent in Allreduce
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iallreduce_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Iallreduce Collective
+      description : >-
+        Number of calls to Iallreduce
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_iallreduce_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Iallreduce Collective
+      description : >-
+        Total time spent in Iallreduce
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_reduce_scatter_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Reduce_scatter Collective
+      description : >-
+        Number of calls to Reduce_scatter
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_reduce_scatter_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Reduce_scatter Collective
+      description : >-
+        Total time spent in Reduce_scatter
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ireduce_scatter_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Ireduce_scatter Collective
+      description : >-
+        Number of calls to Ireduce_scatter
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_ireduce_scatter_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Ireduce_scatter Collective
+      description : >-
+        Total time spent in Ireduce_scatter
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_reduce_scatter_block_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Reduce_scatter_block Collective
+      description : >-
+        Number of calls to Reduce_scatter_block
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_reduce_scatter_block_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Reduce_scatter_block Collective
+      description : >-
+        Total time spent in Reduce_scatter_block
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ireduce_scatter_block_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Ireduce_scatter_block Collective
+      description : >-
+        Number of calls to Ireduce_scatter_block
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_ireduce_scatter_block_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Ireduce_scatter_block Collective
+      description : >-
+        Total time spent in Ireduce_scatter_block
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_scan_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Scan Collective
+      description : >-
+        Number of calls to Scan
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_scan_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Scan Collective
+      description : >-
+        Total time spent in Scan
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iscan_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Iscan Collective
+      description : >-
+        Number of calls to Iscan
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_iscan_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Iscan Collective
+      description : >-
+        Total time spent in Iscan
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_exscan_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Exscan Collective
+      description : >-
+        Number of calls to Exscan
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_exscan_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Exscan Collective
+      description : >-
+        Total time spent in Exscan
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_iexscan_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Iexscan Collective
+      description : >-
+        Number of calls to Iexscan
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_iexscan_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Iexscan Collective
+      description : >-
+        Total time spent in Iexscan
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_neighbor_allgather_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Neighbor_allgather Collective
+      description : >-
+        Number of calls to Neighbor_allgather
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_neighbor_allgather_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Neighbor_allgather Collective
+      description : >-
+        Total time spent in Neighbor_allgather
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ineighbor_allgather_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Ineighbor_allgather Collective
+      description : >-
+        Number of calls to Ineighbor_allgather
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_ineighbor_allgather_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Ineighbor_allgather Collective
+      description : >-
+        Total time spent in Ineighbor_allgather
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_neighbor_allgatherv_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Neighbor_allgatherv Collective
+      description : >-
+        Number of calls to Neighbor_allgatherv
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_neighbor_allgatherv_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Neighbor_allgatherv Collective
+      description : >-
+        Total time spent in Neighbor_allgatherv
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ineighbor_allgatherv_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Ineighbor_allgatherv Collective
+      description : >-
+        Number of calls to Ineighbor_allgatherv
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_ineighbor_allgatherv_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Ineighbor_allgatherv Collective
+      description : >-
+        Total time spent in Ineighbor_allgatherv
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_neighbor_alltoall_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Neighbor_alltoall Collective
+      description : >-
+        Number of calls to Neighbor_alltoall
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_neighbor_alltoall_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Neighbor_alltoall Collective
+      description : >-
+        Total time spent in Neighbor_alltoall
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ineighbor_alltoall_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Ineighbor_alltoall Collective
+      description : >-
+        Number of calls to Ineighbor_alltoall
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_ineighbor_alltoall_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Ineighbor_alltoall Collective
+      description : >-
+        Total time spent in Ineighbor_alltoall
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_neighbor_alltoallv_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Neighbor_alltoallv Collective
+      description : >-
+        Number of calls to Neighbor_alltoallv
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_neighbor_alltoallv_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Neighbor_alltoallv Collective
+      description : >-
+        Total time spent in Neighbor_alltoallv
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ineighbor_alltoallv_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Ineighbor_alltoallv Collective
+      description : >-
+        Number of calls to Ineighbor_alltoallv
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_ineighbor_alltoallv_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Ineighbor_alltoallv Collective
+      description : >-
+        Total time spent in Ineighbor_alltoallv
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_neighbor_alltoallw_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Neighbor_alltoallw Collective
+      description : >-
+        Number of calls to Neighbor_alltoallw
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_neighbor_alltoallw_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Neighbor_alltoallw Collective
+      description : >-
+        Total time spent in Neighbor_alltoallw
+
+    - type : COUNTER
+      module : MVP
+      datatype :  MPI_UNSIGNED_LONG_LONG
+      name :  mvp_ineighbor_alltoallw_call_counter
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags : MPIR_T_PVAR_FLAG_READONLY | MPIR_T_PVAR_FLAG_SUM
+      category : Ineighbor_alltoallw Collective
+      description : >-
+        Number of calls to Ineighbor_alltoallw
+
+    - type : TIMER
+      module : MVP
+      datatype :  MPI_DOUBLE
+      name :  mvp_ineighbor_alltoallw_timer
+      verbosity : MPI_T_VERBOSITY_USER_BASIC
+      bind :  MPI_T_BIND_NO_OBJECT
+      flags :  MPIR_T_PVAR_FLAG_SUM
+      category : Ineighbor_alltoallw Collective
+      description : >-
+        Total time spent in Ineighbor_alltoallw
+
+=== END_MPI_T_MVP_PVAR_INFO_BLOCK ===

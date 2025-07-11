@@ -1,5 +1,5 @@
 /**
- * Copyright (C) Mellanox Technologies Ltd. 2001-2015.  ALL RIGHTS RESERVED.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2015. ALL RIGHTS RESERVED.
  * Copyright (C) Advanced Micro Devices, Inc. 2019. ALL RIGHTS RESERVED.
  *
  * See file LICENSE for terms.
@@ -37,6 +37,7 @@ typedef enum ucm_event_type {
     UCM_EVENT_SHMDT           = UCS_BIT(4),
     UCM_EVENT_SBRK            = UCS_BIT(5),
     UCM_EVENT_MADVISE         = UCS_BIT(6),
+    UCM_EVENT_BRK             = UCS_BIT(7),
 
     /* Aggregate events */
     UCM_EVENT_VM_MAPPED       = UCS_BIT(16),
@@ -67,6 +68,18 @@ typedef enum ucm_mmap_hook_mode {
     UCM_MMAP_HOOK_BISTRO,
     UCM_MMAP_HOOK_LAST
 } ucm_mmap_hook_mode_t;
+
+
+/**
+ * @brief UCM module unload prevent mode
+ */
+typedef enum ucm_module_unload_prevent_mode {
+    UCM_UNLOAD_PREVENT_MODE_LAZY,
+    UCM_UNLOAD_PREVENT_MODE_NOW,
+    UCM_UNLOAD_PREVENT_MODE_NONE,
+    UCM_UNLOAD_PREVENT_MODE_LAST
+} ucm_module_unload_prevent_mode_t;
+
 
 /**
  * @brief Memory event parameters and result.
@@ -107,6 +120,7 @@ typedef union ucm_event {
         size_t             old_size;
         size_t             new_size;
         int                flags;
+        void               *new_address;
     } mremap;
 
     /*
@@ -150,11 +164,19 @@ typedef union ucm_event {
     } madvise;
 
     /*
+     * UCM_EVENT_BRK
+     * brk() is called.
+     */
+    struct {
+        int                result;
+        void               *addr;
+    } brk;
+
+    /*
      * UCM_EVENT_VM_MAPPED, UCM_EVENT_VM_UNMAPPED
      *
      * This is a "read-only" event which is called whenever memory is mapped
      * or unmapped from process address space, in addition to the other events.
-     * It can return only UCM_EVENT_STATUS_NEXT.
      *
      * For UCM_EVENT_VM_MAPPED, callbacks are post
      * For UCM_EVENT_VM_UNMAPPED, callbacks are pre
@@ -191,14 +213,18 @@ typedef struct ucm_global_config {
     ucm_mmap_hook_mode_t mmap_hook_mode;              /* MMAP hook mode */
     int                  enable_malloc_hooks;         /* Enable installing malloc hooks */
     int                  enable_malloc_reloc;         /* Enable installing malloc relocations */
-    int                  enable_cuda_reloc;           /* Enable installing CUDA relocations */
+    int                  cuda_hook_modes;             /* Bitmap of allowed cuda hooks modes */
     int                  enable_dynamic_mmap_thresh;  /* Enable adaptive mmap threshold */
     size_t               alloc_alignment;             /* Alignment for memory allocations */
     int                  dlopen_process_rpath;        /* Process RPATH section in dlopen hook */
+    int                  module_unload_prevent_mode;  /* Module unload prevention mode */
 } ucm_global_config_t;
 
 
-/* Global UCM configuration */
+/*
+ * Global UCM configuration to be set externally.
+ * @deprecated replaced by @ref ucm_set_global_opts.
+ */
 extern ucm_global_config_t ucm_global_opts;
 
 
@@ -238,6 +264,14 @@ extern ucm_global_config_t ucm_global_opts;
  */
 typedef void (*ucm_event_callback_t)(ucm_event_type_t event_type,
                                      ucm_event_t *event, void *arg);
+
+
+/**
+ * Set UCM library configuration.
+ *
+ * @param [in]  ucm_opts   UCM library global configuration.
+ */
+void ucm_set_global_opts(const ucm_global_config_t *ucm_opts);
 
 
 /**
@@ -354,7 +388,7 @@ int ucm_orig_munmap(void *addr, size_t length);
  * @brief Call the original implementation of @ref mremap without triggering events.
  */
 void *ucm_orig_mremap(void *old_address, size_t old_size, size_t new_size,
-                      int flags);
+                      int flags, void *new_address);
 
 
 /**
@@ -418,7 +452,8 @@ void ucm_vm_munmap(void *addr, size_t length);
  * @brief Call the original implementation of @ref mremap and all handlers
  * associated with it.
  */
-void *ucm_mremap(void *old_address, size_t old_size, size_t new_size, int flags);
+void *
+ucm_mremap(void *old_address, size_t old_size, size_t new_size, int flags, ...);
 
 
 /**

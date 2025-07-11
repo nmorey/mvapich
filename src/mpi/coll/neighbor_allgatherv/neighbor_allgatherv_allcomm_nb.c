@@ -5,13 +5,13 @@
 
 #include "mpiimpl.h"
 
-int MPIR_Neighbor_allgatherv_allcomm_nb(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
-                                        void *recvbuf, const int recvcounts[], const int displs[],
+int MPIR_Neighbor_allgatherv_allcomm_nb(const void *sendbuf, MPI_Aint sendcount,
+                                        MPI_Datatype sendtype, void *recvbuf,
+                                        const MPI_Aint recvcounts[], const MPI_Aint displs[],
                                         MPI_Datatype recvtype, MPIR_Comm * comm_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *req_ptr = NULL;
-    MPIR_Errflag_t errflag;
 
     /* just call the nonblocking version and wait on it */
     mpi_errno = MPIR_Ineighbor_allgatherv(sendbuf, sendcount, sendtype,
@@ -19,7 +19,7 @@ int MPIR_Neighbor_allgatherv_allcomm_nb(const void *sendbuf, int sendcount, MPI_
                                           &req_ptr);
     MPIR_ERR_CHECK(mpi_errno);
 
-    mpi_errno = MPIC_Wait(req_ptr, &errflag);
+    mpi_errno = MPIC_Wait(req_ptr);
     MPIR_ERR_CHECK(mpi_errno);
     MPIR_Request_free(req_ptr);
 

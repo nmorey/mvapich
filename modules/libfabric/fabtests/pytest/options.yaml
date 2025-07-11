@@ -70,7 +70,7 @@ ubertest_config_file:
 timeout:
   type: int
   help: "timeout value in seconds"
-  default: 120
+  default: 360
   shortform: -T
 core_list:
   type: str
@@ -92,3 +92,7 @@ oob_address_exchange:
   type: boolean
   help: "out-of-band address exchange over the default port"
   shortform: -b
+do_dmabuf_reg_for_hmem:
+  type: boolean
+  help: "Register hmem memory via dmabuf"
+  longform: --do-dmabuf-reg-for-hmem

@@ -1,0 +1,21 @@
+/*D
+   MPI_Remove_error_code - Remove an MPI error code
+
+Synopsis:
+.vb
+int MPI_Remove_error_code(int errorcode)
+.ve
+
+Input Parameters:
+. errorcode - value of the error code to be removed (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_OTHER
+
+D*/
+

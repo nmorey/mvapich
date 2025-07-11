@@ -74,18 +74,6 @@ static int listenfd = -1;
 typedef unsigned int socklen_t;
 #endif
 
-/* getaddrinfo hints struct */
-static struct addrinfo addr_hint = {
-    .ai_flags = AI_CANONNAME,
-    .ai_family = AF_INET,
-    .ai_socktype = 0,
-    .ai_protocol = 0,
-    .ai_addrlen = 0,
-    .ai_addr = NULL,
-    .ai_canonname = NULL,
-    .ai_next = NULL
-};
-
 /*
  * Input Parameters:
  *   portLen - Number of characters in portString
@@ -98,7 +86,7 @@ static struct addrinfo addr_hint = {
 int PMIServGetPort(int *fdout, char *portString, int portLen)
 {
     int fd = -1;
-    /* FIXME: delay IPv6 fix (mpl_sockaddr.c) until the redudancy with pm/hydra/utils/sock/sock.c is resolved. */
+    /* FIXME: delay IPv6 fix (mpl_sockaddr.c) until the redundancy with pm/hydra/utils/sock/sock.c is resolved. */
     struct sockaddr_in sa;
     int optval = 1;
     int portnum;
@@ -193,19 +181,18 @@ int PMIServGetPort(int *fdout, char *portString, int portLen)
         char hostname[MAX_HOST_NAME + 1];
         hostname[0] = 0;
         MPIE_GetMyHostName(hostname, sizeof(hostname));
-        MPL_snprintf(portString, portLen, "%s:%d", hostname, portnum);
+        snprintf(portString, portLen, "%s:%d", hostname, portnum);
     }
 
     return 0;
 }
 
-/* defs of getaddrinfo */
+/* defs of gethostbyname */
 #include <netdb.h>
 int MPIE_GetMyHostName(char myname[MAX_HOST_NAME + 1], int namelen)
 {
-    struct addrinfo *info = NULL;
+    struct hostent *hp;
     char *hostname = 0;
-    int mpi_errno = 0;
     /*
      * First, get network name if necessary
      */
@@ -214,10 +201,9 @@ int MPIE_GetMyHostName(char myname[MAX_HOST_NAME + 1], int namelen)
         gethostname(myname, namelen);
     }
     /* ??? */
-    int mpi_errno = getaddrinfo( hostname, NULL, NULL, &info );
-    freeaddrinfo(info);
-    if (mpi_errno != 0) {
-        return mpi_errno;
+    hp = gethostbyname(hostname);
+    if (!hp) {
+        return -1;
     }
     return 0;
 }
@@ -364,28 +350,29 @@ int PMIServEndPort(void)
    interface name) and port.  It returns the fd, or -1 on failure */
 int MPIE_ConnectToPort(char *hostname, int portnum)
 {
-    struct addrinfo    res;
-    int                err; 
-    int                fd;
-    int                optval = 1;
-    int                q_wait = 1;
-    char defaultHostname[MAX_HOST_NAME+1];
-    
-    
-    DBG_PRINTF( ("Connecting to %s:%d\n", hostname, portnum ) );
+    struct hostent *hp;
+    struct sockaddr_in sa;
+    int fd;
+    int optval = 1;
+    int q_wait = 1;
+    char defaultHostname[MAX_HOST_NAME + 1];
+
+
+    DBG_PRINTF(("Connecting to %s:%d\n", hostname, portnum));
     /* FIXME: simple_pmi should *never* start mpiexec with a bogus
-       interface name */
-    if (strcmp(hostname,"default_interface") == 0) {
+     * interface name */
+    if (strcmp(hostname, "default_interface") == 0) {
         defaultHostname[0] = 0;
-        MPIE_GetMyHostName( defaultHostname, sizeof(defaultHostname) );
+        MPIE_GetMyHostName(defaultHostname, sizeof(defaultHostname));
         hostname = defaultHostname;
-        DBG_PRINTF( ( "Connecting to %s:%d\n", hostname, portnum ) );
+        DBG_PRINTF(("Connecting to %s:%d\n", hostname, portnum));
     }
-    err = getaddrinfo(env, NULL, &addr_hint, &res);
-    if (err) {
+    hp = gethostbyname(hostname);
+    if (!hp) {
         return -1;
     }
-    
+
+    memset((void *) &sa, 0, sizeof(sa));
     /* POSIX might define h_addr_list only and not define h_addr */
 #ifdef HAVE_H_ADDR_LIST
     memcpy((void *) &sa.sin_addr, (void *) hp->h_addr_list[0], hp->h_length);
@@ -393,9 +380,9 @@ int MPIE_ConnectToPort(char *hostname, int portnum)
     memcpy((void *) &sa.sin_addr, (void *) hp->h_addr, hp->h_length);
 #endif
     sa.sin_family = hp->h_addrtype;
-    ((struct sockaddr_in)res)->ai_addr->sin_port = htons((unsigned short)portnum);
-    
-    fd = socket( AF_INET, SOCK_STREAM, TCP );
+    sa.sin_port = htons((unsigned short) portnum);
+
+    fd = socket(AF_INET, SOCK_STREAM, TCP);
     if (fd < 0) {
         return -1;
     }
@@ -405,25 +392,25 @@ int MPIE_ConnectToPort(char *hostname, int portnum)
     }
 
     /* We wait here for the connection to succeed */
-    if (connect( fd, res->ai_addr, sizeof(struct sockaddr_in)) < 0) {
+    if (connect(fd, (struct sockaddr *) &sa, sizeof(sa)) < 0) {
         switch (errno) {
-        case ECONNREFUSED:
-	        /* (close socket, get new socket, try again) */
-	        if (q_wait)
-	        close(fd);
-	        return -1;
-	        
-        case EINPROGRESS: /*  (nonblocking) - select for writing. */
-	        break;
-	        
-        case EISCONN: /*  (already connected) */
-	        break;
-	        
-        case ETIMEDOUT: /* timed out */
-	        return -1;
+            case ECONNREFUSED:
+                /* (close socket, get new socket, try again) */
+                if (q_wait)
+                    close(fd);
+                return -1;
 
-        default:
-	        return -1;
+            case EINPROGRESS:  /*  (nonblocking) - select for writing. */
+                break;
+
+            case EISCONN:      /*  (already connected) */
+                break;
+
+            case ETIMEDOUT:    /* timed out */
+                return -1;
+
+            default:
+                return -1;
         }
     }
 

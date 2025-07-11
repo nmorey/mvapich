@@ -3,11 +3,11 @@
 ##     See COPYRIGHT in top-level directory
 ##
 
-AC_PREREQ([2.63])
+AC_PREREQ([2.69])
 AC_INIT([dtpools], [0.0], [discuss@mpich.org])
 AC_CONFIG_SRCDIR([include/dtpools.h])
 
-AC_CONFIG_HEADER(dtpoolsconf.h)
+AC_CONFIG_HEADERS([dtpoolsconf.h])
 AH_TOP([/*
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
@@ -31,7 +31,6 @@ fi
 # Checks for programs.
 AC_PROG_AWK
 AC_PROG_CC
-AC_PROG_CC_C99
 AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LN_S
@@ -50,7 +49,7 @@ AC_CHECK_HEADERS([stdlib.h string.h limits.h stdint.h sys/types.h],,
                  [AC_MSG_ERROR([Cannot find headers.])],)
 
 # Must be able to find mpi.h
-MPI_H_INCLUDE="-I${main_top_builddir}/src/include"
+MPI_H_INCLUDE="-I${main_top_builddir}/src/include -I${main_top_srcdir}/src/include"
 AC_SUBST([MPI_H_INCLUDE])
 
 # check if we need declarations

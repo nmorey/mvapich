@@ -1,0 +1,52 @@
+if HAVE_MVERBS
+_mverbs_files =							\
+	prov/mverbs/src/mverbs_ofi.h				\
+	prov/mverbs/src/mverbs_init.c				\
+	prov/mverbs/src/mverbs_cm.c				\
+	prov/mverbs/src/mverbs_cm_xrc.c				\
+	prov/mverbs/src/mverbs_cq.c				\
+	prov/mverbs/src/mverbs_domain.c				\
+	prov/mverbs/src/mverbs_domain_xrc.c			\
+	prov/mverbs/src/mverbs_mr.c				\
+	prov/mverbs/src/mverbs_eq.c				\
+	prov/mverbs/src/mverbs_info.c				\
+	prov/mverbs/src/mverbs_ep.c				\
+	prov/mverbs/src/mverbs_msg.c				\
+	prov/mverbs/src/mverbs_rma.c				\
+	prov/mverbs/src/mverbs_dgram_ep_msg.c			\
+	prov/mverbs/src/mverbs_dgram_av.c				\
+	prov/mverbs/include/ofi_mverbs_compat.h			\
+	prov/mverbs/include/linux/mverbs_osd.h
+
+if HAVE_MVERBS_DL
+pkglib_LTLIBRARIES += libmverbs-fi.la
+libmverbs_fi_la_SOURCES = $(_mverbs_files) $(common_srcs)
+libmverbs_fi_la_CPPFLAGS = 				\
+	-I$(top_srcdir)/include				\
+	-I$(top_srcdir)/prov/mverbs/include		\
+	-I$(top_srcdir)/prov/mverbs/include/linux	\
+	-I$(top_srcdir)/prov/mverbs/src/ep_rdm		\
+	-I$(top_srcdir)/prov/mverbs/src/ep_dgram		\
+	$(AM_CPPFLAGS) $(mverbs_CPPFLAGS)
+libmverbs_fi_la_LDFLAGS =				\
+	-module -avoid-version -shared -export-dynamic	\
+	$(mverbs_LDFLAGS)
+libmverbs_fi_la_LIBADD = $(linkback) $(mverbs_LIBS)
+libmverbs_fi_la_DEPENDENCIES = $(linkback)
+else !HAVE_MVERBS_DL
+src_libfabric_la_SOURCES += $(_mverbs_files)
+src_libfabric_la_CPPFLAGS += 				\
+	-I$(top_srcdir)/prov/mverbs/include		\
+	-I$(top_srcdir)/prov/mverbs/include/linux	\
+	-I$(top_srcdir)/prov/mverbs/src/ep_rdm		\
+	-I$(top_srcdir)/prov/mverbs/src/ep_dgram		\
+	$(mverbs_CPPFLAGS)
+src_libfabric_la_LDFLAGS += $(mverbs_LDFLAGS)
+src_libfabric_la_LIBADD += $(mverbs_LIBS)
+endif !HAVE_MVERBS_DL
+
+prov_install_man_pages += man/man7/fi_mverbs.7
+
+endif HAVE_MVERBS
+
+prov_dist_man_pages += man/man7/fi_mverbs.7

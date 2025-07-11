@@ -5,6 +5,7 @@
 
 #include "mpiimpl.h"
 #include "dataloop_internal.h"
+#include "typerep_util.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -183,7 +184,6 @@ static void dloop_copy(void *dest, void *src, MPI_Aint size)
     return;
 }
 
-
 /*@
   MPII_Dataloop_update - update pointers after a copy operation
 
@@ -358,11 +358,11 @@ void MPII_Dataloop_alloc_and_copy(int kind,
             /* need space for dataloop pointers and extents */
             ptr_sz = count * sizeof(MPII_Dataloop *);
             extent_sz = count * sizeof(MPI_Aint);
-            MPL_FALLTHROUGH;
+            /* fall through */
         case MPII_DATALOOP_KIND_INDEXED:
             /* need space for block sizes */
             blk_sz = count * sizeof(MPI_Aint);
-            MPL_FALLTHROUGH;
+            /* fall through */
         case MPII_DATALOOP_KIND_BLOCKINDEXED:
             /* need space for block offsets */
             off_sz = count * sizeof(MPI_Aint);
@@ -522,14 +522,14 @@ void MPIR_Dataloop_create_resized(MPI_Datatype oldtype, MPI_Aint extent, void **
 MPI_Aint MPIR_Dataloop_size_external32(MPI_Datatype type)
 {
     if (HANDLE_IS_BUILTIN(type)) {
-        return MPII_Dataloop_get_basic_size_external32(type);
+        return MPII_Typerep_get_basic_size_external32(type);
     } else {
         MPII_Dataloop *dlp = NULL;
 
         MPIR_DATALOOP_GET_LOOPPTR(type, dlp);
         MPIR_Assert(dlp != NULL);
 
-        return MPII_Dataloop_stream_size(dlp, MPII_Dataloop_get_basic_size_external32);
+        return MPII_Dataloop_stream_size(dlp, MPII_Typerep_get_basic_size_external32);
     }
 }
 
@@ -621,4 +621,25 @@ MPI_Aint MPII_Dataloop_stream_size(MPII_Dataloop * dl_p, MPI_Aint(*sizefn) (MPI_
     tmp_sz = ((sizefn) ? sizefn(dl_p->el_type) : dl_p->el_size);
 
     return tmp_sz * tmp_ct;
+}
+
+/* dataloop doesn't maintain modified LB and UB (e.g. struct, resized).
+ * Update and overwrite is_contig from upper level after dataloop is created.
+ */
+void MPIR_Dataloop_update_contig(void *dataloop, MPI_Aint extent, MPI_Aint typesize)
+{
+    MPII_Dataloop *dlp = (MPII_Dataloop *) dataloop;
+    /* the type is only contiguous if extent is equal to size */
+    if (dlp->is_contig) {
+        if (extent != typesize) {
+            dlp->is_contig = 0;
+        }
+    }
+}
+
+void MPIR_Dataloop_get_contig(void *dataloop, int *is_contig, MPI_Aint * num_contig)
+{
+    MPII_Dataloop *dlp = (MPII_Dataloop *) dataloop;
+    *is_contig = dlp->is_contig;
+    *num_contig = dlp->num_contig;
 }

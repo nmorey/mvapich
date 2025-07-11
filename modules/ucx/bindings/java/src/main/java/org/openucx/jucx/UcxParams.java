@@ -1,5 +1,5 @@
 /*
- * Copyright (C) Mellanox Technologies Ltd. 2019. ALL RIGHTS RESERVED.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2019. ALL RIGHTS RESERVED.
  * See file LICENSE for terms.
  */
 
@@ -21,5 +21,12 @@ public abstract class UcxParams {
     public UcxParams clear() {
         fieldMask = 0L;
         return this;
+    }
+
+    public static void checkArraySizes(long[] array1, long[] array2) {
+        if (array1.length != array2.length) {
+            throw new UcxException("Arrays of not equal sizes: " +
+                array1.length + " != " + array2.length);
+        }
     }
 }

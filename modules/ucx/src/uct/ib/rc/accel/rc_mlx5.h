@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2001-2019.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2019. ALL RIGHTS RESERVED.
 *
 * See file LICENSE for terms.
 */
@@ -20,7 +20,15 @@
     UCT_RC_CHECK_CQE_RET(&(_iface)->super, &(_ep)->super, \
                          UCS_STATUS_PTR(UCS_ERR_NO_RESOURCE)) \
     UCT_RC_CHECK_TXQP_RET(&(_iface)->super, &(_ep)->super, \
-                          UCS_STATUS_PTR(UCS_ERR_NO_RESOURCE))
+                          UCS_STATUS_PTR(UCS_ERR_NO_RESOURCE)) \
+    UCT_RC_CHECK_NUM_RDMA_READ_RET(&(_iface)->super, \
+                                   UCS_STATUS_PTR(UCS_ERR_NO_RESOURCE))
+
+
+enum {
+    /* EP address includes flush_rkey value */
+    UCT_RC_MLX5_EP_ADDR_FLAG_FLUSH_RKEY = UCS_BIT(0)
+};
 
 
 /**
@@ -35,6 +43,18 @@ typedef struct uct_rc_mlx5_ep {
     uct_rc_mlx5_mp_context_t mp;
 } uct_rc_mlx5_ep_t;
 
+
+/**
+ * RC MLX5 EP cleanup context
+ */
+typedef struct {
+    uct_rc_iface_qp_cleanup_ctx_t super; /* Base class */
+    uct_ib_mlx5_qp_t              qp; /* Main QP */
+    uct_ib_mlx5_qp_t              tm_qp; /* TM Rendezvous QP */
+    uct_ib_mlx5_mmio_reg_t        *reg; /* Doorbell register */
+} uct_rc_mlx5_iface_qp_cleanup_ctx_t;
+
+
 typedef struct uct_rc_mlx5_ep_address {
     uct_ib_uint24_t  qp_num;
     /* For RNDV TM enabling 2 QPs should be created, one is for sending WRs and
@@ -44,12 +64,21 @@ typedef struct uct_rc_mlx5_ep_address {
     uint8_t          atomic_mr_id;
 } UCS_S_PACKED uct_rc_mlx5_ep_address_t;
 
+
+typedef struct uct_rc_mlx5_ep_ext_address {
+    uct_rc_mlx5_ep_address_t super;
+    uint8_t                  flags;
+} UCS_S_PACKED uct_rc_mlx5_ep_ext_address_t;
+
+
 UCS_CLASS_DECLARE(uct_rc_mlx5_ep_t, const uct_ep_params_t *);
 UCS_CLASS_DECLARE_NEW_FUNC(uct_rc_mlx5_ep_t, uct_ep_t, const uct_ep_params_t *);
 UCS_CLASS_DECLARE_DELETE_FUNC(uct_rc_mlx5_ep_t, uct_ep_t);
 
-void uct_rc_mlx5_iface_check_rx_completion(uct_rc_mlx5_iface_common_t *iface,
-                                           struct mlx5_cqe64 *cqe);
+struct mlx5_cqe64 *
+uct_rc_mlx5_iface_check_rx_completion(uct_ib_iface_t   *ib_iface,
+                                      uct_ib_mlx5_cq_t *cq,
+                                      struct mlx5_cqe64 *cqe, int poll_flags);
 
 ucs_status_t uct_rc_mlx5_ep_put_short(uct_ep_h tl_ep, const void *buffer, unsigned length,
                                       uint64_t remote_addr, uct_rkey_t rkey);
@@ -73,6 +102,9 @@ ucs_status_t uct_rc_mlx5_ep_get_zcopy(uct_ep_h tl_ep, const uct_iov_t *iov, size
 
 ucs_status_t uct_rc_mlx5_ep_am_short(uct_ep_h tl_ep, uint8_t id, uint64_t header,
                                      const void *payload, unsigned length);
+
+ucs_status_t uct_rc_mlx5_ep_am_short_iov(uct_ep_h tl_ep, uint8_t id,
+                                         const uct_iov_t *iov, size_t iovcnt);
 
 ssize_t uct_rc_mlx5_ep_am_bcopy(uct_ep_h tl_ep, uint8_t id,
                                 uct_pack_callback_t pack_cb, void *arg,
@@ -109,21 +141,34 @@ ucs_status_t uct_rc_mlx5_ep_atomic32_fetch(uct_ep_h ep, uct_atomic_op_t opcode,
 
 ucs_status_t uct_rc_mlx5_ep_fence(uct_ep_h tl_ep, unsigned flags);
 
+void uct_rc_mlx5_ep_post_check(uct_ep_h tl_ep);
+
+void uct_rc_mlx5_ep_vfs_populate(uct_rc_ep_t *rc_ep);
+
 ucs_status_t uct_rc_mlx5_ep_flush(uct_ep_h tl_ep, unsigned flags, uct_completion_t *comp);
 
+ucs_status_t uct_rc_mlx5_ep_invalidate(uct_ep_h tl_ep, unsigned flags);
+
 ucs_status_t uct_rc_mlx5_ep_fc_ctrl(uct_ep_t *tl_ep, unsigned op,
-                                    uct_rc_fc_request_t *req);
+                                    uct_rc_pending_req_t *req);
 
 ucs_status_t uct_rc_mlx5_iface_create_qp(uct_rc_mlx5_iface_common_t *iface,
                                          uct_ib_mlx5_qp_t *qp,
                                          uct_ib_mlx5_txwq_t *txwq,
                                          uct_ib_mlx5_qp_attr_t *attr);
 
-ucs_status_t uct_rc_mlx5_ep_connect_to_ep(uct_ep_h tl_ep,
-                                          const uct_device_addr_t *dev_addr,
-                                          const uct_ep_addr_t *ep_addr);
+ucs_status_t
+uct_rc_mlx5_ep_connect_qp(uct_rc_mlx5_iface_common_t *iface,
+                          uct_ib_mlx5_qp_t *qp, uint32_t qp_num,
+                          struct ibv_ah_attr *ah_attr, enum ibv_mtu path_mtu,
+                          uint8_t path_index);
 
-unsigned uct_rc_mlx5_iface_progress(void *arg);
+ucs_status_t
+uct_rc_mlx5_ep_connect_to_ep_v2(uct_ep_h tl_ep,
+                                const uct_device_addr_t *device_addr,
+                                const uct_ep_addr_t *ep_addr,
+                                const uct_ep_connect_to_ep_params_t *params);
+
 
 ucs_status_t uct_rc_mlx5_ep_tag_eager_short(uct_ep_h tl_ep, uct_tag_t tag,
                                             const void *data, size_t length);
@@ -152,10 +197,8 @@ ucs_status_t uct_rc_mlx5_ep_tag_rndv_request(uct_ep_h tl_ep, uct_tag_t tag,
 
 ucs_status_t uct_rc_mlx5_ep_get_address(uct_ep_h tl_ep, uct_ep_addr_t *addr);
 
-ucs_status_t uct_rc_mlx5_ep_handle_failure(uct_rc_mlx5_ep_t *ep,
-                                           ucs_status_t status);
+unsigned uct_rc_mlx5_ep_cleanup_qp(void *arg);
 
-ucs_status_t uct_rc_mlx5_ep_set_failed(uct_ib_iface_t *iface, uct_ep_h ep,
-                                       ucs_status_t status);
+ucs_status_t uct_rc_mlx5_iface_event_fd_get(uct_iface_h tl_iface, int *fd_p);
 
 #endif

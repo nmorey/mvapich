@@ -7,7 +7,7 @@
 #define MPIR_TOPO_H_INCLUDED
 
 /*
- * The following struture allows the device detailed control over the
+ * The following structure allows the device detailed control over the
  * functions that are used to implement the topology routines.  If either
  * the pointer to this structure is null or any individual entry is null,
  * the default function is used (this follows exactly the same rules as the
@@ -48,7 +48,7 @@ typedef struct MPII_Dist_graph_topology {
 } MPII_Dist_graph_topology;
 
 struct MPIR_Topology {
-    MPIR_Topo_type kind;
+    int kind;
     union topo {
         MPII_Graph_topology graph;
         MPII_Cart_topology cart;
@@ -72,33 +72,9 @@ int MPIR_Topo_canon_nhb_count(MPIR_Comm * comm_ptr, int *indegree, int *outdegre
  * works for any topology type by canonicalizing according to the rules in
  * Section 7.6 of the MPI-3.0 standard. */
 int MPIR_Topo_canon_nhb(MPIR_Comm * comm_ptr,
-                        int indegree, int sources[], int inweights[],
-                        int outdegree, int dests[], int outweights[]);
+                        int indegree, int sources[], int *inweights,
+                        int outdegree, int dests[], int *outweights);
 
 #define MAX_CART_DIM 16
-
-/* topology impl functions */
-int MPIR_Cart_create(MPIR_Comm *, int, const int[], const int[], int, MPI_Comm *);
-int MPIR_Cart_map(const MPIR_Comm *, int, const int[], const int[], int *);
-int MPIR_Cart_shift_impl(MPIR_Comm * comm_ptr, int direction, int displ, int *source, int *dest);
-
-void MPIR_Cart_rank_impl(struct MPIR_Topology *cart_ptr, const int *coords, int *rank);
-int MPIR_Cart_create_impl(MPIR_Comm * comm_ptr, int ndims, const int dims[],
-                          const int periods[], int reorder, MPI_Comm * comm_cart);
-int MPIR_Cart_map_impl(const MPIR_Comm * comm_ptr, int ndims, const int dims[],
-                       const int periodic[], int *newrank);
-
-int MPIR_Graph_create(MPIR_Comm *, int, const int[], const int[], int, MPI_Comm *);
-int MPIR_Graph_map(const MPIR_Comm *, int, const int[], const int[], int *);
-int MPIR_Graph_neighbors_count_impl(MPIR_Comm * comm_ptr, int rank, int *nneighbors);
-int MPIR_Graph_neighbors_impl(MPIR_Comm * comm_ptr, int rank, int maxneighbors, int *neighbors);
-int MPIR_Graph_map_impl(const MPIR_Comm * comm_ptr, int nnodes,
-                        const int indx[], const int edges[], int *newrank);
-
-int MPIR_Dist_graph_neighbors_count_impl(MPIR_Comm * comm_ptr, int *indegree, int *outdegree,
-                                         int *weighted);
-int MPIR_Dist_graph_neighbors_impl(MPIR_Comm * comm_ptr, int maxindegree, int sources[],
-                                   int sourceweights[], int maxoutdegree, int destinations[],
-                                   int destweights[]);
 
 #endif /* MPIR_TOPO_H_INCLUDED */

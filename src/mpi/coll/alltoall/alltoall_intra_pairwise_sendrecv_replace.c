@@ -20,21 +20,17 @@
  * MADRE is probably the best solution for the MPI_IN_PLACE scenario.
  */
 int MPIR_Alltoall_intra_pairwise_sendrecv_replace(const void *sendbuf,
-                                                  int sendcount,
+                                                  MPI_Aint sendcount,
                                                   MPI_Datatype sendtype,
                                                   void *recvbuf,
-                                                  int recvcount,
+                                                  MPI_Aint recvcount,
                                                   MPI_Datatype recvtype,
-                                                  MPIR_Comm * comm_ptr, MPIR_Errflag_t * errflag)
+                                                  MPIR_Comm * comm_ptr, MPIR_Errflag_t errflag)
 {
     int comm_size, i, j;
     MPI_Aint recvtype_extent;
     int mpi_errno = MPI_SUCCESS, rank;
-    int mpi_errno_ret = MPI_SUCCESS;
     MPI_Status status;
-
-    if (recvcount == 0)
-        return MPI_SUCCESS;
 
     comm_size = comm_ptr->local_size;
     rank = comm_ptr->rank;
@@ -60,36 +56,20 @@ int MPIR_Alltoall_intra_pairwise_sendrecv_replace(const void *sendbuf,
                     MPIC_Sendrecv_replace(((char *) recvbuf + j * recvcount * recvtype_extent),
                                           recvcount, recvtype, j, MPIR_ALLTOALL_TAG, j,
                                           MPIR_ALLTOALL_TAG, comm_ptr, &status, errflag);
-                if (mpi_errno) {
-                    /* for communication errors, just record the error but continue */
-                    *errflag =
-                        MPIX_ERR_PROC_FAILED ==
-                        MPIR_ERR_GET_CLASS(mpi_errno) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER;
-                    MPIR_ERR_SET(mpi_errno, *errflag, "**fail");
-                    MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-                }
+                MPIR_ERR_CHECK(mpi_errno);
             } else if (rank == j) {
                 /* same as above with i/j args reversed */
                 mpi_errno =
                     MPIC_Sendrecv_replace(((char *) recvbuf + i * recvcount * recvtype_extent),
                                           recvcount, recvtype, i, MPIR_ALLTOALL_TAG, i,
                                           MPIR_ALLTOALL_TAG, comm_ptr, &status, errflag);
-                if (mpi_errno) {
-                    /* for communication errors, just record the error but continue */
-                    *errflag =
-                        MPIX_ERR_PROC_FAILED ==
-                        MPIR_ERR_GET_CLASS(mpi_errno) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER;
-                    MPIR_ERR_SET(mpi_errno, *errflag, "**fail");
-                    MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-                }
+                MPIR_ERR_CHECK(mpi_errno);
             }
         }
     }
 
-    if (mpi_errno_ret)
-        mpi_errno = mpi_errno_ret;
-    else if (*errflag != MPIR_ERR_NONE)
-        MPIR_ERR_SET(mpi_errno, *errflag, "**coll_fail");
-
+  fn_exit:
     return mpi_errno;
+  fn_fail:
+    goto fn_exit;
 }

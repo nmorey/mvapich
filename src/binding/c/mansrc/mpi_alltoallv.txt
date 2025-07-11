@@ -1,0 +1,45 @@
+/*D
+   MPI_Alltoallv - Sends data from all to all processes; each process may send a different amount of data and provide displacements for the input and output data.
+
+Synopsis:
+.vb
+int MPI_Alltoallv(const void *sendbuf, const int sendcounts[],
+                  const int sdispls[], MPI_Datatype sendtype, void *recvbuf,
+                  const int recvcounts[], const int rdispls[],
+                  MPI_Datatype recvtype, MPI_Comm comm)
+.ve
+.vb
+int MPI_Alltoallv_c(const void *sendbuf, const MPI_Count sendcounts[],
+                    const MPI_Aint sdispls[], MPI_Datatype sendtype,
+                    void *recvbuf, const MPI_Count recvcounts[],
+                    const MPI_Aint rdispls[], MPI_Datatype recvtype,
+                    MPI_Comm comm)
+.ve
+
+Input Parameters:
++ sendbuf - starting address of send buffer (choice)
+. sendcounts - non-negative integer array (of length group size) specifying the number of elements to send to each rank (non-negative integer)
+. sdispls - integer array (of length group size). Entry j specifies the displacement (relative to sendbuf) from which to take the outgoing data destined for process j (integer)
+. sendtype - data type of send buffer elements (handle)
+. recvcounts - non-negative integer array (of length group size) specifying the number of elements that can be received from each rank (non-negative integer)
+. rdispls - integer array (of length group size). Entry i specifies the displacement (relative to recvbuf) at which to place the incoming data from process i (integer)
+. recvtype - data type of receive buffer elements (handle)
+- comm - communicator (handle)
+
+Output Parameters:
+. recvbuf - address of receive buffer (choice)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_BUFFER
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

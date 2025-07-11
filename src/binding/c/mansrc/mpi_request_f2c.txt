@@ -1,0 +1,15 @@
+/*D
+   MPI_Request_f2c - converts Fortran INTEGER to MPI_Request
+
+Synopsis:
+.vb
+MPI_Request MPI_Request_f2c(MPI_Fint request)
+.ve
+
+Input Parameters:
+. request - request (None)
+
+.N ThreadSafe
+
+D*/
+

@@ -1,0 +1,14 @@
+/*D
+   MPIX_Query_cuda_support - Returns whether CUDA is supported
+
+Synopsis:
+.vb
+int MPIX_Query_cuda_support(void)
+.ve
+
+.N ThreadSafe
+
+.N Fortran
+
+D*/
+

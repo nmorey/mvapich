@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2019.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2019. ALL RIGHTS RESERVED.
 *
 * See file LICENSE for terms.
 */
@@ -45,4 +45,4 @@ UCS_CLASS_DECLARE_NEW_FUNC(uct_tcp_sockcm_t, uct_cm_t, uct_component_h,
                            uct_worker_h, const uct_cm_config_t *);
 UCS_CLASS_DECLARE_DELETE_FUNC(uct_tcp_sockcm_t, uct_cm_t);
 
-void uct_tcp_sa_data_handler(int fd, int events, void *arg);
+void uct_tcp_sa_data_handler(int fd, ucs_event_set_types_t events, void *arg);

@@ -1,0 +1,15 @@
+/*D
+   MPI_Message_c2f - converts MPI_Message to Fortran INTEGER
+
+Synopsis:
+.vb
+MPI_Fint MPI_Message_c2f(MPI_Message message)
+.ve
+
+Input Parameters:
+. message - message (handle)
+
+.N ThreadSafe
+
+D*/
+

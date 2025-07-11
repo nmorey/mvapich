@@ -1,0 +1,28 @@
+/*D
+   MPI_Group_union - Produces a group by combining two groups
+
+Synopsis:
+.vb
+int MPI_Group_union(MPI_Group group1, MPI_Group group2, MPI_Group *newgroup)
+.ve
+
+Input Parameters:
++ group1 - first group (handle)
+- group2 - second group (handle)
+
+Output Parameters:
+. newgroup - union group (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_GROUP
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Group_free
+D*/
+

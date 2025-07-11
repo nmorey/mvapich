@@ -1,0 +1,35 @@
+/*D
+   MPIX_Comm_agree - Performs agreement operation on comm
+
+Synopsis:
+.vb
+int MPIX_Comm_agree(MPI_Comm comm, int *flag)
+.ve
+
+Input Parameters:
+. comm - communicator (handle)
+
+Output Parameters:
+. flag - new communicator (logical)
+
+Notes:
+The purpose of this collective communication is to agree on the integer value flag and on the group of failed processes in comm.
+
+On completion, all non-failed MPI processes have agreed to set the output integer value of flag to the result of a bitwise AND operation over the contributed input values of flag. If comm is an intercommunicator, the value of flagis a bitwise AND operation over the values contributed by the remote group.
+
+When an MPI process fails before contributing to the operation, the flag is computed ignoring its contribution, and MPIX_Comm_agree raises an error of class MPI_ERR_PROC_FAILED. However, if all MPI processes have acknowledged this failure priorto the call to MPIX_Comm_agree, using MPIX_Comm_failure_ack, the error related to this failure is not raised. When an error of class MPI_ERR_PROC_FAILED is raised, it is consistently raised at allMPI processes, in both the local and remote groups (if applicable).
+
+After MPIX_Comm_agree raised an error of class MPI_ERR_PROC_FAILED, a subse-quent call to MPIX_Comm_failure_ack on comm acknowledges the failure of every MPI process that didn't contribute to the computation offlag.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+D*/
+

@@ -9,7 +9,7 @@
 #include <unistd.h>
 #endif
 
-void ADIOI_NFS_ReadContig(ADIO_File fd, void *buf, int count,
+void ADIOI_NFS_ReadContig(ADIO_File fd, void *buf, MPI_Aint count,
                           MPI_Datatype datatype, int file_ptr_type,
                           ADIO_Offset offset, ADIO_Status * status, int *error_code)
 {
@@ -154,7 +154,7 @@ void ADIOI_NFS_ReadContig(ADIO_File fd, void *buf, int count,
 #endif
 
 
-void ADIOI_NFS_ReadStrided(ADIO_File fd, void *buf, int count,
+void ADIOI_NFS_ReadStrided(ADIO_File fd, void *buf, MPI_Aint count,
                            MPI_Datatype datatype, int file_ptr_type,
                            ADIO_Offset offset, ADIO_Status * status, int
                            *error_code)
@@ -163,13 +163,14 @@ void ADIOI_NFS_ReadStrided(ADIO_File fd, void *buf, int count,
 
     ADIOI_Flatlist_node *flat_buf, *flat_file;
     ADIO_Offset i_offset, new_brd_size, brd_size, size;
-    int i, j, k, err, err_flag = 0, st_index = 0;
+    int i, j, k, err_flag = 0, st_index = 0;
+    ssize_t err;
     MPI_Count num, bufsize;
-    int n_etypes_in_filetype;
+    MPI_Count n_etypes_in_filetype;
     ADIO_Offset n_filetypes, etype_in_filetype, st_n_filetypes, size_in_filetype;
     ADIO_Offset abs_off_in_filetype = 0, new_frd_size, frd_size = 0, st_frd_size;
     MPI_Count filetype_size, etype_size, buftype_size, partial_read;
-    MPI_Aint filetype_extent, buftype_extent;
+    MPI_Aint lb, filetype_extent, buftype_extent;
     int buf_count, buftype_is_contig, filetype_is_contig;
     ADIO_Offset userbuf_off, req_len, sum;
     ADIO_Offset off, req_off, disp, end_offset = 0, readbuf_off, start_off;
@@ -191,9 +192,9 @@ void ADIOI_NFS_ReadStrided(ADIO_File fd, void *buf, int count,
         return;
     }
 
-    MPI_Type_extent(fd->filetype, &filetype_extent);
+    MPI_Type_get_extent(fd->filetype, &lb, &filetype_extent);
     MPI_Type_size_x(datatype, &buftype_size);
-    MPI_Type_extent(datatype, &buftype_extent);
+    MPI_Type_get_extent(datatype, &lb, &buftype_extent);
     etype_size = fd->etype_size;
 
     ADIOI_Assert((buftype_size * count) ==

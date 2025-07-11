@@ -6,7 +6,6 @@
 #include "mpiimpl.h"
 #include <stdlib.h>
 #include <limits.h>
-#include "datatype.h"
 
 /* MPI datatype debugging helper routines.
  *
@@ -18,7 +17,7 @@
  *
  */
 
-static void contents_printf(MPI_Datatype type, int depth, int acount);
+static void contents_printf(MPI_Datatype type, int depth, int array_ct);
 static char *depth_spacing(int depth) ATTRIBUTE((unused));
 
 #define NR_TYPE_CUTOFF 6        /* Number of types to display before truncating
@@ -244,16 +243,18 @@ char *MPIR_Datatype_combiner_to_string(int combiner)
         return c_struct;
     if (combiner == MPI_COMBINER_DUP)
         return c_dup;
+#ifndef BUILD_MPI_ABI
     if (combiner == MPI_COMBINER_HVECTOR_INTEGER)
         return c_hvector_integer;
     if (combiner == MPI_COMBINER_HINDEXED_INTEGER)
         return c_hindexed_integer;
+    if (combiner == MPI_COMBINER_STRUCT_INTEGER)
+        return c_struct_integer;
+#endif
     if (combiner == MPI_COMBINER_INDEXED_BLOCK)
         return c_indexed_block;
     if (combiner == MPI_COMBINER_HINDEXED_BLOCK)
         return c_hindexed_block;
-    if (combiner == MPI_COMBINER_STRUCT_INTEGER)
-        return c_struct_integer;
     if (combiner == MPI_COMBINER_SUBARRAY)
         return c_subarray;
     if (combiner == MPI_COMBINER_DARRAY)
@@ -278,7 +279,7 @@ char *MPIR_Datatype_combiner_to_string(int combiner)
  */
 void MPIR_Datatype_debug(MPI_Datatype type, int array_ct)
 {
-#if (defined HAVE_ERROR_CHECKING) || (defined MPL_USE_DBG_LOGGING)
+#if (defined HAVE_ERROR_CHECKING) && (defined MPL_USE_DBG_LOGGING)
     const char *string;
 #endif
     MPIR_Datatype *dtp ATTRIBUTE((unused));
@@ -291,7 +292,7 @@ void MPIR_Datatype_debug(MPI_Datatype type, int array_ct)
                         (MPL_DBG_FDEST, "# MPIU_Datatype_debug: MPI_Datatype = MPI_DATATYPE_NULL"));
         return;
     }
-#if (defined HAVE_ERROR_CHECKING) || (defined MPL_USE_DBG_LOGGING)
+#if (defined HAVE_ERROR_CHECKING) && (defined MPL_USE_DBG_LOGGING)
     if (HANDLE_IS_BUILTIN(type)) {
         string = MPIR_Datatype_builtin_to_string(type);
         MPIR_Assert(string != NULL);
@@ -309,7 +310,7 @@ void MPIR_Datatype_debug(MPI_Datatype type, int array_ct)
     MPIR_Datatype_get_ptr(type, dtp);
     MPIR_Assert(dtp != NULL);
 
-#if (defined HAVE_ERROR_CHECKING) || (defined MPL_USE_DBG_LOGGING)
+#if (defined HAVE_ERROR_CHECKING) && (defined MPL_USE_DBG_LOGGING)
     string = MPIR_Datatype_builtin_to_string(dtp->basic_type);
     MPIR_Assert(string != NULL);
 
@@ -360,13 +361,7 @@ static char *depth_spacing(int depth)
     }
 }
 
-#define MPII_DATATYPE_FREE_AND_RETURN { \
- if (cp->nr_ints  > 0) MPL_free(ints);   \
- if (cp->nr_aints > 0) MPL_free(aints);   \
- if (cp->nr_types > 0) MPL_free(types);   \
- return;                                 }
-
-static void contents_printf(MPI_Datatype type, int depth, int acount)
+static void contents_printf(MPI_Datatype type, int depth, int array_ct)
 {
     int i;
     MPIR_Datatype *dtp;
@@ -375,8 +370,9 @@ static void contents_printf(MPI_Datatype type, int depth, int acount)
     MPI_Aint *aints = NULL;
     MPI_Datatype *types = NULL;
     int *ints = NULL;
+    MPI_Aint *counts = NULL;
 
-#if (defined HAVE_ERROR_CHECKING) || (defined MPL_USE_DBG_LOGGING)
+#if (defined HAVE_ERROR_CHECKING) && (defined MPL_USE_DBG_LOGGING)
     if (HANDLE_IS_BUILTIN(type)) {
         const char *string = MPIR_Datatype_builtin_to_string(type);
         MPIR_Assert(string != NULL);
@@ -394,24 +390,12 @@ static void contents_printf(MPI_Datatype type, int depth, int acount)
         return;
     }
 
-    if (cp->nr_ints > 0) {
-        ints = (int *) MPL_malloc(cp->nr_ints * sizeof(int), MPL_MEM_DATATYPE);
-        MPIR_Assert(ints != NULL);
-        MPII_Datatype_get_contents_ints(cp, ints);
-    }
+    MPIR_Datatype_access_contents(cp, &ints, &aints, &counts, &types);
 
-    if (cp->nr_aints > 0) {
-        aints = (MPI_Aint *) MPL_malloc(cp->nr_aints * sizeof(MPI_Aint), MPL_MEM_DATATYPE);
-        MPIR_Assert(aints != NULL);
-        MPII_Datatype_get_contents_aints(cp, aints);
-    }
+    /* FIXME: large count datatype need processed separately */
+    MPIR_Assert(cp->nr_counts == 0);
 
-    if (cp->nr_types > 0) {
-        types = (MPI_Datatype *) MPL_malloc(cp->nr_types * sizeof(MPI_Datatype), MPL_MEM_DATATYPE);
-        MPIR_Assert(types != NULL);
-        MPII_Datatype_get_contents_types(cp, types);
-    }
-#if (defined HAVE_ERROR_CHECKING) || (defined MPL_USE_DBG_LOGGING)
+#if (defined HAVE_ERROR_CHECKING) && (defined MPL_USE_DBG_LOGGING)
     {
         const char *string = MPIR_Datatype_combiner_to_string(cp->combiner);
         MPIR_Assert(string != NULL);
@@ -423,22 +407,20 @@ static void contents_printf(MPI_Datatype type, int depth, int acount)
     switch (cp->combiner) {
         case MPI_COMBINER_NAMED:
         case MPI_COMBINER_DUP:
-            MPII_DATATYPE_FREE_AND_RETURN;
-            /* not done */
-            MPII_DATATYPE_FREE_AND_RETURN;
+            return;
         case MPI_COMBINER_CONTIGUOUS:
             MPIR_Assert((ints != NULL) && (types != NULL));
             MPL_DBG_OUT_FMT(MPIR_DBG_DATATYPE, (MPL_DBG_FDEST, "# %scontig ct = %d\n",
                                                 depth_spacing(depth), *ints));
-            contents_printf(*types, depth + 1, acount);
-            MPII_DATATYPE_FREE_AND_RETURN;
+            contents_printf(*types, depth + 1, array_ct);
+            return;
         case MPI_COMBINER_VECTOR:
             MPIR_Assert((ints != NULL) && (types != NULL));
             MPL_DBG_OUT_FMT(MPIR_DBG_DATATYPE, (MPL_DBG_FDEST,
                                                 "# %svector ct = %d, blk = %d, str = %d\n",
                                                 depth_spacing(depth), ints[0], ints[1], ints[2]));
-            contents_printf(*types, depth + 1, acount);
-            MPII_DATATYPE_FREE_AND_RETURN;
+            contents_printf(*types, depth + 1, array_ct);
+            return;
         case MPI_COMBINER_HVECTOR:
             MPIR_Assert((ints != NULL) && (aints != NULL) && (types != NULL));
             MPL_DBG_OUT_FMT(MPIR_DBG_DATATYPE, (MPL_DBG_FDEST,
@@ -446,52 +428,52 @@ static void contents_printf(MPI_Datatype type, int depth, int acount)
                                                 MPI_AINT_FMT_DEC_SPEC "\n",
                                                 depth_spacing(depth), ints[0],
                                                 ints[1], (MPI_Aint) aints[0]));
-            contents_printf(*types, depth + 1, acount);
-            MPII_DATATYPE_FREE_AND_RETURN;
+            contents_printf(*types, depth + 1, array_ct);
+            return;
         case MPI_COMBINER_INDEXED:
             MPIR_Assert((ints != NULL) && (types != NULL));
             MPL_DBG_OUT_FMT(MPIR_DBG_DATATYPE, (MPL_DBG_FDEST, "# %sindexed ct = %d:",
                                                 depth_spacing(depth), ints[0]));
-            for (i = 0; i < acount && i < ints[0]; i++) {
+            for (i = 0; i < array_ct && i < ints[0]; i++) {
                 MPL_DBG_OUT_FMT(MPIR_DBG_DATATYPE, (MPL_DBG_FDEST,
                                                     "# %s  indexed [%d]: blk = %d, disp = %d\n",
                                                     depth_spacing(depth),
                                                     i,
                                                     ints[i + 1], ints[i + (cp->nr_ints / 2) + 1]));
-                contents_printf(*types, depth + 1, acount);
+                contents_printf(*types, depth + 1, array_ct);
             }
-            MPII_DATATYPE_FREE_AND_RETURN;
+            return;
         case MPI_COMBINER_HINDEXED:
             MPIR_Assert((ints != NULL) && (aints != NULL) && (types != NULL));
             MPL_DBG_OUT_FMT(MPIR_DBG_DATATYPE, (MPL_DBG_FDEST, "# %shindexed ct = %d:",
                                                 depth_spacing(depth), ints[0]));
-            for (i = 0; i < acount && i < ints[0]; i++) {
+            for (i = 0; i < array_ct && i < ints[0]; i++) {
                 MPL_DBG_OUT_FMT(MPIR_DBG_DATATYPE, (MPL_DBG_FDEST,
                                                     "# %s  hindexed [%d]: blk = %d, disp = "
                                                     MPI_AINT_FMT_DEC_SPEC "\n",
                                                     depth_spacing(depth), i,
                                                     (int) ints[i + 1], (MPI_Aint) aints[i]));
-                contents_printf(*types, depth + 1, acount);
+                contents_printf(*types, depth + 1, array_ct);
             }
-            MPII_DATATYPE_FREE_AND_RETURN;
+            return;
         case MPI_COMBINER_STRUCT:
             MPIR_Assert((ints != NULL) && (aints != NULL) && (types != NULL));
             MPL_DBG_OUT_FMT(MPIR_DBG_DATATYPE, (MPL_DBG_FDEST, "# %sstruct ct = %d:",
                                                 depth_spacing(depth), (int) ints[0]));
-            for (i = 0; i < acount && i < ints[0]; i++) {
+            for (i = 0; i < array_ct && i < ints[0]; i++) {
                 MPL_DBG_OUT_FMT(MPIR_DBG_DATATYPE, (MPL_DBG_FDEST,
                                                     "# %s  struct[%d]: blk = %d, disp = "
                                                     MPI_AINT_FMT_DEC_SPEC "\n",
                                                     depth_spacing(depth), i,
                                                     (int) ints[i + 1], (MPI_Aint) aints[i]));
-                contents_printf(types[i], depth + 1, acount);
+                contents_printf(types[i], depth + 1, array_ct);
             }
-            MPII_DATATYPE_FREE_AND_RETURN;
+            return;
         case MPI_COMBINER_SUBARRAY:
             MPIR_Assert((ints != NULL) && (types != NULL));
             MPL_DBG_OUT_FMT(MPIR_DBG_DATATYPE, (MPL_DBG_FDEST, "# %ssubarray ct = %d:",
                                                 depth_spacing(depth), (int) ints[0]));
-            for (i = 0; i < acount && i < ints[0]; i++) {
+            for (i = 0; i < array_ct && i < ints[0]; i++) {
                 MPL_DBG_OUT_FMT(MPIR_DBG_DATATYPE, (MPL_DBG_FDEST,
                                                     "# %s  sizes[%d] = %d subsizes[%d] = %d starts[%d] = %d\n",
                                                     depth_spacing(depth),
@@ -499,8 +481,8 @@ static void contents_printf(MPI_Datatype type, int depth, int acount)
                                                     i, (int) ints[i + ints[0] + 1],
                                                     i, (int) ints[2 * ints[0] + 1]));
             }
-            contents_printf(*types, depth + 1, acount);
-            MPII_DATATYPE_FREE_AND_RETURN;
+            contents_printf(*types, depth + 1, array_ct);
+            return;
 
         case MPI_COMBINER_RESIZED:
             MPIR_Assert((aints != NULL) && (types != NULL));
@@ -508,12 +490,12 @@ static void contents_printf(MPI_Datatype type, int depth, int acount)
                             (MPL_DBG_FDEST,
                              "# %sresized lb = " MPI_AINT_FMT_DEC_SPEC " extent = "
                              MPI_AINT_FMT_DEC_SPEC "\n", depth_spacing(depth), aints[0], aints[1]));
-            contents_printf(*types, depth + 1, acount);
-            MPII_DATATYPE_FREE_AND_RETURN;
+            contents_printf(*types, depth + 1, array_ct);
+            return;
         default:
             MPL_DBG_OUT_FMT(MPIR_DBG_DATATYPE, (MPL_DBG_FDEST, "# %sunhandled combiner",
                                                 depth_spacing(depth)));
-            MPII_DATATYPE_FREE_AND_RETURN;
+            return;
     }
 }
 

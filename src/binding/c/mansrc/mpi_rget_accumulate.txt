@@ -1,0 +1,64 @@
+/*D
+   MPI_Rget_accumulate - Perform an atomic, one-sided read-and-accumulate
+
+Synopsis:
+.vb
+int MPI_Rget_accumulate(const void *origin_addr, int origin_count,
+                        MPI_Datatype origin_datatype, void *result_addr,
+                        int result_count, MPI_Datatype result_datatype,
+                        int target_rank, MPI_Aint target_disp, int target_count,
+                        MPI_Datatype target_datatype, MPI_Op op, MPI_Win win,
+                        MPI_Request *request)
+.ve
+.vb
+int MPI_Rget_accumulate_c(const void *origin_addr, MPI_Count origin_count,
+                          MPI_Datatype origin_datatype, void *result_addr,
+                          MPI_Count result_count, MPI_Datatype result_datatype,
+                          int target_rank, MPI_Aint target_disp,
+                          MPI_Count target_count, MPI_Datatype target_datatype,
+                          MPI_Op op, MPI_Win win, MPI_Request *request)
+.ve
+
+Input Parameters:
++ origin_addr - initial address of buffer (choice)
+. origin_count - number of entries in origin buffer (non-negative integer)
+. origin_datatype - datatype of each entry in origin buffer (handle)
+. result_count - number of entries in result buffer (non-negative integer)
+. result_datatype - datatype of entries in result buffer (handle)
+. target_rank - rank of target (non-negative integer)
+. target_disp - displacement from start of window to beginning of target buffer (non-negative integer)
+. target_count - number of entries in target buffer (non-negative integer)
+. target_datatype - datatype of each entry in target buffer (handle)
+. op - reduce operation (handle)
+- win - window object (handle)
+
+Output Parameters:
++ result_addr - initial address of result buffer (choice)
+- request - RMA request (handle)
+
+Notes:
+This operations is atomic with respect to other "accumulate" operations.
+
+The get and accumulate steps are executed atomically for each basic element in
+the datatype (see MPI 3.0 Section 11.7 for details). The predefined operation
+'MPI_REPLACE' provides fetch-and-set behavior.
+
+The basic components of both the origin and target datatype must be the same
+predefined datatype (e.g., all 'MPI_INT' or all 'MPI_DOUBLE_PRECISION').
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_BUFFER
+.N MPI_ERR_COUNT
+.N MPI_ERR_DISP
+.N MPI_ERR_RANK
+.N MPI_ERR_TYPE
+.N MPI_ERR_WIN
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Get_accumulate MPI_Fetch_and_op
+D*/
+

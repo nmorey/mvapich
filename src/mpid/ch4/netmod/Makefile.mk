@@ -12,5 +12,3 @@ include $(top_srcdir)/src/mpid/ch4/netmod/src/Makefile.mk
 include $(top_srcdir)/src/mpid/ch4/netmod/ofi/Makefile.mk
 include $(top_srcdir)/src/mpid/ch4/netmod/ucx/Makefile.mk
 include $(top_srcdir)/src/mpid/ch4/netmod/stubnm/Makefile.mk
-
-include $(top_srcdir)/src/mpid/ch4/netmod/mvp/Makefile.mk

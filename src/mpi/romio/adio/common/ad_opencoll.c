@@ -42,14 +42,14 @@ static MPI_Datatype make_stats_type(ADIO_File fd)
     MPI_Datatype newtype;
 
     lens[BLOCKSIZE] = 1;
-    MPI_Address(&fd->blksize, &offsets[BLOCKSIZE]);
+    MPI_Get_address(&fd->blksize, &offsets[BLOCKSIZE]);
     types[BLOCKSIZE] = MPI_LONG;
 
     lens[STRIPE_SIZE] = lens[STRIPE_FACTOR] = lens[START_IODEVICE] = 1;
     types[STRIPE_SIZE] = types[STRIPE_FACTOR] = types[START_IODEVICE] = MPI_INT;
-    MPI_Address(&fd->hints->striping_unit, &offsets[STRIPE_SIZE]);
-    MPI_Address(&fd->hints->striping_factor, &offsets[STRIPE_FACTOR]);
-    MPI_Address(&fd->hints->start_iodevice, &offsets[START_IODEVICE]);
+    MPI_Get_address(&fd->hints->striping_unit, &offsets[STRIPE_SIZE]);
+    MPI_Get_address(&fd->hints->striping_factor, &offsets[STRIPE_FACTOR]);
+    MPI_Get_address(&fd->hints->start_iodevice, &offsets[START_IODEVICE]);
 
 
     MPI_Type_create_struct(STAT_ITEMS, lens, offsets, types, &newtype);
@@ -60,6 +60,7 @@ static MPI_Datatype make_stats_type(ADIO_File fd)
 
 void ADIOI_GEN_OpenColl(ADIO_File fd, int rank, int access_mode, int *error_code)
 {
+    char value[MPI_MAX_INFO_VAL + 1];
     int orig_amode_excl, orig_amode_wronly;
     MPI_Comm tmp_comm;
     MPI_Datatype stats_type;    /* deferred open: some processes might not
@@ -105,7 +106,6 @@ void ADIOI_GEN_OpenColl(ADIO_File fd, int rank, int access_mode, int *error_code
     /* if we are doing deferred open, non-aggregators should return now */
     if (fd->hints->deferred_open) {
         if (!(fd->is_agg)) {
-            char value[MPI_MAX_INFO_VAL + 1];
             /* we might have turned off EXCL for the aggregators.
              * restore access_mode that non-aggregators get the right
              * value from get_amode */
@@ -117,20 +117,23 @@ void ADIOI_GEN_OpenColl(ADIO_File fd, int rank, int access_mode, int *error_code
              * lower-level file system driver (e.g. 'bluegene') collected it
              * (not all do)*/
             stats_type = make_stats_type(fd);
+            /* in this branch the non-aggregators are returning early.
+             * MPI_Bcast here matches the MPI_Bcast from the aggregators after
+             * they open the file and find out striping information */
             MPI_Bcast(MPI_BOTTOM, 1, stats_type, fd->hints->ranklist[0], fd->comm);
             ADIOI_Assert(fd->blksize > 0);
             /* some file systems (e.g. lustre) will inform the user via the
              * info object about the file configuration.  deferred open,
              * though, skips that step for non-aggregators.  we do the
              * info-setting here */
-            MPL_snprintf(value, sizeof(value), "%d", fd->hints->striping_unit);
+            snprintf(value, sizeof(value), "%d", fd->hints->striping_unit);
             ADIOI_Info_set(fd->info, "striping_unit", value);
 
-            MPL_snprintf(value, sizeof(value), "%d", fd->hints->striping_factor);
+            snprintf(value, sizeof(value), "%d", fd->hints->striping_factor);
             ADIOI_Info_set(fd->info, "striping_factor", value);
 
-            MPL_snprintf(value, sizeof(value), "%d", fd->hints->start_iodevice);
-            ADIOI_Info_set(fd->info, "romio_lustre_start_iodevice", value);
+            snprintf(value, sizeof(value), "%d", fd->hints->start_iodevice);
+            ADIOI_Info_set(fd->info, "start_iodevice", value);
 
             *error_code = MPI_SUCCESS;
             MPI_Type_free(&stats_type);
@@ -165,7 +168,7 @@ void ADIOI_GEN_OpenColl(ADIO_File fd, int rank, int access_mode, int *error_code
     if (fd->access_mode != orig_amode_excl)
         fd->access_mode = orig_amode_excl;
 
-    /* broadcast information to all proceses in
+    /* broadcast information to all processes in
      * communicator, not just those who participated in open */
 
     stats_type = make_stats_type(fd);
@@ -175,8 +178,21 @@ void ADIOI_GEN_OpenColl(ADIO_File fd, int rank, int access_mode, int *error_code
      * gpfs blocksize not sensible */
     ADIOI_Assert(fd->blksize > 0);
 
+    /* set file striping hints */
+    snprintf(value, sizeof(value), "%d", fd->hints->striping_unit);
+    ADIOI_Info_set(fd->info, "striping_unit", value);
+
+    snprintf(value, sizeof(value), "%d", fd->hints->striping_factor);
+    ADIOI_Info_set(fd->info, "striping_factor", value);
+
+    snprintf(value, sizeof(value), "%d", fd->hints->start_iodevice);
+    ADIOI_Info_set(fd->info, "start_iodevice", value);
+
     /* for deferred open: this process has opened the file (because if we are
      * not an aggregaor and we are doing deferred open, we returned earlier)*/
     fd->is_open = 1;
+
+    /* sync optimization: we can omit the fsync() call if we do no writes */
+    fd->dirty_write = 0;
 
 }

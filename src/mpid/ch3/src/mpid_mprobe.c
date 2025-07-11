@@ -5,17 +5,16 @@
 
 #include "mpidimpl.h"
 
-int MPID_Mprobe(int source, int tag, MPIR_Comm *comm, int context_offset,
+int MPID_Mprobe(int source, int tag, MPIR_Comm *comm, int attr,
                 MPIR_Request **message, MPI_Status *status)
 {
     int mpi_errno = MPI_SUCCESS;
     MPID_Progress_state progress_state;
     int found = FALSE;
+    int context_offset = MPIR_PT2PT_ATTR_CONTEXT_OFFSET(attr);
     int context_id = comm->recvcontext_id + context_offset;
 
     *message = NULL;
-
-    MVP_INC_NUM_UNEXP_RECV();
 
     /* Check to make sure the communicator hasn't already been revoked */
     if (comm->revoked) {
@@ -29,9 +28,7 @@ int MPID_Mprobe(int source, int tag, MPIR_Comm *comm, int context_offset,
                queue and improving the netmod, then do a progress
                test to make some progress. */
             do {
-                MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_POBJ_MSGQ_MUTEX);
                 *message = MPIDI_CH3U_Recvq_FDU_matchonly(source, tag, context_id, comm,&found);
-                MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_POBJ_MSGQ_MUTEX);
                 if (found) goto fn_exit;
 
                 mpi_errno = MPIDI_Anysource_improbe_fn(tag, comm, context_offset, &found, message, status);
@@ -82,9 +79,7 @@ int MPID_Mprobe(int source, int tag, MPIR_Comm *comm, int context_offset,
     MPIDI_CH3_Progress_start(&progress_state);
     do
     {
-        MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_POBJ_MSGQ_MUTEX);
         *message = MPIDI_CH3U_Recvq_FDU_matchonly(source, tag, context_id, comm, &found);
-        MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_POBJ_MSGQ_MUTEX);
         if (found)
             break;
 
@@ -100,7 +95,6 @@ int MPID_Mprobe(int source, int tag, MPIR_Comm *comm, int context_offset,
     }
 
 fn_exit:
-    MVP_DEC_NUM_UNEXP_RECV();
     return mpi_errno;
 fn_fail:
     goto fn_exit;

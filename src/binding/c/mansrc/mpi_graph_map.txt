@@ -1,0 +1,30 @@
+/*D
+   MPI_Graph_map - Maps process to graph topology information
+
+Synopsis:
+.vb
+int MPI_Graph_map(MPI_Comm comm, int nnodes, const int indx[],
+                  const int edges[], int *newrank)
+.ve
+
+Input Parameters:
++ comm - input communicator (handle)
+. nnodes - number of graph nodes (integer)
+. indx - integer array specifying the graph structure, see MPI_GRAPH_CREATE (integer)
+- edges - integer array specifying the graph structure (integer)
+
+Output Parameters:
+. newrank - reordered rank of the calling process; MPI_UNDEFINED if the calling process does not belong to graph (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+D*/
+

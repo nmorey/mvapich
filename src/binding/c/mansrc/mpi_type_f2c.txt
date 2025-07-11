@@ -1,0 +1,15 @@
+/*D
+   MPI_Type_f2c - converts Fortran INTEGER to MPI_Type
+
+Synopsis:
+.vb
+MPI_Datatype MPI_Type_f2c(MPI_Fint datatype)
+.ve
+
+Input Parameters:
+. datatype - datatype (None)
+
+.N ThreadSafe
+
+D*/
+

@@ -3,18 +3,6 @@
  *     See COPYRIGHT in top-level directory
  */
 
- /* Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- *
- */
-
 #include "mpiimpl.h"
 #include "mpicomm.h"
 #include "mpir_info.h"  /* MPIR_Info_free */
@@ -22,32 +10,19 @@
 #include "utlist.h"
 #include "uthash.h"
 
-#if defined(CHANNEL_MRAIL) || defined(_MVP_CH4_OVERRIDE_)
-#include "mvp_coll_shmem.h"
-#endif /* #if defined(CHANNEL_MRAIL) || defined(_MVP_CH4_OVERRIDE_) */ 
-
-
 /* This is the utility file for comm that contains the basic comm items
    and storage management */
-#ifndef MPID_COMM_PREALLOC
-#define MPID_COMM_PREALLOC 8
-#endif
 
 /* Preallocated comm objects */
 /* initialized in initthread.c */
 MPIR_Comm MPIR_Comm_builtin[MPIR_COMM_N_BUILTIN];
-MPIR_Comm MPIR_Comm_direct[MPID_COMM_PREALLOC];
+MPIR_Comm MPIR_Comm_direct[MPIR_COMM_PREALLOC];
 
-MPIR_Object_alloc_t MPIR_Comm_mem = {
-    0,
-    0,
-    0,
-    0,
-    MPIR_COMM,
+MPIR_Object_alloc_t MPIR_Comm_mem = { 0, 0, 0, 0, 0, 0, 0, MPIR_COMM,
     sizeof(MPIR_Comm),
     MPIR_Comm_direct,
-    MPID_COMM_PREALLOC,
-    NULL
+    MPIR_COMM_PREALLOC,
+    NULL, {0}
 };
 
 /* Communicator creation functions */
@@ -64,12 +39,13 @@ struct MPIR_HINT {
     MPIR_Comm_hint_fn_t fn;
     int type;
     int attr;                   /* e.g. whether this key is local */
+    int default_val;
 };
 static struct MPIR_HINT MPIR_comm_hint_list[MPIR_COMM_HINT_MAX];
 static int next_comm_hint_index = MPIR_COMM_HINT_PREDEFINED_COUNT;
 
 int MPIR_Comm_register_hint(int idx, const char *hint_key, MPIR_Comm_hint_fn_t fn,
-                            int type, int attr)
+                            int type, int attr, int default_val)
 {
     if (idx == 0) {
         idx = next_comm_hint_index;
@@ -79,7 +55,7 @@ int MPIR_Comm_register_hint(int idx, const char *hint_key, MPIR_Comm_hint_fn_t f
         MPIR_Assert(idx > 0 && idx < MPIR_COMM_HINT_PREDEFINED_COUNT);
     }
     MPIR_comm_hint_list[idx] = (struct MPIR_HINT) {
-    hint_key, fn, type, attr};
+    hint_key, fn, type, attr, default_val};
     return idx;
 }
 
@@ -106,7 +82,7 @@ static int get_string_value(char *s, int type, int val)
     if (type == MPIR_COMM_HINT_TYPE_BOOL) {
         strncpy(s, val ? "true" : "false", MPI_MAX_INFO_VAL);
     } else if (type == MPIR_COMM_HINT_TYPE_INT) {
-        MPL_snprintf(s, MPI_MAX_INFO_VAL, "%d", val);
+        snprintf(s, MPI_MAX_INFO_VAL, "%d", val);
     } else {
         return -1;
     }
@@ -120,29 +96,41 @@ static int get_string_value(char *s, int type, int val)
  * If the hint is registered with callback function, it can be used for customization
  * at both creation time and run-time.
  */
-int MPII_Comm_set_hints(MPIR_Comm * comm_ptr, MPIR_Info * info)
+int MPII_Comm_set_hints(MPIR_Comm * comm_ptr, MPIR_Info * info, bool in_comm_creation)
 {
-    MPIR_Info *curr_info;
-    LL_FOREACH(info, curr_info) {
-        if (curr_info->key == NULL)
+    int mpi_errno = MPI_SUCCESS;
+
+    for (int i = 0; i < next_comm_hint_index; i++) {
+        if (!MPIR_comm_hint_list[i].key) {
             continue;
-        for (int i = 0; i < next_comm_hint_index; i++) {
-            if (MPIR_comm_hint_list[i].key &&
-                strcmp(curr_info->key, MPIR_comm_hint_list[i].key) == 0) {
-                int val;
-                int ret = parse_string_value(curr_info->value, MPIR_comm_hint_list[i].type, &val);
-                if (ret == 0) {
-                    if (MPIR_comm_hint_list[i].fn) {
-                        MPIR_comm_hint_list[i].fn(comm_ptr, i, val);
-                    } else {
-                        comm_ptr->hints[i] = val;
-                    }
+        }
+
+        const char *str_val;
+        str_val = MPIR_Info_lookup(info, MPIR_comm_hint_list[i].key);
+        if (str_val) {
+            int val;
+            int rc = parse_string_value(str_val, MPIR_comm_hint_list[i].type, &val);
+            if (rc == 0) {
+                if (MPIR_comm_hint_list[i].fn) {
+                    MPIR_comm_hint_list[i].fn(comm_ptr, i, val);
+                } else {
+                    comm_ptr->hints[i] = val;
                 }
             }
         }
     }
+
+    /* Device can process hints during commit stage if in_comm_creation */
+    if (!in_comm_creation) {
+        mpi_errno = MPID_Comm_set_hints(comm_ptr, info);
+        MPIR_ERR_CHECK(mpi_errno);
+    }
+
     /* FIXME: run collective to ensure hints consistency */
+  fn_exit:
     return MPI_SUCCESS;
+  fn_fail:
+    goto fn_exit;
 }
 
 int MPII_Comm_get_hints(MPIR_Comm * comm_ptr, MPIR_Info * info)
@@ -158,6 +146,10 @@ int MPII_Comm_get_hints(MPIR_Comm * comm_ptr, MPIR_Info * info)
         }
     }
 
+    char *memory_alloc_kinds;
+    MPIR_get_memory_kinds_from_comm(comm_ptr, &memory_alloc_kinds);
+    MPIR_Info_set_impl(info, "mpi_memory_alloc_kinds", memory_alloc_kinds);
+
   fn_exit:
     return mpi_errno;
   fn_fail:
@@ -172,16 +164,83 @@ int MPII_Comm_check_hints(MPIR_Comm * comm)
     return MPI_SUCCESS;
 }
 
+/*
+=== BEGIN_INFO_HINT_BLOCK ===
+hints:
+    - name        : mpi_assert_no_any_tag
+      functions   : MPI_Comm_dup_with_info, MPI_Comm_idup_with_info, MPI_Comm_set_info
+      type        : boolean
+      default     : false
+      description : >-
+        If set to true, user promises that MPI_ANY_TAG will not be used with
+        the communicator. This potentially allows MPICH to treat messages with
+        different tags independent and seek to improve performance, e.g. by
+        employ multiple network context.
+
+    - name        : mpi_assert_no_any_source
+      functions   : MPI_Comm_dup_with_info, MPI_Comm_idup_with_info, MPI_Comm_set_info
+      type        : boolean
+      default     : false
+      description : >-
+        If set to true, user promises that MPI_ANY_SOURCE will not be used with
+        the communicator. This potentially allows MPICH to treat messages send
+        to different ranks or receive from different ranks independent and
+        seek to improve performance, e.g. by employ multiple network context.
+
+    - name        : mpi_assert_exact_length
+      functions   : MPI_Comm_dup_with_info, MPI_Comm_idup_with_info, MPI_Comm_set_info
+      type        : boolean
+      default     : false
+      description : >-
+        If set to true, user promises that the lengths of messages received
+        by the process will always equal to the size of the corresponding
+        receive buffers.
+
+    - name        : mpi_assert_allow_overtaking
+      functions   : MPI_Comm_dup_with_info, MPI_Comm_idup_with_info, MPI_Comm_set_info
+      type        : boolean
+      default     : false
+      description : >-
+        If set to true, user asserts that send operations are not required
+        to be matched at the receiver in the order in which the send operations
+        were performed by the sender, and receive operations are not required
+        to be matched in the order in which they were performed by the
+        receivers.
+
+    - name        : mpi_assert_strict_persistent_collective_ordering
+      functions   : MPI_Comm_dup_with_info, MPI_Comm_idup_with_info, MPI_Comm_set_info
+      type        : boolean
+      default     : false
+      description : >-
+      If set to true, then the implementation may assume that all the persistent
+      collective operations are started in the same order across all MPI processes
+      in the group of the communicator. It is required that if this assertion is made
+      on one member of the communicator's group, then it must be made on all members
+      of that communicator's group with the same value.
+
+=== END_INFO_HINT_BLOCK ===
+*/
+
 void MPIR_Comm_hint_init(void)
 {
     MPIR_Comm_register_hint(MPIR_COMM_HINT_NO_ANY_TAG, "mpi_assert_no_any_tag",
-                            NULL, MPIR_COMM_HINT_TYPE_BOOL, 0);
+                            NULL, MPIR_COMM_HINT_TYPE_BOOL, 0, 0);
     MPIR_Comm_register_hint(MPIR_COMM_HINT_NO_ANY_SOURCE, "mpi_assert_no_any_source",
-                            NULL, MPIR_COMM_HINT_TYPE_BOOL, 0);
+                            NULL, MPIR_COMM_HINT_TYPE_BOOL, 0, 0);
     MPIR_Comm_register_hint(MPIR_COMM_HINT_EXACT_LENGTH, "mpi_assert_exact_length",
-                            NULL, MPIR_COMM_HINT_TYPE_BOOL, 0);
+                            NULL, MPIR_COMM_HINT_TYPE_BOOL, 0, 0);
     MPIR_Comm_register_hint(MPIR_COMM_HINT_ALLOW_OVERTAKING, "mpi_assert_allow_overtaking",
-                            NULL, MPIR_COMM_HINT_TYPE_BOOL, 0);
+                            NULL, MPIR_COMM_HINT_TYPE_BOOL, 0, 0);
+    MPIR_Comm_register_hint(MPIR_COMM_HINT_STRICT_PCOLL_ORDERING,
+                            "mpi_assert_strict_persistent_collective_ordering", NULL,
+                            MPIR_COMM_HINT_TYPE_BOOL, 0, 0);
+    /* Used by ch4:ofi, but needs to be initialized early to get the default value. */
+    MPIR_Comm_register_hint(MPIR_COMM_HINT_ENABLE_MULTI_NIC_STRIPING, "enable_multi_nic_striping",
+                            NULL, MPIR_COMM_HINT_TYPE_BOOL, 0, -1);
+    MPIR_Comm_register_hint(MPIR_COMM_HINT_ENABLE_MULTI_NIC_HASHING, "enable_multi_nic_hashing",
+                            NULL, MPIR_COMM_HINT_TYPE_BOOL, 0, -1);
+    MPIR_Comm_register_hint(MPIR_COMM_HINT_MULTI_NIC_PREF_NIC, "multi_nic_pref_nic", NULL,
+                            MPIR_COMM_HINT_TYPE_INT, 0, -1);
 }
 
 /* FIXME :
@@ -227,88 +286,48 @@ int MPII_Comm_init(MPIR_Comm * comm_p)
     comm_p->remote_group = NULL;
     comm_p->local_group = NULL;
     comm_p->topo_fns = NULL;
+    comm_p->bsendbuffer = NULL;
     comm_p->name[0] = '\0';
     comm_p->seq = 0;    /* default to 0, to be updated at Comm_commit */
     comm_p->tainted = 0;
     memset(comm_p->hints, 0, sizeof(comm_p->hints));
+    for (int i = 0; i < next_comm_hint_index; i++) {
+        if (MPIR_comm_hint_list[i].key) {
+            comm_p->hints[i] = MPIR_comm_hint_list[i].default_val;
+        }
+    }
 
     comm_p->hierarchy_kind = MPIR_COMM_HIERARCHY_KIND__FLAT;
     comm_p->node_comm = NULL;
     comm_p->node_roots_comm = NULL;
     comm_p->intranode_table = NULL;
     comm_p->internode_table = NULL;
-#ifdef _OSU_MVAPICH_
-    comm_p->dev.ch.shmem_coll_count = 0; 
-    comm_p->dev.ch.allgather_coll_count = 0; 
-    comm_p->dev.ch.allreduce_coll_count = 0; 
-    comm_p->dev.ch.barrier_coll_count = 0; 
-    comm_p->dev.ch.bcast_coll_count = 0;
-    comm_p->dev.ch.scatter_coll_count = 0;
-    comm_p->dev.ch.shmem_coll_ok = 0;
-    comm_p->dev.ch.topo_coll_ok = 0;
-    comm_p->dev.ch.shmem_comm_rank = -1;
-    comm_p->dev.ch.allgather_comm_ok = 0;
-    comm_p->dev.ch.is_global_block  = 0;
-    /* We are yet to call create_2level_comm on this new intra-communicator
-     * We should make sure that shared-mem collectives do not get used
-     * with this communicator */ 
-    comm_p->dev.ch.leader_comm=MPI_COMM_NULL;
-    comm_p->dev.ch.shmem_comm=MPI_COMM_NULL;
-    comm_p->dev.ch.allgather_comm=MPI_COMM_NULL;
-    comm_p->dev.ch.intra_node_done = 0;
-    comm_p->dev.ch.topo_comm = NULL;
-    comm_p->dev.ch.topo_leader_comm = NULL;
-#if defined(_MCST_SUPPORT_)
-    comm_p->dev.ch.is_mcast_ok = 0;
-    comm_p->dev.ch.bcast_info = NULL;
-#endif
-#if defined(_SHARP_SUPPORT_)
-    comm_p->dev.ch.is_sharp_ok = 0;
-    comm_p->dev.ch.sharp_coll_info = NULL;
-    comm_p->dev.ch.scatterv_coll_count = 0;
-    comm_p->dev.ch.reduce_coll_count = 0;
-    comm_p->dev.ch.iallreduce_coll_count = 0;
-    comm_p->dev.ch.ireduce_coll_count = 0;
-    comm_p->dev.ch.ibcast_coll_count = 0;
-    comm_p->dev.ch.ibarrier_coll_count = 0;
-#endif
-    comm_p->dev.ch.shmem_info = NULL;
-    comm_p->dev.ch.leader_map  = NULL;
-    comm_p->dev.ch.leader_rank = NULL;
-    comm_p->dev.ch.node_disps  = NULL;
-    comm_p->dev.ch.rank_list   = NULL;
-    comm_p->dev.ch.coll_tmp_buf = NULL;
-
-    comm_p->dev.ch.socket_size=0;
-    comm_p->dev.ch.use_intra_sock_comm=0;
-    comm_p->dev.ch.is_socket_uniform=0;
-    comm_p->dev.ch.tried_to_create_leader_shmem=0;
-    comm_p->dev.ch.intra_sock_comm=MPI_COMM_NULL;
-    comm_p->dev.ch.intra_sock_leader_comm=MPI_COMM_NULL;
-    comm_p->dev.ch.global_sock_leader_comm=MPI_COMM_NULL;
-
-#if ENABLE_PVAR_MVP
-    comm_p->dev.ch.sub_comm_counters = NULL;
-    comm_p->dev.ch.sub_comm_timers = NULL;
-#endif
-
-#endif /* _OSU_MVAPICH_ */
 
     /* abstractions bleed a bit here... :(*/
     comm_p->next_sched_tag = MPIR_FIRST_NBC_TAG;
+    comm_p->next_am_tag = 0;
 
     /* Initialize the revoked flag as false */
     comm_p->revoked = 0;
     comm_p->mapper_head = NULL;
     comm_p->mapper_tail = NULL;
 
-#if MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__POBJ
+    comm_p->threadcomm = NULL;
+    MPIR_stream_comm_init(comm_p);
+
+    comm_p->persistent_requests = NULL;
+
+    /* mutex is only used in VCI granularity. But the overhead of
+     * creation is low, so we always create it. */
     {
         int thr_err;
-        MPID_Thread_mutex_create(&MPIR_THREAD_POBJ_COMM_MUTEX(comm_p), &thr_err);
+        MPID_Thread_mutex_create(&comm_p->mutex, &thr_err);
         MPIR_Assert(thr_err == 0);
     }
-#endif
+
+    /* Initialize the session_ptr to NULL; for non-session-related communicators it will remain NULL */
+    comm_p->session_ptr = NULL;
+
     /* Fields not set include context_id, remote and local size, and
      * kind, since different communicator construction routines need
      * different values */
@@ -324,9 +343,8 @@ int MPIR_Comm_create(MPIR_Comm ** newcomm_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Comm *newptr;
-    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPIR_COMM_CREATE);
 
-    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPIR_COMM_CREATE);
+    MPIR_FUNC_ENTER;
 
     newptr = (MPIR_Comm *) MPIR_Handle_obj_alloc(&MPIR_Comm_mem);
     MPIR_ERR_CHKANDJUMP(!newptr, mpi_errno, MPI_ERR_OTHER, "**nomem");
@@ -342,7 +360,7 @@ int MPIR_Comm_create(MPIR_Comm ** newcomm_ptr)
     MPII_COMML_REMEMBER(newptr);
 
   fn_fail:
-    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPIR_COMM_CREATE);
+    MPIR_FUNC_EXIT;
 
     return mpi_errno;
 }
@@ -354,9 +372,8 @@ int MPII_Setup_intercomm_localcomm(MPIR_Comm * intercomm_ptr)
 {
     MPIR_Comm *localcomm_ptr;
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPIR_SETUP_INTERCOMM_LOCALCOMM);
 
-    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPIR_SETUP_INTERCOMM_LOCALCOMM);
+    MPIR_FUNC_ENTER;
 
     localcomm_ptr = (MPIR_Comm *) MPIR_Handle_obj_alloc(&MPIR_Comm_mem);
     MPIR_ERR_CHKANDJUMP(!localcomm_ptr, mpi_errno, MPI_ERR_OTHER, "**nomem");
@@ -364,6 +381,8 @@ int MPII_Setup_intercomm_localcomm(MPIR_Comm * intercomm_ptr)
     /* get sensible default values for most fields (usually zeros) */
     mpi_errno = MPII_Comm_init(localcomm_ptr);
     MPIR_ERR_CHECK(mpi_errno);
+
+    MPIR_Comm_set_session_ptr(localcomm_ptr, intercomm_ptr->session_ptr);
 
     /* use the parent intercomm's recv ctx as the basis for our ctx */
     localcomm_ptr->recvcontext_id =
@@ -391,22 +410,6 @@ int MPII_Setup_intercomm_localcomm(MPIR_Comm * intercomm_ptr)
     /* FIXME  : No local functions for the topology routines */
 
     intercomm_ptr->local_comm = localcomm_ptr;
-#ifdef _OSU_MVAPICH_
-    localcomm_ptr->dev.ch.shmem_coll_ok = 0;
-    localcomm_ptr->dev.ch.topo_coll_ok = 0;
-    localcomm_ptr->dev.ch.shmem_comm_rank = -1;
-    localcomm_ptr->dev.ch.is_global_block  = 0;
-    localcomm_ptr->dev.ch.allgather_comm_ok = 0;
-    localcomm_ptr->dev.ch.shmem_comm = MPI_COMM_NULL;
-    localcomm_ptr->dev.ch.leader_comm = MPI_COMM_NULL;
-    localcomm_ptr->dev.ch.allgather_comm = MPI_COMM_NULL;
-    localcomm_ptr->dev.ch.intra_sock_comm=MPI_COMM_NULL;
-    localcomm_ptr->dev.ch.intra_sock_leader_comm=MPI_COMM_NULL;
-    localcomm_ptr->dev.ch.global_sock_leader_comm=MPI_COMM_NULL;
-    localcomm_ptr->dev.ch.topo_comm = NULL;
-    localcomm_ptr->dev.ch.topo_leader_comm = NULL;
-#endif /* _OSU_MVAPICH_ */
-
 
     /* sets up the SMP-aware sub-communicators and tables */
     /* This routine maybe used inside MPI_Comm_idup, so we can't synchronize
@@ -416,7 +419,7 @@ int MPII_Setup_intercomm_localcomm(MPIR_Comm * intercomm_ptr)
     MPIR_ERR_CHECK(mpi_errno);
 
   fn_fail:
-    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPIR_SETUP_INTERCOMM_LOCALCOMM);
+    MPIR_FUNC_EXIT;
 
     return mpi_errno;
 }
@@ -428,9 +431,8 @@ int MPIR_Comm_map_irregular(MPIR_Comm * newcomm, MPIR_Comm * src_comm,
     int mpi_errno = MPI_SUCCESS;
     MPIR_Comm_map_t *mapper;
     MPIR_CHKPMEM_DECL(3);
-    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPIR_COMM_MAP_TYPE__IRREGULAR);
 
-    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPIR_COMM_MAP_TYPE__IRREGULAR);
+    MPIR_FUNC_ENTER;
 
     MPIR_CHKPMEM_MALLOC(mapper, MPIR_Comm_map_t *, sizeof(MPIR_Comm_map_t), mpi_errno, "mapper",
                         MPL_MEM_COMM);
@@ -459,7 +461,7 @@ int MPIR_Comm_map_irregular(MPIR_Comm * newcomm, MPIR_Comm * src_comm,
 
   fn_exit:
     MPIR_CHKPMEM_COMMIT();
-    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPIR_COMM_MAP_TYPE__IRREGULAR);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
   fn_fail:
     MPIR_CHKPMEM_REAP();
@@ -471,9 +473,8 @@ int MPIR_Comm_map_dup(MPIR_Comm * newcomm, MPIR_Comm * src_comm, MPIR_Comm_map_d
     int mpi_errno = MPI_SUCCESS;
     MPIR_Comm_map_t *mapper;
     MPIR_CHKPMEM_DECL(1);
-    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPIR_COMM_MAP_TYPE__DUP);
 
-    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPIR_COMM_MAP_TYPE__DUP);
+    MPIR_FUNC_ENTER;
 
     MPIR_CHKPMEM_MALLOC(mapper, MPIR_Comm_map_t *, sizeof(MPIR_Comm_map_t), mpi_errno, "mapper",
                         MPL_MEM_COMM);
@@ -488,7 +489,7 @@ int MPIR_Comm_map_dup(MPIR_Comm * newcomm, MPIR_Comm * src_comm, MPIR_Comm_map_d
 
   fn_exit:
     MPIR_CHKPMEM_COMMIT();
-    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPIR_COMM_MAP_TYPE__DUP);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
   fn_fail:
     MPIR_CHKPMEM_REAP();
@@ -500,9 +501,8 @@ int MPIR_Comm_map_free(MPIR_Comm * comm)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Comm_map_t *mapper, *tmp;
-    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPIR_COMM_MAP_FREE);
 
-    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPIR_COMM_MAP_FREE);
+    MPIR_FUNC_ENTER;
 
     for (mapper = comm->mapper_head; mapper;) {
         tmp = mapper->next;
@@ -513,7 +513,7 @@ int MPIR_Comm_map_free(MPIR_Comm * comm)
     }
     comm->mapper_head = NULL;
 
-    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPIR_COMM_MAP_FREE);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 }
 
@@ -572,8 +572,7 @@ static int get_node_count(MPIR_Comm * comm, int *node_count)
 static int MPIR_Comm_commit_internal(MPIR_Comm * comm)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPIR_COMM_COMMIT_INTERNAL);
-    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPIR_COMM_COMMIT_INTERNAL);
+    MPIR_FUNC_ENTER;
 
     /* Notify device of communicator creation */
     mpi_errno = MPID_Comm_commit_pre_hook(comm);
@@ -585,10 +584,28 @@ static int MPIR_Comm_commit_internal(MPIR_Comm * comm)
     MPIR_Comm_map_free(comm);
 
   fn_exit:
-    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPIR_COMM_COMMIT_INTERNAL);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
   fn_fail:
     goto fn_exit;
+}
+
+/* Copy relevant hints to a given subcomm */
+static void propagate_hints_to_subcomm(MPIR_Comm * comm, MPIR_Comm * subcomm)
+{
+    /* Copy vci hints */
+    subcomm->hints[MPIR_COMM_HINT_SENDER_VCI] = comm->hints[MPIR_COMM_HINT_SENDER_VCI];
+    subcomm->hints[MPIR_COMM_HINT_RECEIVER_VCI] = comm->hints[MPIR_COMM_HINT_RECEIVER_VCI];
+    subcomm->hints[MPIR_COMM_HINT_VCI] = comm->hints[MPIR_COMM_HINT_VCI];
+}
+
+static void propagate_tainted_to_subcomms(MPIR_Comm * comm)
+{
+    if (comm->node_comm != NULL)
+        comm->node_comm->tainted = comm->tainted;
+
+    if (comm->node_roots_comm != NULL)
+        comm->node_roots_comm->tainted = comm->tainted;
 }
 
 int MPIR_Comm_create_subcomms(MPIR_Comm * comm)
@@ -598,8 +615,7 @@ int MPIR_Comm_create_subcomms(MPIR_Comm * comm)
     int local_rank = -1, external_rank = -1;
     int *local_procs = NULL, *external_procs = NULL;
 
-    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPIR_COMM_CREATE_SUBCOMMS);
-    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPIR_COMM_CREATE_SUBCOMMS);
+    MPIR_FUNC_ENTER;
 
     MPIR_Assert(comm->node_comm == NULL);
     MPIR_Assert(comm->node_roots_comm == NULL);
@@ -666,6 +682,11 @@ int MPIR_Comm_create_subcomms(MPIR_Comm * comm)
         comm->node_comm->local_size = num_local;
         comm->node_comm->remote_size = num_local;
 
+        MPIR_Comm_set_session_ptr(comm->node_comm, comm->session_ptr);
+
+        /* Copy relevant hints to node_comm */
+        propagate_hints_to_subcomm(comm, comm->node_comm);
+
         MPIR_Comm_map_irregular(comm->node_comm, comm, local_procs, num_local,
                                 MPIR_COMM_MAP_DIR__L2L, NULL);
         mpi_errno = MPIR_Comm_commit_internal(comm->node_comm);
@@ -688,18 +709,25 @@ int MPIR_Comm_create_subcomms(MPIR_Comm * comm)
         comm->node_roots_comm->local_size = num_external;
         comm->node_roots_comm->remote_size = num_external;
 
+        MPIR_Comm_set_session_ptr(comm->node_roots_comm, comm->session_ptr);
+
+        /* Copy relevant hints to node_roots_comm */
+        propagate_hints_to_subcomm(comm, comm->node_roots_comm);
+
         MPIR_Comm_map_irregular(comm->node_roots_comm, comm, external_procs, num_external,
                                 MPIR_COMM_MAP_DIR__L2L, NULL);
         mpi_errno = MPIR_Comm_commit_internal(comm->node_roots_comm);
         MPIR_ERR_CHECK(mpi_errno);
     }
 
+    propagate_tainted_to_subcomms(comm);
+
     comm->hierarchy_kind = MPIR_COMM_HIERARCHY_KIND__PARENT;
 
   fn_exit:
     MPL_free(local_procs);
     MPL_free(external_procs);
-    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPIR_COMM_CREATE_SUBCOMMS);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
   fn_fail:
     goto fn_exit;
@@ -724,8 +752,7 @@ static int init_comm_seq(MPIR_Comm * comm)
         /* Every rank need share the same seq from root. NOTE: it is possible for
          * different communicators to have the same seq. It is only used as an
          * opportunistic optimization */
-        MPIR_Errflag_t errflag = MPIR_ERR_NONE;
-        mpi_errno = MPIR_Bcast_allcomm_auto(&tmp, 1, MPI_INT, 0, comm, &errflag);
+        mpi_errno = MPIR_Bcast_allcomm_auto(&tmp, 1, MPI_INT, 0, comm, MPIR_ERR_NONE);
         MPIR_ERR_CHECK(mpi_errno);
 
         comm->seq = tmp;
@@ -741,7 +768,7 @@ static int init_comm_seq(MPIR_Comm * comm)
 
   fn_exit:
     return mpi_errno;
-  fn_fail: 
+  fn_fail:
     goto fn_exit;
 }
 
@@ -753,31 +780,8 @@ static int init_comm_seq(MPIR_Comm * comm)
 int MPIR_Comm_commit(MPIR_Comm * comm)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPIR_COMM_COMMIT);
 
-    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPIR_COMM_COMMIT);
-
-#if ENABLE_PVAR_MVP
-    extern int sub_comm_counter_idx;
-    extern int sub_comm_timer_idx;
-    comm->dev.ch.sub_comm_counters = (unsigned long long *)MPL_malloc(
-        sub_comm_counter_idx * sizeof(unsigned long long), MPL_MEM_MPIT);
-    comm->dev.ch.sub_comm_timers = (MPIR_T_pvar_timer_t *)MPL_malloc(
-        sub_comm_timer_idx * sizeof(MPIR_T_pvar_timer_t), MPL_MEM_MPIT);
-    int i = 0;
-
-    for(i = 0; i < sub_comm_counter_idx; i++)
-    {
-        comm->dev.ch.sub_comm_counters[i] = 0;
-    }
-
-    for(i = 0; i < sub_comm_timer_idx; i++)
-    {
-        memset(&((comm->dev.ch.sub_comm_timers[i]).total), 0,
-               sizeof(MPL_time_t));
-        (comm->dev.ch.sub_comm_timers[i]).count = 0;
-    }
-#endif
+    MPIR_FUNC_ENTER;
 
     /* It's OK to relax these assertions, but we should do so very
      * intentionally.  For now this function is the only place that we create
@@ -828,7 +832,7 @@ int MPIR_Comm_commit(MPIR_Comm * comm)
     }
 
   fn_exit:
-    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPIR_COMM_COMMIT);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
   fn_fail:
     goto fn_exit;
@@ -863,6 +867,41 @@ int MPII_Comm_is_node_consecutive(MPIR_Comm * comm)
     return 1;
 }
 
+/* Duplicate a communicator without copying the streams. This is the common
+ * part called by both MPIR_Comm_dup_with_info_impl and MPIR_Stream_comm_create_impl.
+ */
+int MPII_Comm_dup(MPIR_Comm * comm_ptr, MPIR_Info * info, MPIR_Comm ** newcomm_ptr)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIR_Attribute *new_attributes = 0;
+
+    /* Copy attributes, executing the attribute copy functions */
+    /* This accesses the attribute dup function through the perprocess
+     * structure to prevent comm_dup from forcing the linking of the
+     * attribute functions.  The actual function is (by default)
+     * MPIR_Attr_dup_list
+     */
+    if (MPIR_Process.attr_dup) {
+        mpi_errno = MPIR_Process.attr_dup(comm_ptr->handle, comm_ptr->attributes, &new_attributes);
+        MPIR_ERR_CHECK(mpi_errno);
+    }
+
+
+    /* Generate a new context value and a new communicator structure */
+    /* We must use the local size, because this is compared to the
+     * rank of the process in the communicator.  For intercomms,
+     * this must be the local size */
+    mpi_errno = MPII_Comm_copy(comm_ptr, comm_ptr->local_size, info, newcomm_ptr);
+    MPIR_ERR_CHECK(mpi_errno);
+
+    (*newcomm_ptr)->attributes = new_attributes;
+
+  fn_exit:
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}
+
 /*
  * Copy a communicator, including creating a new context and copying the
  * virtual connection tables and clearing the various fields.
@@ -881,9 +920,8 @@ int MPII_Comm_copy(MPIR_Comm * comm_ptr, int size, MPIR_Info * info, MPIR_Comm *
     MPIR_Context_id_t new_context_id, new_recvcontext_id;
     MPIR_Comm *newcomm_ptr = NULL;
     MPIR_Comm_map_t *map = NULL;
-    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPIR_COMM_COPY);
 
-    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPIR_COMM_COPY);
+    MPIR_FUNC_ENTER;
 
     /* Get a new context first.  We need this to be collective over the
      * input communicator */
@@ -922,6 +960,8 @@ int MPII_Comm_copy(MPIR_Comm * comm_ptr, int size, MPIR_Info * info, MPIR_Comm *
     /* Save the kind of the communicator */
     newcomm_ptr->comm_kind = comm_ptr->comm_kind;
     newcomm_ptr->local_comm = 0;
+
+    MPIR_Comm_set_session_ptr(newcomm_ptr, comm_ptr->session_ptr);
 
     /* There are two cases here - size is the same as the old communicator,
      * or it is smaller.  If the size is the same, we can just add a reference.
@@ -966,20 +1006,15 @@ int MPII_Comm_copy(MPIR_Comm * comm_ptr, int size, MPIR_Info * info, MPIR_Comm *
     }
 
     /* Inherit the error handler (if any) */
-    MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_POBJ_COMM_MUTEX(comm_ptr));
+    MPID_THREAD_CS_ENTER(VCI, comm_ptr->mutex);
     newcomm_ptr->errhandler = comm_ptr->errhandler;
     if (comm_ptr->errhandler) {
         MPIR_Errhandler_add_ref(comm_ptr->errhandler);
     }
-    MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_POBJ_COMM_MUTEX(comm_ptr));
-
-#if 1
-    /* FIXME: only copy over hints for MPI 3.1 and earlier */
-    memcpy((void *) (newcomm_ptr->hints), (void *) (comm_ptr->hints), sizeof(comm_ptr->hints));
-#endif
+    MPID_THREAD_CS_EXIT(VCI, comm_ptr->mutex);
 
     if (info) {
-        MPII_Comm_set_hints(newcomm_ptr, info);
+        MPII_Comm_set_hints(newcomm_ptr, info, true);
     }
 
     newcomm_ptr->tainted = comm_ptr->tainted;
@@ -994,7 +1029,7 @@ int MPII_Comm_copy(MPIR_Comm * comm_ptr, int size, MPIR_Info * info, MPIR_Comm *
   fn_fail:
   fn_exit:
 
-    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPIR_COMM_COPY);
+    MPIR_FUNC_EXIT;
 
     return mpi_errno;
 }
@@ -1005,13 +1040,12 @@ int MPII_Comm_copy(MPIR_Comm * comm_ptr, int size, MPIR_Info * info, MPIR_Comm *
  *
  * Used by comm_idup.
  */
-int MPII_Comm_copy_data(MPIR_Comm * comm_ptr, MPIR_Comm ** outcomm_ptr)
+int MPII_Comm_copy_data(MPIR_Comm * comm_ptr, MPIR_Info * info, MPIR_Comm ** outcomm_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Comm *newcomm_ptr = NULL;
-    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPIR_COMM_COPY_DATA);
 
-    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPIR_COMM_COPY_DATA);
+    MPIR_FUNC_ENTER;
 
     mpi_errno = MPIR_Comm_create(&newcomm_ptr);
     if (mpi_errno)
@@ -1041,13 +1075,19 @@ int MPII_Comm_copy_data(MPIR_Comm * comm_ptr, MPIR_Comm ** outcomm_ptr)
     newcomm_ptr->remote_size = comm_ptr->remote_size;
     newcomm_ptr->is_low_group = comm_ptr->is_low_group; /* only relevant for intercomms */
 
+    MPIR_Comm_set_session_ptr(newcomm_ptr, comm_ptr->session_ptr);
+
     /* Inherit the error handler (if any) */
-    MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_POBJ_COMM_MUTEX(comm_ptr));
+    MPID_THREAD_CS_ENTER(VCI, comm_ptr->mutex);
     newcomm_ptr->errhandler = comm_ptr->errhandler;
     if (comm_ptr->errhandler) {
         MPIR_Errhandler_add_ref(comm_ptr->errhandler);
     }
-    MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_POBJ_COMM_MUTEX(comm_ptr));
+    MPID_THREAD_CS_EXIT(VCI, comm_ptr->mutex);
+
+    if (info) {
+        MPII_Comm_set_hints(newcomm_ptr, info, true);
+    }
 
     /* Start with no attributes on this communicator */
     newcomm_ptr->attributes = 0;
@@ -1055,12 +1095,11 @@ int MPII_Comm_copy_data(MPIR_Comm * comm_ptr, MPIR_Comm ** outcomm_ptr)
 
     /* inherit tainted flag */
     newcomm_ptr->tainted = comm_ptr->tainted;
+    propagate_tainted_to_subcomms(newcomm_ptr);
 
-  fn_exit:
-    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPIR_COMM_COPY_DATA);
-    return mpi_errno;
   fn_fail:
-    goto fn_exit;
+    MPIR_FUNC_EXIT;
+    return mpi_errno;
 }
 
 /* Common body between MPIR_Comm_release and MPIR_comm_release_always.  This
@@ -1075,9 +1114,10 @@ int MPIR_Comm_delete_internal(MPIR_Comm * comm_ptr)
 {
     int in_use;
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_COMM_DELETE_INTERNAL);
+    int unmatched_messages = 0;
+    MPI_Comm comm_handle ATTRIBUTE((unused)) = comm_ptr->handle;
 
-    MPIR_FUNC_TERSE_ENTER(MPID_STATE_COMM_DELETE_INTERNAL);
+    MPIR_FUNC_ENTER;
 
     MPIR_Assert(MPIR_Object_get_ref(comm_ptr) == 0);    /* sanity check */
 
@@ -1093,12 +1133,48 @@ int MPIR_Comm_delete_internal(MPIR_Comm * comm_ptr)
         /* Release the temporary reference added before the call to
          * attr_free */
         MPIR_Object_release_ref(comm_ptr, &in_use);
+        MPIR_Assertp(in_use == 0);
     }
 
     /* If the attribute delete functions return failure, the
      * communicator must not be freed.  That is the reason for the
      * test on mpi_errno here. */
     if (mpi_errno == MPI_SUCCESS) {
+        bool do_message_check = false;
+#if defined(HAVE_ERROR_CHECKING)
+        do_message_check = true;
+#endif
+#if defined(MPICH_IS_THREADED) && MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__VCI
+        /* anysrc/anytag probe is extremely messy with pervci thread-cs. Avoid for for now. */
+        if (MPIR_ThreadInfo.isThreaded) {
+            do_message_check = false;
+        }
+#endif
+        if (do_message_check) {
+            /* receive any unmatched messages to clear the queue and avoid context_id
+             * reuse issues. unmatched messages could be the result of user error,
+             * or send operations that were unable to be canceled by the device layer */
+            MPIR_Object_add_ref(comm_ptr);
+            int flag;
+            MPI_Status status;
+            do {
+                mpi_errno = MPID_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, comm_ptr, 0, &flag, &status);
+                MPIR_ERR_CHECK(mpi_errno);
+                if (flag) {
+                    /* receive the message, ignore truncation errors */
+                    MPIR_Request *request;
+                    MPID_Recv(NULL, 0, MPI_DATATYPE_NULL, status.MPI_SOURCE, status.MPI_TAG,
+                              comm_ptr, 0, MPI_STATUS_IGNORE, &request);
+                    if (request != NULL) {
+                        MPID_Wait(request, MPI_STATUS_IGNORE);
+                        MPIR_Request_free(request);
+                    }
+                    unmatched_messages++;
+                }
+            } while (flag);
+            MPIR_Object_release_ref(comm_ptr, &in_use);
+        }
+
         /* If this communicator is our parent, and we're disconnecting
          * from the parent, mark that fact */
         if (MPIR_Process.comm_parent == comm_ptr)
@@ -1113,6 +1189,14 @@ int MPIR_Comm_delete_internal(MPIR_Comm * comm_ptr)
         mpi_errno = MPID_Comm_free_hook(comm_ptr);
         MPIR_ERR_CHECK(mpi_errno);
 
+        mpi_errno = MPIR_Comm_bsend_finalize(comm_ptr);
+        MPIR_ERR_CHECK(mpi_errno);
+
+        if (comm_ptr->session_ptr != NULL) {
+            /* Release session */
+            MPIR_Session_release(comm_ptr->session_ptr);
+        }
+
         if (comm_ptr->comm_kind == MPIR_COMM_KIND__INTERCOMM && comm_ptr->local_comm)
             MPIR_Comm_release(comm_ptr->local_comm);
 
@@ -1121,29 +1205,16 @@ int MPIR_Comm_delete_internal(MPIR_Comm * comm_ptr)
             MPIR_Group_release(comm_ptr->local_group);
         if (comm_ptr->remote_group)
             MPIR_Group_release(comm_ptr->remote_group);
- 
-        /* Free sub-communicator counters */
-        #if ENABLE_PVAR_MVP
-        if (comm_ptr->dev.ch.sub_comm_counters) {
-            MPL_free(comm_ptr->dev.ch.sub_comm_counters);
-        }
-        if (comm_ptr->dev.ch.sub_comm_timers) {
-            MPL_free(comm_ptr->dev.ch.sub_comm_timers);
-        }
-#endif
 
         /* free the intra/inter-node communicators, if they exist */
-#if defined(CHANNEL_MRAIL) || defined(_MVP_CH4_OVERRIDE_)
-        if( comm_ptr->dev.ch.shmem_coll_ok == 1) { 
-             free_2level_comm(comm_ptr); 
-        } 
-#endif
         if (comm_ptr->node_comm)
             MPIR_Comm_release(comm_ptr->node_comm);
         if (comm_ptr->node_roots_comm)
             MPIR_Comm_release(comm_ptr->node_roots_comm);
         MPL_free(comm_ptr->intranode_table);
         MPL_free(comm_ptr->internode_table);
+
+        MPIR_stream_comm_free(comm_ptr);
 
         /* Free the context value.  This should come after freeing the
          * intra/inter-node communicators since those free calls won't
@@ -1154,20 +1225,15 @@ int MPIR_Comm_delete_internal(MPIR_Comm * comm_ptr)
          * allocated out of the remote group's bit vector, not ours. */
         MPIR_Free_contextid(comm_ptr->recvcontext_id);
 
-#if MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__POBJ
         {
             int thr_err;
-            MPID_Thread_mutex_destroy(&MPIR_THREAD_POBJ_COMM_MUTEX(comm_ptr), &thr_err);
+            MPID_Thread_mutex_destroy(&comm_ptr->mutex, &thr_err);
             MPIR_Assert(thr_err == 0);
         }
-#endif
+
         /* We need to release the error handler */
         if (comm_ptr->errhandler && !(HANDLE_IS_BUILTIN(comm_ptr->errhandler->handle))) {
-            int errhInuse;
-            MPIR_Errhandler_release_ref(comm_ptr->errhandler, &errhInuse);
-            if (!errhInuse) {
-                MPIR_Handle_obj_free(&MPIR_Errhandler_mem, comm_ptr->errhandler);
-            }
+            (void) MPIR_Errhandler_free_impl(comm_ptr->errhandler);
         }
 
         /* Remove from the list of active communicators if
@@ -1187,35 +1253,173 @@ int MPIR_Comm_delete_internal(MPIR_Comm * comm_ptr)
     }
 
   fn_exit:
-    MPIR_FUNC_TERSE_EXIT(MPID_STATE_COMM_DELETE_INTERNAL);
+    if (unmatched_messages > 0) {
+        MPIR_ERR_SET2(mpi_errno, MPI_ERR_OTHER, "**commhasunmatched", "**commhasunmatched %x %d",
+                      comm_handle, unmatched_messages);
+    }
+
+    MPIR_FUNC_EXIT;
     return mpi_errno;
   fn_fail:
     goto fn_exit;
 }
 
-/* Release a reference to a communicator.  If there are no pending
-   references, delete the communicator and recover all storage and
-   context ids.  This version of the function always manipulates the reference
-   counts, even for predefined objects. */
-int MPIR_Comm_release_always(MPIR_Comm * comm_ptr)
+/* This function retrieves info key and collectively compares hint_str to see
+ * hether all processes are having the same string.
+ */
+int MPII_collect_info_key(MPIR_Comm * comm_ptr, MPIR_Info * info_ptr, const char *key,
+                          const char **value_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
-    int in_use;
-    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPIR_COMM_RELEASE_ALWAYS);
 
-    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPIR_COMM_RELEASE_ALWAYS);
+    const char *hint_str = NULL;
+    if (info_ptr) {
+        hint_str = MPIR_Info_lookup(info_ptr, key);
+    }
 
-    /* we want to short-circuit any optimization that avoids reference counting
-     * predefined communicators, such as MPI_COMM_WORLD or MPI_COMM_SELF. */
-    MPIR_Object_release_ref_always(comm_ptr, &in_use);
-    if (!in_use) {
-        mpi_errno = MPIR_Comm_delete_internal(comm_ptr);
+    int hint_str_size;
+    if (!hint_str) {
+        hint_str_size = 0;
+    } else {
+        hint_str_size = strlen(hint_str);
+        if (hint_str_size == 0) {
+            hint_str = NULL;
+        }
+    }
+
+    if (comm_ptr->comm_kind == MPIR_COMM_KIND__INTERCOMM) {
+        /* just ensure consistency on the local group */
+        /* TODO: check consistency between local and remote processes */
+        if (!comm_ptr->local_comm) {
+            MPII_Setup_intercomm_localcomm(comm_ptr);
+        }
+        comm_ptr = comm_ptr->local_comm;
+    }
+
+    int is_equal;
+    mpi_errno = MPIR_Allreduce_equal(&hint_str_size, 1, MPI_INT, &is_equal, comm_ptr);
+    MPIR_ERR_CHECK(mpi_errno);
+
+    if (is_equal && hint_str_size > 0) {
+        mpi_errno = MPIR_Allreduce_equal(hint_str, hint_str_size, MPI_CHAR, &is_equal, comm_ptr);
         MPIR_ERR_CHECK(mpi_errno);
     }
 
+    MPIR_ERR_CHKANDJUMP1(!is_equal, mpi_errno, MPI_ERR_OTHER, "**infonoteq", "**infonoteq %s", key);
+
+    *value_ptr = hint_str;
+
   fn_exit:
-    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPIR_COMM_RELEASE_ALWAYS);
-    return mpi_errno;
-  fn_fail: 
+    return MPI_SUCCESS;
+  fn_fail:
+    /* inconsistent info keys are ignored */
+    *value_ptr = NULL;
     goto fn_exit;
+}
+
+/* Returns true if the communicator is node-aware and the number of processes in all the nodes are
+ * same */
+int MPII_Comm_is_node_balanced(MPIR_Comm * comm, int *num_nodes, bool * node_balanced)
+{
+    int i = 0;
+    int mpi_errno = MPI_SUCCESS;
+    int *ranks_per_node;
+    *num_nodes = 0;
+
+    MPIR_CHKPMEM_DECL(1);
+
+    if (!MPIR_Comm_is_parent_comm(comm)) {
+        *node_balanced = false;
+        goto fn_exit;
+    }
+
+    /* Find maximum value in the internode_table */
+    for (i = 0; i < comm->local_size; i++) {
+        if (comm->internode_table[i] > *num_nodes) {
+            *num_nodes = comm->internode_table[i];
+        }
+    }
+    /* number of nodes is max_node_id + 1 */
+    (*num_nodes)++;
+
+    MPIR_CHKPMEM_CALLOC(ranks_per_node, int *,
+                        *num_nodes * sizeof(int), mpi_errno, "ranks per node", MPL_MEM_OTHER);
+
+    for (i = 0; i < comm->local_size; i++) {
+        ranks_per_node[comm->internode_table[i]]++;
+    }
+
+    for (i = 1; i < *num_nodes; i++) {
+        if (ranks_per_node[i - 1] != ranks_per_node[i]) {
+            *node_balanced = false;
+            goto fn_exit;
+        }
+    }
+
+    *node_balanced = true;
+  fn_exit:
+    MPIR_CHKPMEM_REAP();
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}
+
+int MPIR_Comm_save_inactive_request(MPIR_Comm * comm, MPIR_Request * request)
+{
+    MPID_THREAD_CS_ENTER(VCI, comm->mutex);
+    HASH_ADD_INT(comm->persistent_requests, handle, request, MPL_MEM_COMM);
+    MPID_THREAD_CS_EXIT(VCI, comm->mutex);
+
+    return MPI_SUCCESS;
+}
+
+int MPIR_Comm_delete_inactive_request(MPIR_Comm * comm, MPIR_Request * request)
+{
+    MPID_THREAD_CS_ENTER(VCI, comm->mutex);
+    HASH_DEL(comm->persistent_requests, request);
+    MPID_THREAD_CS_EXIT(VCI, comm->mutex);
+
+    return MPI_SUCCESS;
+}
+
+int MPIR_Comm_free_inactive_requests(MPIR_Comm * comm)
+{
+    MPIR_Request *request, *tmp;
+    MPID_THREAD_CS_ENTER(VCI, comm->mutex);
+    HASH_ITER(hh, comm->persistent_requests, request, tmp) {
+        if (!MPIR_Request_is_active(request)) {
+            HASH_DEL(comm->persistent_requests, request);
+            /* reset request->comm so it won't trigger MPIR_Comm_delete_inactive_request,
+             * which will recursively entering the lock. */
+            if (request->comm) {
+                MPIR_Comm_release(request->comm);
+                request->comm = NULL;
+            }
+            MPL_internal_error_printf
+                ("MPICH: freeing inactive persistent request %x on communicator %x.\n",
+                 request->handle, comm->handle);
+            MPIR_Request_free_impl(request);
+        }
+    }
+    MPID_THREAD_CS_EXIT(VCI, comm->mutex);
+
+    return MPI_SUCCESS;
+}
+
+void MPIR_Comm_set_session_ptr(MPIR_Comm * comm_ptr, MPIR_Session * session_ptr)
+{
+    if (session_ptr != NULL) {
+        comm_ptr->session_ptr = session_ptr;
+        /* Add ref counter of session */
+        MPIR_Session_add_ref(session_ptr);
+    }
+}
+
+void MPIR_get_memory_kinds_from_comm(MPIR_Comm * comm_ptr, char **kinds)
+{
+    if (comm_ptr->session_ptr) {
+        *kinds = comm_ptr->session_ptr->memory_alloc_kinds;
+    } else {
+        *kinds = MPIR_Process.memory_alloc_kinds;
+    }
 }

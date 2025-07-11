@@ -90,6 +90,7 @@ noinst_PROGRAMS =          \
     win_shared_zerobyte    \
     win_shared_create_allocshm    \
     win_shared_create_no_allocshm \
+    win_shared_query       \
     win_zero               \
     win_large_shm          \
     win_dynamic_acc        \
@@ -136,7 +137,6 @@ noinst_PROGRAMS =          \
     reqops                 \
     req_example            \
     req_example_shm        \
-    win_info               \
     pscw_ordering          \
     pscw_ordering_shm	   \
     mutex_bench            \

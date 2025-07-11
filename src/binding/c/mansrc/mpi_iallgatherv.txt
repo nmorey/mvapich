@@ -1,0 +1,45 @@
+/*D
+   MPI_Iallgatherv - Gathers data from all tasks and deliver the combined data to all tasks in a nonblocking way
+
+Synopsis:
+.vb
+int MPI_Iallgatherv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+                    void *recvbuf, const int recvcounts[], const int displs[],
+                    MPI_Datatype recvtype, MPI_Comm comm, MPI_Request *request)
+.ve
+.vb
+int MPI_Iallgatherv_c(const void *sendbuf, MPI_Count sendcount,
+                      MPI_Datatype sendtype, void *recvbuf,
+                      const MPI_Count recvcounts[], const MPI_Aint displs[],
+                      MPI_Datatype recvtype, MPI_Comm comm,
+                      MPI_Request *request)
+.ve
+
+Input Parameters:
++ sendbuf - starting address of send buffer (choice)
+. sendcount - number of elements in send buffer (non-negative integer)
+. sendtype - data type of send buffer elements (handle)
+. recvcounts - non-negative integer array (of length group size) containing the number of elements that are received from each process (non-negative integer)
+. displs - integer array (of length group size). Entry i specifies the displacement (relative to recvbuf) at which to place the incoming data from process i (integer)
+. recvtype - data type of receive buffer elements (handle)
+- comm - communicator (handle)
+
+Output Parameters:
++ recvbuf - address of receive buffer (choice)
+- request - communication request (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_BUFFER
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

@@ -1,0 +1,24 @@
+/*D
+   MPI_Session_set_errhandler - Set MPI session error handler
+
+Synopsis:
+.vb
+int MPI_Session_set_errhandler(MPI_Session session, MPI_Errhandler errhandler)
+.ve
+
+Input Parameters:
++ session - session (handle)
+- errhandler - new error handler for session (handle)
+
+.N ThreadSafeNoUpdate
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ERRHANDLER
+.N MPI_ERR_SESSION
+.N MPI_ERR_OTHER
+
+D*/
+

@@ -1,0 +1,31 @@
+/*D
+   MPIX_Comm_shrink - Creates a new communitor from an existing communicator while excluding failed processes
+
+Synopsis:
+.vb
+int MPIX_Comm_shrink(MPI_Comm comm, MPI_Comm *newcomm)
+.ve
+
+Input Parameters:
+. comm - communicator (handle)
+
+Output Parameters:
+. newcomm - new communicator (handle)
+
+Notes:
+This collective operation creates a new intra- or intercommunicator newcomm from the intra- or intercommunicator comm, respectively, by excluding the group of failed MPI processes as agreed upon during the operation. The groups of newcomm must include everyMPIprocess that returns from MPIX_Comm_shrink, and it must exclude every MPI process whose failure caused an operation on comm to raise an MPI error of class MPI_ERR_PROC_FAILED or MPI_ERR_PROC_FAILED_PENDING at a member of the groups of newcomm, before that member initiated MPIX_Comm_shrink. This call is semantically equivalent to an MPI_Comm_split operation that would succeed despite failures, where members of the groups of newcomm participate with the same color and a key equal to their rank incomm.
+
+This function never raises an error of class MPI_ERR_PROC_FAILED or MPI_ERR_REVOKED. The defined semantics of MPIX_Comm_shrink are maintained when comm is revoked, or when the group of comm contains failed MPI processes
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+D*/
+

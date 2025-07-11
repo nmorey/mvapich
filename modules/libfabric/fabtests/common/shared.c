@@ -51,8 +51,8 @@
 #include <rdma/fi_atomic.h>
 #include <rdma/fi_collective.h>
 
-#include <shared.h>
-#include <hmem.h>
+#include "shared.h"
+#include "hmem.h"
 
 struct fi_info *fi_pep, *fi, *hints;
 struct fid_fabric *fabric;
@@ -62,7 +62,8 @@ struct fid_poll *pollset;
 struct fid_pep *pep;
 struct fid_ep *ep, *alias_ep;
 struct fid_cq *txcq, *rxcq;
-struct fid_cntr *txcntr, *rxcntr;
+struct fid_cntr *txcntr, *rxcntr, *rma_cntr;
+
 struct fid_ep *srx;
 struct fid_stx *stx;
 struct fid_mr *mr;
@@ -86,13 +87,14 @@ int ft_socket_pair[2];
 fi_addr_t remote_fi_addr = FI_ADDR_UNSPEC;
 char *buf = NULL, *tx_buf, *rx_buf;
 /*
- * tx_msg_buf are used by ft_fill_buf() to stage data sent over wire,
+ * dev_host_buf are used by ft_fill_buf() to stage data sent over wire,
  * when tx_buf is on device memory.
  */
-void *tx_msg_buf = NULL;
+void *dev_host_buf = NULL;
 
 char **tx_mr_bufs = NULL, **rx_mr_bufs = NULL;
-size_t buf_size, tx_size, rx_size, tx_mr_size, rx_mr_size;
+size_t buf_size, tx_buf_size, rx_buf_size;
+size_t tx_size, rx_size, tx_mr_size, rx_mr_size;
 int rx_fd = -1, tx_fd = -1;
 char default_port[8] = "9228";
 static char default_oob_port[8] = "3000";
@@ -157,19 +159,13 @@ unsigned int test_cnt = (sizeof def_test_sizes / sizeof def_test_sizes[0]);
 
 struct test_size_param *test_size = def_test_sizes;
 /* range of messages is dynamically allocated */
-struct test_size_param *range_test_size;
-
-int lopt_idx = 0;
-struct option long_opts[] = {
-	{"pin-core", required_argument, NULL, LONG_OPT_PIN_CORE},
-	{0, 0, 0, 0}
-};
+struct test_size_param *user_test_sizes;
 
 static const char integ_alphabet[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 static const int integ_alphabet_length = (sizeof(integ_alphabet)/sizeof(*integ_alphabet)) - 1;
 
 
-static int ft_poll_fd(int fd, int timeout)
+int ft_poll_fd(int fd, int timeout)
 {
 	struct pollfd fds;
 	int ret;
@@ -379,49 +375,130 @@ void ft_free_bit_combo(uint64_t *combo)
 	free(combo);
 }
 
+void ft_fill_mr_attr(struct iovec *iov, struct fi_mr_dmabuf *dmabuf,
+		     int iov_count, uint64_t access,
+		     uint64_t key, enum fi_hmem_iface iface, uint64_t device,
+		     struct fi_mr_attr *attr, uint64_t flags)
+{
+	if (flags & FI_MR_DMABUF)
+		attr->dmabuf = dmabuf;
+	else
+		attr->mr_iov = iov;
+	attr->iov_count = iov_count;
+	attr->access = access;
+	attr->offset = 0;
+	attr->requested_key = key;
+	attr->context = NULL;
+	attr->iface = iface;
+
+	switch (iface) {
+	case FI_HMEM_NEURON:
+		attr->device.neuron = device;
+		break;
+	case FI_HMEM_ZE:
+		attr->device.ze = fi_hmem_ze_device(0, device);
+		break;
+	case FI_HMEM_CUDA:
+		attr->device.cuda = device;
+		break;
+	default:
+		break;
+	}
+}
+
+bool ft_need_mr_reg(struct fi_info *fi)
+{
+	return (fi->caps & (FI_RMA | FI_ATOMIC)) ||
+	       (fi->domain_attr->mr_mode & FI_MR_LOCAL) ||
+	       ((fi->domain_attr->mr_mode & FI_MR_HMEM) &&
+		(opts.options & FT_OPT_USE_DEVICE));
+}
+
+/**
+ * @brief Update an array of fi_mr_dmabuf objects
+ * from an array of iov with the same iov count
+ *
+ * @param dmabuf ptr to the array of fi_mr_dmabuf objects
+ * @param iov ptr to the array of iov objects
+ * @param iov_count iov count
+ * @param iface hmem iface
+ * @return int FI_SUCCESS on success, negative integer upon
+ * error
+ */
+int ft_get_dmabuf_from_iov(struct fi_mr_dmabuf *dmabuf,
+			   struct iovec *iov, size_t iov_count,
+			   enum fi_hmem_iface iface)
+{
+	int ret, i;
+	int dmabuf_fd;
+	uint64_t dmabuf_offset;
+
+	for (i = 0; i < iov_count; i++) {
+		ret = ft_hmem_get_dmabuf_fd(iface,
+			iov[i].iov_base, iov[i].iov_len,
+			&dmabuf_fd, &dmabuf_offset);
+		if (ret)
+			return ret;
+
+		dmabuf[i].fd = dmabuf_fd;
+		dmabuf[i].offset = dmabuf_offset;
+		dmabuf[i].len = iov[i].iov_len;
+		dmabuf[i].base_addr = (void *)(
+			(uintptr_t) iov[i].iov_base - dmabuf_offset);
+	}
+	return FI_SUCCESS;
+}
+
 int ft_reg_mr(struct fi_info *fi, void *buf, size_t size, uint64_t access,
-	      uint64_t key, struct fid_mr **mr, void **desc)
+	      uint64_t key, enum fi_hmem_iface iface, uint64_t device,
+	      struct fid_mr **mr, void **desc)
 {
 	struct fi_mr_attr attr = {0};
 	struct iovec iov = {0};
 	int ret;
 	uint64_t flags;
+	int dmabuf_fd;
+	uint64_t dmabuf_offset;
+	struct fi_mr_dmabuf dmabuf = {0};
 
-	if (((!(fi->domain_attr->mr_mode & FI_MR_LOCAL) &&
-	      !(opts.options & FT_OPT_USE_DEVICE)) ||
-	     (!(fi->domain_attr->mr_mode & FI_MR_HMEM) &&
-	      opts.options & FT_OPT_USE_DEVICE)) &&
-	    !(fi->caps & (FI_RMA | FI_ATOMIC)))
+	if (!ft_need_mr_reg(fi))
 		return 0;
 
 	iov.iov_base = buf;
 	iov.iov_len = size;
-	attr.mr_iov = &iov;
-	attr.iov_count = 1;
-	attr.access = access;
-	attr.offset = 0;
-	attr.requested_key = key;
-	attr.context = NULL;
-	attr.iface = opts.iface;
 
-	switch (opts.iface) {
-	case FI_HMEM_NEURON:
-		attr.device.neuron = opts.device;
-		break;
-	case FI_HMEM_ZE:
-		attr.device.ze = opts.device;
-		break;
-	default:
-		break;
+	flags = (iface) ? FI_HMEM_DEVICE_ONLY : 0;
+
+	if (opts.options & FT_OPT_REG_DMABUF_MR) {
+		ret = ft_hmem_get_dmabuf_fd(iface, buf, size,
+					    &dmabuf_fd, &dmabuf_offset);
+		if (ret)
+			return ret;
+
+		dmabuf.fd = dmabuf_fd;
+		dmabuf.offset = dmabuf_offset;
+		dmabuf.len = size;
+		dmabuf.base_addr = (void *)((uintptr_t) buf - dmabuf_offset);
+		flags |= FI_MR_DMABUF;
 	}
 
-	flags = (opts.iface) ? FI_HMEM_DEVICE_ONLY : 0;
+	ft_fill_mr_attr(&iov, &dmabuf, 1, access, key, iface, device, &attr, flags);
 	ret = fi_mr_regattr(domain, &attr, flags, mr);
 	if (ret)
 		return ret;
 
 	if (desc)
 		*desc = fi_mr_desc(*mr);
+
+        if (fi->domain_attr->mr_mode & FI_MR_ENDPOINT) {
+		ret = fi_mr_bind(*mr, &ep->fid, 0);
+		if (ret)
+			return ret;
+
+		ret = fi_mr_enable(*mr);
+		if (ret)
+			return ret;
+	}
 
 	return FI_SUCCESS;
 }
@@ -460,8 +537,8 @@ static int ft_alloc_ctx_array(struct ft_context **mr_array, char ***mr_bufs,
 		context->buf = (*mr_bufs)[i];
 
 		ret = ft_reg_mr(fi, context->buf, mr_size, access,
-				start_key + i, &context->mr,
-				&context->desc);
+				start_key + i, opts.iface, opts.device,
+				&context->mr, &context->desc);
 		if (ret)
 			return ret;
 	}
@@ -479,15 +556,27 @@ static void ft_set_tx_rx_sizes(size_t *set_tx, size_t *set_rx)
 	*set_tx += ft_tx_prefix_size();
 }
 
+void ft_free_host_tx_buf(void)
+{
+	int ret;
+
+	ret = ft_hmem_free_host(opts.iface, dev_host_buf);
+	if (ret)
+		FT_PRINTERR("ft_hmem_free_host", ret);
+	dev_host_buf = NULL;
+}
+
 /*
  * Include FI_MSG_PREFIX space in the allocated buffer, and ensure that the
  * buffer is large enough for a control message used to exchange addressing
  * data.
  */
-static int ft_alloc_msgs(void)
+int ft_alloc_msgs(void)
 {
 	int ret;
-	long alignment = 1;
+	int rma_resv_bytes;
+	long alignment = 64;
+	size_t max_msg_size;
 
 	if (buf)
 		return 0;
@@ -499,21 +588,35 @@ static int ft_alloc_msgs(void)
 		ft_set_tx_rx_sizes(&tx_mr_size, &rx_mr_size);
 		rx_size = FT_MAX_CTRL_MSG + ft_rx_prefix_size();
 		tx_size = FT_MAX_CTRL_MSG + ft_tx_prefix_size();
-		buf_size = rx_size + tx_size;
+		rx_buf_size = rx_size;
+		tx_buf_size = tx_size;
 	} else {
 		ft_set_tx_rx_sizes(&tx_size, &rx_size);
 		tx_mr_size = 0;
 		rx_mr_size = 0;
-		buf_size = MAX(tx_size, FT_MAX_CTRL_MSG) * opts.window_size +
-			   MAX(rx_size, FT_MAX_CTRL_MSG) * opts.window_size;
+		rx_buf_size = MAX(rx_size, FT_MAX_CTRL_MSG) * opts.window_size;
+		tx_buf_size = MAX(tx_size, FT_MAX_CTRL_MSG) * opts.window_size;
 	}
+
+	/* Allow enough space for RMA to operate in a distinct memory
+	 * region that ft_sync() won't touch.
+	 */
+	rma_resv_bytes = FT_RMA_SYNC_MSG_BYTES +
+			 MAX( ft_tx_prefix_size(), ft_rx_prefix_size() );
+	tx_buf_size += rma_resv_bytes;
+	rx_buf_size += rma_resv_bytes;
 
 	if (opts.options & FT_OPT_ALIGN && !(opts.options & FT_OPT_USE_DEVICE)) {
 		alignment = sysconf(_SC_PAGESIZE);
 		if (alignment < 0)
 			return -errno;
-		buf_size += alignment;
+	}
 
+	rx_buf_size = ft_get_aligned_size(rx_buf_size, alignment);
+	tx_buf_size = ft_get_aligned_size(tx_buf_size, alignment);
+
+	buf_size = rx_buf_size + tx_buf_size;
+	if (opts.options & FT_OPT_ALIGN && !(opts.options & FT_OPT_USE_DEVICE)) {
 		ret = posix_memalign((void **) &buf, (size_t) alignment,
 				buf_size);
 		if (ret) {
@@ -521,30 +624,49 @@ static int ft_alloc_msgs(void)
 			return ret;
 		}
 	} else {
-		ret = ft_hmem_alloc(opts.iface, opts.device, (void **) &buf, buf_size);
+		/* allocate extra "alignment" bytes, to handle the case
+		 * "buf" returned by ft_hmem_alloc() is not aligned.
+		 */
+		buf_size += alignment;
+		ret = ft_hmem_alloc(opts.iface, opts.device, (void **) &buf,
+				    buf_size);
 		if (ret)
 			return ret;
 
-		ret = ft_hmem_alloc_host(opts.iface, &tx_msg_buf, MAX(tx_size, FT_MAX_CTRL_MSG));
+		max_msg_size = (opts.options & FT_OPT_ALLOC_MULT_MR)
+				? tx_mr_size : tx_size;
+
+		/* dev_host_buf is used by ft_fill_buf() and ft_check_buf() as
+		 * staging area to copy data to and from device buffer during
+		 * data setup and verification.
+		 *
+		 * its size therefore should be the maximum size that
+		 * fi_fill_buf() and ft_check_buf() are called with, which is
+		 * max_msg_size * opts.window_size, because tests like
+		 * fi_rma_bw initializes all data in a window before
+		 * a window started, and check all data in a window after
+		 * a window completed.
+		 */
+		ret = ft_hmem_alloc_host(opts.iface, &dev_host_buf,
+					 max_msg_size * opts.window_size);
 		if (ret)
 			return ret;
 	}
+
 	ret = ft_hmem_memset(opts.iface, opts.device, (void *) buf, 0, buf_size);
 	if (ret)
 		return ret;
-	rx_buf = buf;
 
-	if (opts.options & FT_OPT_ALLOC_MULT_MR)
-		tx_buf = (char *) buf + MAX(rx_size, FT_MAX_CTRL_MSG);
-	else
-		tx_buf = (char *) buf + MAX(rx_size, FT_MAX_CTRL_MSG) * opts.window_size;
-
+	rx_buf = (char *)ft_get_aligned_addr(buf, alignment);
+	tx_buf = rx_buf + rx_buf_size;
 	remote_cq_data = ft_init_cq_data(fi);
 
 	mr = &no_mr;
 	if (!ft_mr_alloc_func && !ft_check_opts(FT_OPT_SKIP_REG_MR)) {
-		ret = ft_reg_mr(fi, buf, buf_size, ft_info_to_mr_access(fi),
-				FT_MR_KEY, &mr, &mr_desc);
+		ret = ft_reg_mr(fi, rx_buf, rx_buf_size + tx_buf_size,
+				ft_info_to_mr_access(fi),
+				FT_MR_KEY, opts.iface, opts.device, &mr,
+				&mr_desc);
 		if (ret)
 			return ret;
 	} else {
@@ -626,13 +748,10 @@ int ft_open_fabric_res(void)
 
 int ft_alloc_ep_res(struct fi_info *fi, struct fid_cq **new_txcq,
 		    struct fid_cq **new_rxcq, struct fid_cntr **new_txcntr,
-		    struct fid_cntr **new_rxcntr)
+		    struct fid_cntr **new_rxcntr,
+		    struct fid_cntr **new_rma_cntr)
 {
 	int ret;
-
-	ret = ft_alloc_msgs();
-	if (ret)
-		return ret;
 
 	if (cq_attr.format == FI_CQ_FORMAT_UNSPEC) {
 		if (fi->caps & FI_TAGGED)
@@ -705,6 +824,14 @@ int ft_alloc_ep_res(struct fi_info *fi, struct fid_cq **new_txcq,
 			FT_PRINTERR("fi_cntr_open", ret);
 			return ret;
 		}
+
+		if (fi->caps & FI_RMA) {
+			ret = ft_cntr_open(new_rma_cntr);
+			if (ret) {
+				FT_PRINTERR("fi_cntr_open", ret);
+				return ret;
+			}
+		}
 	}
 
 	if (!av && (fi->ep_attr->type == FI_EP_RDM || fi->ep_attr->type == FI_EP_DGRAM)) {
@@ -727,7 +854,7 @@ int ft_alloc_ep_res(struct fi_info *fi, struct fid_cq **new_txcq,
 int ft_alloc_active_res(struct fi_info *fi)
 {
 	int ret;
-	ret = ft_alloc_ep_res(fi, &txcq, &rxcq, &txcntr, &rxcntr);
+	ret = ft_alloc_ep_res(fi, &txcq, &rxcq, &txcntr, &rxcntr, &rma_cntr);
 	if (ret)
 		return ret;
 
@@ -742,10 +869,18 @@ int ft_alloc_active_res(struct fi_info *fi)
 
 int ft_init(void)
 {
+	int ret;
+
 	tx_seq = 0;
 	rx_seq = 0;
 	tx_cq_cntr = 0;
 	rx_cq_cntr = 0;
+
+	ret = ft_startup();
+	if (ret) {
+		FT_ERR("ft_startup: %d", ret);
+		return ret;
+	}
 
 	return ft_hmem_init(opts.iface);
 }
@@ -771,6 +906,7 @@ int ft_init_oob(void)
 {
 	struct addrinfo *ai = NULL;
 	int ret;
+	char *addr = opts.oob_addr;
 
 	if (!(opts.options & FT_OPT_OOB_CTRL) || oob_sock != -1)
 		return 0;
@@ -779,7 +915,10 @@ int ft_init_oob(void)
 		opts.oob_port = default_oob_port;
 
 	if (!opts.dst_addr) {
-		ret = ft_sock_listen(opts.src_addr, opts.oob_port);
+		if (!addr)
+			addr = opts.src_addr;
+
+		ret = ft_sock_listen(addr, opts.oob_port);
 		if (ret)
 			return ret;
 
@@ -790,9 +929,12 @@ int ft_init_oob(void)
 			return ret;
 		}
 
-		close(listen_sock);
+		ft_close_fd(listen_sock);
 	} else {
-		ret = getaddrinfo(opts.dst_addr, opts.oob_port, NULL, &ai);
+		if (!addr)
+			addr = opts.dst_addr;
+
+		ret = getaddrinfo(addr, opts.oob_port, NULL, &ai);
 		if (ret) {
 			perror("getaddrinfo");
 			return ret;
@@ -808,7 +950,7 @@ int ft_init_oob(void)
 		ret = connect(oob_sock, ai->ai_addr, ai->ai_addrlen);
 		if (ret) {
 			perror("connect");
-			close(oob_sock);
+			ft_close_fd(oob_sock);
 			goto free;
 		}
 		sleep(1);
@@ -869,9 +1011,9 @@ int ft_close_oob()
 	int ret;
 	if (oob_sock == -1)
 		return 0;
-	ret = close(oob_sock);
+	ret = ft_close_fd(oob_sock);
 	if (ret) {
-		FT_PRINTERR("close", errno);
+		FT_PRINTERR("ft_close_fd", errno);
 		return ret;
 	}
 	oob_sock = -1;
@@ -997,6 +1139,20 @@ int ft_complete_connect(struct fid_ep *ep, struct fid_eq *eq)
 	return 0;
 }
 
+int ft_verify_info(struct fi_info *fi_pep, struct fi_info *info)
+{
+	if (!info || !info->fabric_attr || !info->domain_attr ||
+	    !info->ep_attr || !info->tx_attr || !info->rx_attr)
+		return -FI_EINVAL;
+
+	if (!info->fabric_attr->prov_name ||
+	    !info->fabric_attr->name || !info->domain_attr->name ||
+	    info->fabric_attr->api_version != fi_pep->fabric_attr->api_version)
+		return -FI_EINVAL;
+
+	return 0;
+}
+
 int ft_retrieve_conn_req(struct fid_eq *eq, struct fi_info **fi)
 {
 	struct fi_eq_cm_entry entry;
@@ -1014,6 +1170,11 @@ int ft_retrieve_conn_req(struct fid_eq *eq, struct fi_info **fi)
 	if (event != FI_CONNREQ) {
 		fprintf(stderr, "Unexpected CM event %d\n", event);
 		ret = -FI_EOTHER;
+		return ret;
+	}
+
+	if ((ret = ft_verify_info(fi_pep, entry.info))) {
+		printf("ret: %d\n", ret);
 		return ret;
 	}
 
@@ -1192,7 +1353,8 @@ int ft_init_alias_ep(uint64_t flags)
 
 int ft_enable_ep(struct fid_ep *bind_ep, struct fid_eq *bind_eq, struct fid_av *bind_av,
 		 struct fid_cq *bind_txcq, struct fid_cq *bind_rxcq,
-		 struct fid_cntr *bind_txcntr, struct fid_cntr *bind_rxcntr)
+		 struct fid_cntr *bind_txcntr, struct fid_cntr *bind_rxcntr,
+		 struct fid_cntr *bind_rma_cntr)
 {
 	uint64_t flags;
 	int ret;
@@ -1228,9 +1390,8 @@ int ft_enable_ep(struct fid_ep *bind_ep, struct fid_eq *bind_eq, struct fid_av *
 		flags = 0;
 	else
 		flags = FI_SEND;
-	if (hints->caps & (FI_WRITE | FI_READ))
-		flags |= hints->caps & (FI_WRITE | FI_READ);
-	else if (hints->caps & FI_RMA)
+
+	if (hints->caps & (FI_RMA | FI_ATOMICS))
 		flags |= FI_WRITE | FI_READ;
 	FT_EP_BIND(bind_ep, bind_txcntr, flags);
 
@@ -1238,11 +1399,13 @@ int ft_enable_ep(struct fid_ep *bind_ep, struct fid_eq *bind_eq, struct fid_av *
 		flags = 0;
 	else
 		flags = FI_RECV;
-	if (hints->caps & (FI_REMOTE_WRITE | FI_REMOTE_READ))
-		flags |= hints->caps & (FI_REMOTE_WRITE | FI_REMOTE_READ);
-	else if (hints->caps & FI_RMA)
-		flags |= FI_REMOTE_WRITE | FI_REMOTE_READ;
+
 	FT_EP_BIND(bind_ep, bind_rxcntr, flags);
+
+	if (hints->caps & (FI_RMA | FI_ATOMICS) && hints->caps & FI_RMA_EVENT) {
+		flags = fi->caps & (FI_REMOTE_WRITE | FI_REMOTE_READ);
+		FT_EP_BIND(bind_ep, bind_rma_cntr, flags);
+	}
 
 	ret = fi_enable(bind_ep);
 	if (ret) {
@@ -1257,7 +1420,11 @@ int ft_enable_ep_recv(void)
 {
 	int ret;
 
-	ret = ft_enable_ep(ep, eq, av, txcq, rxcq, txcntr, rxcntr);
+	ret = ft_enable_ep(ep, eq, av, txcq, rxcq, txcntr, rxcntr, rma_cntr);
+	if (ret)
+		return ret;
+
+	ret = ft_alloc_msgs();
 	if (ret)
 		return ret;
 
@@ -1361,6 +1528,9 @@ int ft_init_av_dst_addr(struct fid_av *av_ptr, struct fid_ep *ep_ptr,
 	size_t addrlen;
 	int ret;
 
+	if (opts.options & FT_OPT_SKIP_ADDR_EXCH)
+		return 0;
+
 	if (opts.options & FT_OPT_OOB_ADDR_EXCH) {
 		ret = ft_exchange_addresses_oob(av_ptr, ep_ptr, remote_addr);
 		if (ret)
@@ -1444,6 +1614,9 @@ int ft_init_av_addr(struct fid_av *av_ptr, struct fid_ep *ep_ptr,
 {
 	size_t addrlen;
 	int ret;
+
+	if (opts.options & FT_OPT_SKIP_ADDR_EXCH)
+		return 0;
 
 	if (opts.options & FT_OPT_OOB_ADDR_EXCH)
 		return ft_exchange_addresses_oob(av_ptr, ep_ptr, remote_addr);
@@ -1539,7 +1712,7 @@ int ft_exchange_keys(struct fi_rma_iov *peer_iov)
 	if (ret)
 		return ret;
 
-	ret = ft_tx(ep, remote_fi_addr, len, &tx_ctx);
+	ret = ft_tx(ep, remote_fi_addr, len + ft_tx_prefix_size(), &tx_ctx);
 	if (ret)
 		return ret;
 
@@ -1586,10 +1759,16 @@ static void ft_cleanup_mr_array(struct ft_context *ctx_arr, char **mr_bufs)
 	}
 }
 
-static void ft_close_fids(void)
+void ft_close_fids(void)
 {
 	FT_CLOSE_FID(mc);
 	FT_CLOSE_FID(alias_ep);
+	if (fi && fi->domain_attr->mr_mode & FI_MR_ENDPOINT) {
+		if (mr != &no_mr) {
+			FT_CLOSE_FID(mr);
+			mr = &no_mr;
+		}
+	}
 	FT_CLOSE_FID(ep);
 	FT_CLOSE_FID(pep);
 	if (opts.options & FT_OPT_CQ_SHARED) {
@@ -1600,6 +1779,7 @@ static void ft_close_fids(void)
 	}
 	FT_CLOSE_FID(rxcntr);
 	FT_CLOSE_FID(txcntr);
+	FT_CLOSE_FID(rma_cntr);
 	FT_CLOSE_FID(pollset);
 	if (mr != &no_mr)
 		FT_CLOSE_FID(mr);
@@ -1610,6 +1790,41 @@ static void ft_close_fids(void)
 	FT_CLOSE_FID(eq);
 	FT_CLOSE_FID(waitset);
 	FT_CLOSE_FID(fabric);
+}
+
+/* We need to free any data that we allocated before freeing the
+ * hints.  Windows doesn't like it when a library frees memory that
+ * was allocated by the application.
+ */
+void ft_freehints(struct fi_info *hints)
+{
+	if (!hints)
+		return;
+
+	if (hints->domain_attr->name) {
+		free(hints->domain_attr->name);
+		hints->domain_attr->name = NULL;
+	}
+	if (hints->fabric_attr->name) {
+		free(hints->fabric_attr->name);
+		hints->fabric_attr->name = NULL;
+	}
+	if (hints->fabric_attr->prov_name) {
+		free(hints->fabric_attr->prov_name);
+		hints->fabric_attr->prov_name = NULL;
+	}
+	if (hints->src_addr) {
+		free(hints->src_addr);
+		hints->src_addr = NULL;
+		hints->src_addrlen = 0;
+	}
+	if (hints->dest_addr) {
+		free(hints->dest_addr);
+		hints->dest_addr = NULL;
+		hints->dest_addrlen = 0;
+	}
+
+	fi_freeinfo(hints);
 }
 
 void ft_free_res(void)
@@ -1625,7 +1840,7 @@ void ft_free_res(void)
 	rx_ctx_arr = NULL;
 
 	ft_close_fids();
-	free(range_test_size);
+	free(user_test_sizes);
 	if (buf) {
 		ret = ft_hmem_free(opts.iface, buf);
 		if (ret)
@@ -1633,12 +1848,9 @@ void ft_free_res(void)
 		buf = rx_buf = tx_buf = NULL;
 		buf_size = rx_size = tx_size = tx_mr_size = rx_mr_size = 0;
 	}
-	if (tx_msg_buf) {
-		ret = ft_hmem_free_host(opts.iface, tx_msg_buf);
-		if (ret)
-			FT_PRINTERR("ft_hmem_free_host", ret);
-		tx_msg_buf = NULL;
-	}
+	if (dev_host_buf)
+		ft_free_host_tx_buf();
+
 	if (fi_pep) {
 		fi_freeinfo(fi_pep);
 		fi_pep = NULL;
@@ -1648,7 +1860,7 @@ void ft_free_res(void)
 		fi = NULL;
 	}
 	if (hints) {
-		fi_freeinfo(hints);
+		ft_freehints(hints);
 		hints = NULL;
 	}
 
@@ -1671,7 +1883,7 @@ static int dupaddr(void **dst_addr, size_t *dst_addrlen,
 }
 
 static int getaddr(char *node, char *service,
-			struct fi_info *hints, uint64_t flags)
+		   struct fi_info *hints, uint64_t flags)
 {
 	int ret;
 	struct fi_info *fi;
@@ -1716,7 +1928,21 @@ int ft_read_addr_opts(char **node, char **service, struct fi_info *hints,
 {
 	int ret;
 
-	if (opts->dst_addr && (opts->src_addr || !opts->oob_port)){
+	if (opts->options & FT_OPT_ADDR_IS_OOB) {
+		*service = NULL;
+		*node = NULL;
+	} else if (opts->address_format == FI_ADDR_STR) {
+		/* We are likely dealing with a provider specific address format.
+		 * I.e. NOT an IP address or host name
+		 */
+		*service = NULL;
+		if (opts->dst_addr) {
+			*node = opts->dst_addr;
+		} else {
+			*node = opts->src_addr;
+			*flags = FI_SOURCE;
+		}
+	} else if (opts->dst_addr) {
 		if (!opts->dst_port)
 			opts->dst_port = default_port;
 
@@ -1832,7 +2058,7 @@ void init_test(struct ft_opts *opts, char *test_name, size_t test_name_len)
 		opts->iterations = size_to_count(opts->transfer_size);
 }
 
-static void ft_force_progress(void)
+void ft_force_progress(void)
 {
 	if (txcq)
 		fi_cq_read(txcq, NULL, 0);
@@ -1944,20 +2170,26 @@ ssize_t ft_tx(struct fid_ep *ep, fi_addr_t fi_addr, size_t size, void *ctx)
 	return ret;
 }
 
-ssize_t ft_post_inject(struct fid_ep *ep, fi_addr_t fi_addr, size_t size)
+ssize_t ft_post_inject_buf(struct fid_ep *ep, fi_addr_t fi_addr, size_t size,
+			   void *op_buf, uint64_t op_tag)
 {
 	if (hints->caps & FI_TAGGED) {
 		FT_POST(fi_tinject, ft_progress, txcq, tx_seq, &tx_cq_cntr,
-			"inject", ep, tx_buf, size + ft_tx_prefix_size(),
-			fi_addr, tx_seq);
+			"inject", ep, op_buf, size + ft_tx_prefix_size(),
+			fi_addr, op_tag);
 	} else {
 		FT_POST(fi_inject, ft_progress, txcq, tx_seq, &tx_cq_cntr,
-			"inject", ep, tx_buf, size + ft_tx_prefix_size(),
+			"inject", ep, op_buf, size + ft_tx_prefix_size(),
 			fi_addr);
 	}
 
 	tx_cq_cntr++;
 	return 0;
+}
+
+ssize_t ft_post_inject(struct fid_ep *ep, fi_addr_t fi_addr, size_t size)
+{
+	return ft_post_inject_buf(ep, fi_addr, size, tx_buf, tx_seq);
 }
 
 ssize_t ft_inject(struct fid_ep *ep, fi_addr_t fi_addr, size_t size)
@@ -1977,25 +2209,44 @@ ssize_t ft_inject(struct fid_ep *ep, fi_addr_t fi_addr, size_t size)
 	return ret;
 }
 
-ssize_t ft_post_rma(enum ft_rma_opcodes op, struct fid_ep *ep, size_t size,
+static size_t ft_remote_write_offset(const char *buf)
+{
+	assert(buf >= tx_buf && buf < (tx_buf + tx_buf_size));
+	/* rx_buf area is at the beginning of the remote region */
+	return buf - tx_buf;
+}
+
+static size_t ft_remote_read_offset(const char *buf)
+{
+	assert(buf >= rx_buf && buf < (rx_buf + rx_buf_size));
+	/* We want to read from remote peer's tx_buf area,
+	 * which immediately follow the rx_buf, hence add rx_buf_size
+	 */
+	return buf - rx_buf + rx_buf_size;
+}
+
+ssize_t ft_post_rma(enum ft_rma_opcodes op, char *buf, size_t size,
 		struct fi_rma_iov *remote, void *context)
 {
 	switch (op) {
 	case FT_RMA_WRITE:
 		FT_POST(fi_write, ft_progress, txcq, tx_seq, &tx_cq_cntr,
-			"fi_write", ep, tx_buf, opts.transfer_size, mr_desc,
-			remote_fi_addr, remote->addr, remote->key, context);
+			"fi_write", ep, buf, size, mr_desc,
+			remote_fi_addr, remote->addr + ft_remote_write_offset(buf),
+			remote->key, context);
 		break;
 	case FT_RMA_WRITEDATA:
 		FT_POST(fi_writedata, ft_progress, txcq, tx_seq, &tx_cq_cntr,
-			"fi_writedata", ep, tx_buf, opts.transfer_size, mr_desc,
-			remote_cq_data, remote_fi_addr,	remote->addr,
+			"fi_writedata", ep, buf, size, mr_desc,
+			remote_cq_data, remote_fi_addr,
+			remote->addr + ft_remote_write_offset(buf),
 			remote->key, context);
 		break;
 	case FT_RMA_READ:
 		FT_POST(fi_read, ft_progress, txcq, tx_seq, &tx_cq_cntr,
-			"fi_read", ep, rx_buf, opts.transfer_size, mr_desc,
-			remote_fi_addr, remote->addr,remote->key, context);
+			"fi_read", ep, buf, size, mr_desc,
+			remote_fi_addr, remote->addr + ft_remote_read_offset(buf),
+			remote->key, context);
 		break;
 	default:
 		FT_ERR("Unknown RMA op type\n");
@@ -2005,50 +2256,21 @@ ssize_t ft_post_rma(enum ft_rma_opcodes op, struct fid_ep *ep, size_t size,
 	return 0;
 }
 
-ssize_t ft_rma(enum ft_rma_opcodes op, struct fid_ep *ep, size_t size,
-		struct fi_rma_iov *remote, void *context)
-{
-	int ret;
-
-	ret = ft_post_rma(op, ep, size, remote, context);
-	if (ret)
-		return ret;
-
-	if (op == FT_RMA_WRITEDATA) {
-		if (fi->rx_attr->mode & FI_RX_CQ_DATA) {
-			ret = ft_rx(ep, 0);
-		} else {
-			ret = ft_get_rx_comp(rx_seq);
-			/* Just increment the seq # instead of posting recv so
-			 * that we wait for remote write completion on the next
-			 * iteration. */
-			rx_seq++;
-		}
-		if (ret)
-			return ret;
-	}
-
-	ret = ft_get_tx_comp(tx_seq);
-	if (ret)
-		return ret;
-
-	return 0;
-}
-
-ssize_t ft_post_rma_inject(enum ft_rma_opcodes op, struct fid_ep *ep, size_t size,
+ssize_t ft_post_rma_inject(enum ft_rma_opcodes op, char *buf, size_t size,
 		struct fi_rma_iov *remote)
 {
 	switch (op) {
 	case FT_RMA_WRITE:
 		FT_POST(fi_inject_write, ft_progress, txcq, tx_seq, &tx_cq_cntr,
-			"fi_inject_write", ep, tx_buf, opts.transfer_size,
-			remote_fi_addr, remote->addr, remote->key);
+			"fi_inject_write", ep, buf, opts.transfer_size,
+			remote_fi_addr, remote->addr + ft_remote_write_offset(buf),
+			remote->key);
 		break;
 	case FT_RMA_WRITEDATA:
 		FT_POST(fi_inject_writedata, ft_progress, txcq, tx_seq,
-			&tx_cq_cntr, "fi_inject_writedata", ep, tx_buf,
+			&tx_cq_cntr, "fi_inject_writedata", ep, buf,
 			opts.transfer_size, remote_cq_data, remote_fi_addr,
-			remote->addr, remote->key);
+			remote->addr + ft_remote_write_offset(buf), remote->key);
 		break;
 	default:
 		FT_ERR("Unknown RMA inject op type\n");
@@ -2168,7 +2390,7 @@ ssize_t ft_post_rx_buf(struct fid_ep *ep, size_t size, void *ctx,
 			remote_fi_addr, op_tag, 0, ctx);
 	} else {
 		FT_POST(fi_recv, ft_progress, rxcq, rx_seq, &rx_cq_cntr,
-			"receive", ep, op_buf, size, op_mr_desc, 0, ctx);
+			"receive", ep, op_buf, size, op_mr_desc, remote_fi_addr, ctx);
 	}
 	return 0;
 }
@@ -2210,6 +2432,9 @@ ft_tag_is_valid(struct fid_cq * cq, struct fi_cq_err_entry *comp, uint64_t tag)
 {
 	int valid = 1;
 
+	if (opts.options & FT_OPT_DISABLE_TAG_VALIDATION)
+		return valid;
+
 	if ((hints->caps & FI_TAGGED) && (cq == rxcq)) {
 		if (opts.options & FT_OPT_BW) {
 			/* valid: (tag - window) < comp->tag < (tag + window) */
@@ -2231,7 +2456,8 @@ ft_tag_is_valid(struct fid_cq * cq, struct fi_cq_err_entry *comp, uint64_t tag)
  * fi_cq_err_entry can be cast to any CQ entry format.
  */
 static int ft_spin_for_comp(struct fid_cq *cq, uint64_t *cur,
-			    uint64_t total, int timeout)
+			    uint64_t total, int timeout,
+			    uint64_t tag)
 {
 	struct fi_cq_err_entry comp;
 	struct timespec a, b;
@@ -2245,7 +2471,7 @@ static int ft_spin_for_comp(struct fid_cq *cq, uint64_t *cur,
 		if (ret > 0) {
 			if (timeout >= 0)
 				clock_gettime(CLOCK_MONOTONIC, &a);
-			if (!ft_tag_is_valid(cq, &comp, ft_tag ? ft_tag : rx_cq_cntr))
+			if (!ft_tag_is_valid(cq, &comp, tag ? tag : rx_cq_cntr))
 				return -FI_EOTHER;
 			(*cur)++;
 		} else if (ret < 0 && ret != -FI_EAGAIN) {
@@ -2266,7 +2492,8 @@ static int ft_spin_for_comp(struct fid_cq *cq, uint64_t *cur,
  * fi_cq_err_entry can be cast to any CQ entry format.
  */
 static int ft_wait_for_comp(struct fid_cq *cq, uint64_t *cur,
-			    uint64_t total, int timeout)
+			    uint64_t total, int timeout,
+			    uint64_t tag)
 {
 	struct fi_cq_err_entry comp;
 	int ret;
@@ -2274,7 +2501,7 @@ static int ft_wait_for_comp(struct fid_cq *cq, uint64_t *cur,
 	while (total - *cur > 0) {
 		ret = fi_cq_sread(cq, &comp, 1, NULL, timeout);
 		if (ret > 0) {
-			if (!ft_tag_is_valid(cq, &comp, ft_tag ? ft_tag : rx_cq_cntr))
+			if (!ft_tag_is_valid(cq, &comp, tag ? tag : rx_cq_cntr))
 				return -FI_EOTHER;
 			(*cur)++;
 		} else if (ret < 0 && ret != -FI_EAGAIN) {
@@ -2289,7 +2516,8 @@ static int ft_wait_for_comp(struct fid_cq *cq, uint64_t *cur,
  * fi_cq_err_entry can be cast to any CQ entry format.
  */
 static int ft_fdwait_for_comp(struct fid_cq *cq, uint64_t *cur,
-			    uint64_t total, int timeout)
+			    uint64_t total, int timeout,
+			    uint64_t tag)
 {
 	struct fi_cq_err_entry comp;
 	struct fid *fids[1];
@@ -2308,7 +2536,7 @@ static int ft_fdwait_for_comp(struct fid_cq *cq, uint64_t *cur,
 
 		ret = fi_cq_read(cq, &comp, 1);
 		if (ret > 0) {
-			if (!ft_tag_is_valid(cq, &comp, ft_tag ? ft_tag : rx_cq_cntr))
+			if (!ft_tag_is_valid(cq, &comp, tag ? tag : rx_cq_cntr))
 				return -FI_EOTHER;
 			(*cur)++;
 		} else if (ret < 0 && ret != -FI_EAGAIN) {
@@ -2319,22 +2547,33 @@ static int ft_fdwait_for_comp(struct fid_cq *cq, uint64_t *cur,
 	return 0;
 }
 
-int ft_get_cq_comp(struct fid_cq *cq, uint64_t *cur, uint64_t total, int timeout)
+int ft_read_cq(struct fid_cq *cq, uint64_t *cur,
+		uint64_t total, int timeout,
+		uint64_t tag)
 {
 	int ret;
 
 	switch (opts.comp_method) {
 	case FT_COMP_SREAD:
 	case FT_COMP_YIELD:
-		ret = ft_wait_for_comp(cq, cur, total, timeout);
+		ret = ft_wait_for_comp(cq, cur, total, timeout, tag);
 		break;
 	case FT_COMP_WAIT_FD:
-		ret = ft_fdwait_for_comp(cq, cur, total, timeout);
+		ret = ft_fdwait_for_comp(cq, cur, total, timeout, tag);
 		break;
 	default:
-		ret = ft_spin_for_comp(cq, cur, total, timeout);
+		ret = ft_spin_for_comp(cq, cur, total, timeout, tag);
 		break;
 	}
+	return ret;
+}
+
+int ft_get_cq_comp(struct fid_cq *cq, uint64_t *cur,
+		    uint64_t total, int timeout)
+{
+	int ret;
+
+	ret = ft_read_cq(cq, cur, total, timeout, ft_tag);
 
 	if (ret) {
 		if (ret == -FI_EAVAIL) {
@@ -2385,7 +2624,7 @@ static int ft_wait_for_cntr(struct fid_cntr *cntr, uint64_t total, int timeout)
 	return 0;
 }
 
-static int ft_get_cntr_comp(struct fid_cntr *cntr, uint64_t total, int timeout)
+int ft_get_cntr_comp(struct fid_cntr *cntr, uint64_t total, int timeout)
 {
 	int ret = 0;
 
@@ -2702,14 +2941,14 @@ int ft_wait_child(void)
 {
 	int ret;
 
-	ret = close(ft_socket_pair[0]);
+	ret = ft_close_fd(ft_socket_pair[0]);
 	if (ret) {
-		FT_PRINTERR("close", errno);
+		FT_PRINTERR("ft_close_fd", errno);
 		return ret;
 	}
-	ret = close(ft_socket_pair[1]);
+	ret = ft_close_fd(ft_socket_pair[1]);
 	if (ret) {
-		FT_PRINTERR("close", errno);
+		FT_PRINTERR("ft_close_fd", errno);
 		return ret;
 	}
 	if (ft_parent_proc) {
@@ -2878,8 +3117,8 @@ void ft_addr_usage()
 			"synchronization over the, optional, port");
 	FT_PRINT_OPTS_USAGE("-E[=<oob_port>]", "enable out-of-band address exchange only "
 			"over the, optional, port");
-	FT_PRINT_OPTS_USAGE("-C <number>", "number of connections to accept before "
-			"cleaning up a server");
+	FT_PRINT_OPTS_USAGE("-C <number>", "simultaneous connections to server");
+	FT_PRINT_OPTS_USAGE("-O <addr>", "use the provided addr for out of band");
 	FT_PRINT_OPTS_USAGE("-F <addr_format>", "Address format (default:FI_FORMAT_UNSPEC)");
 }
 
@@ -2925,6 +3164,16 @@ void ft_usage(char *name, char *desc)
 	return;
 }
 
+void ft_hmem_usage()
+{
+	FT_PRINT_OPTS_USAGE("-D <device_iface>", "Specify device interface: "
+			    "e.g. cuda, ze, neuron (default: None). "
+			    "Automatically enables FI_HMEM (-H)");
+	FT_PRINT_OPTS_USAGE("-i <device_id>", "Specify which device to use (default: 0)");
+	FT_PRINT_OPTS_USAGE("-H", "Enable provider FI_HMEM support");
+	FT_PRINT_OPTS_USAGE("-R", "Register HMEM memory with fi_mr_dmabuf API");
+}
+
 void ft_mcusage(char *name, char *desc)
 {
 	fprintf(stderr, "Usage:\n");
@@ -2939,11 +3188,7 @@ void ft_mcusage(char *name, char *desc)
 	FT_PRINT_OPTS_USAGE("-f <fabric>", "fabric name");
 	FT_PRINT_OPTS_USAGE("-d <domain>", "domain name");
 	FT_PRINT_OPTS_USAGE("-p <provider>", "specific provider name eg sockets, verbs");
-	FT_PRINT_OPTS_USAGE("-D <device_iface>", "Specify device interface: "
-			    "e.g. cuda, ze, neuron (default: None). "
-			    "Automatically enables FI_HMEM (-H)");
-	FT_PRINT_OPTS_USAGE("-i <device_id>", "Specify which device to use (default: 0)");
-	FT_PRINT_OPTS_USAGE("-H", "Enable provider FI_HMEM support");
+	ft_hmem_usage();
 	FT_PRINT_OPTS_USAGE("-h", "display this help output");
 
 	return;
@@ -2956,25 +3201,15 @@ void ft_csusage(char *name, char *desc)
 	FT_PRINT_OPTS_USAGE("-Q", "bind EQ to domain (vs. endpoint)");
 	FT_PRINT_OPTS_USAGE("-w <number>", "number of warmup iterations");
 	FT_PRINT_OPTS_USAGE("-S <size>", "specific transfer size or "
-			    " a range of sizes (syntax r:start,inc,end) or 'all'");
+			    "a range of sizes (syntax r:start,inc,end) or "
+			    "a list of sizes (syntax l:1,1,2,3,5,...) or 'all'");
 	FT_PRINT_OPTS_USAGE("-l", "align transmit and receive buffers to page size");
 	FT_PRINT_OPTS_USAGE("-m", "machine readable output");
-	FT_PRINT_OPTS_USAGE("-D <device_iface>", "Specify device interface: "
-			    "e.g. cuda, ze, neuron (default: None). "
-			    "Automatically enables FI_HMEM (-H)");
-	FT_PRINT_OPTS_USAGE("-i <device_index>", "Index of the device to use");
+	ft_hmem_usage();
 	FT_PRINT_OPTS_USAGE("-t <type>", "completion type [queue, counter]");
 	FT_PRINT_OPTS_USAGE("-c <method>", "completion method [spin, sread, fd, yield]");
 	FT_PRINT_OPTS_USAGE("-h", "display this help output");
 
-	return;
-}
-
-void ft_longopts_usage()
-{
-	FT_PRINT_OPTS_USAGE("--pin-core <core_list>", "specify which cores to pin");
-	FT_PRINT_OPTS_USAGE("", "disabled by default. <core_list> format uses");
-	FT_PRINT_OPTS_USAGE("", "a comma-separated list, like 0,2-4");
 	return;
 }
 
@@ -3055,9 +3290,13 @@ void ft_parse_addr_opts(int op, char *optarg, struct ft_opts *opts)
 			opts->oob_port = optarg + 1;
 		else
 			opts->oob_port = default_oob_port;
+		if (!opts->oob_addr)
+			opts->options |= FT_OPT_ADDR_IS_OOB;
 		break;
 	case 'F':
-		if (!strncasecmp("fi_sockaddr_in6", optarg, 15))
+		if (!strncasecmp("fi_addr_str", optarg, 11))
+			opts->address_format = FI_ADDR_STR;
+		else if (!strncasecmp("fi_sockaddr_in6", optarg, 15))
 			opts->address_format = FI_SOCKADDR_IN6;
 		else if (!strncasecmp("fi_sockaddr_in", optarg, 14))
 			opts->address_format = FI_SOCKADDR_IN;
@@ -3069,6 +3308,11 @@ void ft_parse_addr_opts(int op, char *optarg, struct ft_opts *opts)
 	case 'C':
 		opts->options |= FT_OPT_SERVER_PERSIST;
 		opts->num_connections = atoi(optarg);
+		break;
+	case 'O':
+		opts->oob_addr = optarg;
+		opts->options &= ~FT_OPT_ADDR_IS_OOB;
+		break;
 	default:
 		/* let getopt handle unknown opts*/
 		break;
@@ -3095,6 +3339,9 @@ void ft_parse_hmem_opts(int op, char *optarg, struct ft_opts *opts)
 	case 'H':
 		opts->options |= FT_OPT_ENABLE_HMEM;
 		break;
+	case 'R':
+		opts->options |= FT_OPT_REG_DMABUF_MR;
+		break;
 	default:
 		/* Let getopt handle unknown opts*/
 		break;
@@ -3103,26 +3350,57 @@ void ft_parse_hmem_opts(int op, char *optarg, struct ft_opts *opts)
 
 void ft_parse_opts_range(char* optarg)
 {
-       size_t start, inc, end;
-       int i, ret;
+	size_t start, inc, end;
+	int i, ret;
 
-       ret = sscanf(optarg, "r:%ld,%ld,%ld", &start, &inc, &end);
-       if (ret != 3) {
-	      perror("sscanf");
-	      exit(EXIT_FAILURE);
-       }
-       assert(end >= start && inc > 0);
-       test_cnt = (end - start) / inc + 1;
-       range_test_size = calloc(test_cnt, sizeof(*range_test_size));
-       if (!range_test_size) {
-	       perror("calloc");
-	       exit(EXIT_FAILURE);
-       }
-       for (i = 0; i < test_cnt && i < end; i++) {
-	       range_test_size[i].size = start + (i * inc);
-	       range_test_size[i].enable_flags = 0;
-       }
-       test_size = range_test_size;
+	ret = sscanf(optarg, "r:%zd,%zd,%zd", &start, &inc, &end);
+	if (ret != 3) {
+		perror("sscanf");
+		exit(EXIT_FAILURE);
+	}
+	assert(end >= start && inc > 0);
+	test_cnt = (end - start) / inc + 1;
+	user_test_sizes = calloc(test_cnt, sizeof(*user_test_sizes));
+	if (!user_test_sizes) {
+		perror("calloc");
+		exit(EXIT_FAILURE);
+	}
+	for (i = 0; i < test_cnt && i < end; i++) {
+		user_test_sizes[i].size = start + (i * inc);
+		user_test_sizes[i].enable_flags = 0;
+	}
+	test_size = user_test_sizes;
+}
+
+void ft_parse_opts_list(char* optarg)
+{
+	int i, ret;
+	char *token;
+	char *saveptr;
+
+	optarg += 2; // remove 'l:'
+	test_cnt = 1;
+	for (i = 0; optarg[i] != '\0'; i++) {
+		test_cnt += optarg[i] == ',';
+	}
+	user_test_sizes = calloc(test_cnt, sizeof(*user_test_sizes));
+	if (!user_test_sizes) {
+		perror("calloc");
+		exit(EXIT_FAILURE);
+	}
+
+	token = strtok_r(optarg, ",", &saveptr);
+	test_cnt = 0;
+	while (token != NULL) {
+		ret = sscanf(token, "%zu", &user_test_sizes[test_cnt].size);
+		if (ret != 1) {
+			fprintf(stderr, "Cannot parse integer \"%s\" in list.\n",token);
+			exit(EXIT_FAILURE);
+		}
+		test_cnt++;
+		token = strtok_r(NULL, ",", &saveptr);
+	}
+	test_size = user_test_sizes;
 }
 
 void ft_parsecsopts(int op, char *optarg, struct ft_opts *opts)
@@ -3143,6 +3421,9 @@ void ft_parsecsopts(int op, char *optarg, struct ft_opts *opts)
 		} else if (!strncasecmp("r:", optarg, 2)){
 			opts->sizes_enabled = FT_ENABLE_SIZES;
 			ft_parse_opts_range(optarg);
+		} else if (!strncasecmp("l:", optarg, 2)){
+			opts->sizes_enabled = FT_ENABLE_SIZES;
+			ft_parse_opts_list(optarg);
 		} else {
 			opts->options |= FT_OPT_SIZE;
 			opts->transfer_size = atol(optarg);
@@ -3193,6 +3474,12 @@ int ft_parse_api_opts(int op, char *optarg, struct fi_info *hints,
 			hints->mode |= FI_RX_CQ_DATA;
 			hints->domain_attr->cq_data_size = 4;
 			opts->rma_op = FT_RMA_WRITEDATA;
+			opts->cqdata_op = FT_CQDATA_WRITEDATA;
+			cq_attr.format = FI_CQ_FORMAT_DATA;
+		} else if (!strcasecmp(optarg, "senddata")) {
+			hints->mode |= FI_RX_CQ_DATA;
+			hints->domain_attr->cq_data_size = 4;
+			opts->cqdata_op = FT_CQDATA_SENDDATA;
 			cq_attr.format = FI_CQ_FORMAT_DATA;
 		} else if (!strcasecmp(optarg, "write")) {
 			hints->caps |= FI_WRITE | FI_REMOTE_WRITE;
@@ -3223,8 +3510,8 @@ int ft_fill_buf(void *buf, size_t size)
 	int ret = 0;
 
 	if (opts.iface != FI_HMEM_SYSTEM) {
-		assert(tx_msg_buf);
-		msg_buf = tx_msg_buf;
+		assert(dev_host_buf);
+		msg_buf = dev_host_buf;
 	} else {
 		msg_buf = (char *) buf;
 	}
@@ -3253,14 +3540,12 @@ int ft_check_buf(void *buf, size_t size)
 	int ret = 0;
 
 	if (opts.iface != FI_HMEM_SYSTEM) {
-		recv_data = malloc(size);
-		if (!recv_data)
-			return -FI_ENOMEM;
-
+		assert(dev_host_buf);
 		ret = ft_hmem_copy_from(opts.iface, opts.device,
-					recv_data, buf, size);
+					dev_host_buf, buf, size);
 		if (ret)
-			goto out;
+			return ret;
+		recv_data = (char *)dev_host_buf;
 	} else {
 		recv_data = (char *)buf;
 	}
@@ -3278,9 +3563,6 @@ int ft_check_buf(void *buf, size_t size)
 		ret = -FI_EIO;
 	}
 
-out:
-	if (opts.iface != FI_HMEM_SYSTEM)
-		free(recv_data);
 	return ret;
 }
 
@@ -3298,19 +3580,37 @@ int check_recv_msg(const char *message)
 {
 	size_t recv_len;
 	size_t message_len = strlen(message) + 1;
+	char *recv_buf;
+	int ret;
+
 	/* Account for null terminated byte. */
-	recv_len = strlen(rx_buf) + 1;
+
+	if (opts.iface != FI_HMEM_SYSTEM) {
+		assert(dev_host_buf);
+		ret = ft_hmem_copy_from(opts.iface, opts.device, dev_host_buf,
+					rx_buf, message_len);
+		if (ret) {
+			fprintf(stderr, "Received length does not match expected length.\n");
+			return -1;
+		}
+		recv_buf = dev_host_buf;
+	} else {
+		recv_buf = rx_buf;
+	}
+
+	recv_len = strlen(recv_buf) + 1;
 
 	if (recv_len != message_len) {
 		fprintf(stderr, "Received length does not match expected length.\n");
 		return -1;
 	}
 
-	if (strncmp(rx_buf, message, message_len)) {
+	if (strncmp(recv_buf, message, message_len)) {
 		fprintf(stderr, "Received message does not match expected message.\n");
 		return -1;
 	}
 	fprintf(stdout, "Data check OK\n");
+	fprintf(stdout, "Received data from client: %s\n", (char *) recv_buf);
 	return 0;
 }
 
@@ -3320,9 +3620,22 @@ int ft_send_greeting(struct fid_ep *ep)
 	int ret;
 
 	fprintf(stdout, "Sending message...\n");
-	if (snprintf(tx_buf, tx_size, "%s", greeting) >= tx_size) {
+	if (message_len >= tx_size) {
 		fprintf(stderr, "Transmit buffer too small.\n");
 		return -FI_ETOOSMALL;
+	}
+
+	if (opts.iface == FI_HMEM_SYSTEM) {
+		snprintf(tx_buf, tx_size, "%s", greeting);
+	} else {
+		assert(dev_host_buf);
+		snprintf(dev_host_buf, tx_size, "%s", greeting);
+		ret = ft_hmem_copy_to(opts.iface, opts.device, tx_buf,
+				      dev_host_buf, message_len);
+		if (ret) {
+			fprintf(stderr, "Error copying to device buffer\n");
+			return ret;
+		}
 	}
 
 	ret = ft_tx(ep, remote_fi_addr, message_len, &tx_ctx);
@@ -3346,7 +3659,6 @@ int ft_recv_greeting(struct fid_ep *ep)
 	if (ret)
 		return ret;
 
-	fprintf(stdout, "Received data from client: %s\n", (char *) rx_buf);
 	return 0;
 }
 
@@ -3396,7 +3708,7 @@ int ft_sock_listen(char *node, char *service)
 
 out:
 	if (ret && listen_sock >= 0)
-		close(listen_sock);
+		ft_close_fd(listen_sock);
 	freeaddrinfo(ai);
 	return ret;
 }
@@ -3422,7 +3734,7 @@ int ft_sock_connect(char *node, char *service)
 	ret = connect(sock, ai->ai_addr, ai->ai_addrlen);
 	if (ret) {
 		perror("connect");
-		close(sock);
+		ft_close_fd(sock);
 		goto free;
 	}
 
@@ -3437,7 +3749,7 @@ int ft_sock_accept()
 	int ret;
 
 	sock = accept(listen_sock, NULL, 0);
-        if (sock < 0) {
+	if (sock < 0) {
 		ret = sock;
 		perror("accept");
 		return ret;
@@ -3453,13 +3765,13 @@ int ft_sock_send(int fd, void *msg, size_t len)
 	ssize_t ret, err = 0;
 
 	for (sent = 0; sent < len; ) {
-		ret = send(fd, ((char *) msg) + sent, len - sent, 0);
+		ret = ofi_send_socket(fd, ((char *) msg) + sent, len - sent, 0);
 		if (ret > 0) {
 			sent += ret;
-		} else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+		} else if (ofi_sockerr() == EAGAIN || ofi_sockerr() == EWOULDBLOCK) {
 			ft_force_progress();
 		} else {
-			err = -errno;
+			err = -ofi_sockerr();
 			break;
 		}
 	}
@@ -3473,16 +3785,16 @@ int ft_sock_recv(int fd, void *msg, size_t len)
 	ssize_t ret, err = 0;
 
 	for (rcvd = 0; rcvd < len; ) {
-		ret = recv(fd, ((char *) msg) + rcvd, len - rcvd, 0);
+		ret = ofi_recv_socket(fd, ((char *) msg) + rcvd, len - rcvd, 0);
 		if (ret > 0) {
 			rcvd += ret;
 		} else if (ret == 0) {
 			err = -FI_ENOTCONN;
 			break;
-		} else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+		} else if (ofi_sockerr() == EAGAIN || ofi_sockerr() == EWOULDBLOCK) {
 			ft_force_progress();
 		} else {
-			err = -errno;
+			err = -ofi_sockerr();
 			break;
 		}
 	}
@@ -3508,7 +3820,7 @@ int ft_sock_sync(int value)
 void ft_sock_shutdown(int fd)
 {
 	shutdown(fd, SHUT_RDWR);
-	close(fd);
+	ft_close_fd(fd);
 }
 
 static int ft_has_util_prefix(const char *str)
@@ -3623,6 +3935,7 @@ void ft_free_string_array(char **s)
 	free(s);
 }
 
+#ifndef __APPLE__
 static const char *nexttoken(const char *str,  int chr)
 {
 	if (str)
@@ -3676,6 +3989,12 @@ static int ft_pin_core(const char *core_list)
 
 	return sched_setaffinity(0, sizeof(mask), &mask);
 }
+#else
+static int ft_pin_core(const char *core_list)
+{
+    return EXIT_FAILURE;
+}
+#endif
 
 static int ft_parse_pin_core_opt(char *optarg)
 {
@@ -3686,11 +4005,39 @@ static int ft_parse_pin_core_opt(char *optarg)
 	return 0;
 }
 
+void ft_longopts_usage()
+{
+	FT_PRINT_OPTS_USAGE("--pin-core <core_list>",
+		"Specify which cores to pin process to using a\n"
+		"a comma-separated list format, e.g.: 0,2-4.\n"
+		"Disabled by default.");
+	FT_PRINT_OPTS_USAGE("--timeout <seconds>",
+		"Overrides default timeout for test specific transfers.");
+	FT_PRINT_OPTS_USAGE("--debug-assert",
+		"Replace asserts with while loops to force process to\n"
+		"spin until a debugger can be attached.");
+}
+
+int debug_assert;
+
+int lopt_idx = 0;
+struct option long_opts[] = {
+	{"pin-core", required_argument, NULL, LONG_OPT_PIN_CORE},
+	{"timeout", required_argument, NULL, LONG_OPT_TIMEOUT},
+	{"debug-assert", no_argument, &debug_assert, LONG_OPT_DEBUG_ASSERT},
+	{NULL, 0, NULL, 0},
+};
+
 int ft_parse_long_opts(int op, char *optarg)
 {
 	switch (op) {
 	case LONG_OPT_PIN_CORE:
 		return ft_parse_pin_core_opt(optarg);
+	case LONG_OPT_TIMEOUT:
+		timeout = atoi(optarg);
+		return 0;
+	case LONG_OPT_DEBUG_ASSERT:
+		return 0;
 	default:
 		return EXIT_FAILURE;
 	}

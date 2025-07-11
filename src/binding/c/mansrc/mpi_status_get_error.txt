@@ -1,0 +1,24 @@
+/*D
+   MPI_Status_get_error - Get MPI_ERROR field from the status
+
+Synopsis:
+.vb
+int MPI_Status_get_error(MPI_Status *status, int *error)
+.ve
+
+Input Parameters:
+. status - status from which to retrieve source rank (Status)
+
+Output Parameters:
+. error - error set in the MPI_ERROR field (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_OTHER
+
+D*/
+

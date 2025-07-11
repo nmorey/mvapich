@@ -34,20 +34,18 @@
  * Cost = (p-1).alpha + n.((p-1)/p).beta + n.((p-1)/p).gamma
  */
 int MPIR_Ireduce_scatter_intra_sched_recursive_halving(const void *sendbuf, void *recvbuf,
-                                                       const int recvcounts[],
+                                                       const MPI_Aint recvcounts[],
                                                        MPI_Datatype datatype, MPI_Op op,
                                                        MPIR_Comm * comm_ptr, MPIR_Sched_t s)
 {
     int mpi_errno = MPI_SUCCESS;
     int rank, comm_size, i;
     MPI_Aint extent, true_extent, true_lb;
-    int *disps;
     void *tmp_recvbuf, *tmp_results;
-    int type_size ATTRIBUTE((unused)), total_count, dst;
+    int dst;
     int mask;
-    int *newcnts, *newdisps, rem, newdst, send_idx, recv_idx, last_idx, send_cnt, recv_cnt;
+    int rem, newdst, send_idx, recv_idx, last_idx;
     int pof2, old_i, newrank;
-    MPIR_SCHED_CHKPMEM_DECL(5);
 
     comm_size = comm_ptr->local_size;
     rank = comm_ptr->rank;
@@ -59,9 +57,11 @@ int MPIR_Ireduce_scatter_intra_sched_recursive_halving(const void *sendbuf, void
     MPIR_Assert(MPIR_Op_is_commutative(op));
 #endif
 
-    MPIR_SCHED_CHKPMEM_MALLOC(disps, int *, comm_size * sizeof(int), mpi_errno, "disps",
-                              MPL_MEM_BUFFER);
+    MPI_Aint *disps;
+    disps = MPIR_Sched_alloc_state(s, comm_size * sizeof(MPI_Aint));
+    MPIR_ERR_CHKANDJUMP(!disps, mpi_errno, MPI_ERR_OTHER, "**nomem");
 
+    MPI_Aint total_count;
     total_count = 0;
     for (i = 0; i < comm_size; i++) {
         disps[i] = total_count;
@@ -72,18 +72,16 @@ int MPIR_Ireduce_scatter_intra_sched_recursive_halving(const void *sendbuf, void
         goto fn_exit;
     }
 
-    MPIR_Datatype_get_size_macro(datatype, type_size);
-
     /* allocate temp. buffer to receive incoming data */
-    MPIR_SCHED_CHKPMEM_MALLOC(tmp_recvbuf, void *, total_count * (MPL_MAX(true_extent, extent)),
-                              mpi_errno, "tmp_recvbuf", MPL_MEM_BUFFER);
+    tmp_recvbuf = MPIR_Sched_alloc_state(s, total_count * (MPL_MAX(extent, true_extent)));
+    MPIR_ERR_CHKANDJUMP(!tmp_recvbuf, mpi_errno, MPI_ERR_OTHER, "**nomem");
     /* adjust for potential negative lower bound in datatype */
     tmp_recvbuf = (void *) ((char *) tmp_recvbuf - true_lb);
 
     /* need to allocate another temporary buffer to accumulate
      * results because recvbuf may not be big enough */
-    MPIR_SCHED_CHKPMEM_MALLOC(tmp_results, void *, total_count * (MPL_MAX(true_extent, extent)),
-                              mpi_errno, "tmp_results", MPL_MEM_BUFFER);
+    tmp_results = MPIR_Sched_alloc_state(s, total_count * (MPL_MAX(extent, true_extent)));
+    MPIR_ERR_CHKANDJUMP(!tmp_results, mpi_errno, MPI_ERR_OTHER, "**nomem");
     /* adjust for potential negative lower bound in datatype */
     tmp_results = (void *) ((char *) tmp_results - true_lb);
 
@@ -140,11 +138,11 @@ int MPIR_Ireduce_scatter_intra_sched_recursive_halving(const void *sendbuf, void
          * even-numbered processes who no longer participate will
          * have their result calculated by the process to their
          * right (rank+1). */
-
-        MPIR_SCHED_CHKPMEM_MALLOC(newcnts, int *, pof2 * sizeof(int), mpi_errno, "newcnts",
-                                  MPL_MEM_BUFFER);
-        MPIR_SCHED_CHKPMEM_MALLOC(newdisps, int *, pof2 * sizeof(int), mpi_errno, "newdisps",
-                                  MPL_MEM_BUFFER);
+        MPI_Aint *newcnts, *newdisps;
+        newcnts = MPIR_Sched_alloc_state(s, pof2 * sizeof(MPI_Aint));
+        MPIR_ERR_CHKANDJUMP(!newcnts, mpi_errno, MPI_ERR_OTHER, "**nomem");
+        newdisps = MPIR_Sched_alloc_state(s, pof2 * sizeof(MPI_Aint));
+        MPIR_ERR_CHKANDJUMP(!newdisps, mpi_errno, MPI_ERR_OTHER, "**nomem");
 
         for (i = 0; i < pof2; i++) {
             /* what does i map to in the old ranking? */
@@ -169,6 +167,7 @@ int MPIR_Ireduce_scatter_intra_sched_recursive_halving(const void *sendbuf, void
             /* find real rank of dest */
             dst = (newdst < rem) ? newdst * 2 + 1 : newdst + rem;
 
+            MPI_Aint send_cnt, recv_cnt;
             send_cnt = recv_cnt = 0;
             if (newrank < newdst) {
                 send_idx = recv_idx + mask;
@@ -247,10 +246,8 @@ int MPIR_Ireduce_scatter_intra_sched_recursive_halving(const void *sendbuf, void
     }
 
 
-    MPIR_SCHED_CHKPMEM_COMMIT(s);
   fn_exit:
     return mpi_errno;
   fn_fail:
-    MPIR_SCHED_CHKPMEM_REAP(s);
     goto fn_exit;
 }

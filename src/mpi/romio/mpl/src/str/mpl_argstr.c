@@ -12,81 +12,6 @@
    values on which isascii returns true). */
 #include <ctype.h>
 
-static int encode_buffer(char *dest, int dest_length, const char *src,
-                         int src_length, int *num_encoded)
-{
-    int num_used;
-    int n = 0;
-    if (src_length == 0) {
-        if (dest_length > 2) {
-            *dest = MPL_STR_QUOTE_CHAR;
-            dest++;
-            *dest = MPL_STR_QUOTE_CHAR;
-            dest++;
-            *dest = '\0';
-            *num_encoded = 0;
-            return MPL_SUCCESS;
-        } else {
-            return MPL_ERR_STR_TRUNCATED;
-        }
-    }
-    while (src_length && dest_length) {
-        num_used = MPL_snprintf(dest, dest_length, "%02X", (unsigned char) *src);
-        if (num_used < 0) {
-            *num_encoded = n;
-            return MPL_ERR_STR_TRUNCATED;
-        }
-        /*MPL_DBG_MSG_FMT(STRING,VERBOSE,(MPL_DBG_FDEST," %c = %c%c",
-         * ch, dest[0], dest[1])); */
-        dest += num_used;
-        dest_length -= num_used;
-        src++;
-        n++;
-        src_length--;
-    }
-    *num_encoded = n;
-    return src_length ? MPL_ERR_STR_TRUNCATED : MPL_SUCCESS;
-}
-
-static int decode_buffer(const char *str, char *dest, int length, int *num_decoded)
-{
-    char hex[3];
-    int value;
-    int n = 0;
-
-    if (str == NULL || dest == NULL || num_decoded == NULL)
-        return MPL_ERR_STR_FAIL;
-    if (length < 1) {
-        *num_decoded = 0;
-        if (*str == '\0')
-            return MPL_SUCCESS;
-        return MPL_ERR_STR_TRUNCATED;
-    }
-    if (*str == MPL_STR_QUOTE_CHAR)
-        str++;
-    hex[2] = '\0';
-    while (*str != '\0' && *str != MPL_STR_SEPAR_CHAR && *str != MPL_STR_QUOTE_CHAR && length) {
-        hex[0] = *str;
-        str++;
-        hex[1] = *str;
-        str++;
-        if (0 == sscanf(hex, "%X", &value))
-            return MPL_ERR_STR_TRUNCATED;
-        *dest = (char) value;
-        /*MPL_DBG_MSG_FMT(STRING,VERBOSE,(MPL_DBG_FDEST," %s = %c",
-         * hex, *dest)); */
-        dest++;
-        n++;
-        length--;
-    }
-    *num_decoded = n;
-    if (length == 0) {
-        if (*str != '\0' && *str != MPL_STR_SEPAR_CHAR && *str != MPL_STR_QUOTE_CHAR)
-            return MPL_ERR_STR_TRUNCATED;
-    }
-    return MPL_SUCCESS;
-}
-
 static const char *first_token(const char *str)
 {
     if (str == NULL)
@@ -365,7 +290,7 @@ int MPL_str_get_binary_arg(const char *str, const char *flag, char *buffer,
                 str = next_token(str);
                 if (str == NULL)
                     return MPL_ERR_STR_FAIL;
-                return decode_buffer(str, buffer, maxlen, out_length);
+                return MPL_hex_decode(str, buffer, maxlen, out_length);
             }
         } else {
             str = next_token(str);
@@ -463,7 +388,7 @@ Output Parameters:
     Notes:
     This routine adds a string to a string in such a way that
     MPL_str_get_string can
-    retreive the same string back.  It takes into account spaces and quote
+    retrieve the same string back.  It takes into account spaces and quote
     characters.
     The string pointer is updated to the start of the next string in the
     string and maxlen is updated accordingly.
@@ -497,9 +422,9 @@ int MPL_str_add_string(char **str_ptr, int *maxlen_ptr, const char *val)
         }
     } else {
         if (*val == '\0') {
-            num_chars = MPL_snprintf(str, maxlen, MPL_STR_QUOTE_STR MPL_STR_QUOTE_STR /*"\"\"" */);
+            num_chars = snprintf(str, maxlen, MPL_STR_QUOTE_STR MPL_STR_QUOTE_STR /*"\"\"" */);
         } else {
-            num_chars = MPL_snprintf(str, maxlen, "%s%c", val, MPL_STR_SEPAR_CHAR);
+            num_chars = snprintf(str, maxlen, "%s%c", val, MPL_STR_SEPAR_CHAR);
         }
         if (num_chars == maxlen) {
             *str = '\0';
@@ -612,7 +537,7 @@ int MPL_str_add_string_arg(char **str_ptr, int *maxlen_ptr, const char *flag, co
         flag[0] == MPL_STR_QUOTE_CHAR) {
         num_chars = quoted_printf(*str_ptr, *maxlen_ptr, flag);
     } else {
-        num_chars = MPL_snprintf(*str_ptr, *maxlen_ptr, "%s", flag);
+        num_chars = snprintf(*str_ptr, *maxlen_ptr, "%s", flag);
     }
     *maxlen_ptr = *maxlen_ptr - num_chars;
     if (*maxlen_ptr < 1) {
@@ -633,10 +558,10 @@ int MPL_str_add_string_arg(char **str_ptr, int *maxlen_ptr, const char *flag, co
         num_chars = quoted_printf(*str_ptr, *maxlen_ptr, val);
     } else {
         if (*val == '\0') {
-            num_chars = MPL_snprintf(*str_ptr, *maxlen_ptr,
-                                     MPL_STR_QUOTE_STR MPL_STR_QUOTE_STR /*"\"\"" */);
+            num_chars = snprintf(*str_ptr, *maxlen_ptr,
+                                 MPL_STR_QUOTE_STR MPL_STR_QUOTE_STR /*"\"\"" */);
         } else {
-            num_chars = MPL_snprintf(*str_ptr, *maxlen_ptr, "%s", val);
+            num_chars = snprintf(*str_ptr, *maxlen_ptr, "%s", val);
         }
     }
     *str_ptr = *str_ptr + num_chars;
@@ -681,7 +606,7 @@ Output Parameters:
 int MPL_str_add_int_arg(char **str_ptr, int *maxlen_ptr, const char *flag, int val)
 {
     char val_str[12];
-    MPL_snprintf(val_str, 12, "%d", val);
+    snprintf(val_str, 12, "%d", val);
     return MPL_str_add_string_arg(str_ptr, maxlen_ptr, flag, val_str);
 }
 
@@ -729,7 +654,7 @@ int MPL_str_add_binary_arg(char **str_ptr, int *maxlen_ptr, const char *flag,
         flag[0] == MPL_STR_QUOTE_CHAR) {
         num_chars = quoted_printf(*str_ptr, *maxlen_ptr, flag);
     } else {
-        num_chars = MPL_snprintf(*str_ptr, *maxlen_ptr, "%s", flag);
+        num_chars = snprintf(*str_ptr, *maxlen_ptr, "%s", flag);
     }
     *maxlen_ptr = *maxlen_ptr - num_chars;
     if (*maxlen_ptr < 1) {
@@ -745,13 +670,11 @@ int MPL_str_add_binary_arg(char **str_ptr, int *maxlen_ptr, const char *flag,
     *maxlen_ptr = *maxlen_ptr - 1;
 
     /* add the value string */
-    result = encode_buffer(*str_ptr, *maxlen_ptr, buffer, length, &num_chars);
+    result = MPL_hex_encode(buffer, length, *str_ptr, *maxlen_ptr, &num_chars);
     if (result != MPL_SUCCESS) {
         **orig_str_ptr = '\0';
         return result;
     }
-    num_chars = num_chars * 2;  /* the encoding function turns one source
-                                 * character into two destination characters */
     *str_ptr = *str_ptr + num_chars;
     *maxlen_ptr = *maxlen_ptr - num_chars;
     if (*maxlen_ptr < 2) {

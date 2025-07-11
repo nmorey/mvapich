@@ -1,13 +1,13 @@
-# this gives access to the mvapich header files
+# this gives access to the mpich header files
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: mvapich
-Description: High Performance and portable MPI
-Version: @MVAPICH_VERSION@
-URL: http://mvapich.cse.ohio-state.edu
+Name: MVAPICH-Plus
+Description: High Performance and portable MPI with GPU Support
+Version: @MPICH_VERSION@
+URL: https://mvapich.cse.ohio-state.edu/
 Requires:
 Libs: @WRAPPER_C_DYNAMIC_LOADING_FLAGS@ @WRAPPER_LDFLAGS@ -L${libdir} -l@MPILIBNAME@ @LPMPILIBNAME@ @WRAPPER_LIBS@
 Cflags: @WRAPPER_CPPFLAGS@ @WRAPPER_CFLAGS@ -I${includedir}

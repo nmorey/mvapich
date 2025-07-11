@@ -80,7 +80,7 @@ static int alloc_ep_res(struct fid_ep *sep)
 
 	av_attr.rx_ctx_bits = rx_ctx_bits;
 
-	ret = ft_alloc_ep_res(fi, &txcq, &rxcq, &txcntr, &rxcntr);
+	ret = ft_alloc_ep_res(fi, &txcq, &rxcq, &txcntr, &rxcntr, NULL);
 	if (ret)
 		return ret;
 
@@ -90,7 +90,7 @@ static int alloc_ep_res(struct fid_ep *sep)
 	rx_ep = calloc(ctx_cnt, sizeof *rx_ep);
 	remote_rx_addr = calloc(ctx_cnt, sizeof *remote_rx_addr);
 
-	if (!buf || !txcq_array || !rxcq_array || !tx_ep || !rx_ep || !remote_rx_addr) {
+	if (!txcq_array || !rxcq_array || !tx_ep || !rx_ep || !remote_rx_addr) {
 		perror("malloc");
 		return -1;
 	}
@@ -160,13 +160,6 @@ static int bind_ep_res(void)
 			FT_PRINTERR("fi_enable", ret);
 			return ret;
 		}
-
-		ret = fi_recv(rx_ep[i], rx_buf, MAX(rx_size, FT_MAX_CTRL_MSG),
-			      mr_desc, 0, NULL);
-		if (ret) {
-			FT_PRINTERR("fi_recv", ret);
-			return ret;
-		}
 	}
 
 	ret = fi_enable(sep);
@@ -175,6 +168,27 @@ static int bind_ep_res(void)
 		return ret;
 	}
 
+	ret = ft_alloc_msgs();
+	if (ret)
+		return ret;
+
+	for (i = 0; i < ctx_cnt; i++) {
+		if (fi->domain_attr->mr_mode & FI_MR_ENDPOINT) {
+			ret = fi_mr_bind(mr, &rx_ep[i]->fid, 0);
+			if (ret)
+				return ret;
+
+			ret = fi_mr_enable(mr);
+			if (ret)
+				return ret;
+		}
+		ret = fi_recv(rx_ep[i], rx_buf, MAX(rx_size, FT_MAX_CTRL_MSG),
+			      mr_desc, 0, NULL);
+		if (ret) {
+			FT_PRINTERR("fi_recv", ret);
+			return ret;
+		}
+	}
 	return 0;
 }
 
@@ -378,6 +392,7 @@ int main(int argc, char **argv)
 	hints->ep_attr->type = FI_EP_RDM;
 	hints->caps = FI_MSG | FI_NAMED_RX_CTX;
 	hints->domain_attr->mr_mode = opts.mr_mode;
+	hints->addr_format = opts.address_format;
 
 	ret = run();
 

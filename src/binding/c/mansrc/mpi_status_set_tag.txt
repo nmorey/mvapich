@@ -1,0 +1,24 @@
+/*D
+   MPI_Status_set_tag - Set MPI_TAG field in the status
+
+Synopsis:
+.vb
+int MPI_Status_set_tag(MPI_Status *status, int tag)
+.ve
+
+Input Parameters:
+. tag - tag to set in the MPI_TAG field (integer)
+
+Input/Output Parameters:
+. status - status with which to associate source rank (Status)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_OTHER
+
+D*/
+

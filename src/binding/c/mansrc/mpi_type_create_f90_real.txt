@@ -1,0 +1,31 @@
+/*D
+   MPI_Type_create_f90_real - Return a predefined type that matches the specified range
+
+Synopsis:
+.vb
+int MPI_Type_create_f90_real(int p, int r, MPI_Datatype *newtype)
+.ve
+
+Input Parameters:
++ p - precision, in decimal digits (integer)
+- r - decimal exponent range (integer)
+
+Output Parameters:
+. newtype - the requested MPI datatype (handle)
+
+Notes:
+If there is no corresponding type for the specified range, the call is
+erroneous.  This implementation sets 'newtype' to 'MPI_DATATYPE_NULL' and
+returns an error of class 'MPI_ERR_ARG'.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_OTHER
+
+D*/
+

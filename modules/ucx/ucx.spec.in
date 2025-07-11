@@ -3,28 +3,25 @@
 %bcond_with    cuda
 %bcond_with    gdrcopy
 %bcond_without ib
-%if 0%{?fedora} >= 30 || 0%{?rhel} >= 7
-%bcond_with ib_cm
-%else
-%bcond_without ib_cm
-%endif
 %bcond_with    knem
 %bcond_without rdmacm
 %bcond_with    rocm
 %bcond_with    ugni
 %bcond_with    xpmem
+%bcond_with    vfs
 
 Name: ucx
 Version: @VERSION@
-Release: 1%{?dist}
+Release: 1%{?dist}%{?debug:.debug}
 Summary: UCX is a communication library implementing high-performance messaging
 Group: System Environment/Libraries
 
 License: BSD
 URL: http://www.openucx.org
-Source: https://github.com/openucx/%{name}/releases/download/v@MAJOR_VERSION@.@MINOR_VERSION@.@PATCH_VERSION@/ucx-@MAJOR_VERSION@.@MINOR_VERSION@.@PATCH_VERSION@.tar.gz
+Source: https://github.com/openucx/%{name}/releases/download/v@VERSION@/ucx-@VERSION@.tar.gz
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
+Prefix: %{_prefix}
 
 # UCX currently supports only the following architectures
 ExclusiveArch: aarch64 ppc64le x86_64
@@ -34,11 +31,6 @@ Requires: %{?extra_deps}
 %endif
 
 BuildRequires: automake autoconf libtool gcc-c++
-%if "%{_vendor}" == "suse"
-BuildRequires: libnuma-devel
-%else
-BuildRequires: numactl-devel
-%endif
 %if %{with cma}
 BuildRequires: glibc-devel >= 2.15
 %endif
@@ -47,9 +39,6 @@ BuildRequires: gdrcopy
 %endif
 %if %{with ib}
 BuildRequires: libibverbs-devel
-%endif
-%if %{with ib_cm}
-BuildRequires: libibcm-devel
 %endif
 %if %{with knem}
 BuildRequires: knem
@@ -61,7 +50,13 @@ BuildRequires: librdmacm-devel
 BuildRequires: hsa-rocr-dev
 %endif
 %if %{with xpmem}
-BuildRequires: xpmem-devel
+BuildRequires: pkgconfig(cray-xpmem)
+%endif
+%if %{with vfs}
+BuildRequires: fuse3-devel
+%endif
+%if "%{debug}" == "1"
+BuildRequires: valgrind-devel
 %endif
 
 %description
@@ -95,20 +90,27 @@ Provides header files and examples for developing with UCX.
 %define _with_arg()   %{expand:%%{?with_%{1}:--with-%{2}}%%{!?with_%{1}:--without-%{2}}}
 %define _enable_arg() %{expand:%%{?with_%{1}:--enable-%{2}}%%{!?with_%{1}:--disable-%{2}}}
 %configure --disable-optimizations \
-           --disable-logging \
-           --disable-debug \
-           --disable-assertions \
-           --disable-params-check \
+           %{!?debug:--disable-logging} \
+           %{!?debug:--disable-debug} \
+           %{!?debug:--disable-assertions} \
+           %{!?debug:--disable-params-check} \
+           %{?debug:--with-valgrind} \
+           %{?debug:--enable-profiling} \
+           %{?debug:--enable-frame-pointer} \
+           %{?debug:--enable-stats} \
+           %{?debug:--enable-debug-data} \
+           %{?debug:--enable-mt} \
+           --without-go \
            --without-java \
            %_enable_arg cma cma \
            %_with_arg cuda cuda \
            %_with_arg gdrcopy gdrcopy \
            %_with_arg ib verbs \
-           %_with_arg ib_cm cm \
            %_with_arg knem knem \
            %_with_arg rdmacm rdmacm \
            %_with_arg rocm rocm \
            %_with_arg xpmem xpmem \
+           %_with_arg vfs fuse3 \
            %_with_arg ugni ugni \
            %{?configure_options}
 make %{?_smp_mflags} V=1
@@ -116,14 +118,19 @@ make %{?_smp_mflags} V=1
 %install
 make DESTDIR=%{buildroot} install
 rm -f %{buildroot}%{_libdir}/*.la
-rm -f %{buildroot}%{_libdir}/*.a
+rm -f %{buildroot}%{_libdir}/libucs_signal.a
 rm -f %{buildroot}%{_libdir}/ucx/*.la
 rm -f %{buildroot}%{_libdir}/ucx/lib*.so
-rm -f %{buildroot}%{_libdir}/ucx/lib*.a
 
 %files
 %{_libdir}/lib*.so.*
-%{_bindir}/uc*
+%{_bindir}/ucx_info
+%{_bindir}/ucx_perftest
+%{_bindir}/ucx_read_profile
+%if "%{debug}" == "1"
+%{_bindir}/ucs_stats_parser
+%endif
+@HAVE_GLIBCXX_NOTHROW_TRUE@%{_bindir}/io_demo
 %{_datadir}/ucx
 %exclude %{_datadir}/ucx/examples
 %doc README AUTHORS NEWS
@@ -134,10 +141,45 @@ rm -f %{buildroot}%{_libdir}/ucx/lib*.a
 %{_includedir}/uc*
 %{_libdir}/lib*.so
 %{_libdir}/pkgconfig/ucx.pc
+%{_libdir}/pkgconfig/ucx-uct.pc
+%{_libdir}/pkgconfig/ucx-ucs.pc
+%{_libdir}/cmake/ucx/*.cmake
 %{_datadir}/ucx/examples
 
-%post -p /sbin/ldconfig
+%post
+/sbin/ldconfig
+
 %postun -p /sbin/ldconfig
+
+%package static
+Requires: %{name}%{?_isa} = %{version}-%{release}
+Summary: Static libraries required for developing with UCX
+Group: Development/Libraries
+
+%description static
+Provides static libraries required for developing with UCX.
+
+%files static
+%{_libdir}/lib*.a
+%{_libdir}/ucx/lib*.a
+%if %{with cma}
+%{_libdir}/pkgconfig/ucx-cma.pc
+%endif
+%if %{with knem}
+%{_libdir}/pkgconfig/ucx-knem.pc
+%endif
+%if %{with xpmem}
+%{_libdir}/pkgconfig/ucx-xpmem.pc
+%endif
+%if %{with ib}
+%{_libdir}/pkgconfig/ucx-ib.pc
+%endif
+%if %{with rdmacm}
+%{_libdir}/pkgconfig/ucx-rdmacm.pc
+%endif
+%if %{with vfs}
+%{_libdir}/pkgconfig/ucx-fuse.pc
+%endif
 
 %if %{with cma}
 %package cma
@@ -201,19 +243,6 @@ hardware-offloaded data transfer.
 %{_libdir}/ucx/libuct_ib.so.*
 %endif
 
-%if %{with ib_cm}
-%package ib-cm
-Requires: %{name}-ib%{?_isa} = %{version}-%{release}
-Summary: UCX InfiniBand connection-manager support
-Group: System Environment/Libraries
-
-%description ib-cm
-Provides Infiniband Connection Manager (also known as ibcm) support for UCX.
-
-%files ib-cm
-%{_libdir}/ucx/libuct_ib_cm.so.*
-%endif
-
 %if %{with knem}
 %package knem
 Requires: %{name}%{?_isa} = %{version}-%{release}
@@ -231,7 +260,7 @@ for large messages.
 
 %if %{with rdmacm}
 %package rdmacm
-Requires: %{name}%{?_isa} = %{version}-%{release}
+Requires: %{name}-ib%{?_isa} = %{version}-%{release}
 Summary: UCX RDMA connection manager support
 Group: System Environment/Libraries
 
@@ -298,8 +327,40 @@ process to map the memory of another process into its virtual address space.
 %{_libdir}/ucx/libuct_xpmem.so.*
 %endif
 
+%if %{with vfs}
+%package vfs
+Requires: %{name}%{?_isa} = %{version}-%{release}
+Summary: UCX Virtual Filesystem support.
+Group: System Environment/Libraries
+
+%description vfs
+Provides a virtual filesystem over FUSE which allows real-time monitoring of UCX
+library internals, protocol objects, transports status, and more.
+
+%files vfs
+%{_libdir}/ucx/libucs_fuse.so.*
+%{_bindir}/ucx_vfs
+%endif
 
 %changelog
+* Mon Oct 24 2022 Yossi Itigin <yosefe@mellanox.com> 1.15.0-1
+- Bump version to 1.15.0
+* Sat Apr 16 2022 Yossi Itigin <yosefe@mellanox.com> 1.14.0-1
+- Bump version to 1.14.0
+* Wed Nov 10 2021 Yossi Itigin <yosefe@mellanox.com> 1.13.0-1
+- Bump version to 1.13.0
+* Wed Jun 9 2021 Yossi Itigin <yosefe@mellanox.com> 1.12.0-1
+- Bump version to 1.12.0
+* Tue Apr 27 2021 Leonid Genkin <lgenkin@nvidia.com> 1.11.0-1
+- Remove obsolete ib/cm code
+* Wed Dec 16 2020 Yossi Itigin <yosefe@mellanox.com> 1.11.0-1
+- Add VFS sub-package
+* Wed Dec 16 2020 Yossi Itigin <yosefe@mellanox.com> 1.11.0-1
+- Bump version to 1.11.0
+* Wed Nov 11 2020 Yossi Itigin <yosefe@mellanox.com> 1.10.0-1
+- Make the RPM relocatable
+* Tue Jul 07 2020 Yossi Itigin <yosefe@mellanox.com> 1.10.0-1
+- Bump version to 1.10.0
 * Mon Feb 10 2020 Yossi Itigin <yosefe@mellanox.com> 1.9.0-1
 - Bump version to 1.9.0
 * Sun Sep 22 2019 Yossi Itigin <yosefe@mellanox.com> 1.8.0-1

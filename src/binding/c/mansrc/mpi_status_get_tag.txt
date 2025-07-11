@@ -1,0 +1,24 @@
+/*D
+   MPI_Status_get_tag - Get MPI_TAG field from the status
+
+Synopsis:
+.vb
+int MPI_Status_get_tag(MPI_Status *status, int *tag)
+.ve
+
+Input Parameters:
+. status - status from which to retrieve source rank (Status)
+
+Output Parameters:
+. tag - tag set in the MPI_TAG field (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_OTHER
+
+D*/
+

@@ -2,17 +2,6 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- *
- */
 
 #include "mpidimpl.h"
 #include "mpidrma.h"
@@ -21,15 +10,8 @@ int MPIDI_CH3U_Handle_send_req(MPIDI_VC_t * vc, MPIR_Request * sreq, int *comple
 {
     int mpi_errno = MPI_SUCCESS;
     int (*reqFn) (MPIDI_VC_t *, MPIR_Request *, int *);
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3U_HANDLE_SEND_REQ);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3U_HANDLE_SEND_REQ);
-
-#if defined(CHANNEL_MRAIL)
-    PRINT_DEBUG(DEBUG_SHM_verbose>1,
-            "vc: %p, rank: %d, sreq: %p, type: %d, onDataAvail: %p\n",
-            vc, vc->pg_rank, sreq, MPIDI_Request_get_type(sreq), sreq->dev.OnDataAvail);
-#endif /*defined(CHANNEL_MRAIL)*/
+    MPIR_FUNC_ENTER;
 
     /* Use the associated function rather than switching on the old ca field */
     /* Routines can call the attached function directly */
@@ -45,7 +27,7 @@ int MPIDI_CH3U_Handle_send_req(MPIDI_VC_t * vc, MPIR_Request * sreq, int *comple
     MPIR_ERR_CHECK(mpi_errno);
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3U_HANDLE_SEND_REQ);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
   fn_fail:
     goto fn_exit;
@@ -63,52 +45,7 @@ int MPIDI_CH3_ReqHandler_GetSendComplete(MPIDI_VC_t * vc ATTRIBUTE((unused)),
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Win *win_ptr;
-    
     int pkt_flags = sreq->dev.pkt_flags;
-
-    MPIR_Win_get_ptr(sreq->dev.target_win_handle, win_ptr);
-
-    /* MVP designs for get rndv with R3 protocol. 
-     * Should this come after the check for double completions? 
-     */
-#if defined(CHANNEL_MRAIL)
-    if (MRAILI_PROTOCOL_R3 == sreq->mrail.protocol &&
-        (sreq->dev.recv_data_sz + sizeof(MPIDI_CH3_Pkt_get_resp_t)) >
-            vc->eager_max_msg_sz) {
-        struct iovec iov[1] = {0};
-        int iovcnt;
-        MPIDI_CH3_Pkt_t upkt;
-        MPIR_Request *resp_req;
-
-        resp_req = MPIR_Request_create(MPIR_REQUEST_KIND__SEND);
-        MPIR_ERR_CHKANDJUMP(resp_req == NULL, mpi_errno, MPI_ERR_OTHER, "**nomemreq");
-        MPIR_Object_set_ref(resp_req, 1);
-        MPIDI_CH3_Pkt_get_resp_t *get_resp_pkt = &upkt.get_resp;
-        MPIDI_Pkt_init(get_resp_pkt, MPIDI_CH3_PKT_GET_RESP);
-        resp_req->dev.OnFinal = NULL;
-        resp_req->dev.OnDataAvail = NULL;
-        MVP_INC_NUM_POSTED_SEND();
-
-
-        get_resp_pkt->request_handle = sreq->dev.resp_request_handle;
-        get_resp_pkt->pkt_flags = MPIDI_CH3_PKT_FLAG_NONE;
-        if (pkt_flags & MPIDI_CH3_PKT_FLAG_RMA_LOCK_SHARED ||
-                pkt_flags & MPIDI_CH3_PKT_FLAG_RMA_LOCK_EXCLUSIVE)
-            get_resp_pkt->pkt_flags |= MPIDI_CH3_PKT_FLAG_RMA_LOCK_GRANTED;
-        if ((pkt_flags & MPIDI_CH3_PKT_FLAG_RMA_FLUSH) ||
-                (pkt_flags & MPIDI_CH3_PKT_FLAG_RMA_UNLOCK))
-            get_resp_pkt->pkt_flags |= MPIDI_CH3_PKT_FLAG_RMA_ACK;
-        get_resp_pkt->target_rank = win_ptr->comm_ptr->rank;
-
-        get_resp_pkt->protocol = MRAILI_PROTOCOL_EAGER;
-
-        iov[0].iov_base = (void *) get_resp_pkt;
-        iov[0].iov_len = sizeof(*get_resp_pkt);
-        iovcnt = 1;
-
-        mpi_errno = MPIDI_CH3_iSendv(vc, resp_req, iov, iovcnt);
-    }
-#endif
 
     /* NOTE: It is possible that this request is already completed before
      * entering this handler. This happens when this req handler is called
@@ -127,6 +64,8 @@ int MPIDI_CH3_ReqHandler_GetSendComplete(MPIDI_VC_t * vc ATTRIBUTE((unused)),
         *complete = FALSE;
         goto fn_exit;
     }
+
+    MPIR_Win_get_ptr(sreq->dev.target_win_handle, win_ptr);
 
     /* here we decrement the Active Target counter to guarantee the GET-like
      * operation are completed when counter reaches zero. */
@@ -158,9 +97,8 @@ int MPIDI_CH3_ReqHandler_GaccumSendComplete(MPIDI_VC_t * vc, MPIR_Request * rreq
     int mpi_errno = MPI_SUCCESS;
     MPIR_Win *win_ptr;
     int pkt_flags = rreq->dev.pkt_flags;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3_REQHANDLER_GACCUMSENDCOMPLETE);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3_REQHANDLER_GACCUMSENDCOMPLETE);
+    MPIR_FUNC_ENTER;
 
     /* NOTE: It is possible that this request is already completed before
      * entering this handler. This happens when this req handler is called
@@ -187,45 +125,6 @@ int MPIDI_CH3_ReqHandler_GaccumSendComplete(MPIDI_VC_t * vc, MPIR_Request * rreq
 
     MPIR_Win_get_ptr(rreq->dev.target_win_handle, win_ptr);
 
-#if defined(CHANNEL_MRAIL)
-    /* If R3 is used, we need to send MPIDI_CH3_PKT_GET_ACCUM_RESP pkt acting like FIN,
-     * so the origin process can handle it properly */
-    if (MRAILI_PROTOCOL_R3 == rreq->mrail.protocol) {
-        struct iovec iov[1] = {0};
-        int iovcnt;
-        MPIDI_CH3_Pkt_t upkt;
-        MPIR_Request *resp_req;
-
-        resp_req = MPIR_Request_create(MPIR_REQUEST_KIND__SEND);
-        MPIR_ERR_CHKANDJUMP(resp_req == NULL, mpi_errno, MPI_ERR_OTHER, "**nomemreq");
-        MPIR_Object_set_ref(resp_req, 1);
-        MPIDI_CH3_Pkt_get_accum_resp_t *get_accum_resp_pkt = (MPIDI_CH3_Pkt_get_accum_resp_t *) &upkt.get_resp;
-        MPIDI_Pkt_init(get_accum_resp_pkt, MPIDI_CH3_PKT_GET_ACCUM_RESP);
-        resp_req->dev.OnFinal = NULL;
-        resp_req->dev.OnDataAvail = NULL;
-        MVP_INC_NUM_POSTED_SEND();
-
-
-        get_accum_resp_pkt->request_handle = rreq->dev.resp_request_handle;
-        get_accum_resp_pkt->pkt_flags = MPIDI_CH3_PKT_FLAG_NONE;
-        if (pkt_flags & MPIDI_CH3_PKT_FLAG_RMA_LOCK_SHARED ||
-                pkt_flags & MPIDI_CH3_PKT_FLAG_RMA_LOCK_EXCLUSIVE)
-            get_accum_resp_pkt->pkt_flags |= MPIDI_CH3_PKT_FLAG_RMA_LOCK_GRANTED;
-        if ((pkt_flags & MPIDI_CH3_PKT_FLAG_RMA_FLUSH) ||
-                (pkt_flags & MPIDI_CH3_PKT_FLAG_RMA_UNLOCK))
-            get_accum_resp_pkt->pkt_flags |= MPIDI_CH3_PKT_FLAG_RMA_ACK;
-        get_accum_resp_pkt->target_rank = win_ptr->comm_ptr->rank;
-
-        get_accum_resp_pkt->protocol = MRAILI_PROTOCOL_EAGER;
-
-        iov[0].iov_base = (void *) get_accum_resp_pkt;
-        iov[0].iov_len = sizeof(*get_accum_resp_pkt);
-        iovcnt = 1;
-
-        mpi_errno = MPIDI_CH3_iSendv(vc, resp_req, iov, iovcnt);
-    }
-#endif
-
     /* here we decrement the Active Target counter to guarantee the GET-like
      * operation are completed when counter reaches zero. */
     win_ptr->at_completion_counter--;
@@ -245,7 +144,7 @@ int MPIDI_CH3_ReqHandler_GaccumSendComplete(MPIDI_VC_t * vc, MPIR_Request * rreq
     *complete = TRUE;
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3_REQHANDLER_GACCUMSENDCOMPLETE);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 
   fn_fail:
@@ -258,9 +157,8 @@ int MPIDI_CH3_ReqHandler_CASSendComplete(MPIDI_VC_t * vc, MPIR_Request * rreq, i
     int mpi_errno = MPI_SUCCESS;
     MPIR_Win *win_ptr;
     int pkt_flags = rreq->dev.pkt_flags;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3_REQHANDLER_CASSENDCOMPLETE);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3_REQHANDLER_CASSENDCOMPLETE);
+    MPIR_FUNC_ENTER;
 
     /* NOTE: It is possible that this request is already completed before
      * entering this handler. This happens when this req handler is called
@@ -306,7 +204,7 @@ int MPIDI_CH3_ReqHandler_CASSendComplete(MPIDI_VC_t * vc, MPIR_Request * rreq, i
     *complete = TRUE;
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3_REQHANDLER_CASSENDCOMPLETE);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 
   fn_fail:
@@ -318,9 +216,8 @@ int MPIDI_CH3_ReqHandler_FOPSendComplete(MPIDI_VC_t * vc, MPIR_Request * rreq, i
     int mpi_errno = MPI_SUCCESS;
     MPIR_Win *win_ptr;
     int pkt_flags = rreq->dev.pkt_flags;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3_REQHANDLER_FOPSENDCOMPLETE);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3_REQHANDLER_FOPSENDCOMPLETE);
+    MPIR_FUNC_ENTER;
 
     /* NOTE: It is possible that this request is already completed before
      * entering this handler. This happens when this req handler is called
@@ -366,7 +263,7 @@ int MPIDI_CH3_ReqHandler_FOPSendComplete(MPIDI_VC_t * vc, MPIR_Request * rreq, i
     *complete = TRUE;
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3_REQHANDLER_FOPSENDCOMPLETE);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 
   fn_fail:

@@ -1,0 +1,23 @@
+/*D
+   MPIX_Threadcomm_free - free a thread communicator (outside thread parallel regions)
+
+Synopsis:
+.vb
+int MPIX_Threadcomm_free(MPI_Comm *threadcomm)
+.ve
+
+Input/Output Parameters:
+. threadcomm - thread communicator (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+.seealso: MPIX_Threadcomm_init, MPIX_Threadcomm_start, MPIX_Threadcomm_finish
+D*/
+

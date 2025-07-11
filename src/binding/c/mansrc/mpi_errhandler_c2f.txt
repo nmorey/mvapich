@@ -1,0 +1,15 @@
+/*D
+   MPI_Errhandler_c2f - converts MPI_Errhandler to Fortran INTEGER
+
+Synopsis:
+.vb
+MPI_Fint MPI_Errhandler_c2f(MPI_Errhandler errhandler)
+.ve
+
+Input Parameters:
+. errhandler - MPI error handler (handle)
+
+.N ThreadSafe
+
+D*/
+

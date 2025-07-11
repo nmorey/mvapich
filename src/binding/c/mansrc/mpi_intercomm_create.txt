@@ -1,0 +1,47 @@
+/*D
+   MPI_Intercomm_create - Creates an intercommuncator from two intracommunicators
+
+Synopsis:
+.vb
+int MPI_Intercomm_create(MPI_Comm local_comm, int local_leader,
+                         MPI_Comm peer_comm, int remote_leader, int tag,
+                         MPI_Comm *newintercomm)
+.ve
+
+Input Parameters:
++ local_comm - local intra-communicator (handle)
+. local_leader - rank of local group leader in local_comm (integer)
+. peer_comm - ``peer communicator; significant only at the local_leader (handle)
+. remote_leader - rank of remote group leader in peer_comm; significant only at the local_leader (integer)
+- tag - tag (integer)
+
+Output Parameters:
+. newintercomm - new inter-communicator (handle)
+
+Notes:
+   'peer_comm' is significant only for the process designated the
+   'local_leader' in the 'local_comm'.
+
+  The MPI 1.1 Standard contains two mutually exclusive comments on the
+  input intercommunicators.  One says that their respective groups must be
+  disjoint; the other that the leaders can be the same process.  After
+  some discussion by the MPI Forum, it has been decided that the groups must
+  be disjoint.  Note that the `reason` given for this in the standard is
+  `not` the reason for this choice; rather, the `other` operations on
+  intercommunicators (like 'MPI_Intercomm_merge') do not make sense if the
+  groups are not disjoint.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_TAG
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Intercomm_merge, MPI_Comm_free, MPI_Comm_remote_group, MPI_Comm_remote_size
+D*/
+

@@ -5,17 +5,21 @@
 
 #include "mpid_nem_impl.h"
 #include "mpid_nem_nets.h"
-#include "upmi.h"
 
 #include "mpidi_nem_statistics.h"
 #include "mpidu_init_shm.h"
+#include "mpidi_ch3_impl.h"
+
+extern int MPIDI_nemesis_initialized;
 
 int MPID_nem_finalize(void)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_NEM_FINALIZE);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_NEM_FINALIZE);
+    MPIR_FUNC_ENTER;
+
+    mpi_errno = MPIDI_CH3_SHM_Finalize();
+    MPIR_ERR_CHECK(mpi_errno);
 
     /* this test is not the right one */
 /*     MPIR_Assert(MPID_nem_queue_empty( MPID_nem_mem_region.RecvQ[MPID_nem_mem_region.rank])); */
@@ -54,8 +58,11 @@ int MPID_nem_finalize(void)
         MPL_free(MPID_nem_fbox_fall_back_to_queue_count);
     }
 
+    memset(&MPID_nem_mem_region, 0, sizeof(MPID_nem_mem_region));
+    MPIDI_nemesis_initialized = 0;
+
  fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_NEM_FINALIZE);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
  fn_fail:
     goto fn_exit;

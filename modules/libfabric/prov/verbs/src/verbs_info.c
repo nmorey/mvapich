@@ -38,7 +38,8 @@
 #include <stdint.h>
 #include <rdma/rdma_cma.h>
 
-#include "fi_verbs.h"
+#include "verbs_ofi.h"
+#include "verbs_osd.h"
 
 
 #define VERBS_IB_PREFIX "IB-0x"
@@ -611,7 +612,7 @@ static int vrb_get_device_attrs(struct ibv_context *ctx,
 	}
 
 	if (port_num == device_attr.phys_port_cnt + 1) {
-		FI_WARN(&vrb_prov, FI_LOG_FABRIC, "device %s: there are no "
+		FI_INFO(&vrb_prov, FI_LOG_FABRIC, "device %s: there are no "
 			"active ports\n", dev_name);
 		return -FI_ENODATA;
 	} else {
@@ -771,7 +772,7 @@ static int vrb_alloc_info(struct ibv_context *ctx, struct fi_info **info,
 		fi->caps = VERBS_MSG_CAPS;
 		*(fi->tx_attr) = verbs_tx_attr;
 		*(fi->rx_attr) = verbs_rx_attr;
-		fi->addr_format = FI_SOCKADDR;
+		fi->addr_format = FI_SOCKADDR_IB;
 		break;
 	case FI_EP_DGRAM:
 		fi->caps = VERBS_DGRAM_CAPS;
@@ -1069,7 +1070,7 @@ static int vrb_get_sib(struct dlist_entry *verbs_devs)
 
 		ret = ibv_query_device(context, &device_attr);
 		if (ret)
-			continue;
+			goto close_device;
 
 		for (int port = 1; port <= device_attr.phys_port_cnt; port++) {
 			ret = ibv_query_port(context, port, &port_attr);
@@ -1109,6 +1110,9 @@ static int vrb_get_sib(struct dlist_entry *verbs_devs)
 				}
 			}
 		}
+
+close_device:
+		ibv_close_device(context);
 	}
 
 	ibv_free_device_list(devices);
@@ -1216,6 +1220,24 @@ vrb_info_add_dev_addr(struct fi_info **info, struct verbs_dev_info *dev)
 	return 0;
 }
 
+/* domain name may have a "-<xxx>" suffix */
+static inline int vrb_cmp_domain_and_dev_name(const char *domain_name,
+					      const char *dev_name)
+{
+	size_t cmp_len;
+	char *s = strrchr(domain_name, '-');
+
+	if (s)
+		cmp_len = s - domain_name;
+	else
+		cmp_len = strlen(domain_name);
+
+	if (cmp_len != strlen(dev_name))
+		return -1;
+
+	return strncmp(domain_name, dev_name, cmp_len);
+}
+
 static int vrb_get_srcaddr_devs(struct fi_info **info)
 {
 	struct verbs_dev_info *dev;
@@ -1227,10 +1249,8 @@ static int vrb_get_srcaddr_devs(struct fi_info **info)
 			continue;
 		dlist_foreach_container(&verbs_devs, struct verbs_dev_info,
 					dev, entry) {
-			/* strncmp because we want to process XRC fi_info as
-			 * well which have a "-xrc" suffix in domain name */
-			if (!strncmp(fi->domain_attr->name, dev->name,
-				     strlen(dev->name))) {
+			if (!vrb_cmp_domain_and_dev_name(fi->domain_attr->name,
+						         dev->name)) {
 				ret = vrb_info_add_dev_addr(&fi, dev);
 				if (ret)
 					return ret;
@@ -1330,14 +1350,30 @@ static int vrb_device_has_ipoib_addr(const char *dev_name)
 
 #define VERBS_NUM_DOMAIN_TYPES		3
 
-int vrb_init_info(const struct fi_info **all_infos)
+static int vrb_init_info(const struct fi_info **all_infos)
 {
 	struct ibv_context **ctx_list;
 	struct fi_info *fi = NULL, *tail = NULL;
 	const struct verbs_ep_domain *ep_type[VERBS_NUM_DOMAIN_TYPES];
 	int ret = 0, i, j, num_devices, dom_count = 0;
+	static bool initialized = false;
 
+	ofi_mutex_lock(&vrb_init_mutex);
+
+	if (initialized)
+		goto done;
+
+	initialized = true;
 	*all_infos = NULL;
+
+	vrb_os_mem_support(&vrb_gl_data.peer_mem_support,
+			   &vrb_gl_data.dmabuf_support);
+
+	if (vrb_read_params()) {
+		VRB_INFO(FI_LOG_FABRIC, "failed to read parameters\n");
+		ret = -FI_ENODATA;
+		goto done;
+	}
 
 	if (!vrb_have_device()) {
 		VRB_INFO(FI_LOG_FABRIC, "no RDMA devices found\n");
@@ -1438,6 +1474,7 @@ int vrb_init_info(const struct fi_info **all_infos)
 
 	rdma_free_devices(ctx_list);
 done:
+	ofi_mutex_unlock(&vrb_init_mutex);
 	return ret;
 }
 
@@ -1586,10 +1623,10 @@ static int vrb_del_info_not_belong_to_dev(const char *dev_name, struct fi_info *
 	*info = NULL;
 
 	while (check_info) {
-		/* Use strncmp since verbs domain names would have "-<ep_type>" suffix */
-		if (dev_name && strncmp(dev_name, check_info->domain_attr->name,
-					strlen(dev_name))) {
-			/* This branch removing `check_info` entry from the list */
+		if (dev_name &&
+		    vrb_cmp_domain_and_dev_name(check_info->domain_attr->name,
+			                        dev_name)) {
+			/* remove unmatched `check_info` entry from the list */
 			cur = check_info;
 			if (prev)
 				prev->next = check_info->next;
@@ -1847,6 +1884,10 @@ int vrb_getinfo(uint32_t version, const char *node, const char *service,
 		   struct fi_info **info)
 {
 	int ret;
+
+	ret = vrb_init_info(&vrb_util_prov.info);
+	if (ret)
+		goto out;
 
 	ret = vrb_get_match_infos(version, node, service,
 				     flags, hints,

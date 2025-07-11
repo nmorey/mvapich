@@ -1,0 +1,15 @@
+/*D
+   MPI_Message_f2c - converts Fortran INTEGER to MPI_Message
+
+Synopsis:
+.vb
+MPI_Message MPI_Message_f2c(MPI_Fint message)
+.ve
+
+Input Parameters:
+. message - message (None)
+
+.N ThreadSafe
+
+D*/
+

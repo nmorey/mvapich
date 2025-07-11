@@ -19,7 +19,6 @@ int main(int argc, char **argv)
     MPI_Info win_info;
     MPI_Comm shared_comm;
     int i;
-    size_t npages, local_size, pagesize, avail;
     int shm_win_size = 1024 * 1024 * 1024 * sizeof(char);       /* 1GB */
 
     MTest_Init(&argc, &argv);

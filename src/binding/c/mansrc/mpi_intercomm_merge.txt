@@ -1,0 +1,41 @@
+/*D
+   MPI_Intercomm_merge - Creates an intracommuncator from an intercommunicator
+
+Synopsis:
+.vb
+int MPI_Intercomm_merge(MPI_Comm intercomm, int high, MPI_Comm *newintracomm)
+.ve
+
+Input Parameters:
++ intercomm - inter-communicator (handle)
+- high - ordering of the local and remote groups in the new intra-communicator (logical)
+
+Output Parameters:
+. newintracomm - new intra-communicator (handle)
+
+Notes:
+ While all processes may provide the same value for the 'high' parameter,
+ this requires the MPI implementation to determine which group of
+ processes should be ranked first.
+
+.N ThreadSafe
+
+.N Fortran
+
+Algorithm:
+.Eb
+.i Allocate contexts
+.i Local and remote group leaders swap high values
+.i Determine the high value.
+.i Merge the two groups and make the intra-communicator
+.Ee
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Intercomm_create, MPI_Comm_free
+D*/
+

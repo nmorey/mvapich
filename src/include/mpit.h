@@ -28,7 +28,7 @@ extern UT_array *pvar_table;
 /* Hash tables to quick locate category, cvar, pvar indices by their names */
 extern name2index_hash_t *cat_hash;
 extern name2index_hash_t *cvar_hash;
-/* pvar names are unique per pvar class. So we use multiple hashs */
+/* pvar names are unique per pvar class. So we use multiple hashes */
 extern name2index_hash_t *pvar_hashs[MPIR_T_PVAR_CLASS_NUMBER];
 
 /* See description in mpit.c */
@@ -38,6 +38,7 @@ extern int MPIR_T_cat_add_pvar(const char *cat_name, int pvar_index);
 extern int MPIR_T_cat_add_cvar(const char *cat_name, int cvar_index);
 extern int MPIR_T_cat_add_subcat(const char *parent_name, const char *child_name);
 extern int MPIR_T_cat_add_desc(const char *cat_name, const char *cat_desc);
+extern int MPIR_T_cat_add_event(const char *cat_name, int event_index);
 
 static inline cvar_table_entry_t *LOOKUP_CVAR_BY_NAME(const char *cvar_name)
 {
@@ -98,7 +99,7 @@ static inline cvar_table_entry_t *LOOKUP_CVAR_BY_NAME(const char *cvar_name)
     } while (0)
 
 /* Register a static cvar. A static pvar has NO binding and its address
- * and count are known at registeration time.
+ * and count are known at registration time.
  * Attention: name_ is a token not a string
 */
 #define MPIR_T_CVAR_REGISTER_STATIC(dtype_, name_, addr_, count_, verb_, \
@@ -110,7 +111,7 @@ static inline cvar_table_entry_t *LOOKUP_CVAR_BY_NAME(const char *cvar_name)
     } while (0)
 
 /* Register a dynamic cvar, which may have object binding and whose
- * address and count may be unknown at registeration time. It is
+ * address and count may be unknown at registration time. It is
  * developers' duty to provide self-contained arguments.
 */
 #define MPIR_T_CVAR_REGISTER_DYNAMIC(dtype_, name_, addr_, count_, etype_, \
@@ -126,8 +127,8 @@ static inline cvar_table_entry_t *LOOKUP_CVAR_BY_NAME(const char *cvar_name)
 #define MPIR_T_PVAR_STMT(MODULE, stmt_) \
     PVAR_GATED_ACTION(MODULE, stmt_)
 
-/* The following are interfaces for each pvar classe,
- * basically including delcaration, access and registeration.
+/* The following are interfaces for each pvar class,
+ * basically including delcaration, access and registration.
  */
 
 /* STATE */
@@ -223,13 +224,7 @@ static inline cvar_table_entry_t *LOOKUP_CVAR_BY_NAME(const char *cvar_name)
     PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_PERCENTAGE_REGISTER_DYNAMIC_impl(dtype_, name_, \
             addr_, count_, verb_, bind_, flags_, get_value_, get_count, cat_, desc_))
 
-/* TODO: Replace or reimplement these bucket macros */
 /* COUNTER */
-/* #define MPIR_T_PVAR_COUNTER_BUCKET_DECL(MODULE, name_) \                              */
-/*       PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_COUNTER_BUCKET_DECL_impl(name_))            */
-/* #define MPIR_T_PVAR_COUNTER_BUCKET_DECL_EXTERN(MODULE, name_) \                       */
-/*       PVAR_GATED_DECL(MODULE, MPIR_T_PVAR_COUNTER_BUCKET_DECL_EXTERN_impl(name_))  \  */
-
 #define MPIR_T_PVAR_COUNTER_INIT_VAR(MODULE, ptr_) \
     PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_COUNTER_INIT_VAR_impl(ptr_))
 #define MPIR_T_PVAR_COUNTER_GET_VAR(ptr_) \
@@ -243,24 +238,13 @@ static inline cvar_table_entry_t *LOOKUP_CVAR_BY_NAME(const char *cvar_name)
     MPIR_T_PVAR_COUNTER_GET_impl(name_)
 #define MPIR_T_PVAR_COUNTER_INC(MODULE, name_, inc_) \
     PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_COUNTER_INC_impl(name_, inc_))
-#define MPIR_T_PVAR_COMM_COUNTER_INC(MODULE,name_,inc_,comm) \
-    PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_COMM_COUNTER_INC_impl(name_, inc_,comm))
-
 #define MPIR_T_PVAR_COUNTER_ADDR(name_) \
     MPIR_T_PVAR_COUNTER_ADDR_impl(name_)
-
-#define MPIR_T_PVAR_COUNTER_BUCKET_INC(MODULE, name_,count,datatype) \
-        PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_COUNTER_BUCKET_INC_impl(name_, count, datatype))
 
 #define MPIR_T_PVAR_COUNTER_REGISTER_STATIC(MODULE, dtype_, name_, \
             verb_, bind_, flags_, cat_, desc_) \
     PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_COUNTER_REGISTER_STATIC_impl(dtype_, name_, \
             verb_, bind_, flags_, cat_, desc_))
-
-#define MPIR_T_PVAR_COUNTER_BUCKET_REGISTER_DYNAMIC(MODULE, dtype_, name_, count_, \
-            verb_, bind_, flags_, cat_, desc_) \
-    PVAR_GATED_ACTION(MODULE,MPIR_T_PVAR_COUNTER_BUCKET_REGISTER_DYNAMIC_impl(dtype_, name_, count_, \
-            verb_, bind_, flags_, cat_, desc_));
 
 #define MPIR_T_PVAR_COUNTER_REGISTER_DYNAMIC(MODULE, dtype_, name_, \
             addr_, count_, verb_, bind_, flags_, get_value_, get_count_, cat_, desc_) \
@@ -339,11 +323,6 @@ static inline cvar_table_entry_t *LOOKUP_CVAR_BY_NAME(const char *cvar_name)
     PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_TIMER_END_impl(name_))
 #define MPIR_T_PVAR_TIMER_ADDR(name_) \
     MPIR_T_PVAR_TIMER_ADDR_impl(name_)
-
-#define MPIR_T_PVAR_COMM_TIMER_START(MODULE,name_,comm_ptr)\
-    PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_COMM_TIMER_START_impl(name_,comm_ptr))
-#define MPIR_T_PVAR_COMM_TIMER_END(MODULE,name_,comm_ptr)\
-    PVAR_GATED_ACTION(MODULE, MPIR_T_PVAR_COMM_TIMER_END_impl(name_,comm_ptr))
 
 /* This macro actually register twins of a timer and a counter to MPIR_T */
 #define MPIR_T_PVAR_TIMER_REGISTER_STATIC(MODULE, dtype_, name_, \

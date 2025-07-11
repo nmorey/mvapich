@@ -1,0 +1,25 @@
+/*D
+   MPIX_GPU_query_support - Returns whether the specific type of GPU is supported
+
+Synopsis:
+.vb
+int MPIX_GPU_query_support(int gpu_type, int *is_supported)
+.ve
+
+Input Parameters:
+. gpu_type - MPIX_GPU_SUPPORT_CUDA, MPIX_GPU_SUPPORT_ZE, or MPIX_GPU_SUPPORT_HIP (integer)
+
+Output Parameters:
+. is_supported - true if gpu of given type is supported, false otherwise. (logical)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_OTHER
+
+D*/
+

@@ -2,16 +2,6 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- */
 
 #ifndef PMISERV_H_INCLUDED
 #define PMISERV_H_INCLUDED
@@ -21,7 +11,7 @@
  * pmi server package
  */
 
-#define MAX_READLINE 1024
+#define MAX_READLINE 4096
 /*
    The basic item is the PMIProcess, which contains the fd used to
    communicate with the PMI client code, a pointer to the PMI Group
@@ -42,7 +32,7 @@ typedef struct PMIProcess {
                                                  * data */
     struct ProcessWorld *spawnWorld;    /* In progress spawn multiple
                                          * new world */
-    struct PMIKVSpace *spawnKVS;        /* In progres KV space for new world */
+    struct PMIKVSpace *spawnKVS;        /* In progress KV space for new world */
 } PMIProcess;
 
 typedef struct PMIGroup {
@@ -68,7 +58,7 @@ typedef struct PMIGroup {
  * sockets and for sockets+shared memory can exceed 128 characters.
  */
 #define MAXKEYLEN    64 /* max length of key in keyval space */
-#define MAXVALLEN   256 /* max length of value in keyval space */
+#define MAXVALLEN  4096 /* max length of value in keyval space */
 #define MAXNAMELEN  256 /* max length of various names */
 #define MAXKVSNAME  MAXNAMELEN  /* max length of a kvsname */
 typedef struct PMIKVPair {

@@ -2,23 +2,8 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- *
- */
 
 #include "mpidrma.h"
-#if defined(CHANNEL_MRAIL)  
-#include "rdma_impl.h"
-#include "mvp_ch3_shmem.h"
-#endif
 
 extern MPIR_T_pvar_timer_t PVAR_TIMER_rma_rmaqueue_set ATTRIBUTE((unused));
 
@@ -48,9 +33,9 @@ cvars:
 === END_MPI_T_CVAR_INFO_BLOCK ===
 */
 
-int MPIDI_CH3I_Put(const void *origin_addr, int origin_count, MPI_Datatype
+int MPIDI_CH3I_Put(const void *origin_addr, MPI_Aint origin_count, MPI_Datatype
                    origin_datatype, int target_rank, MPI_Aint target_disp,
-                   int target_count, MPI_Datatype target_datatype, MPIR_Win * win_ptr,
+                   MPI_Aint target_count, MPI_Datatype target_datatype, MPIR_Win * win_ptr,
                    MPIR_Request * ureq)
 {
     int mpi_errno = MPI_SUCCESS;
@@ -58,19 +43,10 @@ int MPIDI_CH3I_Put(const void *origin_addr, int origin_count, MPI_Datatype
     MPIR_Datatype*dtp;
     MPI_Aint dt_true_lb ATTRIBUTE((unused));
     intptr_t data_sz;
-    MPIDI_VC_t *target_vc = NULL;
-#if !defined(CHANNEL_MRAIL)
-    MPIDI_VC_t *orig_vc = NULL;
-#endif
+    MPIDI_VC_t *orig_vc = NULL, *target_vc = NULL;
     int made_progress = 0;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3I_PUT);
 
-#if defined(CHANNEL_MRAIL)
-    int transfer_complete = 0;
-    intptr_t size, target_type_size;
-#endif
-
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPIDI_CH3I_PUT);
+    MPIR_FUNC_ENTER;
 
     MPIR_ERR_CHKANDJUMP(win_ptr->states.access_state == MPIDI_RMA_NONE,
                         mpi_errno, MPI_ERR_RMA_SYNC, "**rmasync");
@@ -83,10 +59,6 @@ int MPIDI_CH3I_Put(const void *origin_addr, int origin_count, MPI_Datatype
 
     rank = win_ptr->comm_ptr->rank;
 
-#if defined(CHANNEL_MRAIL)
-    if (win_ptr->shm_allocated == TRUE)
-        MPIDI_Comm_get_vc(win_ptr->comm_ptr, target_rank, &target_vc);
-#else
     if (win_ptr->shm_allocated == TRUE && target_rank != rank &&
         win_ptr->create_flavor != MPI_WIN_FLAVOR_SHARED) {
         /* check if target is local and shared memory is allocated on window,
@@ -101,17 +73,10 @@ int MPIDI_CH3I_Put(const void *origin_addr, int origin_count, MPI_Datatype
         MPIDI_Comm_get_vc(win_ptr->comm_ptr, rank, &orig_vc);
         MPIDI_Comm_get_vc(win_ptr->comm_ptr, target_rank, &target_vc);
     }
-#endif
 
     /* If the put is a local operation, do it here */
     if (target_rank == rank || win_ptr->create_flavor == MPI_WIN_FLAVOR_SHARED ||
-        (win_ptr->shm_allocated == TRUE && 
-#if defined(CHANNEL_MRAIL)
-         target_vc->smp.local_nodes != -1 
-#else
-         orig_vc->node_id == target_vc->node_id
-#endif
-         )) {
+        (win_ptr->shm_allocated == TRUE && orig_vc->node_id == target_vc->node_id)) {
         mpi_errno = MPIDI_CH3I_Shm_put_op(origin_addr, origin_count, origin_datatype, target_rank,
                                           target_disp, target_count, target_datatype, win_ptr);
         MPIR_ERR_CHECK(mpi_errno);
@@ -123,28 +88,6 @@ int MPIDI_CH3I_Put(const void *origin_addr, int origin_count, MPI_Datatype
         }
     }
     else {
-#if defined(CHANNEL_MRAIL)
-        MPIR_Datatype_get_size_macro(target_datatype, target_type_size);
-        size = target_count * target_type_size;
-        if (MPIR_DATATYPE_IS_PREDEFINED(origin_datatype) 
-            && MPIR_DATATYPE_IS_PREDEFINED(target_datatype)
-            && ureq == NULL
-            && win_ptr->fall_back != 1 && win_ptr->enable_fast_path == 1
-            && win_ptr->use_rdma_path == 1
-            && ((win_ptr->is_active && win_ptr->post_flag[target_rank] == 1)
-                || (!win_ptr->is_active && win_ptr->using_lock == 0))
-            && size < rdma_large_msg_rail_sharing_threshold)
-        {
-            transfer_complete = MPIDI_CH3I_RDMA_try_rma_op_fast(MPIDI_CH3_PKT_PUT, (void *)origin_addr,
-                    origin_count, origin_datatype, target_rank, target_disp,
-                    target_count, target_datatype, NULL, NULL, win_ptr);
-        }
-        if (transfer_complete) {
-            goto fn_exit;
-        }
-        else 
-#endif
-        {
         MPIDI_RMA_Op_t *op_ptr = NULL;
         MPIDI_CH3_Pkt_put_t *put_pkt = NULL;
         int use_immed_pkt = FALSE;
@@ -189,18 +132,13 @@ int MPIDI_CH3I_Put(const void *origin_addr, int origin_count, MPI_Datatype
         }
 
         /* Judge if this operation is an piggyback candidate */
-#if defined(CHANNEL_MRAIL) 
-        if (win_ptr->fall_back == 1)
-#endif
-        {
-            if (MPIR_DATATYPE_IS_PREDEFINED(origin_datatype) &&
-                    MPIR_DATATYPE_IS_PREDEFINED(target_datatype)) {
-                /* FIXME: currently we only piggyback LOCK flag with op using predefined datatypes
-                 * for both origin and target data. We should extend this optimization to derived
-                 * datatypes as well. */
-                if (data_sz <= MPIR_CVAR_CH3_RMA_OP_PIGGYBACK_LOCK_DATA_SIZE)
-                    op_ptr->piggyback_lock_candidate = 1;
-            }
+        if (MPIR_DATATYPE_IS_PREDEFINED(origin_datatype) &&
+            MPIR_DATATYPE_IS_PREDEFINED(target_datatype)) {
+            /* FIXME: currently we only piggyback LOCK flag with op using predefined datatypes
+             * for both origin and target data. We should extend this optimization to derived
+             * datatypes as well. */
+            if (data_sz <= MPIR_CVAR_CH3_RMA_OP_PIGGYBACK_LOCK_DATA_SIZE)
+                op_ptr->piggyback_lock_candidate = 1;
         }
 
         /************** Setting packet struct areas in operation ****************/
@@ -243,11 +181,10 @@ int MPIDI_CH3I_Put(const void *origin_addr, int origin_count, MPI_Datatype
                 MPIR_ERR_CHECK(mpi_errno);
             }
         }
-        }
     }
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPIDI_CH3I_PUT);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 
     /* --BEGIN ERROR HANDLING-- */
@@ -256,29 +193,20 @@ int MPIDI_CH3I_Put(const void *origin_addr, int origin_count, MPI_Datatype
     /* --END ERROR HANDLING-- */
 }
 
-int MPIDI_CH3I_Get(void *origin_addr, int origin_count, MPI_Datatype
+int MPIDI_CH3I_Get(void *origin_addr, MPI_Aint origin_count, MPI_Datatype
                    origin_datatype, int target_rank, MPI_Aint target_disp,
-                   int target_count, MPI_Datatype target_datatype, MPIR_Win * win_ptr,
+                   MPI_Aint target_count, MPI_Datatype target_datatype, MPIR_Win * win_ptr,
                    MPIR_Request * ureq)
 {
     int mpi_errno = MPI_SUCCESS;
     intptr_t orig_data_sz, target_data_sz;
     int dt_contig ATTRIBUTE((unused)), rank;
     MPI_Aint dt_true_lb ATTRIBUTE((unused));
-    MPIR_Datatype *dtp;
-    MPIDI_VC_t *target_vc = NULL;
-#if !defined(CHANNEL_MRAIL)
-    MPIDI_VC_t *orig_vc = NULL;
-#endif
+    MPIR_Datatype*dtp;
+    MPIDI_VC_t *orig_vc = NULL, *target_vc = NULL;
     int made_progress = 0;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3I_GET);
 
-#if defined(CHANNEL_MRAIL)
-    int transfer_complete = 0;
-    intptr_t size, target_type_size;
-#endif
-
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPIDI_CH3I_GET);
+    MPIR_FUNC_ENTER;
 
     MPIR_ERR_CHKANDJUMP(win_ptr->states.access_state == MPIDI_RMA_NONE,
                         mpi_errno, MPI_ERR_RMA_SYNC, "**rmasync");
@@ -292,10 +220,6 @@ int MPIDI_CH3I_Get(void *origin_addr, int origin_count, MPI_Datatype
 
     rank = win_ptr->comm_ptr->rank;
 
-#if defined(CHANNEL_MRAIL)
-    if (win_ptr->shm_allocated == TRUE)
-        MPIDI_Comm_get_vc(win_ptr->comm_ptr, target_rank, &target_vc);
-#else
     if (win_ptr->shm_allocated == TRUE && target_rank != rank &&
         win_ptr->create_flavor != MPI_WIN_FLAVOR_SHARED) {
         /* check if target is local and shared memory is allocated on window,
@@ -310,17 +234,10 @@ int MPIDI_CH3I_Get(void *origin_addr, int origin_count, MPI_Datatype
         MPIDI_Comm_get_vc(win_ptr->comm_ptr, rank, &orig_vc);
         MPIDI_Comm_get_vc(win_ptr->comm_ptr, target_rank, &target_vc);
     }
-#endif
 
     /* If the get is a local operation, do it here */
     if (target_rank == rank || win_ptr->create_flavor == MPI_WIN_FLAVOR_SHARED ||
-        (win_ptr->shm_allocated == TRUE && 
-#if defined(CHANNEL_MRAIL)
-         target_vc->smp.local_nodes != -1 
-#else
-         orig_vc->node_id == target_vc->node_id
-#endif
-         )) {
+        (win_ptr->shm_allocated == TRUE && orig_vc->node_id == target_vc->node_id)) {
         mpi_errno = MPIDI_CH3I_Shm_get_op(origin_addr, origin_count, origin_datatype, target_rank,
                                           target_disp, target_count, target_datatype, win_ptr);
         MPIR_ERR_CHECK(mpi_errno);
@@ -332,28 +249,6 @@ int MPIDI_CH3I_Get(void *origin_addr, int origin_count, MPI_Datatype
         }
     }
     else {
-#if defined(CHANNEL_MRAIL)
-        MPIR_Datatype_get_size_macro(target_datatype, target_type_size);
-        size = target_count * target_type_size;
-        if (MPIR_DATATYPE_IS_PREDEFINED(origin_datatype) 
-            && MPIR_DATATYPE_IS_PREDEFINED(target_datatype)
-            && ureq == NULL
-            && win_ptr->fall_back != 1 && win_ptr->enable_fast_path == 1
-            && win_ptr->use_rdma_path == 1
-            && ((win_ptr->is_active && win_ptr->post_flag[target_rank] == 1)
-                || (!win_ptr->is_active && win_ptr->using_lock == 0))
-            && size < rdma_large_msg_rail_sharing_threshold)
-        {
-            transfer_complete = MPIDI_CH3I_RDMA_try_rma_op_fast(MPIDI_CH3_PKT_GET, (void *)origin_addr,
-                    origin_count, origin_datatype, target_rank, target_disp,
-                    target_count, target_datatype, NULL, NULL, win_ptr);
-        }
-        if (transfer_complete) {
-            goto fn_exit;
-        }
-        else 
-#endif
-        {
         MPIDI_RMA_Op_t *op_ptr = NULL;
         MPIDI_CH3_Pkt_get_t *get_pkt = NULL;
         MPI_Aint target_type_size;
@@ -401,26 +296,21 @@ int MPIDI_CH3I_Get(void *origin_addr, int origin_count, MPI_Datatype
                 use_immed_resp_pkt = TRUE;
         }
 
-#if defined(CHANNEL_MRAIL) 
-        if (win_ptr->fall_back == 1)
-#endif
-        {
-            /* Judge if this operation is an piggyback candidate. */
-            if (MPIR_DATATYPE_IS_PREDEFINED(origin_datatype) &&
-                    MPIR_DATATYPE_IS_PREDEFINED(target_datatype)) {
-                /* FIXME: currently we only piggyback LOCK flag with op using predefined datatypes
-                 * for both origin and target data. We should extend this optimization to derived
-                 * datatypes as well. */
-                op_ptr->piggyback_lock_candidate = 1;
-            }
+        /* Judge if this operation is an piggyback candidate. */
+        if (MPIR_DATATYPE_IS_PREDEFINED(origin_datatype) &&
+            MPIR_DATATYPE_IS_PREDEFINED(target_datatype)) {
+            /* FIXME: currently we only piggyback LOCK flag with op using predefined datatypes
+             * for both origin and target data. We should extend this optimization to derived
+             * datatypes as well. */
+            op_ptr->piggyback_lock_candidate = 1;
         }
 
         /************** Setting packet struct areas in operation ****************/
 
         get_pkt = &(op_ptr->pkt.get);
         MPIDI_Pkt_init(get_pkt, MPIDI_CH3_PKT_GET);
-        get_pkt->addr = (char *) win_ptr->basic_info_table[target_rank].base_addr +
-            win_ptr->basic_info_table[target_rank].disp_unit * target_disp;
+        get_pkt->addr = MPIR_get_contig_ptr(win_ptr->basic_info_table[target_rank].base_addr,
+            win_ptr->basic_info_table[target_rank].disp_unit * target_disp);
         get_pkt->count = target_count;
         get_pkt->datatype = target_datatype;
         get_pkt->info.flattened_type_size = 0;
@@ -444,11 +334,10 @@ int MPIDI_CH3I_Get(void *origin_addr, int origin_count, MPI_Datatype
                 MPIR_ERR_CHECK(mpi_errno);
             }
         }
-        }
     }
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPIDI_CH3I_GET);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 
     /* --BEGIN ERROR HANDLING-- */
@@ -458,24 +347,20 @@ int MPIDI_CH3I_Get(void *origin_addr, int origin_count, MPI_Datatype
 }
 
 
-int MPIDI_CH3I_Accumulate(const void *origin_addr, int origin_count, MPI_Datatype
+int MPIDI_CH3I_Accumulate(const void *origin_addr, MPI_Aint origin_count, MPI_Datatype
                           origin_datatype, int target_rank, MPI_Aint target_disp,
-                          int target_count, MPI_Datatype target_datatype, MPI_Op op,
+                          MPI_Aint target_count, MPI_Datatype target_datatype, MPI_Op op,
                           MPIR_Win * win_ptr, MPIR_Request * ureq)
 {
     int mpi_errno = MPI_SUCCESS;
     intptr_t data_sz;
     int dt_contig ATTRIBUTE((unused)), rank;
     MPI_Aint dt_true_lb ATTRIBUTE((unused));
-    MPIR_Datatype *dtp;
-    MPIDI_VC_t *target_vc = NULL;
-#if !defined(CHANNEL_MRAIL)
-    MPIDI_VC_t *orig_vc = NULL;
-#endif
+    MPIR_Datatype*dtp;
+    MPIDI_VC_t *orig_vc = NULL, *target_vc = NULL;
     int made_progress = 0;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3I_ACCUMULATE);
 
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPIDI_CH3I_ACCUMULATE);
+    MPIR_FUNC_ENTER;
 
     MPIR_ERR_CHKANDJUMP(win_ptr->states.access_state == MPIDI_RMA_NONE,
                         mpi_errno, MPI_ERR_RMA_SYNC, "**rmasync");
@@ -488,10 +373,6 @@ int MPIDI_CH3I_Accumulate(const void *origin_addr, int origin_count, MPI_Datatyp
 
     rank = win_ptr->comm_ptr->rank;
 
-#if defined(CHANNEL_MRAIL)
-    if (win_ptr->shm_allocated == TRUE)
-        MPIDI_Comm_get_vc(win_ptr->comm_ptr, target_rank, &target_vc);
-#else
     if (win_ptr->shm_allocated == TRUE && target_rank != rank &&
         win_ptr->create_flavor != MPI_WIN_FLAVOR_SHARED) {
         /* check if target is local and shared memory is allocated on window,
@@ -506,17 +387,10 @@ int MPIDI_CH3I_Accumulate(const void *origin_addr, int origin_count, MPI_Datatyp
         MPIDI_Comm_get_vc(win_ptr->comm_ptr, rank, &orig_vc);
         MPIDI_Comm_get_vc(win_ptr->comm_ptr, target_rank, &target_vc);
     }
-#endif
 
     /* Do =! rank first (most likely branch?) */
     if (target_rank == rank || win_ptr->create_flavor == MPI_WIN_FLAVOR_SHARED ||
-        (win_ptr->shm_allocated == TRUE && 
-#if defined(CHANNEL_MRAIL)
-         target_vc->smp.local_nodes != -1 
-#else
-         orig_vc->node_id == target_vc->node_id
-#endif
-         )) {
+        (win_ptr->shm_allocated == TRUE && orig_vc->node_id == target_vc->node_id)) {
         mpi_errno = MPIDI_CH3I_Shm_acc_op(origin_addr, origin_count, origin_datatype,
                                           target_rank, target_disp, target_count, target_datatype,
                                           op, win_ptr);
@@ -604,18 +478,13 @@ int MPIDI_CH3I_Accumulate(const void *origin_addr, int origin_count, MPI_Datatyp
         }
 
         /* Judge if this operation is an piggyback candidate. */
-#if defined(CHANNEL_MRAIL) 
-        if (win_ptr->fall_back == 1)
-#endif
-        {
-            if (MPIR_DATATYPE_IS_PREDEFINED(origin_datatype) &&
-                    MPIR_DATATYPE_IS_PREDEFINED(target_datatype)) {
-                /* FIXME: currently we only piggyback LOCK flag with op using predefined datatypes
-                 * for both origin and target data. We should extend this optimization to derived
-                 * datatypes as well. */
-                if (data_sz <= MPIR_CVAR_CH3_RMA_OP_PIGGYBACK_LOCK_DATA_SIZE)
-                    op_ptr->piggyback_lock_candidate = 1;
-            }
+        if (MPIR_DATATYPE_IS_PREDEFINED(origin_datatype) &&
+            MPIR_DATATYPE_IS_PREDEFINED(target_datatype)) {
+            /* FIXME: currently we only piggyback LOCK flag with op using predefined datatypes
+             * for both origin and target data. We should extend this optimization to derived
+             * datatypes as well. */
+            if (data_sz <= MPIR_CVAR_CH3_RMA_OP_PIGGYBACK_LOCK_DATA_SIZE)
+                op_ptr->piggyback_lock_candidate = 1;
         }
 
         /************** Setting packet struct areas in operation ****************/
@@ -629,8 +498,8 @@ int MPIDI_CH3I_Accumulate(const void *origin_addr, int origin_count, MPI_Datatyp
             MPIDI_Pkt_init(accum_pkt, MPIDI_CH3_PKT_ACCUMULATE);
         }
 
-        accum_pkt->addr = (char *) win_ptr->basic_info_table[target_rank].base_addr +
-            win_ptr->basic_info_table[target_rank].disp_unit * target_disp;
+        accum_pkt->addr = MPIR_get_contig_ptr(win_ptr->basic_info_table[target_rank].base_addr,
+            win_ptr->basic_info_table[target_rank].disp_unit * target_disp);
         accum_pkt->count = target_count;
         accum_pkt->datatype = target_datatype;
         accum_pkt->info.flattened_type_size = 0;
@@ -662,7 +531,7 @@ int MPIDI_CH3I_Accumulate(const void *origin_addr, int origin_count, MPI_Datatyp
     }
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPIDI_CH3I_ACCUMULATE);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 
     /* --BEGIN ERROR HANDLING-- */
@@ -672,10 +541,10 @@ int MPIDI_CH3I_Accumulate(const void *origin_addr, int origin_count, MPI_Datatyp
 }
 
 
-int MPIDI_CH3I_Get_accumulate(const void *origin_addr, int origin_count,
-                              MPI_Datatype origin_datatype, void *result_addr, int result_count,
+int MPIDI_CH3I_Get_accumulate(const void *origin_addr, MPI_Aint origin_count,
+                              MPI_Datatype origin_datatype, void *result_addr, MPI_Aint result_count,
                               MPI_Datatype result_datatype, int target_rank, MPI_Aint target_disp,
-                              int target_count, MPI_Datatype target_datatype, MPI_Op op,
+                              MPI_Aint target_count, MPI_Datatype target_datatype, MPI_Op op,
                               MPIR_Win * win_ptr, MPIR_Request * ureq)
 {
     int mpi_errno = MPI_SUCCESS;
@@ -683,15 +552,11 @@ int MPIDI_CH3I_Get_accumulate(const void *origin_addr, int origin_count,
     int rank;
     int dt_contig ATTRIBUTE((unused));
     MPI_Aint dt_true_lb ATTRIBUTE((unused));
-    MPIR_Datatype *dtp;
-    MPIDI_VC_t *target_vc = NULL;
-#if !defined(CHANNEL_MRAIL)
-    MPIDI_VC_t *orig_vc = NULL;
-#endif
+    MPIR_Datatype*dtp;
+    MPIDI_VC_t *orig_vc = NULL, *target_vc = NULL;
     int made_progress = 0;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3I_GET_ACCUMULATE);
 
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPIDI_CH3I_GET_ACCUMULATE);
+    MPIR_FUNC_ENTER;
 
     MPIR_ERR_CHKANDJUMP(win_ptr->states.access_state == MPIDI_RMA_NONE,
                         mpi_errno, MPI_ERR_RMA_SYNC, "**rmasync");
@@ -705,10 +570,6 @@ int MPIDI_CH3I_Get_accumulate(const void *origin_addr, int origin_count,
 
     rank = win_ptr->comm_ptr->rank;
 
-#if defined(CHANNEL_MRAIL)
-    if (win_ptr->shm_allocated == TRUE)
-        MPIDI_Comm_get_vc(win_ptr->comm_ptr, target_rank, &target_vc);
-#else
     if (win_ptr->shm_allocated == TRUE && target_rank != rank &&
         win_ptr->create_flavor != MPI_WIN_FLAVOR_SHARED) {
         /* check if target is local and shared memory is allocated on window,
@@ -723,17 +584,10 @@ int MPIDI_CH3I_Get_accumulate(const void *origin_addr, int origin_count,
         MPIDI_Comm_get_vc(win_ptr->comm_ptr, rank, &orig_vc);
         MPIDI_Comm_get_vc(win_ptr->comm_ptr, target_rank, &target_vc);
     }
-#endif
 
     /* Do =! rank first (most likely branch?) */
     if (target_rank == rank || win_ptr->create_flavor == MPI_WIN_FLAVOR_SHARED ||
-        (win_ptr->shm_allocated == TRUE && 
-#if defined(CHANNEL_MRAIL)
-         target_vc->smp.local_nodes != -1 
-#else
-         orig_vc->node_id == target_vc->node_id
-#endif
-         )) {
+        (win_ptr->shm_allocated == TRUE && orig_vc->node_id == target_vc->node_id)) {
         mpi_errno = MPIDI_CH3I_Shm_get_acc_op(origin_addr, origin_count, origin_datatype,
                                               result_addr, result_count, result_datatype,
                                               target_rank, target_disp, target_count,
@@ -859,19 +713,14 @@ int MPIDI_CH3I_Get_accumulate(const void *origin_addr, int origin_count,
         }
 
         /* Judge if this operation is a piggyback candidate */
-#if defined(CHANNEL_MRAIL) 
-        if (win_ptr->fall_back == 1)
-#endif
-        {
-            if ((is_empty_origin == TRUE || MPIR_DATATYPE_IS_PREDEFINED(origin_datatype)) &&
-                    MPIR_DATATYPE_IS_PREDEFINED(result_datatype) &&
-                    MPIR_DATATYPE_IS_PREDEFINED(target_datatype)) {
-                /* FIXME: currently we only piggyback LOCK flag with op using predefined datatypes
-                 * for origin, target and result data. We should extend this optimization to derived
-                 * datatypes as well. */
-                if (orig_data_sz <= MPIR_CVAR_CH3_RMA_OP_PIGGYBACK_LOCK_DATA_SIZE)
-                    op_ptr->piggyback_lock_candidate = 1;
-            }
+        if ((is_empty_origin == TRUE || MPIR_DATATYPE_IS_PREDEFINED(origin_datatype)) &&
+            MPIR_DATATYPE_IS_PREDEFINED(result_datatype) &&
+            MPIR_DATATYPE_IS_PREDEFINED(target_datatype)) {
+            /* FIXME: currently we only piggyback LOCK flag with op using predefined datatypes
+             * for origin, target and result data. We should extend this optimization to derived
+             * datatypes as well. */
+            if (orig_data_sz <= MPIR_CVAR_CH3_RMA_OP_PIGGYBACK_LOCK_DATA_SIZE)
+                op_ptr->piggyback_lock_candidate = 1;
         }
 
         /************** Setting packet struct areas in operation ****************/
@@ -917,7 +766,7 @@ int MPIDI_CH3I_Get_accumulate(const void *origin_addr, int origin_count,
     }
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPIDI_CH3I_GET_ACCUMULATE);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 
     /* --BEGIN ERROR HANDLING-- */
@@ -927,83 +776,71 @@ int MPIDI_CH3I_Get_accumulate(const void *origin_addr, int origin_count,
 }
 
 
-int MPID_Put(const void *origin_addr, int origin_count, MPI_Datatype
+int MPID_Put(const void *origin_addr, MPI_Aint origin_count, MPI_Datatype
              origin_datatype, int target_rank, MPI_Aint target_disp,
-             int target_count, MPI_Datatype target_datatype, MPIR_Win * win_ptr)
+             MPI_Aint target_count, MPI_Datatype target_datatype, MPIR_Win * win_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_PUT);
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPID_PUT);
+    MPIR_FUNC_ENTER;
 
     mpi_errno = MPIDI_CH3I_Put(origin_addr, origin_count, origin_datatype,
                                target_rank, target_disp, target_count, target_datatype,
                                win_ptr, NULL);
 
-  fn_exit:
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPID_PUT);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
-
 }
 
-int MPID_Get(void *origin_addr, int origin_count, MPI_Datatype
+int MPID_Get(void *origin_addr, MPI_Aint origin_count, MPI_Datatype
              origin_datatype, int target_rank, MPI_Aint target_disp,
-             int target_count, MPI_Datatype target_datatype, MPIR_Win * win_ptr)
+             MPI_Aint target_count, MPI_Datatype target_datatype, MPIR_Win * win_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_GET);
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPID_GET);
+    MPIR_FUNC_ENTER;
 
     mpi_errno = MPIDI_CH3I_Get(origin_addr, origin_count, origin_datatype,
                                target_rank, target_disp, target_count, target_datatype,
                                win_ptr, NULL);
 
-  fn_exit:
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPID_GET);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
-
 }
 
-int MPID_Accumulate(const void *origin_addr, int origin_count, MPI_Datatype
+int MPID_Accumulate(const void *origin_addr, MPI_Aint origin_count, MPI_Datatype
                     origin_datatype, int target_rank, MPI_Aint target_disp,
-                    int target_count, MPI_Datatype target_datatype, MPI_Op op, MPIR_Win * win_ptr)
+                    MPI_Aint target_count, MPI_Datatype target_datatype, MPI_Op op, MPIR_Win * win_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_ACCUMULATE);
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPID_ACCUMULATE);
+    MPIR_FUNC_ENTER;
 
     mpi_errno = MPIDI_CH3I_Accumulate(origin_addr, origin_count, origin_datatype,
                                       target_rank, target_disp, target_count, target_datatype,
                                       op, win_ptr, NULL);
 
-  fn_exit:
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPID_ACCUMULATE);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
-
 }
 
-int MPID_Get_accumulate(const void *origin_addr, int origin_count,
-                        MPI_Datatype origin_datatype, void *result_addr, int result_count,
+int MPID_Get_accumulate(const void *origin_addr, MPI_Aint origin_count,
+                        MPI_Datatype origin_datatype, void *result_addr, MPI_Aint result_count,
                         MPI_Datatype result_datatype, int target_rank, MPI_Aint target_disp,
-                        int target_count, MPI_Datatype target_datatype, MPI_Op op,
+                        MPI_Aint target_count, MPI_Datatype target_datatype, MPI_Op op,
                         MPIR_Win * win_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_GET_ACCUMULATE);
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPID_GET_ACCUMULATE);
+    MPIR_FUNC_ENTER;
 
     mpi_errno = MPIDI_CH3I_Get_accumulate(origin_addr, origin_count, origin_datatype,
                                           result_addr, result_count, result_datatype,
                                           target_rank, target_disp, target_count,
                                           target_datatype, op, win_ptr, NULL);
 
-  fn_exit:
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPID_GET_ACCUMULATE);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
-
 }
 
 
@@ -1013,29 +850,17 @@ int MPID_Compare_and_swap(const void *origin_addr, const void *compare_addr,
 {
     int mpi_errno = MPI_SUCCESS;
     int rank;
-    MPIDI_VC_t *target_vc = NULL;
-#if !defined(CHANNEL_MRAIL)
-    MPIDI_VC_t *orig_vc = NULL;
-#endif
+    MPIDI_VC_t *orig_vc = NULL, *target_vc = NULL;
     int made_progress = 0;
 
-#if defined(CHANNEL_MRAIL)
-    int transfer_complete = 0;
-#endif
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_COMPARE_AND_SWAP);
-
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPID_COMPARE_AND_SWAP);
+    MPIR_FUNC_ENTER;
 
     MPIR_ERR_CHKANDJUMP(win_ptr->states.access_state == MPIDI_RMA_NONE,
                         mpi_errno, MPI_ERR_RMA_SYNC, "**rmasync");
 
     rank = win_ptr->comm_ptr->rank;
 
-#if defined(CHANNEL_MRAIL)
-    if (win_ptr->shm_allocated == TRUE)
-        MPIDI_Comm_get_vc(win_ptr->comm_ptr, target_rank, &target_vc);
-#else
     if (win_ptr->shm_allocated == TRUE && target_rank != rank &&
         win_ptr->create_flavor != MPI_WIN_FLAVOR_SHARED) {
         /* check if target is local and shared memory is allocated on window,
@@ -1050,7 +875,6 @@ int MPID_Compare_and_swap(const void *origin_addr, const void *compare_addr,
         MPIDI_Comm_get_vc(win_ptr->comm_ptr, rank, &orig_vc);
         MPIDI_Comm_get_vc(win_ptr->comm_ptr, target_rank, &target_vc);
     }
-#endif
 
     /* The datatype must be predefined, and one of: C integer, Fortran integer,
      * Logical, Multi-language types, or Byte.  This is checked above the ADI,
@@ -1059,37 +883,12 @@ int MPID_Compare_and_swap(const void *origin_addr, const void *compare_addr,
     /* FIXME: For shared memory windows, we should provide an implementation
      * that uses a processor atomic operation. */
     if (target_rank == rank || win_ptr->create_flavor == MPI_WIN_FLAVOR_SHARED ||
-        (win_ptr->shm_allocated == TRUE && 
-#if defined(CHANNEL_MRAIL)
-         target_vc->smp.local_nodes != -1 
-#else
-         orig_vc->node_id == target_vc->node_id
-#endif
-         )) {
+        (win_ptr->shm_allocated == TRUE && orig_vc->node_id == target_vc->node_id)) {
         mpi_errno = MPIDI_CH3I_Shm_cas_op(origin_addr, compare_addr, result_addr,
                                           datatype, target_rank, target_disp, win_ptr);
         MPIR_ERR_CHECK(mpi_errno);
     }
     else {
-#if defined(CHANNEL_MRAIL)
-        if (win_ptr->fall_back != 1 && win_ptr->enable_fast_path == 1
-            && win_ptr->use_rdma_path == 1
-#if defined(RDMA_CM)
-            && !mvp_MPIDI_CH3I_RDMA_Process.use_iwarp_mode
-#endif
-            && ((win_ptr->is_active && win_ptr->post_flag[target_rank] == 1)
-            || (!win_ptr->is_active && win_ptr->using_lock == 0)))
-        {
-            transfer_complete = MPIDI_CH3I_RDMA_try_rma_op_fast(MPIDI_CH3_PKT_CAS_IMMED, (void *)origin_addr,
-                    0, datatype, target_rank, target_disp,
-                    0, datatype, (void *) compare_addr, result_addr, win_ptr);
-        }
-        if (transfer_complete) {
-            goto fn_exit;
-        }
-        else 
-#endif
-        {
         MPIDI_RMA_Op_t *op_ptr = NULL;
         MPIDI_CH3_Pkt_cas_t *cas_pkt = NULL;
         MPI_Aint type_size;
@@ -1111,12 +910,7 @@ int MPID_Compare_and_swap(const void *origin_addr, const void *compare_addr,
         op_ptr->compare_addr = (void *) compare_addr;
         op_ptr->compare_datatype = datatype;
         op_ptr->target_rank = target_rank;
-#if defined(CHANNEL_MRAIL) 
-        if (win_ptr->fall_back == 1)
-#endif
-        {
-            op_ptr->piggyback_lock_candidate = 1;   /* CAS is always able to piggyback LOCK */
-        }
+        op_ptr->piggyback_lock_candidate = 1;   /* CAS is always able to piggyback LOCK */
 
         /************** Setting packet struct areas in operation ****************/
 
@@ -1156,11 +950,10 @@ int MPID_Compare_and_swap(const void *origin_addr, const void *compare_addr,
                 MPIR_ERR_CHECK(mpi_errno);
             }
         }
-        }
     }
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPID_COMPARE_AND_SWAP);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
     /* --BEGIN ERROR HANDLING-- */
   fn_fail:
@@ -1175,29 +968,17 @@ int MPID_Fetch_and_op(const void *origin_addr, void *result_addr,
 {
     int mpi_errno = MPI_SUCCESS;
     int rank;
-    MPIDI_VC_t *target_vc = NULL;
-#if !defined(CHANNEL_MRAIL)
-    MPIDI_VC_t *orig_vc = NULL;
-#endif
+    MPIDI_VC_t *orig_vc = NULL, *target_vc = NULL;
     int made_progress = 0;
 
-#if defined(CHANNEL_MRAIL)
-    int transfer_complete = 0;
-#endif
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_FETCH_AND_OP);
-
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPID_FETCH_AND_OP);
+    MPIR_FUNC_ENTER;
 
     MPIR_ERR_CHKANDJUMP(win_ptr->states.access_state == MPIDI_RMA_NONE,
                         mpi_errno, MPI_ERR_RMA_SYNC, "**rmasync");
 
     rank = win_ptr->comm_ptr->rank;
 
-#if defined(CHANNEL_MRAIL)
-    if (win_ptr->shm_allocated == TRUE)
-        MPIDI_Comm_get_vc(win_ptr->comm_ptr, target_rank, &target_vc);
-#else
     if (win_ptr->shm_allocated == TRUE && target_rank != rank &&
         win_ptr->create_flavor != MPI_WIN_FLAVOR_SHARED) {
         /* check if target is local and shared memory is allocated on window,
@@ -1212,7 +993,6 @@ int MPID_Fetch_and_op(const void *origin_addr, void *result_addr,
         MPIDI_Comm_get_vc(win_ptr->comm_ptr, rank, &orig_vc);
         MPIDI_Comm_get_vc(win_ptr->comm_ptr, target_rank, &target_vc);
     }
-#endif
 
     /* The datatype and op must be predefined.  This is checked above the ADI,
      * so there's no need to check it again here. */
@@ -1220,39 +1000,12 @@ int MPID_Fetch_and_op(const void *origin_addr, void *result_addr,
     /* FIXME: For shared memory windows, we should provide an implementation
      * that uses a processor atomic operation. */
     if (target_rank == rank || win_ptr->create_flavor == MPI_WIN_FLAVOR_SHARED ||
-        (win_ptr->shm_allocated == TRUE && 
-#if defined(CHANNEL_MRAIL)
-         target_vc->smp.local_nodes != -1 
-#else
-         orig_vc->node_id == target_vc->node_id
-#endif
-         )) {
+        (win_ptr->shm_allocated == TRUE && orig_vc->node_id == target_vc->node_id)) {
         mpi_errno = MPIDI_CH3I_Shm_fop_op(origin_addr, result_addr, datatype,
                                           target_rank, target_disp, op, win_ptr);
         MPIR_ERR_CHECK(mpi_errno);
     }
     else {
-#if defined(CHANNEL_MRAIL)
-        if (win_ptr->fall_back != 1 && win_ptr->enable_fast_path == 1
-            && win_ptr->use_rdma_path == 1
-            && op == MPI_SUM
-#if defined(RDMA_CM)
-            && !mvp_MPIDI_CH3I_RDMA_Process.use_iwarp_mode
-#endif
-            && datatype != MPI_DOUBLE
-            && ((win_ptr->is_active && win_ptr->post_flag[target_rank] == 1)
-                || (!win_ptr->is_active && win_ptr->using_lock == 0)))
-        {
-            transfer_complete = MPIDI_CH3I_RDMA_try_rma_op_fast(MPIDI_CH3_PKT_FOP, (void *)origin_addr,
-                    0, datatype, target_rank, target_disp,
-                    0, datatype, 0, (void *)result_addr, win_ptr);
-        }
-        if (transfer_complete) {
-            goto fn_exit;
-        }
-        else
-#endif
-        {
         MPIDI_RMA_Op_t *op_ptr = NULL;
         MPIDI_CH3_Pkt_fop_t *fop_pkt;
         MPI_Aint type_size;
@@ -1273,12 +1026,7 @@ int MPID_Fetch_and_op(const void *origin_addr, void *result_addr,
         op_ptr->result_addr = result_addr;
         op_ptr->result_datatype = datatype;
         op_ptr->target_rank = target_rank;
-#if defined(CHANNEL_MRAIL) 
-        if (win_ptr->fall_back == 1)
-#endif
-        {
-            op_ptr->piggyback_lock_candidate = 1;
-        }
+        op_ptr->piggyback_lock_candidate = 1;
 
         /************** Setting packet struct areas in operation ****************/
 
@@ -1329,11 +1077,10 @@ int MPID_Fetch_and_op(const void *origin_addr, void *result_addr,
                 MPIR_ERR_CHECK(mpi_errno);
             }
         }
-        }
     }
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPID_FETCH_AND_OP);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
     /* --BEGIN ERROR HANDLING-- */
   fn_fail:

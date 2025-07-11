@@ -1,0 +1,21 @@
+/*D
+   MPIX_Async_get_state - [short description]
+
+Synopsis:
+.vb
+void * MPIX_Async_get_state(MPIX_Async_thing async_thing)
+.ve
+
+Input Parameters:
+. async_thing - opaque pointer for async thing (None)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_OTHER
+
+D*/
+

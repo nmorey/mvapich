@@ -1,0 +1,24 @@
+/*D
+   MPI_Comm_set_name - Sets the print name for a communicator
+
+Synopsis:
+.vb
+int MPI_Comm_set_name(MPI_Comm comm, const char *comm_name)
+.ve
+
+Input Parameters:
++ comm - communicator whose identifier is to be set (handle)
+- comm_name - the character string which is remembered as the name (string)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+D*/
+

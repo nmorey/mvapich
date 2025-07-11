@@ -6,9 +6,10 @@
 #ifndef PMI_H_INCLUDED
 #define PMI_H_INCLUDED
 
-#ifdef USE_PMI2_API
-#error This header file defines the PMI v1 API, but PMI2 was selected
-#endif
+#define PMI_VERSION    1
+#define PMI_SUBVERSION 1
+
+#define PMI_MAX_PORT_NAME 1024
 
 /* prototypes for the PMI interface in MPICH */
 
@@ -235,37 +236,10 @@ Return values:
 Notes:
 This function is a collective call across all processes in the process group
 the local process belongs to.  It will not return until all the processes
-have called 'PMI_Barrier()'.
+have called 'PMI_Barrier()'. 'PMI_Barrier' automatically applies 'PMI_KVS_Commit'.
 
 @*/
     int PMI_Barrier(void);
-
-/*@
-PMI_IBarrier - non blocking barrier across the process group
-
-Return values:
-+ PMI_SUCCESS - barrier successfully entered
-- PMI_FAIL - barrier failed
-
-Notes:
-This function is a collective call across all processes in the process group
-the local process belongs to. This functionality is added by MVAPICH.
-@*/
-    int PMI_Ibarrier(void);
-
-/*@
-PMI_Wait - process synchronization across the process group
-
-Return values:
-+ PMI_SUCCESS - wait successfully finished
-- PMI_FAIL - wait failed
-
-Notes:
-This function is a collective call across all processes in the process group
-the local process belongs to. It is used in conjunction with PMI_Ibarrier.
-This functionality is added by MVAPICH. 
-@*/
-    int PMI_Wait(void);
 
 /*@
 PMI_Abort - abort the process group associated with this process
@@ -378,7 +352,8 @@ Return values:
 
 Notes:
 This function puts the key/value pair in the specified keyval space.  The
-value is not visible to other processes until 'PMI_KVS_Commit()' is called.
+value is not visible to other processes until 'PMI_KVS_Commit()' or
+'PMI_Barrier' is called. 'PMI_Barrier' automatically applies 'PMI_KVS_Commit'.
 The function may complete locally.  After 'PMI_KVS_Commit()' is called, the
 value may be retrieved by calling 'PMI_KVS_Get()'.  All keys put to a keyval
 space must be unique to the keyval space.  You may not put more than once
@@ -442,7 +417,7 @@ Fields:
 S*/
     typedef struct PMI_keyval_t {
         const char *key;
-        char *val;
+        const char *val;
     } PMI_keyval_t;
 
 /*@

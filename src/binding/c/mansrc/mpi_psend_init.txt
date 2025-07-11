@@ -1,0 +1,42 @@
+/*D
+   MPI_Psend_init - Creates a partitioned communication send request
+
+Synopsis:
+.vb
+int MPI_Psend_init(const void *buf, int partitions, MPI_Count count,
+                   MPI_Datatype datatype, int dest, int tag, MPI_Comm comm,
+                   MPI_Info info, MPI_Request *request)
+.ve
+
+Input Parameters:
++ buf - initial address of send buffer (choice)
+. partitions - number of partitions (non-negative integer)
+. count - number of elements send per partition (non-negative integer)
+. datatype - type of each element (handle)
+. dest - rank of destination (integer)
+. tag - message tag (integer)
+. comm - communicator (handle)
+- info - info argument (handle)
+
+Output Parameters:
+. request - communication request (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_BUFFER
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_INFO
+.N MPI_ERR_RANK
+.N MPI_ERR_TAG
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Pready, MPI_Pready_range, MPI_Pready_list, MPI_Start, MPI_Startall, MPI_Request_free
+D*/
+

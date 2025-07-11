@@ -1,0 +1,45 @@
+/*D
+   MPI_Reduce_init - Create a persistent request for reduce
+
+Synopsis:
+.vb
+int MPI_Reduce_init(const void *sendbuf, void *recvbuf, int count,
+                    MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm,
+                    MPI_Info info, MPI_Request *request)
+.ve
+.vb
+int MPI_Reduce_init_c(const void *sendbuf, void *recvbuf, MPI_Count count,
+                      MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm,
+                      MPI_Info info, MPI_Request *request)
+.ve
+
+Input Parameters:
++ sendbuf - address of send buffer (choice)
+. count - number of elements in send buffer (non-negative integer)
+. datatype - data type of elements of send buffer (handle)
+. op - reduce operation (handle)
+. root - rank of root process (integer)
+. comm - communicator (handle)
+- info - info argument (handle)
+
+Output Parameters:
++ recvbuf - address of receive buffer (choice)
+- request - communication request (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_BUFFER
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_INFO
+.N MPI_ERR_OP
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

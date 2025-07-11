@@ -1,0 +1,25 @@
+/*D
+   MPI_T_event_get_index - Returns the index of an event type identified by a known event type name
+
+Synopsis:
+.vb
+int MPI_T_event_get_index(const char *name, int *event_index)
+.ve
+
+Input Parameters:
+. name - name of the event type (string)
+
+Output Parameters:
+. event_index - index of the event type (integer)
+
+.N ThreadSafe
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_T_ERR_INVALID
+.N MPI_T_ERR_INVALID_NAME
+.N MPI_T_ERR_NOT_INITIALIZED
+.N MPI_ERR_OTHER
+
+D*/
+

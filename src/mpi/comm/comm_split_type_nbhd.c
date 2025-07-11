@@ -17,10 +17,98 @@ static int network_split_by_min_memsize(MPIR_Comm * comm_ptr, int key, long min_
                                         MPIR_Comm ** newcomm_ptr);
 static int network_split_by_torus_dimension(MPIR_Comm * comm_ptr, int key,
                                             int dimension, MPIR_Comm ** newcomm_ptr);
-static int compare_info_hint(const char *hint_str, MPIR_Comm * comm_ptr, int *info_args_are_equal);
 
-int MPIR_Comm_split_type_network_topo(MPIR_Comm * comm_ptr, int key, const char *hintval,
+static int split_type_nbhd_common_dir(MPIR_Comm * user_comm_ptr, int key, const char *hintval,
+                                      MPIR_Comm ** newcomm_ptr);
+static int split_type_network_topo(MPIR_Comm * comm_ptr, int key, const char *hintval,
+                                   MPIR_Comm ** newcomm_ptr);
+
+int MPIR_Comm_split_type_neighborhood(MPIR_Comm * comm_ptr, int split_type, int key,
+                                      MPIR_Info * info_ptr, MPIR_Comm ** newcomm_ptr)
+{
+
+    int mpi_errno = MPI_SUCCESS;
+
+    *newcomm_ptr = NULL;
+
+    const char *dirname;
+    mpi_errno = MPII_collect_info_key(comm_ptr, info_ptr, "nbhd_common_dirname", &dirname);
+    MPIR_ERR_CHECK(mpi_errno);
+
+    if (dirname) {
+        mpi_errno = split_type_nbhd_common_dir(comm_ptr, key, dirname, newcomm_ptr);
+        MPIR_ERR_CHECK(mpi_errno);
+    } else {
+        const char *network_topo;
+        mpi_errno = MPII_collect_info_key(comm_ptr, info_ptr, NETWORK_INFO_KEY, &network_topo);
+        MPIR_ERR_CHECK(mpi_errno);
+
+        if (network_topo) {
+            mpi_errno = split_type_network_topo(comm_ptr, key, network_topo, newcomm_ptr);
+            MPIR_ERR_CHECK(mpi_errno);
+        }
+    }
+
+  fn_exit:
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}
+
+#ifdef HAVE_ROMIO
+#ifndef BUILD_MPI_ABI
+#include "mpir_ext.h"
+
+static int ext_split_filesystem(MPI_Comm comm, int key, const char *dirname, MPI_Comm * newcomm)
+{
+    return MPIR_Comm_split_filesystem(comm, key, dirname, newcomm);
+}
+
+#else
+#include "mpi_abi_util.h"
+int MPIR_Comm_split_filesystem(ABI_Comm comm, int key, const char *dirname, ABI_Comm * newcomm);
+
+static int ext_split_filesystem(MPI_Comm comm, int key, const char *dirname, MPI_Comm * newcomm)
+{
+    ABI_Comm comm_out;
+    int ret = MPIR_Comm_split_filesystem(ABI_Comm_from_mpi(comm), key, dirname, &comm_out);
+    *newcomm = ABI_Comm_to_mpi(comm_out);
+    return ret;
+}
+
+#endif /* BUILD_MPI_ABI */
+#endif /* HAVE_ROMIO */
+
+static int split_type_nbhd_common_dir(MPIR_Comm * user_comm_ptr, int key, const char *hintval,
                                       MPIR_Comm ** newcomm_ptr)
+{
+#ifndef HAVE_ROMIO
+    *newcomm_ptr = NULL;
+    return MPI_SUCCESS;
+#else
+    int mpi_errno = MPI_SUCCESS;
+    MPI_Comm dummycomm;
+    MPIR_Comm *dummycomm_ptr;
+
+    /* ROMIO will call MPI-functions. Take off the lock taken by MPI_Comm_split_type */
+    MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+    mpi_errno = ext_split_filesystem(user_comm_ptr->handle, key, hintval, &dummycomm);
+    MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+    MPIR_ERR_CHECK(mpi_errno);
+
+    MPIR_Comm_get_ptr(dummycomm, dummycomm_ptr);
+    *newcomm_ptr = dummycomm_ptr;
+
+  fn_exit:
+    return mpi_errno;
+
+  fn_fail:
+    goto fn_exit;
+#endif
+}
+
+static int split_type_network_topo(MPIR_Comm * comm_ptr, int key, const char *hintval,
+                                   MPIR_Comm ** newcomm_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
     if (!strncmp(hintval, ("switch_level:"), strlen("switch_level:"))
@@ -42,84 +130,6 @@ int MPIR_Comm_split_type_network_topo(MPIR_Comm * comm_ptr, int key, const char 
         mpi_errno = network_split_by_torus_dimension(comm_ptr, key, dimension, newcomm_ptr);
     }
     return mpi_errno;
-}
-
-int MPIR_Comm_split_type_neighborhood(MPIR_Comm * comm_ptr, int split_type, int key,
-                                      MPIR_Info * info_ptr, MPIR_Comm ** newcomm_ptr)
-{
-
-    int flag = 0;
-    char hintval[MPI_MAX_INFO_VAL + 1];
-    int mpi_errno = MPI_SUCCESS;
-    int info_args_are_equal;
-
-    *newcomm_ptr = NULL;
-
-    if (info_ptr) {
-        MPIR_Info_get_impl(info_ptr, "nbhd_common_dirname", MPI_MAX_INFO_VAL, hintval, &flag);
-    }
-    if (!flag) {
-        hintval[0] = '\0';
-    }
-
-    *newcomm_ptr = NULL;
-    mpi_errno = compare_info_hint(hintval, comm_ptr, &info_args_are_equal);
-
-    MPIR_ERR_CHECK(mpi_errno);
-
-    if (info_args_are_equal && flag) {
-        MPIR_Comm_split_type_nbhd_common_dir(comm_ptr, key, hintval, newcomm_ptr);
-    } else {
-        /* Check if the info hint is a network topology hint */
-        if (info_ptr) {
-            MPIR_Info_get_impl(info_ptr, NETWORK_INFO_KEY, MPI_MAX_INFO_VAL, hintval, &flag);
-        }
-
-        if (!flag) {
-            hintval[0] = '\0';
-        }
-
-        mpi_errno = compare_info_hint(hintval, comm_ptr, &info_args_are_equal);
-
-        MPIR_ERR_CHECK(mpi_errno);
-
-        /* if all processes have the same hintval, perform
-         * topology-aware comm split */
-        if (info_args_are_equal) {
-            MPIR_Comm_split_type_network_topo(comm_ptr, key, hintval, newcomm_ptr);
-        }
-    }
-
-  fn_exit:
-    return mpi_errno;
-
-  fn_fail:
-    goto fn_exit;
-}
-
-int MPIR_Comm_split_type_nbhd_common_dir(MPIR_Comm * user_comm_ptr, int key, const char *hintval,
-                                         MPIR_Comm ** newcomm_ptr)
-{
-    int mpi_errno = MPI_SUCCESS;
-#ifdef HAVE_ROMIO
-    MPI_Comm dummycomm;
-    MPIR_Comm *dummycomm_ptr;
-
-    /* ROMIO will call MPI-functions. Take off the lock taken by MPI_Comm_split_type */
-    MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    mpi_errno = MPIR_Comm_split_filesystem(user_comm_ptr->handle, key, hintval, &dummycomm);
-    MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPIR_ERR_CHECK(mpi_errno);
-
-    MPIR_Comm_get_ptr(dummycomm, dummycomm_ptr);
-    *newcomm_ptr = dummycomm_ptr;
-#endif
-
-  fn_exit:
-    return mpi_errno;
-
-  fn_fail:
-    goto fn_exit;
 }
 
 static int network_split_switch_level(MPIR_Comm * comm_ptr, int key,
@@ -226,12 +236,7 @@ static int get_color_from_subset_bitmap(int node_index, int *bitmap, int bitmap_
     if (subset_size < min_size && i == bitmap_size)
         color = prev_comm_color;
 
-  fn_exit:
     return color;
-
-  fn_fail:
-    goto fn_exit;
-
 }
 
 static int network_split_by_minsize(MPIR_Comm * comm_ptr, int key, int subcomm_min_size,
@@ -253,7 +258,6 @@ static int network_split_by_minsize(MPIR_Comm * comm_ptr, int key, int subcomm_m
         *newcomm_ptr = NULL;
     } else {
         int *num_processes_at_node = NULL;
-        MPIR_Errflag_t errflag = MPIR_ERR_NONE;
 
         if (topo_type == MPIR_NETTOPO_TYPE__FAT_TREE ||
             topo_type == MPIR_NETTOPO_TYPE__CLOS_NETWORK) {
@@ -272,8 +276,8 @@ static int network_split_by_minsize(MPIR_Comm * comm_ptr, int key, int subcomm_m
         MPIR_Assert(num_processes_at_node != NULL);
         /* Send the count to processes */
         mpi_errno =
-            MPID_Allreduce(MPI_IN_PLACE, num_processes_at_node, num_nodes, MPI_INT,
-                           MPI_SUM, comm_ptr, &errflag);
+            MPIR_Allreduce(MPI_IN_PLACE, num_processes_at_node, num_nodes, MPI_INT,
+                           MPI_SUM, comm_ptr, MPIR_ERR_NONE);
 
         if (topo_type == MPIR_NETTOPO_TYPE__FAT_TREE ||
             topo_type == MPIR_NETTOPO_TYPE__CLOS_NETWORK) {
@@ -372,7 +376,8 @@ static int network_split_by_minsize(MPIR_Comm * comm_ptr, int key, int subcomm_m
             tree_depth = MPIR_hwtopo_get_depth(obj_containing_cpuset);
 
             /* get min tree depth to all processes */
-            MPID_Allreduce(&tree_depth, &min_tree_depth, 1, MPI_INT, MPI_MIN, node_comm, &errflag);
+            MPIR_Allreduce(&tree_depth, &min_tree_depth, 1, MPI_INT, MPI_MIN, node_comm,
+                           MPIR_ERR_NONE);
 
             if (min_tree_depth) {
                 int num_hwloc_objs_at_depth;
@@ -385,8 +390,8 @@ static int network_split_by_minsize(MPIR_Comm * comm_ptr, int key, int subcomm_m
                 parent_idx[subcomm_rank] = obj_containing_cpuset;
 
                 /* get parent_idx to all processes */
-                MPID_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, parent_idx, 1, MPI_INT,
-                               node_comm, &errflag);
+                MPIR_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, parent_idx, 1, MPI_INT,
+                               node_comm, MPIR_ERR_NONE);
 
                 /* reorder parent indices */
                 for (i = 0; i < num_procs - 1; i++) {
@@ -480,11 +485,7 @@ static int network_split_by_min_memsize(MPIR_Comm * comm_ptr, int key, long min_
                                              newcomm_ptr);
     }
 
-  fn_exit:
     return mpi_errno;
-
-  fn_fail:
-    goto fn_exit;
 }
 
 static int network_split_by_torus_dimension(MPIR_Comm * comm_ptr, int key,
@@ -522,63 +523,5 @@ static int network_split_by_torus_dimension(MPIR_Comm * comm_ptr, int key,
         mpi_errno = MPIR_Comm_split_impl(comm_ptr, color, key, newcomm_ptr);
     }
 
-  fn_exit:
     return mpi_errno;
-
-  fn_fail:
-    goto fn_exit;
-}
-
-static int compare_info_hint(const char *hintval, MPIR_Comm * comm_ptr, int *info_args_are_equal)
-{
-    int hintval_size = strlen(hintval);
-    int hintval_size_max;
-    int hintval_equal;
-    int hintval_equal_global = 0;
-    char *hintval_global = NULL;
-    int mpi_errno = MPI_SUCCESS;
-    MPIR_Errflag_t errflag = MPIR_ERR_NONE;
-
-    /* Find the maximum hintval size.  Each process locally compares
-     * its hintval size to the global max, and makes sure that this
-     * comparison is successful on all processes. */
-    mpi_errno =
-        MPID_Allreduce(&hintval_size, &hintval_size_max, 1, MPI_INT, MPI_MAX, comm_ptr, &errflag);
-    MPIR_ERR_CHECK(mpi_errno);
-
-    hintval_equal = (hintval_size == hintval_size_max);
-
-    mpi_errno =
-        MPID_Allreduce(&hintval_equal, &hintval_equal_global, 1, MPI_INT, MPI_LAND,
-                       comm_ptr, &errflag);
-    MPIR_ERR_CHECK(mpi_errno);
-
-    if (!hintval_equal_global)
-        goto fn_exit;
-
-
-    /* Now that the sizes of the hintvals match, check to make sure
-     * the actual hintvals themselves are the equal */
-    hintval_global = (char *) MPL_malloc(strlen(hintval), MPL_MEM_OTHER);
-
-    mpi_errno =
-        MPID_Allreduce(hintval, hintval_global, strlen(hintval), MPI_CHAR,
-                       MPI_MAX, comm_ptr, &errflag);
-    MPIR_ERR_CHECK(mpi_errno);
-
-    hintval_equal = !memcmp(hintval, hintval_global, strlen(hintval));
-
-    mpi_errno =
-        MPID_Allreduce(&hintval_equal, &hintval_equal_global, 1, MPI_INT, MPI_LAND,
-                       comm_ptr, &errflag);
-    MPIR_ERR_CHECK(mpi_errno);
-
-  fn_exit:
-    MPL_free(hintval_global);
-
-    *info_args_are_equal = hintval_equal_global;
-    return mpi_errno;
-
-  fn_fail:
-    goto fn_exit;
 }

@@ -87,9 +87,8 @@ int MPIDI_RMA_init(void)
     int i;
     MPIR_CHKPMEM_DECL(3);
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_RMA_INIT);
 
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPIDI_RMA_INIT);
+    MPIR_FUNC_ENTER;
 
     MPIR_CHKPMEM_MALLOC(global_rma_op_pool_start, MPIDI_RMA_Op_t *,
                         sizeof(MPIDI_RMA_Op_t) * MPIR_CVAR_CH3_RMA_OP_GLOBAL_POOL_SIZE,
@@ -108,7 +107,7 @@ int MPIDI_RMA_init(void)
     }
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_RMA_INIT);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 
   fn_fail:
@@ -119,14 +118,17 @@ int MPIDI_RMA_init(void)
 
 void MPIDI_RMA_finalize(void)
 {
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_RMA_FINALIZE);
 
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPIDI_RMA_FINALIZE);
+    MPIR_FUNC_ENTER;
 
     MPL_free(global_rma_op_pool_start);
     MPL_free(global_rma_target_pool_start);
+    global_rma_op_pool_head = NULL;
+    global_rma_op_pool_start = NULL;
+    global_rma_target_pool_head = NULL;
+    global_rma_target_pool_start = NULL;
 
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_RMA_FINALIZE);
+    MPIR_FUNC_EXIT;
 }
 
 
@@ -135,10 +137,8 @@ int MPID_Win_free(MPIR_Win ** win_ptr)
     int mpi_errno = MPI_SUCCESS;
     int in_use;
     MPIR_Comm *comm_ptr;
-    MPIR_Errflag_t errflag = MPIR_ERR_NONE;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_WIN_FREE);
 
-    MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPID_WIN_FREE);
+    MPIR_FUNC_ENTER;
 
     MPIR_ERR_CHKANDJUMP(((*win_ptr)->states.access_state != MPIDI_RMA_NONE &&
                          (*win_ptr)->states.access_state != MPIDI_RMA_FENCE_ISSUED &&
@@ -164,7 +164,7 @@ int MPID_Win_free(MPIR_Win ** win_ptr)
         MPIR_ERR_CHECK(mpi_errno);
     }
 
-    mpi_errno = MPIR_Barrier((*win_ptr)->comm_ptr, &errflag);
+    mpi_errno = MPIR_Barrier((*win_ptr)->comm_ptr, MPIR_ERR_NONE);
     MPIR_ERR_CHECK(mpi_errno);
 
     /* Free window resources in lower layer. */
@@ -183,16 +183,9 @@ int MPID_Win_free(MPIR_Win ** win_ptr)
         MPIR_ERR_CHECK(mpi_errno);
     }
 
-#if defined (CHANNEL_MRAIL)
-    if ((*win_ptr)->fall_back != 1) {
-        MPIDI_CH3I_RDMA_win_free(win_ptr);
-    }
-#endif
-
     comm_ptr = (*win_ptr)->comm_ptr;
     mpi_errno = MPIR_Comm_free_impl(comm_ptr);
     MPIR_ERR_CHECK(mpi_errno);
-    (*win_ptr)->comm_ptr = NULL;
 
     MPL_free((*win_ptr)->basic_info_table);
     MPL_free((*win_ptr)->op_pool_start);
@@ -210,14 +203,18 @@ int MPID_Win_free(MPIR_Win ** win_ptr)
         }
     }
 
+    {
+        int thr_err;
+        MPID_Thread_mutex_destroy(&(*win_ptr)->mutex, &thr_err);
+        MPIR_Assert(thr_err == 0);
+    }
     MPIR_Object_release_ref(*win_ptr, &in_use);
     /* MPI windows don't have reference count semantics, so this should always be true */
     MPIR_Assert(!in_use);
     MPIR_Handle_obj_free(&MPIR_Win_mem, *win_ptr);
 
   fn_exit:
-    MVP_DEC_NUM_UNEXP_RECV();
-    MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPID_WIN_FREE);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 
   fn_fail:

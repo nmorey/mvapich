@@ -1,0 +1,41 @@
+/*D
+   MPI_Get_processor_name - Gets the name of the processor
+
+Synopsis:
+.vb
+int MPI_Get_processor_name(char *name, int *resultlen)
+.ve
+
+Output Parameters:
++ name - A unique specifier for the actual (as opposed to virtual) node. (string)
+- resultlen - Length (in printable characters) of the result returned in name (integer)
+
+Notes:
+The name returned should identify a particular piece of hardware;
+the exact format is implementation defined.  This name may or may not
+be the same as might be returned by 'gethostname', 'uname', or 'sysinfo'.
+
+.N ThreadSafe
+
+.N Fortran
+
+ In Fortran, the character argument should be declared as a character string
+ of 'MPI_MAX_PROCESSOR_NAME' rather than an array of dimension
+ 'MPI_MAX_PROCESSOR_NAME'.  That is,
+.vb
+   character*(MPI_MAX_PROCESSOR_NAME) name
+.ve
+ rather than
+.vb
+   character name(MPI_MAX_PROCESSOR_NAME)
+.ve
+
+ The sizes of MPI strings in Fortran are one less than the sizes of that string in C/C++ because the C/C++ versions provide room for the trailing null character required by C/C++. For example, MPI_MAX_ERROR_STRING is mpif.h is one smaller than the same value in mpi.h. See the MPI standard, sections 2.6.2 and 4.12.9.
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_OTHER
+
+D*/
+

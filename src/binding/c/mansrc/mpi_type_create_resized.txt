@@ -1,0 +1,33 @@
+/*D
+   MPI_Type_create_resized - Create a datatype with a new lower bound and extent from an existing datatype
+
+Synopsis:
+.vb
+int MPI_Type_create_resized(MPI_Datatype oldtype, MPI_Aint lb, MPI_Aint extent,
+                            MPI_Datatype *newtype)
+.ve
+.vb
+int MPI_Type_create_resized_c(MPI_Datatype oldtype, MPI_Count lb,
+                              MPI_Count extent, MPI_Datatype *newtype)
+.ve
+
+Input Parameters:
++ oldtype - input datatype (handle)
+. lb - new lower bound of datatype (integer)
+- extent - new extent of datatype (integer)
+
+Output Parameters:
+. newtype - output datatype (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

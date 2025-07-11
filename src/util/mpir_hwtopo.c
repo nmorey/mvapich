@@ -4,6 +4,7 @@
  */
 
 #include "mpiimpl.h"
+#include <strings.h>    /* for strcasecmp */
 
 #ifdef HAVE_HWLOC
 #include "hwloc.h"
@@ -105,6 +106,9 @@ static hwloc_obj_type_t get_hwloc_obj_type(MPIR_hwtopo_type_e type)
         case MPIR_HWTOPO_TYPE__CPU:
             hwloc_obj_type = HWLOC_OBJ_PACKAGE;
             break;
+        case MPIR_HWTOPO_TYPE__GROUP:
+            hwloc_obj_type = HWLOC_OBJ_GROUP;
+            break;
         case MPIR_HWTOPO_TYPE__CORE:
             hwloc_obj_type = HWLOC_OBJ_CORE;
             break;
@@ -134,7 +138,7 @@ static hwloc_obj_type_t get_hwloc_obj_type(MPIR_hwtopo_type_e type)
             hwloc_obj_type = HWLOC_OBJ_PCI_DEVICE;
             break;
         default:
-            hwloc_obj_type = -1;
+            hwloc_obj_type = (hwloc_obj_type_t) (-1);
     }
 
     return hwloc_obj_type;
@@ -198,14 +202,21 @@ int MPII_hwtopo_init(void)
 
 #ifdef HAVE_HWLOC
     bindset = hwloc_bitmap_alloc();
-    hwloc_topology_init(&hwloc_topology);
-    hwloc_topology_set_io_types_filter(hwloc_topology, HWLOC_TYPE_FILTER_KEEP_ALL);
-    if (!hwloc_topology_load(hwloc_topology))
-        bindset_is_valid =
-            !hwloc_get_proc_cpubind(hwloc_topology, getpid(), bindset, HWLOC_CPUBIND_PROCESS);
+
+    MPIR_pmi_topology_t topo;
+    mpi_errno = MPIR_pmi_load_hwloc_topology(&topo);
+    MPIR_ERR_CHECK(mpi_errno);
+
+    hwloc_topology = (hwloc_topology_t) topo.topology;
+
+    bindset_is_valid =
+        !hwloc_get_proc_cpubind(hwloc_topology, getpid(), bindset, HWLOC_CPUBIND_PROCESS);
 #endif
 
+  fn_exit:
     return mpi_errno;
+  fn_fail:
+    goto fn_exit;
 }
 
 int MPII_hwtopo_finalize(void)
@@ -213,7 +224,6 @@ int MPII_hwtopo_finalize(void)
     int mpi_errno = MPI_SUCCESS;
 
 #ifdef HAVE_HWLOC
-    hwloc_topology_destroy(hwloc_topology);
     hwloc_bitmap_free(bindset);
 #endif
 
@@ -306,6 +316,7 @@ MPIR_hwtopo_type_e MPIR_hwtopo_get_type_id(const char *name)
         {"machine", MPIR_HWTOPO_TYPE__NODE},
         {"socket", MPIR_HWTOPO_TYPE__SOCKET},
         {"package", MPIR_HWTOPO_TYPE__PACKAGE},
+        {"group", MPIR_HWTOPO_TYPE__GROUP},
         {"cpu", MPIR_HWTOPO_TYPE__CPU},
         {"core", MPIR_HWTOPO_TYPE__CORE},
         {"hwthread", MPIR_HWTOPO_TYPE__HWTHREAD},
@@ -326,13 +337,14 @@ MPIR_hwtopo_type_e MPIR_hwtopo_get_type_id(const char *name)
         {"l5ucache", MPIR_HWTOPO_TYPE__L5CACHE},
         {"l5cache", MPIR_HWTOPO_TYPE__L5CACHE},
         {"numanode", MPIR_HWTOPO_TYPE__DDR},
+        {"numa", MPIR_HWTOPO_TYPE__DDR},
         {"ddr", MPIR_HWTOPO_TYPE__DDR},
         {"hbm", MPIR_HWTOPO_TYPE__HBM},
         {NULL, MPIR_HWTOPO_TYPE__MAX}
     };
 
     for (int i = 0; node_info[i].val; i++) {
-        if (!strcmp(node_info[i].val, name)) {
+        if (!strcasecmp(node_info[i].val, name)) {
             query_type = node_info[i].type;
             break;
         }
@@ -458,6 +470,24 @@ MPIR_hwtopo_gid_t MPIR_hwtopo_get_obj_by_name(const char *name)
             hwtopo_class_e class = get_type_class(non_io_ancestor->type);
             gid = HWTOPO_GET_GID(class, non_io_ancestor->depth, non_io_ancestor->logical_index);
         }
+    } else if (!strcmp(name, "bindset")) {
+        char buf[100];          /* covers up to 800 PUs */
+        memset(buf, 0, 100);
+        int num_pus = hwloc_get_nbobjs_by_type(hwloc_topology, HWLOC_OBJ_PU);
+        int n = MPL_MIN(8 * 100, num_pus);
+        int j = 0;
+        int k = 0;
+        for (int i = 0; i < n; i++) {
+            if (hwloc_bitmap_isset(bindset, i)) {
+                buf[j] |= (1 << k);
+            }
+            k++;
+            if (k >= 8) {
+                j++;
+                k = 0;
+            }
+        }
+        HASH_VALUE(buf, j, gid);
     } else
 #endif
     {
@@ -497,7 +527,7 @@ int MPIR_hwtopo_mem_bind(void *baseaddr, size_t len, MPIR_hwtopo_gid_t gid)
     hwloc_bitmap_or(bitmap, bitmap, hwloc_obj->nodeset);
 
     if (hwloc_obj->type == HWLOC_OBJ_NUMANODE) {
-        flags |= HWLOC_MEMBIND_BYNODESET;
+        flags = (hwloc_membind_flags_t) ((int) flags | (int) HWLOC_MEMBIND_BYNODESET);
     } else {
 #ifdef HAVE_ERROR_CHECKING
         ret =
@@ -531,4 +561,193 @@ uint64_t MPIR_hwtopo_get_node_mem(void)
 #endif
 
     return size;
+}
+
+#ifdef HAVE_HWLOC
+static hwloc_obj_t get_first_non_io_obj_by_pci(int domain, int bus, int dev, int func)
+{
+    hwloc_obj_t io_device = hwloc_get_pcidev_by_busid(hwloc_topology, domain, bus, dev, func);
+    MPIR_Assert(io_device);
+    hwloc_obj_t first_non_io = hwloc_get_non_io_ancestor_obj(hwloc_topology, io_device);
+    MPIR_Assert(first_non_io);
+    return first_non_io;
+}
+
+/* Determine if PCI device is "close" to this process by checking if this process's affinity is
+ * included in PCI device's affinity or if PCI device's affinity is included in this process's
+ * affinity */
+static bool pci_device_is_close(hwloc_obj_t device)
+{
+    return (hwloc_bitmap_isincluded(bindset, device->cpuset) ||
+            hwloc_bitmap_isincluded(device->cpuset, bindset));
+}
+#endif
+
+bool MPIR_hwtopo_is_dev_close_by_name(const char *name)
+{
+    bool is_close = false;
+    if (!bindset_is_valid)
+        return is_close;
+#ifdef HAVE_HWLOC
+    MPIR_hwtopo_gid_t gid = MPIR_hwtopo_get_obj_by_name(name);
+    int hwloc_obj_index = HWTOPO_GET_INDEX(gid);
+    int hwloc_obj_depth = HWTOPO_GET_DEPTH(gid);
+    hwloc_obj_t obj = hwloc_get_obj_by_depth(hwloc_topology, hwloc_obj_depth, hwloc_obj_index);
+    if (obj != NULL) {
+        is_close = pci_device_is_close(obj);
+    } else {
+        return false;
+    }
+#endif
+    return is_close;
+}
+
+bool MPIR_hwtopo_is_dev_close_by_pci(int domain, int bus, int dev, int func)
+{
+    bool is_close = false;
+    if (!bindset_is_valid)
+        return is_close;
+#ifdef HAVE_HWLOC
+    is_close = pci_device_is_close(get_first_non_io_obj_by_pci(domain, bus, dev, func));
+#endif
+    return is_close;
+}
+
+MPIR_hwtopo_gid_t MPIR_hwtopo_get_dev_parent_by_pci(int domain, int bus, int dev, int func)
+{
+    MPIR_hwtopo_gid_t gid = MPIR_HWTOPO_GID_ROOT;
+    if (!bindset_is_valid)
+        return gid;
+#ifdef HAVE_HWLOC
+    hwloc_obj_t first_non_io = get_first_non_io_obj_by_pci(domain, bus, dev, func);
+    hwtopo_class_e class = get_type_class(first_non_io->type);
+    gid = HWTOPO_GET_GID(class, first_non_io->depth, first_non_io->logical_index);
+#endif
+    return gid;
+}
+
+int MPIR_hwtopo_get_num_numa_nodes(void)
+{
+    int num_numa_nodes = 0;
+
+#ifdef HAVE_HWLOC
+    MPIR_hwtopo_gid_t gid = MPIR_hwtopo_get_obj_by_name("node");
+    hwloc_obj_t obj =
+        hwloc_get_obj_by_depth(hwloc_topology, HWTOPO_GET_DEPTH(gid), HWTOPO_GET_INDEX(gid));
+
+    hwloc_obj_t tmp = NULL;
+
+    while ((tmp = hwloc_get_next_obj_by_type(hwloc_topology, HWLOC_OBJ_NUMANODE, tmp)) != NULL) {
+        if (hwloc_bitmap_isset(obj->nodeset, tmp->os_index)) {
+            num_numa_nodes++;
+        }
+    }
+#endif
+    return num_numa_nodes;
+}
+
+MPIR_hwtopo_gid_t MPIR_hwtopo_get_first_pu_group(void)
+{
+    MPIR_hwtopo_gid_t gid = MPIR_HWTOPO_GID_ROOT;
+#ifdef HAVE_HWLOC
+    hwloc_cpuset_t cpuset = hwloc_bitmap_alloc();
+    hwloc_get_proc_cpubind(hwloc_topology, getpid(), cpuset, HWLOC_CPUBIND_PROCESS);
+
+    hwloc_obj_t obj = hwloc_get_pu_obj_by_os_index(hwloc_topology, hwloc_bitmap_first(cpuset));
+    gid = HWTOPO_GET_GID(get_type_class(obj->type), obj->depth, obj->logical_index);
+
+    /* Traverse up the PU object until a group object is reached */
+    while (obj && obj->type != HWLOC_OBJ_GROUP && obj->parent)
+        obj = obj->parent;
+    gid = HWTOPO_GET_GID(get_type_class(obj->type), obj->depth, obj->logical_index);
+#endif
+    return gid;
+}
+
+MPIR_hwtopo_gid_t MPIR_hwtopo_get_parent_socket(MPIR_hwtopo_gid_t gid)
+{
+    MPIR_hwtopo_gid_t parent_gid = MPIR_HWTOPO_GID_ROOT;
+#ifdef HAVE_HWLOC
+    hwloc_obj_t obj =
+        hwloc_get_obj_by_depth(hwloc_topology, HWTOPO_GET_DEPTH(gid), HWTOPO_GET_INDEX(gid));
+
+    while (obj && obj->parent && obj->type != HWLOC_OBJ_PACKAGE)
+        obj = obj->parent;
+
+    if (obj->type == HWLOC_OBJ_PACKAGE)
+        parent_gid = HWTOPO_GET_GID(get_type_class(obj->type), obj->depth, obj->logical_index);
+#endif
+    return parent_gid;
+}
+
+#ifdef HAVE_HWLOC
+static MPIR_hwtopo_gid_t obj_to_gid(hwloc_obj_t obj)
+{
+    hwtopo_class_e class = get_type_class(obj->type);
+    return HWTOPO_GET_GID(class, obj->depth, obj->logical_index);
+}
+
+static int get_number_of_nics_below_me(hwloc_obj_t obj)
+{
+    int num = 0;
+
+    /* Found a network device, increment by 1 */
+    if (obj->attr && obj->attr->osdev.type == HWLOC_OBJ_OSDEV_NETWORK)
+        num++;
+
+    /* Find network devices among all my 'regular' children */
+    for (int i = 0; i < obj->arity; i++) {
+        num += get_number_of_nics_below_me(obj->children[i]);
+    }
+
+    /* Find network devices among all my io children */
+    hwloc_obj_t io_child = obj->io_first_child;
+    while (io_child) {
+        num += get_number_of_nics_below_me(io_child);
+        io_child = io_child->next_sibling;
+    }
+    return num;
+}
+#endif
+
+int MPIR_hwtopo_get_pci_network_lid(int domain, int bus, int dev, int func)
+{
+    int myIndex = 0;
+#ifdef HAVE_HWLOC
+    hwloc_obj_t my_io_device = hwloc_get_pcidev_by_busid(hwloc_topology, domain, bus, dev, func);
+    MPIR_Assert(my_io_device);
+    hwloc_obj_t my_first_non_io = hwloc_get_non_io_ancestor_obj(hwloc_topology, my_io_device);
+    MPIR_Assert(my_first_non_io);
+
+    MPIR_hwtopo_gid_t my_parent_gid = obj_to_gid(my_first_non_io);
+    hwloc_obj_t io_device = my_io_device;
+
+    /* Determine the number of network devices before me in my first non io ancestor. This
+     * can be used to determine my local network nic, which is used for nic mapping.
+     * First, look for network devices among my previous siblings. */
+    while (io_device->prev_sibling) {
+        MPIR_hwtopo_gid_t prev_sibling_parent_gid =
+            obj_to_gid(hwloc_get_non_io_ancestor_obj(hwloc_topology, io_device->prev_sibling));
+
+        if (my_parent_gid != prev_sibling_parent_gid)
+            break;
+
+        myIndex += get_number_of_nics_below_me(io_device->prev_sibling);
+        io_device = io_device->prev_sibling;
+    }
+
+    /* Next, look for network devices among my previous cousins */
+    io_device = my_io_device;
+    while (io_device->prev_cousin) {
+        MPIR_hwtopo_gid_t prev_cousin_parent_gid =
+            obj_to_gid(hwloc_get_non_io_ancestor_obj(hwloc_topology, io_device->prev_cousin));
+
+        if (my_parent_gid != prev_cousin_parent_gid)
+            break;
+
+        myIndex += get_number_of_nics_below_me(io_device->prev_cousin);
+        io_device = io_device->prev_cousin;
+    }
+#endif
+    return myIndex;
 }

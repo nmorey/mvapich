@@ -1,0 +1,15 @@
+/*D
+   MPI_Op_f2c - converts Fortran INTEGER to MPI_Op
+
+Synopsis:
+.vb
+MPI_Op MPI_Op_f2c(MPI_Fint op)
+.ve
+
+Input Parameters:
+. op - op (None)
+
+.N ThreadSafe
+
+D*/
+

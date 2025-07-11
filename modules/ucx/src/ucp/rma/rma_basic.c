@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2001-2018.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2018. ALL RIGHTS RESERVED.
 * Copyright (c) UT-Battelle, LLC. 2015. ALL RIGHTS RESERVED.
 * Copyright (C) Los Alamos National Security, LLC. 2018. ALL RIGHTS RESERVED.
 *
@@ -28,26 +28,24 @@ static ucs_status_t ucp_rma_basic_progress_put(uct_pending_req_t *self)
     ucs_assert(rkey->cache.ep_cfg_index == ep->cfg_index);
     ucs_assert(rkey->cache.rma_lane == lane);
 
-    if ((req->send.length <= rma_config->max_put_short) ||
+    if (((ssize_t)req->send.length <= rma_config->max_put_short) ||
         (req->send.length <= ucp_ep_config(ep)->bcopy_thresh))
     {
-        packed_len = ucs_min(req->send.length, rma_config->max_put_short);
-        status = UCS_PROFILE_CALL(uct_ep_put_short,
-                                  ep->uct_eps[lane],
-                                  req->send.buffer,
-                                  packed_len,
-                                  req->send.rma.remote_addr,
-                                  rkey->cache.rma_rkey);
+        packed_len = ucs_min((ssize_t)req->send.length, rma_config->max_put_short);
+        status     = UCS_PROFILE_CALL(uct_ep_put_short,
+                                      ucp_ep_get_fast_lane(ep, lane),
+                                      req->send.buffer, packed_len,
+                                      req->send.rma.remote_addr,
+                                      rkey->cache.rma_rkey);
     } else if (ucs_likely(req->send.length < rma_config->put_zcopy_thresh)) {
         ucp_memcpy_pack_context_t pack_ctx;
         pack_ctx.src    = req->send.buffer;
         pack_ctx.length = ucs_min(req->send.length, rma_config->max_put_bcopy);
-        packed_len = UCS_PROFILE_CALL(uct_ep_put_bcopy,
-                                      ep->uct_eps[lane],
-                                      ucp_memcpy_pack,
-                                      &pack_ctx,
-                                      req->send.rma.remote_addr,
-                                      rkey->cache.rma_rkey);
+        packed_len      = UCS_PROFILE_CALL(uct_ep_put_bcopy,
+                                           ucp_ep_get_fast_lane(ep, lane),
+                                           ucp_memcpy_pack_cb, &pack_ctx,
+                                           req->send.rma.remote_addr,
+                                           rkey->cache.rma_rkey);
         status = (packed_len > 0) ? UCS_OK : (ucs_status_t)packed_len;
     } else {
         uct_iov_t iov;
@@ -61,16 +59,14 @@ static ucs_status_t ucp_rma_basic_progress_put(uct_pending_req_t *self)
         iov.memh   = req->send.state.dt.dt.contig.memh[0];
 
         status = UCS_PROFILE_CALL(uct_ep_put_zcopy,
-                                  ep->uct_eps[lane],
-                                  &iov, 1,
+                                  ucp_ep_get_fast_lane(ep, lane), &iov, 1,
                                   req->send.rma.remote_addr,
                                   rkey->cache.rma_rkey,
                                   &req->send.state.uct_comp);
-        ucp_request_send_state_advance(req, NULL, UCP_REQUEST_SEND_PROTO_RMA,
-                                       status);
     }
 
-    return ucp_rma_request_advance(req, packed_len, status);
+    return ucp_rma_request_advance(req, packed_len, status,
+                                   UCS_PTR_MAP_KEY_INVALID);
 }
 
 static ucs_status_t ucp_rma_basic_progress_get(uct_pending_req_t *self)
@@ -86,16 +82,15 @@ static ucs_status_t ucp_rma_basic_progress_get(uct_pending_req_t *self)
     ucs_assert(rkey->cache.ep_cfg_index == ep->cfg_index);
     ucs_assert(rkey->cache.rma_lane == lane);
 
-    if (ucs_likely(req->send.length < rma_config->get_zcopy_thresh)) {
+    if (ucs_likely((ssize_t)req->send.length < rma_config->get_zcopy_thresh)) {
         frag_length = ucs_min(rma_config->max_get_bcopy, req->send.length);
-        status = UCS_PROFILE_CALL(uct_ep_get_bcopy,
-                                  ep->uct_eps[lane],
-                                  (uct_unpack_callback_t)memcpy,
-                                  (void*)req->send.buffer,
-                                  frag_length,
-                                  req->send.rma.remote_addr,
-                                  rkey->cache.rma_rkey,
-                                  &req->send.state.uct_comp);
+        status      = UCS_PROFILE_CALL(uct_ep_get_bcopy,
+                                       ucp_ep_get_fast_lane(ep, lane),
+                                       (uct_unpack_callback_t)memcpy,
+                                       (void*)req->send.buffer, frag_length,
+                                       req->send.rma.remote_addr,
+                                       rkey->cache.rma_rkey,
+                                       &req->send.state.uct_comp);
     } else {
         uct_iov_t iov;
         frag_length = ucs_min(req->send.length, rma_config->max_get_zcopy);
@@ -105,19 +100,14 @@ static ucs_status_t ucp_rma_basic_progress_get(uct_pending_req_t *self)
         iov.memh    = req->send.state.dt.dt.contig.memh[0];
 
         status = UCS_PROFILE_CALL(uct_ep_get_zcopy,
-                                  ep->uct_eps[lane],
-                                  &iov, 1,
+                                  ucp_ep_get_fast_lane(ep, lane), &iov, 1,
                                   req->send.rma.remote_addr,
                                   rkey->cache.rma_rkey,
                                   &req->send.state.uct_comp);
     }
 
-    if (status == UCS_INPROGRESS) {
-        ucp_request_send_state_advance(req, 0, UCP_REQUEST_SEND_PROTO_RMA,
-                                       UCS_INPROGRESS);
-    }
-
-    return ucp_rma_request_advance(req, frag_length, status);
+    return ucp_rma_request_advance(req, frag_length, status,
+                                   UCS_PTR_MAP_KEY_INVALID);
 }
 
 ucp_rma_proto_t ucp_rma_basic_proto = {

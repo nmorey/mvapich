@@ -3,18 +3,6 @@
  *     See COPYRIGHT in top-level directory
  */
 
-/*
- * Copyright (c) 2001-2021, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- */
-
 #include "mpiimpl.h"
 
 /* MINLOC and MAXLOC structures */
@@ -50,12 +38,6 @@ typedef struct MPIR_longdoubleint_loctype {
 } MPIR_longdoubleint_loctype;
 #endif
 
-#ifdef __ibmxl__
-void real16_minloc(void *invec, void *inoutvec, int *Len);
-#else
-void real16_minloc_(void *invec, void *inoutvec, int *Len);
-#endif
-
 /* Note a subtlety in these two macros which avoids compiler warnings.
    The compiler complains about using == on floats, but the standard
    requires that we set loc to min of the locs if the two values are
@@ -87,9 +69,9 @@ void real16_minloc_(void *invec, void *inoutvec, int *Len);
     }                                                   \
     break
 
-void MPIR_MINLOC(void *invec, void *inoutvec, int *Len, MPI_Datatype * type)
+void MPIR_MINLOC(void *invec, void *inoutvec, MPI_Aint * Len, MPI_Datatype * type)
 {
-    int i, len = *Len;
+    MPI_Aint i, len = *Len;
 
 #ifdef HAVE_FORTRAN_BINDING
 #ifndef HAVE_NO_FORTRAN_MPI_TYPES_IN_C
@@ -123,16 +105,6 @@ void MPIR_MINLOC(void *invec, void *inoutvec, int *Len, MPI_Datatype * type)
             MPIR_MINLOC_F_CASE(MPIR_FC_REAL_CTYPE);
         case MPI_2DOUBLE_PRECISION:
             MPIR_MINLOC_F_CASE(MPIR_FC_DOUBLE_CTYPE);
-#ifndef __PGI
-        /* As of v20.1, PGI compilers only support real8 */
-        case MPI_REAL16:
-#ifdef __ibmxl__
-            real16_minloc(invec, inoutvec, &flen);
-#else
-            real16_minloc_(invec, inoutvec, &flen);
-#endif
-        break;
-#endif /*ifndef __PGI*/
 #endif
 #endif
         default:
@@ -165,11 +137,6 @@ int MPIR_MINLOC_check_dtype(MPI_Datatype type)
         case MPI_2INTEGER:
         case MPI_2REAL:
         case MPI_2DOUBLE_PRECISION:
-#ifndef __PGI
-        /* As of v20.1, PGI compilers only support real8 */
-    case MPI_REAL16:
-        break;
-#endif /*ifndef __PGI*/
 #endif
 #endif
             break;

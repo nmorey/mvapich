@@ -8,54 +8,134 @@
 
 #include "ch4_impl.h"
 #include "mpidimpl.h"
-#include "shm_control.h"
 #include "ipc_types.h"
-#include "ipc_mem.h"
+#include "../xpmem/xpmem_post.h"
+#include "../gpu/gpu_post.h"
 #include "ipc_p2p.h"
+
+/*
+=== BEGIN_MPI_T_CVAR_INFO_BLOCK ===
+cvars:
+    - name        : MPIR_CVAR_CH4_IPC_MAP_REPEAT_ADDR
+      category    : CH4
+      type        : boolean
+      default     : true
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        If an address is used more than once in the last ten send operations,
+        map it for IPC use even if it is below the IPC threshold.
+=== END_MPI_T_CVAR_INFO_BLOCK ===
+*/
+
+MPL_STATIC_INLINE_PREFIX bool MPIDI_IPCI_is_repeat_addr(void *addr)
+{
+    if (!MPIR_CVAR_CH4_IPC_MAP_REPEAT_ADDR) {
+        return false;
+    }
+
+    static void *repeat_addr[10] = { 0 };
+    static int addr_idx = 0;
+
+    for (int i = 0; i < 10; i++) {
+        if (addr == repeat_addr[i]) {
+            return true;
+        }
+    }
+
+    repeat_addr[addr_idx] = addr;
+    addr_idx = (addr_idx + 1) % 10;
+    return false;
+}
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_IPCI_try_lmt_isend(const void *buf, MPI_Aint count,
                                                       MPI_Datatype datatype, int rank, int tag,
-                                                      MPIR_Comm * comm, int context_offset,
+                                                      MPIR_Comm * comm, int attr,
                                                       MPIDI_av_entry_t * addr,
                                                       MPIR_Request ** request, bool * done)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_IPCI_TRY_LMT_ISEND);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_IPCI_TRY_LMT_ISEND);
+    MPIR_FUNC_ENTER;
 
-    MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(0).lock);
+    int context_offset = MPIR_PT2PT_ATTR_CONTEXT_OFFSET(attr);
+    int errflag = MPIR_PT2PT_ATTR_GET_ERRFLAG(attr);
+    bool syncflag = MPIR_PT2PT_ATTR_GET_SYNCFLAG(attr);
+    int vci_src, vci_dst;
+    /* note: MPIDI_POSIX_SEND_VSIS defined in posix_send.h */
+    MPIDI_POSIX_SEND_VSIS(vci_src, vci_dst);
 
-    bool dt_contig;
-    MPI_Aint true_lb;
-    uintptr_t data_sz;
-    MPIDI_Datatype_check_contig_size_lb(datatype, count, dt_contig, data_sz, true_lb);
+    MPIDI_POSIX_THREAD_CS_ENTER_VCI(vci_src);
 
-    void *vaddr = (char *) buf + true_lb;
+    bool do_ipc = false;
     MPIDI_IPCI_ipc_attr_t ipc_attr;
-    MPIR_GPU_query_pointer_attr(vaddr, &ipc_attr.gpu_attr);
+#ifdef MPIDI_CH4_SHM_ENABLE_GPU
+    if (!do_ipc) {
+        mpi_errno = MPIDI_GPU_get_ipc_attr(buf, count, datatype, rank, comm, &ipc_attr);
+        MPIR_ERR_CHECK(mpi_errno);
+        if (ipc_attr.ipc_type == MPIDI_IPCI_TYPE__SKIP) {
+            /* GPU IPC is not supported but it is still a device memory,
+             * we can't do shared memory IPC either, so skip to fn_exit. */
+            goto fn_exit;
+        }
+        if (ipc_attr.ipc_type != MPIDI_IPCI_TYPE__NONE) {
+            do_ipc = true;
+        }
+    }
+#endif
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+    if (!do_ipc) {
+        mpi_errno = MPIDI_XPMEM_get_ipc_attr(buf, count, datatype, &ipc_attr);
+        MPIR_ERR_CHECK(mpi_errno);
+        do_ipc = (ipc_attr.ipc_type != MPIDI_IPCI_TYPE__NONE);
+    }
+#endif
+#ifdef MPIDI_CH4_SHM_ENABLE_CMA
+    if (!do_ipc) {
+        mpi_errno = MPIDI_CMA_get_ipc_attr(buf, count, datatype, &ipc_attr);
+        MPIR_ERR_CHECK(mpi_errno);
+        do_ipc = (ipc_attr.ipc_type != MPIDI_IPCI_TYPE__NONE);
+    }
+#endif
 
-    if (ipc_attr.gpu_attr.type == MPL_GPU_POINTER_DEV) {
-        mpi_errno = MPIDI_GPU_get_ipc_attr(vaddr, rank, comm, &ipc_attr);
-        MPIR_ERR_CHECK(mpi_errno);
-    } else {
-        mpi_errno = MPIDI_XPMEM_get_ipc_attr(vaddr, data_sz, &ipc_attr);
-        MPIR_ERR_CHECK(mpi_errno);
+    if (!do_ipc) {
+        goto fn_exit;
     }
 
-    if (rank != comm->rank && ipc_attr.ipc_type != MPIDI_IPCI_TYPE__NONE &&
-        data_sz >= ipc_attr.threshold.send_lmt_sz) {
-        if (dt_contig) {
-            mpi_errno = MPIDI_IPCI_send_contig_lmt(buf, count, datatype, data_sz, rank, tag, comm,
-                                                   context_offset, addr, ipc_attr, request);
-            MPIR_ERR_CHECK(mpi_errno);
-            *done = true;
+    int dt_contig;
+    MPIR_Datatype_is_contig(datatype, &dt_contig);
+    if (!dt_contig) {
+        int flattened_sz;
+        void *flattened_dt;
+        MPIR_Datatype_get_flattened(datatype, &flattened_dt, &flattened_sz);
+        if (sizeof(MPIDI_IPC_rts_t) + flattened_sz > MPIDI_POSIX_am_hdr_max_sz()) {
+            do_ipc = false;
         }
-        /* TODO: add flattening datatype protocol for noncontig send. Different
-         * threshold may be required to tradeoff the flattening overhead.*/
+    }
+
+    /* BEGIN: MVAPICH gdrcopy check - use GDRCOPY for eager size msg */
+    if (do_ipc && ipc_attr.u.gpu.gpu_attr.type == MPL_GPU_POINTER_DEV) {
+        size_t data_sz;
+        MPIDI_Datatype_check_size(datatype, count, data_sz);
+        MPIR_Assert(data_sz > 0);
+        if (data_sz < MPIR_CVAR_CH4_IPC_GPU_P2P_THRESHOLD &&
+            data_sz < MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_CELL_SIZE) {
+            ipc_attr.ipc_type = MPIDI_IPCI_TYPE__SKIP;
+            goto fn_exit;
+        }
+    }
+    /* END: MVAPICH gdrcopy check */
+
+    if (do_ipc) {
+        mpi_errno = MPIDI_IPCI_send_lmt(buf, count, datatype,
+                                        rank, tag, comm, context_offset, addr, ipc_attr,
+                                        vci_src, vci_dst, request, syncflag, errflag);
+        MPIR_ERR_CHECK(mpi_errno);
+        *done = true;
     }
   fn_exit:
-    MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(0).lock);
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_IPCI_TRY_LMT_ISEND);
+    MPIDI_POSIX_THREAD_CS_EXIT_VCI(vci_src);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
   fn_fail:
     goto fn_exit;
@@ -63,26 +143,25 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPCI_try_lmt_isend(const void *buf, MPI_Aint 
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_mpi_isend(const void *buf, MPI_Aint count,
                                                  MPI_Datatype datatype, int rank, int tag,
-                                                 MPIR_Comm * comm, int context_offset,
+                                                 MPIR_Comm * comm, int attr,
                                                  MPIDI_av_entry_t * addr, MPIR_Request ** request)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_IPC_MPI_ISEND);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_IPC_MPI_ISEND);
+    MPIR_FUNC_ENTER;
 
     bool done = false;
     mpi_errno = MPIDI_IPCI_try_lmt_isend(buf, count, datatype, rank, tag, comm,
-                                         context_offset, addr, request, &done);
+                                         attr, addr, request, &done);
     MPIR_ERR_CHECK(mpi_errno);
 
     if (!done) {
         mpi_errno = MPIDI_POSIX_mpi_isend(buf, count, datatype, rank, tag, comm,
-                                          context_offset, addr, request);
+                                          attr, addr, request);
         MPIR_ERR_CHECK(mpi_errno);
     }
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_IPC_MPI_ISEND);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
   fn_fail:
     goto fn_exit;

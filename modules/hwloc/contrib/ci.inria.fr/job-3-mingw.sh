@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright © 2012-2020 Inria.  All rights reserved.
+# Copyright © 2012-2021 Inria.  All rights reserved.
 # See COPYING in top-level directory.
 #
 
@@ -22,7 +22,7 @@ if test "x$arch" = "x32"; then
     echo "MINGW_CHOST is $MINGW_CHOST instead of i686-w64-mingw32."
     exit 1
   fi
-  # for MS 'lib' program in dolib.c
+  # for MS 'lib' program
   export PATH=$PATH:$MSLIB32_PATH
 else if test "x$arch" = "x64"; then
   # check the mingw shell
@@ -30,7 +30,7 @@ else if test "x$arch" = "x64"; then
     echo "MINGW_CHOST is $MINGW_CHOST instead of x86_64-w64-mingw32."
     exit 1
   fi
-  # for MS 'lib' program in dolib.c
+  # for MS 'lib' program
   export PATH=$PATH:$MSLIB64_PATH
 else
   echo "Architecture parameter must be 32 or 64."
@@ -78,6 +78,7 @@ zip -r ../${winball}.zip ${winball}
 test -f ${winball}/lib/libhwloc.lib || false
 
 build/utils/lstopo/lstopo-no-graphics -v
+build/utils/lstopo/lstopo-no-graphics --windows-processor-groups
 build/utils/hwloc/hwloc-info --support
 
 cd ..

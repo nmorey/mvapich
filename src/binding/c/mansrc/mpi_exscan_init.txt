@@ -1,0 +1,44 @@
+/*D
+   MPI_Exscan_init - Creates a persistent request for exscan
+
+Synopsis:
+.vb
+int MPI_Exscan_init(const void *sendbuf, void *recvbuf, int count,
+                    MPI_Datatype datatype, MPI_Op op, MPI_Comm comm,
+                    MPI_Info info, MPI_Request *request)
+.ve
+.vb
+int MPI_Exscan_init_c(const void *sendbuf, void *recvbuf, MPI_Count count,
+                      MPI_Datatype datatype, MPI_Op op, MPI_Comm comm,
+                      MPI_Info info, MPI_Request *request)
+.ve
+
+Input Parameters:
++ sendbuf - starting address of send buffer (choice)
+. count - number of elements in input buffer (non-negative integer)
+. datatype - data type of elements of input buffer (handle)
+. op - operation (handle)
+. comm - intra-communicator (handle)
+- info - info argument (handle)
+
+Output Parameters:
++ recvbuf - starting address of receive buffer (choice)
+- request - communication request (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_BUFFER
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_INFO
+.N MPI_ERR_OP
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

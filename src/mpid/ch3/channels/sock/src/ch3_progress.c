@@ -1,25 +1,9 @@
 /*
- *  Copyright (C) by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
- */
-/*
- * Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- */
-/*
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
 
 #include "mpidi_ch3_impl.h"
-#include "upmi.h"
 #include "mpidu_sock.h"
 #include "utlist.h"
 
@@ -64,12 +48,11 @@ static int MPIDI_CH3i_Progress_test(void)
 {
     MPIDI_CH3I_Sock_event_t event;
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3I_PROGRESS_TEST);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_PROGRESS_TEST);
+    MPIR_FUNC_ENTER;
 
     int made_progress = 0;
-    mpi_errno = MPIR_Progress_hook_exec_all(&made_progress);
+    mpi_errno = MPIR_Progress_hook_exec_all(-1, &made_progress);
     MPIR_ERR_CHECK(mpi_errno);
 
     if (made_progress) {
@@ -116,7 +99,7 @@ static int MPIDI_CH3i_Progress_test(void)
     }
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_PROGRESS_TEST);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
   fn_fail:
     goto fn_exit;
@@ -129,9 +112,8 @@ static int MPIDI_CH3i_Progress_wait(MPID_Progress_state * progress_state)
 {
     MPIDI_CH3I_Sock_event_t event;
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3I_PROGRESS_WAIT);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_PROGRESS_WAIT);
+    MPIR_FUNC_ENTER;
 
     /*
      * MT: the following code will be needed if progress can occur between
@@ -155,7 +137,7 @@ static int MPIDI_CH3i_Progress_wait(MPID_Progress_state * progress_state)
     do {
         int made_progress = FALSE;
 
-        mpi_errno = MPIR_Progress_hook_exec_all(&made_progress);
+        mpi_errno = MPIR_Progress_hook_exec_all(-1, &made_progress);
         MPIR_ERR_CHECK(mpi_errno);
 
         if (made_progress) {
@@ -164,7 +146,7 @@ static int MPIDI_CH3i_Progress_wait(MPID_Progress_state * progress_state)
         }
 
         if (MPIR_IS_THREADED) {
-#if MPICH_IS_THREADED
+#ifdef MPICH_IS_THREADED
             if (MPIDI_CH3I_progress_blocked == TRUE) {
                 /*
                  * Another thread is already blocking in the progress engine.
@@ -215,7 +197,7 @@ static int MPIDI_CH3i_Progress_wait(MPID_Progress_state * progress_state)
      * that would need to be buffered.
      */
 
-#if MPICH_IS_THREADED
+#ifdef MPICH_IS_THREADED
     {
         /*
          * Awaken any threads which are waiting for the progress that just
@@ -231,7 +213,7 @@ static int MPIDI_CH3i_Progress_wait(MPID_Progress_state * progress_state)
      */
     progress_state->ch.completion_count = MPIDI_CH3I_progress_completion_count;
 
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_PROGRESS_WAIT);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
   fn_fail:
     goto fn_exit;
@@ -263,9 +245,8 @@ int MPIDI_CH3_Connection_terminate(MPIDI_VC_t * vc)
 int MPIDI_CH3I_Progress_init(void)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3I_PROGRESS_INIT);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_PROGRESS_INIT);
+    MPIR_FUNC_ENTER;
 
     MPIR_THREAD_CHECK_BEGIN;
     /* FIXME should be appropriately abstracted somehow */
@@ -294,7 +275,7 @@ int MPIDI_CH3I_Progress_init(void)
     MPIR_ERR_CHECK(mpi_errno);
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_PROGRESS_INIT);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
   fn_fail:
     goto fn_exit;
@@ -308,9 +289,8 @@ int MPIDI_CH3I_Progress_finalize(void)
     int mpi_errno;
     MPIDI_CH3I_Connection_t *conn = NULL;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3I_PROGRESS_FINALIZE);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_PROGRESS_FINALIZE);
+    MPIR_FUNC_ENTER;
 
     /* Shut down the listener */
     mpi_errno = MPIDU_CH3I_ShutdownListener();
@@ -350,7 +330,7 @@ int MPIDI_CH3I_Progress_finalize(void)
     MPIR_THREAD_CHECK_END;
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_PROGRESS_FINALIZE);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
   fn_fail:
     goto fn_exit;
@@ -376,9 +356,8 @@ int MPIDI_CH3_Get_business_card(int myRank, char *value, int length)
 static int MPIDI_CH3I_Progress_handle_sock_event(MPIDI_CH3I_Sock_event_t * event)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3I_PROGRESS_HANDLE_SOCK_EVENT);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_PROGRESS_HANDLE_SOCK_EVENT);
+    MPIR_FUNC_ENTER;
 
     MPL_DBG_MSG_D(MPIDI_CH3_DBG_OTHER, VERBOSE, "Socket event of type %d", event->op_type);
 
@@ -388,7 +367,7 @@ static int MPIDI_CH3I_Progress_handle_sock_event(MPIDI_CH3I_Sock_event_t * event
                 MPIDI_CH3I_Connection_t *conn = (MPIDI_CH3I_Connection_t *) event->user_ptr;
                 /* If we have a READ event on a discarded connection, we probably have
                  * an error on this connection, if the remote side is closed due to
-                 * MPI_Finalize. Since the connection is discareded (and therefore not needed)
+                 * MPI_Finalize. Since the connection is discarded (and therefore not needed)
                  * it can be closed and the error can be ignored */
                 if (conn->state == CONN_STATE_DISCARD) {
                     MPIDI_CH3_Sockconn_handle_close_event(conn);
@@ -611,7 +590,7 @@ static int MPIDI_CH3I_Progress_handle_sock_event(MPIDI_CH3I_Sock_event_t * event
     }
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_PROGRESS_HANDLE_SOCK_EVENT);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
   fn_fail:
     goto fn_exit;
@@ -680,10 +659,9 @@ static inline int connection_pop_sendq_req(MPIDI_CH3I_Connection_t * conn)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIDI_CH3I_VC *vcch = &conn->vc->ch;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_CONNECTION_POP_SENDQ_REQ);
 
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_CONNECTION_POP_SENDQ_REQ);
+    MPIR_FUNC_ENTER;
     /* post send of next request on the send queue */
 
     /* FIXME: Is dequeue/get next the operation we really want? */
@@ -699,7 +677,7 @@ static inline int connection_pop_sendq_req(MPIDI_CH3I_Connection_t * conn)
     }
 
   fn_fail:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_CONNECTION_POP_SENDQ_REQ);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 }
 
@@ -708,9 +686,8 @@ static inline int connection_pop_sendq_req(MPIDI_CH3I_Connection_t * conn)
 static inline int connection_post_recv_pkt(MPIDI_CH3I_Connection_t * conn)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_CONNECTION_POST_RECV_PKT);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_CONNECTION_POST_RECV_PKT);
+    MPIR_FUNC_ENTER;
 
     mpi_errno =
         MPIDI_CH3I_Sock_post_read(conn->sock, &conn->pkt, sizeof(conn->pkt), sizeof(conn->pkt),
@@ -719,7 +696,7 @@ static inline int connection_post_recv_pkt(MPIDI_CH3I_Connection_t * conn)
         MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**fail");
     }
 
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_CONNECTION_POST_RECV_PKT);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 }
 

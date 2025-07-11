@@ -40,7 +40,7 @@ int ADIOI_PVFS2_End_call(MPI_Comm comm, int keyval, void *attribute_val, void *e
 {
     int error_code;
     ADIOI_PVFS2_End(&error_code);
-    MPI_Keyval_free(&keyval);
+    MPI_Comm_free_keyval(&keyval);
     return error_code;
 }
 
@@ -57,7 +57,7 @@ void ADIOI_PVFS2_Init(int *error_code)
     }
 
     /* for consistency, we should disable the pvfs2 ncache.  If the
-     * environtment variable is already set, assume a  user knows it
+     * environment variable is already set, assume a  user knows it
      * won't be a problem */
     ncache_timeout = getenv("PVFS2_NCACHE_TIMEOUT");
     if (ncache_timeout == NULL)
@@ -75,10 +75,10 @@ void ADIOI_PVFS2_Init(int *error_code)
         return;
     }
 
-    MPI_Keyval_create(MPI_NULL_COPY_FN, ADIOI_PVFS2_End_call, &ADIOI_PVFS2_Initialized, (void *) 0);
+    MPI_Comm_create_keyval(MPI_NULL_COPY_FN, ADIOI_PVFS2_End_call, &ADIOI_PVFS2_Initialized, (void *) 0);
     /* just like romio does, we make a dummy attribute so we
      * get cleaned up */
-    MPI_Attr_put(MPI_COMM_SELF, ADIOI_PVFS2_Initialized, (void *) 0);
+    MPI_Comm_set_attr(MPI_COMM_SELF, ADIOI_PVFS2_Initialized, (void *) 0);
 }
 
 void ADIOI_PVFS2_makeattribs(PVFS_sys_attr * attribs)

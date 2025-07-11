@@ -1,7 +1,8 @@
 #
-# Copyright (C) Mellanox Technologies Ltd. 2001-2014.  ALL RIGHTS RESERVED.
+# Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2014. ALL RIGHTS RESERVED.
 # Copyright (c) UT-Battelle, LLC. 2017. ALL RIGHTS RESERVED.
 # Copyright (C) ARM Ltd. 2016-2020.  ALL RIGHTS RESERVED.
+# Copyright (C) NextSilicon Ltd. 2021.  ALL RIGHTS RESERVED.
 # See file LICENSE for terms.
 #
 
@@ -9,7 +10,7 @@
 #
 # Initialize CFLAGS
 #
-BASE_CFLAGS="-g -Wall -Werror"
+BASE_CFLAGS="-g -Wall"
 
 
 #
@@ -38,7 +39,7 @@ AC_DEFUN([CHECK_CXX_COMP],
 # Debug mode
 #
 AC_ARG_ENABLE(debug,
-        AC_HELP_STRING([--enable-debug], [Enable debug mode build]),
+        AS_HELP_STRING([--enable-debug], [Enable debug mode build]),
         [],
         [enable_debug=no])
 AS_IF([test "x$enable_debug" = xyes],
@@ -51,7 +52,7 @@ AS_IF([test "x$enable_debug" = xyes],
 # Optimization level
 #
 AC_ARG_ENABLE(compiler-opt,
-        AC_HELP_STRING([--enable-compiler-opt], [Set optimization level [0-3]]),
+        AS_HELP_STRING([--enable-compiler-opt], [Set optimization level [0-3]]),
         [],
         [enable_compiler_opt="none"])
 AS_IF([test "x$enable_compiler_opt" = "xyes"], [BASE_CFLAGS="-O3 $BASE_CFLAGS"],
@@ -90,7 +91,7 @@ AC_DEFUN([CHECK_SPECIFIC_ATTRIBUTE], [
         #
         # Try to compile using the C compiler
         #
-        AC_TRY_COMPILE([$3],[],
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[$3]],[[]])],
                        [ucx_cv_attribute_[$1]=1],
                        [ucx_cv_attribute_[$1]=0])
 	CFLAGS="$SAVE_CFLAGS"
@@ -105,7 +106,7 @@ AC_DEFUN([CHECK_SPECIFIC_ATTRIBUTE], [
 #  Enable/disable turning on machine-specific optimizations
 #
 AC_ARG_ENABLE(optimizations,
-              AC_HELP_STRING([--enable-optimizations],
+              AS_HELP_STRING([--enable-optimizations],
                              [Enable non-portable machine-specific CPU optimizations, default: NO]),
               [],
               [enable_optimizations=no])
@@ -120,7 +121,7 @@ AC_ARG_ENABLE(optimizations,
 AC_DEFUN([COMPILER_CPU_OPTIMIZATION],
 [
     AC_ARG_WITH([$1],
-                [AC_HELP_STRING([--with-$1], [Use $2 compiler option.])],
+                [AS_HELP_STRING([--with-$1], [Use $2 compiler option.])],
                 [],
                 [with_$1=$enable_optimizations])
    
@@ -205,7 +206,7 @@ AC_DEFUN([DETECT_UARCH],
 # CHECK_COMPILER_FLAG
 # Usage: CHECK_COMPILER_FLAG([name], [flag], [program], [if-true], [if-false])
 #
-# The macro checks if program may be compiled using specified flag
+# The macro checks if program may be compiled and linked using specified flag
 #
 AC_DEFUN([CHECK_COMPILER_FLAG],
 [
@@ -214,15 +215,15 @@ AC_DEFUN([CHECK_COMPILER_FLAG],
          SAVE_CXXFLAGS="$CFLAGS"
          CFLAGS="$BASE_CFLAGS $CFLAGS $2"
          CXXFLAGS="$BASE_CXXFLAGS $CXXFLAGS $2"
-         AC_COMPILE_IFELSE([$3],
-                           [AC_MSG_RESULT([yes])
-                            CFLAGS="$SAVE_CFLAGS"
-                            CXXFLAGS="$SAVE_CXXFLAGS"
-                            $4],
-                           [AC_MSG_RESULT([no])
-                            CFLAGS="$SAVE_CFLAGS"
-                            CXXFLAGS="$SAVE_CXXFLAGS"
-                            $5])
+         AC_LINK_IFELSE([$3],
+                        [AC_MSG_RESULT([yes])
+                         CFLAGS="$SAVE_CFLAGS"
+                         CXXFLAGS="$SAVE_CXXFLAGS"
+                         $4],
+                        [AC_MSG_RESULT([no])
+                         CFLAGS="$SAVE_CFLAGS"
+                         CXXFLAGS="$SAVE_CXXFLAGS"
+                         $5])
 ])
 
 
@@ -281,11 +282,9 @@ AC_DEFUN([CHECK_DEPRECATED_DECL_FLAG],
 # Force ICC treat command line warnings as errors.
 # This evaluation should be called prior to all other compiler flags evals
 #
-CHECK_COMPILER_FLAG([-diag-error 10006], [-diag-error 10006],
-                    [AC_LANG_SOURCE([[int main(int argc, char** argv){return 0;}]])],
-                    [BASE_CFLAGS="$BASE_CFLAGS -diag-error 10006"
-                     BASE_CXXFLAGS="$BASE_CXXFLAGS -diag-error 10006"],
-                    [])
+ADD_COMPILER_FLAGS_IF_SUPPORTED([[-diag-error 10006],
+                                 [-diag-error 10148]],
+                                [AC_LANG_SOURCE([[int main(int argc, char **argv){return 0;}]])])
 
 
 CHECK_DEPRECATED_DECL_FLAG([-diag-disable 1478], CFLAGS_NO_DEPRECATED) # icc
@@ -314,7 +313,7 @@ ADD_COMPILER_FLAG_IF_SUPPORTED([-diag-disable 269],
 # Set default datatype alignment to 16 bytes.
 # Some compilers (LLVM based, clang) expects allocation of datatypes by 32 bytes
 # to optimize operations memset/memcpy/etc using vectorized processor instructions
-# which requires aligment of memory buffer by 32 or higer bytes. Default malloc method
+# which requires alignment of memory buffer by 32 or higer bytes. Default malloc method
 # guarantee alignment for 16 bytes only. Force using compiler 16-bytes alignment
 # by default if option is supported.
 #
@@ -322,7 +321,7 @@ UCX_ALLOC_ALIGN=16
 ADD_COMPILER_FLAG_IF_SUPPORTED([-fmax-type-align=$UCX_ALLOC_ALIGN],
                                [-fmax-type-align=$UCX_ALLOC_ALIGN],
                                [AC_LANG_SOURCE([[int main(int argc, char** argv){return 0;}]])],
-                               [AC_DEFINE_UNQUOTED([UCX_ALLOC_ALIGN], $UCX_ALLOC_ALIGN, [Set aligment assumption for compiler])],
+                               [AC_DEFINE_UNQUOTED([UCX_ALLOC_ALIGN], $UCX_ALLOC_ALIGN, [Set alignment assumption for compiler])],
                                [])
 
 
@@ -467,13 +466,27 @@ AC_LANG_POP
 #
 # PGI specific switches
 #
+# --diag_suppress 1    - Suppress last line ends without a newline
+# --diag_suppress 68   - Suppress integer conversion resulted in a change of sign
+# --diag_suppress 111  - Suppress statement is unreachable
+# --diag_suppress 167  - Suppress int* incompatible with unsigned int*
 # --diag_suppress 181  - Suppress incorrect printf format for PGI18 compiler. TODO: remove it after compiler fix
+# --diag_suppress 188  - Suppress enumerated type mixed with another type
+# --diag_suppress 381  - Suppress extra ";" ignored
 # --diag_suppress 1215 - Suppress deprecated API warning for PGI18 compiler
 # --diag_suppress 1901 - Use of a const variable in a constant expression is nonstandard in C
+# --diag_suppress 1902 - Use of a const variable in a constant expression is nonstandard in C (same as 1901)
 ADD_COMPILER_FLAGS_IF_SUPPORTED([[--display_error_number],
+                                 [--diag_suppress 1],
+                                 [--diag_suppress 68],
+                                 [--diag_suppress 111],
+                                 [--diag_suppress 167],
                                  [--diag_suppress 181],
+                                 [--diag_suppress 188],
+                                 [--diag_suppress 381],
                                  [--diag_suppress 1215],
-                                 [--diag_suppress 1901]],
+                                 [--diag_suppress 1901],
+                                 [--diag_suppress 1902]],
                                 [AC_LANG_SOURCE([[int main(int argc, char **argv){return 0;}]])])
 
 
@@ -485,6 +498,13 @@ CHECK_COMPILER_FLAG([-pedantic], [-pedantic],
                     [CFLAGS_PEDANTIC="$CFLAGS_PEDANTIC -pedantic"],
                     [])
 
+#
+# Check if "-dynamic-list-data" flag is supported
+#
+CHECK_COMPILER_FLAG([-Wl,-dynamic-list-data], [-Wl,-dynamic-list-data],
+                    [AC_LANG_SOURCE([[int main(int argc, char** argv){return 0;}]])],
+                    [LDFLAGS_DYNAMIC_LIST_DATA="-Wl,-dynamic-list-data"],
+                    [LDFLAGS_DYNAMIC_LIST_DATA="-Wl,-export-dynamic"])
 
 #
 # Add strict compilation flags
@@ -515,13 +535,15 @@ ADD_COMPILER_FLAGS_IF_SUPPORTED([[-Wno-pointer-sign],
                                  [-Werror-implicit-function-declaration],
                                  [-Wno-format-zero-length],
                                  [-Wnested-externs],
-                                 [-Wshadow]],
+                                 [-Wshadow],
+                                 [-Werror=declaration-after-statement]],
                                 [AC_LANG_SOURCE([[int main(int argc, char **argv){return 0;}]])])
 
 
 AC_SUBST([BASE_CFLAGS])
 AC_SUBST([BASE_CXXFLAGS])
 AC_SUBST([CFLAGS_PEDANTIC])
+AC_SUBST([LDFLAGS_DYNAMIC_LIST_DATA])
 
 
 #

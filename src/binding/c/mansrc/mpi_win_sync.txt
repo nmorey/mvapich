@@ -1,0 +1,23 @@
+/*D
+   MPI_Win_sync - Synchronize public and private copies of the given window
+
+Synopsis:
+.vb
+int MPI_Win_sync(MPI_Win win)
+.ve
+
+Input Parameters:
+. win - window object (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_WIN
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Win_flush MPI_Win_flush_all MPI_Win_flush_local MPI_Win_flush_local_all
+D*/
+
