@@ -1,0 +1,22 @@
+/*D
+   MPI_Type_commit - Commits the datatype
+
+Synopsis:
+.vb
+int MPI_Type_commit(MPI_Datatype *datatype)
+.ve
+
+Input/Output Parameters:
+. datatype - datatype that is committed (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

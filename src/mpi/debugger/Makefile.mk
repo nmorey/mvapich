@@ -14,13 +14,13 @@ noinst_HEADERS += src/mpi/debugger/mpich_dll_defs.h
 noinst_LTLIBRARIES += src/mpi/debugger/libdbginitdummy.la
 src_mpi_debugger_libdbginitdummy_la_SOURCES = src/mpi/debugger/dbginit.c
 src_mpi_debugger_libdbginitdummy_la_CFLAGS = -g
-pmpi_convenience_libs += $(top_builddir)/src/mpi/debugger/libdbginitdummy.la
+pmpi_convenience_libs += src/mpi/debugger/libdbginitdummy.la
 
 lib_LTLIBRARIES += lib/libtvmpich.la
 # There is no static debugger interface library
 lib_libtvmpich_la_SOURCES = src/mpi/debugger/dll_mpich.c
-lib_libtvmpich_la_CFLAGS = -g $(LIBTVMPICH_CFLAGS)
-lib_libtvmpich_la_LDFLAGS = -g $(ABIVERSIONFLAGS) $(LIBTVMPICH_LDFLAGS)
+lib_libtvmpich_la_CFLAGS = -g
+lib_libtvmpich_la_LDFLAGS = -g $(ABIVERSIONFLAGS)
 
 # tvtest builds a main program that uses the routines in dll_mpich to 
 # access the internal structure of an MPICH program.  This is only a partial

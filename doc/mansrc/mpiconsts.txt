@@ -179,7 +179,7 @@ standard.
  The predefined operations are
 
 +I  MPI_MAX - return the maximum
-.  MPI_MIN - return the minumum
+.  MPI_MIN - return the minimum
 .  MPI_SUM - return the sum
 .  MPI_PROD - return the product
 .  MPI_LAND - return the logical and
@@ -271,6 +271,7 @@ datatypes for 'MPI_SUM', 'MPI_PROD', etc.  MPICH does allow these datatypes.
 . MPI_BOTTOM                     - May be used to indicate the bottom of the address space
 . MPI_IN_PLACE                   - Special location for buffer in some
   collective communication routines
+. MPI_BUFFER_AUTOMATIC           - Use automatic (unlimited) buffering in buffered send
 . MPI_VERSION                    - Numeric value of MPI version (e.g., 3)
 - MPI_SUBVERSION                 - Numeric value of MPI subversion (e.g., 1)
 
@@ -321,7 +322,7 @@ Window flavors:
 
 Window Memory Model:
 +I MPI_WIN_SEPARATE - Separate public and private copies of window memory
-- MPI_WIN_UNIFIED - The publich and private copies are identical (by which
+- MPI_WIN_UNIFIED - The public and private copies are identical (by which
  we mean that updates are eventually observed without additional RMA operations)
 
 Window Lock Types:
@@ -384,6 +385,7 @@ Special value for error codes array:
 .    MPI_T_BIND_MPI_WIN             - MPI windows for one-sided communication
 .    MPI_T_BIND_MPI_MESSAGE         - MPI message object
 .    MPI_T_BIND_MPI_INFO            - MPI info object
+.    MPI_T_BIND_MPI_SESSION         - MPI session object
 .    MPI_T_SCOPE_CONSTANT           -read-only, value is constant
 .    MPI_T_SCOPE_READONLY           - read-only, cannot be written, but can
  change
@@ -403,7 +405,7 @@ Special value for error codes array:
 .    MPI_T_PVAR_CLASS_PERCENTAGE    - percentage utilization of a resource
 .    MPI_T_PVAR_CLASS_HIGHWATERMARK - high watermark of a resource
 .    MPI_T_PVAR_CLASS_LOWWATERMARK  - low watermark of a resource
-.    MPI_T_PVAR_CLASS_COUNTER       - number of occurances of an event
+.    MPI_T_PVAR_CLASS_COUNTER       - number of occurrences of an event
 .    MPI_T_PVAR_CLASS_AGGREGATE     - aggregate value over an event (e.g.,
  sum of all memory allocations)
 .    MPI_T_PVAR_CLASS_TIMER         - aggretate time spent executing event
@@ -428,8 +430,10 @@ Special value for error codes array:
 . MPI_Copy_function - Function to copy attributes (see 'MPI_Keyval_create')
 . MPI_Delete_function - Function to delete attributes (see 'MPI_Keyval_create')
 . MPI_ERRORS_ARE_FATAL - Error handler that forces exit on error
-- MPI_ERRORS_RETURN - Error handler that returns error codes (as value of
+. MPI_ERRORS_RETURN - Error handler that returns error codes (as value of
  MPI routine in C and through last argument in Fortran)
+- MPI_ERRORS_ABORT - Error handler that forces exit on error (only aborts local
+ process if the error handler is invoked on a session)
 
  MPI Attribute Default Functions:
 +I MPI_COMM_NULL_COPY_FN - Predefined attribute copy function for communicators
@@ -519,6 +523,10 @@ Special value for error codes array:
 .   MPI_ERR_RMA_SHARED        - Memory cannot be shared (e.g., some process in
  the group of the specified communicator cannot expose shared memory)
 .   MPI_ERR_RMA_FLAVOR        - Passed window has the wrong flavor for the
+.   MPI_ERR_SESSION           - Invalid session argument
+.   MPI_ERR_PROC_ABORTED      - Trying to communicate with aborted processes
+.   MPI_ERR_VALUE_TOO_LARGE   - Value is too large to store
+.   MPI_ERR_ERRHANDLER        - Invalid error handler argument
  called function
 -   MPI_ERR_LASTCODE          - Last error code -- always at end
 
@@ -528,13 +536,12 @@ Error codes for MPI_T:
 . MPI_T_ERR_NOT_INITIALIZED   - Interface not initialized
 . MPI_T_ERR_CANNOT_INIT       - Interface not in the state to be initialized
 . MPI_T_ERR_INVALID_INDEX     - The index is invalid or has been deleted
-. MPI_T_ERR_INVALID_ITEM      - Item index queried is out of range
 . MPI_T_ERR_INVALID_HANDLE    - The handle is invalid
 . MPI_T_ERR_OUT_OF_HANDLES    - No more handles available
 . MPI_T_ERR_OUT_OF_SESSIONS   - No more sessions available
 . MPI_T_ERR_INVALID_SESSION   - Session argument is not valid
-. MPI_T_ERR_CVAR_SET_NOT_NOW  - Cvar can''t be set at this moment
-. MPI_T_ERR_CVAR_SET_NEVER    - Cvar can''t be set until end of execution
+. MPI_T_ERR_CVAR_SET_NOT_NOW  - Cvar cannot be set at this moment
+. MPI_T_ERR_CVAR_SET_NEVER    - Cvar cannot be set until end of execution
 . MPI_T_ERR_PVAR_NO_STARTSTOP - Pvar can''t be started or stopped
 . MPI_T_ERR_PVAR_NO_WRITE     - Pvar can''t be written or reset
 . MPI_T_ERR_PVAR_NO_ATOMIC    - Pvar can''t be R/W atomically

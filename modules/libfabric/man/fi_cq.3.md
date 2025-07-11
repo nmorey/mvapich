@@ -414,6 +414,7 @@ struct fi_cq_err_entry {
 	int      prov_errno;  /* provider error code */
 	void    *err_data;    /*  error data */
 	size_t   err_data_size; /* size of err_data */
+	fi_addr_t src_addr; /* error source address */
 };
 ```
 
@@ -447,6 +448,12 @@ Notable completion error codes are given below.
   passed directly into an fi_av_insert call to add the source address
   to the address vector.
 
+  For API versions 1.20 and later, if the EP is configured with
+  FI_AV_AUTH_KEY, src_addr will be set to the fi_addr_t authorization key
+  handle or a user-define authorization key ID corresponding to the
+  incoming data transfer. Otherwise, the value will be set to
+  FI_ADDR_NOTAVAIL.
+
 ## fi_cq_signal
 
 The fi_cq_signal call will unblock any thread waiting in fi_cq_sread
@@ -477,10 +484,12 @@ of these fields are the same for all CQ entry structure formats.
   set for all relevant completions.
 
 *len*
-: This len field only applies to completed receive operations (e.g. fi_recv,
-  fi_trecv, etc.).  It indicates the size of received _message_ data --
-  i.e. how many data bytes were placed into the associated receive buffer by
-  a corresponding fi_send/fi_tsend/et al call.  If an endpoint has
+: This len field applies to completed receive operations (e.g. fi_recv,
+  fi_trecv, etc.) and the completed write with remote cq data on the
+  responder side (e.g. fi_write, with FI_REMOTE_CQ_DATA flag).
+  It indicates the size of transferred _message_ data --
+  i.e. how many data bytes were placed into the associated receive/target buffer by
+  a corresponding fi_send/fi_tsend/fi_write et al call.  If an endpoint has
   been configured with the FI_MSG_PREFIX mode, the len also reflects the size
   of the prefix buffer.
 
@@ -545,6 +554,10 @@ of these fields are the same for all CQ entry structure formats.
   subsequent read call against the CQ.  Applications must serialize access
   to the CQ when processing errors to ensure that the buffer referenced by
   err_data does not change.
+
+*src_addr*
+: Used to return source addressed related information for error events. How
+  this field is used is error event specific.
 
 # COMPLETION FLAGS
 
@@ -987,25 +1000,33 @@ to report additional completions once the overrun occurs.
 
 # RETURN VALUES
 
-fi_cq_open / fi_cq_signal
-: Returns 0 on success.  On error, a negative value corresponding to
-  fabric errno is returned.
+## fi_cq_open / fi_cq_signal
+: Returns 0 on success.  On error, returns a negative fabric errno.
 
-fi_cq_read / fi_cq_readfrom / fi_cq_readerr
-fi_cq_sread / fi_cq_sreadfrom
-: On success, returns the number of completion events retrieved from
-  the completion queue.  On error, a negative value corresponding to
-  fabric errno is returned.  If no completions are available to
-  return from the CQ, -FI_EAGAIN will be returned.
+## fi_cq_read / fi_cq_readfrom
+: On success, returns the number of completions retrieved from
+  the completion queue.  On error, returns a negative fabric errno, with
+  these two errors explicitly identified:
+  If no completions are available to read from the CQ, returns -FI_EAGAIN.
+  If the topmost completion is for a failed transfer (an error entry),
+  returns -FI_EAVAIL.
 
-fi_cq_sread / fi_cq_sreadfrom
-: On success, returns the number of completion events retrieved from
-  the completion queue.  On error, a negative value corresponding to
-  fabric errno is returned.  If the timeout expires or the calling
-  thread is signaled and no data is available to be read from the
-  completion queue, -FI_EAGAIN is returned.
+## fi_cq_sread / fi_cq_sreadfrom
+: On success, returns the number of completions retrieved from
+  the completion queue.  On error, returns a negative fabric errno,
+  with these two errors explicitly identified:
+  If the timeout expires or the calling thread is signaled and no
+  data is available to be read from the completion queue, returns -FI_EAGAIN.
+  If the topmost completion is for a failed transfer (an error entry),
+  returns -FI_EAVAIL.
 
-fi_cq_strerror
+## fi_cq_readerr
+: On success, returns the positive value 1 (number of error entries returned).
+  On error, returns a negative fabric errno, with this error explicitly
+  identified:  If no error completions are available to read from the CQ,
+  returns -FI_EAGAIN.
+
+## fi_cq_strerror
 : Returns a character string interpretation of the provider specific
   error returned with a completion.
 

@@ -3,18 +3,6 @@
  *     See COPYRIGHT in top-level directory
  */
 
-/*
- * Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- */
-
 /* Types and interfaces in this file are internally used by MPIR_T itself.
  * Other modules should call higher level interfaces in mpit.h instead.
  */
@@ -30,13 +18,21 @@
 #include "uthash.h"
 #include "mpir_objects.h"
 
+/* MPI T should not use MPIR_ error routines. */
+#include "mpit_err.h"
+#include "mpit_mem.h"
+
 #ifdef HAVE_ERROR_CHECKING
 typedef enum {
     MPIR_T_OBJECT_INVALID = 0,
     MPIR_T_ENUM_HANDLE,
     MPIR_T_CVAR_HANDLE,
     MPIR_T_PVAR_HANDLE,
-    MPIR_T_PVAR_SESSION
+    MPIR_T_PVAR_SESSION,
+    MPIR_T_SOURCE,
+    MPIR_T_EVENT,
+    MPIR_T_EVENT_REG,
+    MPIR_T_EVENT_INSTANCE
 } MPIR_T_object_kind;
 #endif
 
@@ -62,6 +58,7 @@ typedef struct {
     UT_array *cvar_indices;
     UT_array *pvar_indices;
     UT_array *subcat_indices;
+    UT_array *event_indices;
     const char *desc;
 } cat_table_entry_t;
 
@@ -112,9 +109,9 @@ typedef struct cvar_table_entry_s {
 
     /* Properties of the cvar */
     MPI_T_enum enumtype;
-    MPIR_T_verbosity_t verbosity;
-    MPIR_T_bind_t bind;
-    MPIR_T_scope_t scope;
+    int verbosity;
+    int bind;
+    int scope;
 
     /* Default value */
     MPIR_T_cvar_value_t defaultval;
@@ -140,12 +137,12 @@ typedef struct MPIR_T_cvar_handle_s {
 
     /* Cached value from cvar_table_entry_t to avoid indirection */
     MPI_Datatype datatype;
-    MPIR_T_scope_t scope;
+    int scope;
 } MPIR_T_cvar_handle_t;
 
 void MPIR_T_CVAR_REGISTER_impl(MPI_Datatype dtype, const char *name, const void *addr, int count,
-                               MPIR_T_enum_t * etype, MPIR_T_verbosity_t verb, MPIR_T_bind_t bind,
-                               MPIR_T_scope_t scope, MPIR_T_cvar_get_addr_cb get_addr,
+                               MPIR_T_enum_t * etype, int verb, int bind,
+                               int scope, MPIR_T_cvar_get_addr_cb get_addr,
                                MPIR_T_cvar_get_count_cb get_count, MPIR_T_cvar_value_t defaultval,
                                const char *cat, const char *desc);
 
@@ -201,10 +198,10 @@ typedef struct {
     int count;
 
     /* Properties of the pvar */
-    MPIR_T_pvar_class_t varclass;
-    MPIR_T_verbosity_t verbosity;
+    int varclass;
+    int verbosity;
     MPIR_T_enum_t *enumtype;
-    MPIR_T_bind_t bind;
+    int bind;
 
     /* Basic flags of the pvar */
     int flags;
@@ -217,10 +214,6 @@ typedef struct {
 
     /* Description of the pvar */
     const char *desc;
-
-    //Indexes (used only if pvar is at sub communicator level)
-    int sub_comm_index;
-    int sub_comm_timer_index;
 } pvar_table_entry_t;
 
 /*
@@ -299,12 +292,12 @@ typedef struct MPIR_T_pvar_handle_s {
     MPI_Datatype datatype;
     int count;
     MPIR_T_pvar_get_value_cb *get_value;
-    MPIR_T_pvar_class_t varclass;
+    int varclass;
 
     /* Bytes of an element of datatype */
     int bytes;
 
-    /* Basic flags copied from pvar info + auxilary flags in pvar handle */
+    /* Basic flags copied from pvar info + auxiliary flags in pvar handle */
     int flags;
 
     /* Store info here in case we need other fields */
@@ -320,7 +313,7 @@ typedef struct MPIR_T_pvar_handle_s {
      *
      * For pvars of counter, timer or aggregate type, we cache their value at
      * the last start time in offset, their current value in current, and
-     * their accumlated value in accum. Generally, when such a pvar is running,
+     * their accumulated value in accum. Generally, when such a pvar is running,
      * reading the pvar should return
      *      accum[i] + current[i] - offset[i], 0 <= i < count - 1.
      * When the pvar is stopped, reading just returns accum.
@@ -358,10 +351,10 @@ typedef struct MPIR_T_pvar_session_s {
     MPIR_T_pvar_handle_t *hlist;
 } MPIR_T_pvar_session_t;
 
-extern void MPIR_T_PVAR_REGISTER_impl(MPIR_T_pvar_class_t varclass, MPI_Datatype dtype,
+extern void MPIR_T_PVAR_REGISTER_impl(int varclass, MPI_Datatype dtype,
                                       const char *name, void *addr, int count,
-                                      MPIR_T_enum_t * etype, MPIR_T_verbosity_t verb,
-                                      MPIR_T_bind_t bind, int flags,
+                                      MPIR_T_enum_t * etype, int verb,
+                                      int bind, int flags,
                                       MPIR_T_pvar_get_value_cb get_value,
                                       MPIR_T_pvar_get_count_cb get_count, const char *cat,
                                       const char *desc);
@@ -414,7 +407,7 @@ extern void MPIR_T_PVAR_REGISTER_impl(MPIR_T_pvar_class_t varclass, MPI_Datatype
         MPIR_Assert((etype_) != MPI_T_ENUM_NULL); \
         MPIR_Assert((addr_) != NULL || (get_value_) != NULL); \
         MPIR_T_PVAR_REGISTER_impl(MPI_T_PVAR_CLASS_STATE, dtype_, #name_, \
-            addr_, count_, etype_, verb_, bind_, flags_, get_value_, get_count_, cat_, desc_); \
+            addr_, count_, etype_, verb_, bind_, flags_, get_value_, cat_, desc_); \
     } while (0)
 
 
@@ -459,7 +452,7 @@ extern void MPIR_T_PVAR_REGISTER_impl(MPIR_T_pvar_class_t varclass, MPI_Datatype
 
 /* Registration for dynamic pvar w/ or w/o callback. Init is left to users */
 #define MPIR_T_PVAR_LEVEL_REGISTER_DYNAMIC_impl(dtype_, name_, \
-            addr_, count_, verb_, bind_, flags_, get_value_, get_count_, cat_, desc_) \
+            addr_, count_, verb_, bind_, flags_, get_value_, get_count, cat_, desc_) \
     do { \
         /* Allowable datatypes */ \
         MPIR_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
@@ -468,7 +461,7 @@ extern void MPIR_T_PVAR_REGISTER_impl(MPIR_T_pvar_class_t varclass, MPI_Datatype
         MPIR_Assert((addr_) != NULL || (get_value_) != NULL); \
         MPIR_T_PVAR_REGISTER_impl(MPI_T_PVAR_CLASS_LEVEL, dtype_, #name_, \
             addr_, count_, MPI_T_ENUM_NULL, verb_, bind_, flags_, get_value_, \
-            get_count_, cat_, desc_); \
+            get_count, cat_, desc_); \
     } while (0)
 
 
@@ -568,14 +561,6 @@ extern void MPIR_T_PVAR_REGISTER_impl(MPIR_T_pvar_class_t varclass, MPI_Datatype
 /* MPI_T_PVAR_CLASS_COUNTER (continuous or not)
  */
 
-typedef struct pvar_bucket
-{
-    int min;
-    int max;
-} pvar_bucket;
-
-#define counter_pvar_array_size 32
-
 /* Interfaces through pointer or name */
 #define MPIR_T_PVAR_COUNTER_INIT_VAR_impl(ptr_) \
     do { *(ptr_) = 0; } while (0)
@@ -591,121 +576,8 @@ typedef struct pvar_bucket
     MPIR_T_PVAR_COUNTER_GET_VAR_impl(&PVAR_COUNTER_##name_)
 #define MPIR_T_PVAR_COUNTER_INC_impl(name_, inc_) \
     MPIR_T_PVAR_COUNTER_INC_VAR_impl(&PVAR_COUNTER_##name_, inc_)
-
-#define QUOTE(name) #name
-
-#if ENABLE_PVAR_MVP
-#define MPIR_T_PVAR_COMM_COUNTER_INC_impl(name_, inc_, comm)                   \
-    do {                                                                       \
-        name2index_hash_t *hash_entry;                                         \
-        pvar_table_entry_t *pvar;                                              \
-        int pvar_idx;                                                          \
-        int seq = MPI_T_PVAR_CLASS_COUNTER - MPIR_T_PVAR_CLASS_FIRST;          \
-        char *name = QUOTE(name_);                                             \
-        HASH_FIND_STR(pvar_hashs[seq], name, hash_entry);                      \
-        if (hash_entry != NULL) {                                              \
-            pvar_idx = hash_entry->idx;                                        \
-            pvar = (pvar_table_entry_t *)utarray_eltptr(pvar_table, pvar_idx); \
-            if (comm->dev.ch.sub_comm_counters != NULL)                        \
-                comm->dev.ch.sub_comm_counters[pvar->sub_comm_index] += inc_;  \
-        }                                                                      \
-    } while (0)
-#else
-   #define MPIR_T_PVAR_COMM_COUNTER_INC_impl(name_, inc_,comm)
-#endif
-
-#if ENABLE_PVAR_MVP
-#define MPIR_T_PVAR_COMM_TIMER_START_impl(name_, comm)                         \
-    do {                                                                       \
-        if (MVP_ENABLE_PVAR_TIMER) {                                           \
-            name2index_hash_t *hash_entry;                                     \
-            pvar_table_entry_t *pvar;                                          \
-            int pvar_idx;                                                      \
-            int seq = MPI_T_PVAR_CLASS_TIMER - MPIR_T_PVAR_CLASS_FIRST;        \
-            int counter_seq =                                                  \
-                MPI_T_PVAR_CLASS_COUNTER - MPIR_T_PVAR_CLASS_FIRST;            \
-            char *name = QUOTE(name_);                                         \
-            HASH_FIND_STR(pvar_hashs[seq], name, hash_entry);                  \
-            if (hash_entry != NULL) {                                          \
-                pvar_idx = hash_entry->idx;                                    \
-                pvar = (pvar_table_entry_t *)utarray_eltptr(pvar_table,        \
-                                                            pvar_idx);         \
-                if (comm->dev.ch.sub_comm_timers != NULL) {                    \
-                    MPL_wtime(                                                 \
-                        &((comm->dev.ch                                        \
-                               .sub_comm_timers[pvar->sub_comm_timer_index])   \
-                              .curstart));                                     \
-                    (comm->dev.ch.sub_comm_timers[pvar->sub_comm_timer_index]) \
-                        .count++;                                              \
-                }                                                              \
-            }                                                                  \
-            HASH_FIND_STR(pvar_hashs[counter_seq], name, hash_entry);          \
-            if (hash_entry != NULL) {                                          \
-                pvar_idx = hash_entry->idx;                                    \
-                pvar = (pvar_table_entry_t *)utarray_eltptr(pvar_table,        \
-                                                            pvar_idx);         \
-                if (comm->dev.ch.sub_comm_counters != NULL) {                  \
-                    comm->dev.ch.sub_comm_counters[pvar->sub_comm_index] += 1; \
-                }                                                              \
-            }                                                                  \
-        }                                                                      \
-    } while (0)
-#define MPIR_T_PVAR_COMM_TIMER_END_impl(name_, comm)                           \
-    do {                                                                       \
-        if (MVP_ENABLE_PVAR_TIMER) {                                           \
-            name2index_hash_t *hash_entry;                                     \
-            pvar_table_entry_t *pvar;                                          \
-            int pvar_idx;                                                      \
-            int seq = MPI_T_PVAR_CLASS_TIMER - MPIR_T_PVAR_CLASS_FIRST;        \
-            char *name = QUOTE(name_);                                         \
-            HASH_FIND_STR(pvar_hashs[seq], name, hash_entry);                  \
-            if (hash_entry != NULL) {                                          \
-                pvar_idx = hash_entry->idx;                                    \
-                pvar = (pvar_table_entry_t *)utarray_eltptr(pvar_table,        \
-                                                            pvar_idx);         \
-                if (comm->dev.ch.sub_comm_timers != NULL &&                    \
-                    comm->dev.ch.sub_comm_counters != NULL) {                  \
-                    MPL_time_t tmp;                                            \
-                    MPL_wtime(&tmp);                                           \
-                    MPL_wtime_acc(                                             \
-                        &((comm->dev.ch                                        \
-                               .sub_comm_timers[pvar->sub_comm_timer_index])   \
-                              .curstart),                                      \
-                        &tmp,                                                  \
-                        &((comm->dev.ch                                        \
-                               .sub_comm_timers[pvar->sub_comm_timer_index])   \
-                              .total));                                        \
-                }                                                              \
-            }                                                                  \
-        }                                                                      \
-    } while (0)
-#else
-   #define MPIR_T_PVAR_COMM_TIMER_START_impl(name_,comm)
-   #define MPIR_T_PVAR_COMM_TIMER_END_impl(name_,comm)
-#endif
-
 #define MPIR_T_PVAR_COUNTER_ADDR_impl(name_) \
     (&PVAR_COUNTER_##name_)
-
-#define MPIR_T_PVAR_COUNTER_BUCKET_INC_impl(name_, count, datatype)\
-        do {\
-        int _pSize = 0;                                                                          \
-        MPIR_Datatype_get_size_macro(datatype, _pSize);                                          \
-        int msgsize = count * _pSize;                                                            \
-        if (msgsize < 0) {                                                                       \
-            msgsize = 0;                                                                         \
-        }                                                                                        \
-        int index = -1;                                                                          \
-        int i = 0;                                                                               \
-        while(i < num_counter_pvar_buckets && index == -1){                                      \
-           if((msgsize <= counter_pvar_buckets[i].max && msgsize >=counter_pvar_buckets[i].min)  \
-             || (counter_pvar_buckets[i].max == -1 && msgsize >= counter_pvar_buckets[i].min))   \
-           { index = i; }                                                                        \
-           i++;                                                                                  \
-        }                                                                                        \
-        if(index!=-1)                                                                            \
-        MPIR_T_PVAR_COUNTER_ARRAY_INC_impl(name_, index, 1);                                     \
-        }while(0) 
 
 /* Registration AND initialization to zero for static pvar.  */
 #define MPIR_T_PVAR_COUNTER_REGISTER_STATIC_impl(dtype_, name_, \
@@ -723,18 +595,6 @@ typedef struct pvar_bucket
             addr_, 1, MPI_T_ENUM_NULL, verb_, bind_, flags_, NULL, NULL, cat_, desc_); \
     } while (0)
 
-/*Wrapper to aid Registration for bucket pvars (uses the dynamic pvar interface in the end). */
-#define MPIR_T_PVAR_COUNTER_BUCKET_REGISTER_DYNAMIC_impl(dtype_, name_, count_, \
-            verb_, bind_, flags_, cat_, desc_) \
-   do {\
-    /*TODO : use MPI defined datatypes*/\
-    PVAR_COUNTER_##name_ = (unsigned long long *)MPL_malloc(count_ * sizeof(unsigned long long));\
-    int i = 0;\
-    for(i = 0; i < count_;i++) { PVAR_COUNTER_##name_[i]=0; }\
-    MPIR_T_PVAR_COUNTER_REGISTER_DYNAMIC_impl(dtype_, name_, \
-              PVAR_COUNTER_##name_, count_, verb_, bind_, flags_,NULL, NULL, cat_, desc_);\
-   }while(0)
-
 /* Registration for dynamic pvar w/ or w/o callback. Init is left to users */
 #define MPIR_T_PVAR_COUNTER_REGISTER_DYNAMIC_impl(dtype_, name_, \
             addr_, count_, verb_, bind_, flags_, get_value_, get_count_, cat_, desc_) \
@@ -747,11 +607,6 @@ typedef struct pvar_bucket
             addr_, count_, MPI_T_ENUM_NULL, verb_, bind_, flags_, get_value_, \
             get_count_, cat_, desc_); \
     } while (0)
-
-#define MPIR_T_PVAR_COUNTER_BUCKET_DYNAMIC_FREE(name_) \
-    if(PVAR_COUNTER_##name_) {                         \
-        MPL_free(PVAR_COUNTER_##name_);               \
-    }
 
 /* Interfaces through pointer or name */
 #define MPIR_T_PVAR_COUNTER_ARRAY_INIT_VAR_impl(ptr_, count_) \
@@ -768,9 +623,9 @@ typedef struct pvar_bucket
 
 #define MPIR_T_PVAR_COUNTER_ARRAY_INIT_impl(name_) \
     do { \
-        int count_; \
-        count_ = sizeof(PVAR_COUNTER_##name_)/sizeof(PVAR_COUNTER_##name_[0]); \
-        MPIR_T_PVAR_COUNTER_ARRAY_INIT_VAR_impl(PVAR_COUNTER_##name_, count_); \
+        int init_count_; \
+        init_count_ = sizeof(PVAR_COUNTER_##name_)/sizeof(PVAR_COUNTER_##name_[0]); \
+        MPIR_T_PVAR_COUNTER_ARRAY_INIT_VAR_impl(PVAR_COUNTER_##name_, init_count_); \
     } while (0)
 #define MPIR_T_PVAR_COUNTER_ARRAY_GET_impl(name_, idx_) \
     MPIR_T_PVAR_COUNTER_ARRAY_GET_VAR_impl(PVAR_COUNTER_##name_, idx_)
@@ -782,7 +637,7 @@ typedef struct pvar_bucket
             verb_, bind_, flags_, cat_, desc_) \
     do { \
         void *addr_; \
-        int count_;  \
+        int static_count_;  \
         /* Allowable datatypes only */ \
         MPIR_Assert((dtype_) == MPI_UNSIGNED || (dtype_) == MPI_UNSIGNED_LONG || \
                     (dtype_) == MPI_UNSIGNED_LONG_LONG); \
@@ -790,9 +645,9 @@ typedef struct pvar_bucket
         MPIR_Assert(sizeof(PVAR_COUNTER_##name_[0]) == MPIR_Datatype_get_basic_size(dtype_)); \
         addr_ = PVAR_COUNTER_##name_; \
         MPIR_T_PVAR_COUNTER_ARRAY_INIT_impl(name_); \
-        count_ = sizeof(PVAR_COUNTER_##name_)/sizeof(PVAR_COUNTER_##name_[0]); \
+        static_count_ = sizeof(PVAR_COUNTER_##name_)/sizeof(PVAR_COUNTER_##name_[0]); \
         MPIR_T_PVAR_REGISTER_impl(MPI_T_PVAR_CLASS_COUNTER, dtype_, #name_, \
-            addr_, count_, MPI_T_ENUM_NULL, verb_, bind_, flags_, NULL, NULL, cat_, desc_); \
+            addr_, static_count_, MPI_T_ENUM_NULL, verb_, bind_, flags_, NULL, NULL, cat_, desc_); \
     } while (0)
 
 /* Dynamic counter array is already provided by MPIR_T_PVAR_COUNTER_REGISTER_DYNAMIC */
@@ -1331,51 +1186,6 @@ static inline int MPIR_T_is_initialized(void)
     return MPIR_T_init_balance > 0;
 }
 
-/* Helper function to update count and volume of send and recv messages for PVARS */
-#if ENABLE_PVAR_MVP
-#define MPIR_PVAR_INC(_mpicoll, _algo, _operation, _count, _datatype)          \
-    do {                                                                       \
-        int _pSize = 0;                                                        \
-        MPIR_Datatype_get_size_macro(_datatype, _pSize);                       \
-        int _size = _count * _pSize;                                           \
-        if (_size < 0) {                                                       \
-            _size = 0;                                                         \
-        }                                                                      \
-        MPIR_T_PVAR_COUNTER_INC(                                               \
-            MVP, mvp_coll_##_mpicoll##_##_algo##_bytes_##_operation, _size);   \
-        MPIR_T_PVAR_COUNTER_INC(                                               \
-            MVP, mvp_coll_##_mpicoll##_##_algo##_count_##_operation, 1);       \
-        /* MPIR_T_PVAR_COUNTER_INC(MVP,                                        \
-         * mvp_coll_##_mpicoll##_bytes_##_operation, _size);*/                 \
-        /* MPIR_T_PVAR_COUNTER_INC(MVP,                                        \
-         * mvp_coll_##_mpicoll##_count_##_operation, 1); */                    \
-    } while (0)
-#else /*ENABLE_PVAR_MVP*/
-    #define MPIR_PVAR_INC(_mpicoll, _algo, _operation, _count, _datatype)
-#endif /*ENABLE_PVAR_MVP*/
-
-
-/* Helper functions to start/end MVP PVAR timers */
-
-#if ENABLE_PVAR_MVP
-#define MPIR_TIMER_START(_optype, _op, _algo)                                  \
-    do {                                                                       \
-        if (MVP_ENABLE_PVAR_TIMER)                                             \
-            MPIR_T_PVAR_TIMER_START(MVP,                                       \
-                                    mvp_##_optype##_timer_##_op##_##_algo);    \
-    } while (0)
-#define MPIR_TIMER_END(_optype, _op, _algo)                                    \
-    do {                                                                       \
-        if (MVP_ENABLE_PVAR_TIMER)                                             \
-            MPIR_T_PVAR_TIMER_END(MVP, mvp_##_optype##_timer_##_op##_##_algo); \
-    } while (0)
-#else /*ENABLE_PVAR_MVP*/
-    #define MPIR_TIMER_START(_optype,_op,_algo)                                                  
-    #define MPIR_TIMER_END(_optype,_op,_algo)
-#endif /*ENABLE_PVAR_MVP*/
-
-
-
 /* A special strncpy to return strings in behavior defined by MPI_T */
 extern void MPIR_T_strncpy(char *dst, const char *src, int *len);
 
@@ -1430,29 +1240,93 @@ extern MPID_Thread_mutex_t mpi_t_mutex;
 #define MPIR_T_THREAD_CS_EXIT()     do { /* nothing */ } while (0)
 #endif
 
-/* Hash tables to quick locate category, cvar, pvar indices by their names */
-extern name2index_hash_t *cvar_hash;
-
-static inline int LOOKUP_CVAR_INDEX_BY_NAME_impl(const char* cvar_name)
-{
-    int cvar_idx = -1;
-    name2index_hash_t *hash_entry = NULL;
-
-    /* Do hash lookup by the name */
-    HASH_FIND_STR(cvar_hash, cvar_name, hash_entry);
-    if (hash_entry != NULL) {
-        cvar_idx = hash_entry->idx;
-    }
-    return cvar_idx;
-}
-
-#define MPIR_CVAR_GET_INDEX_impl(name_, out_val_)           \
-    do {                                                    \
-        (out_val_) = LOOKUP_CVAR_INDEX_BY_NAME_impl(#name_);\
-    } while (0)
-
 /* Init and finalize routines */
+
+extern void MPIR_T_pvar_env_init(void);
 extern int MPIR_T_env_init(void);
 extern void MPIR_T_env_finalize(void);
+extern void MPIR_T_events_finalize(void);
+
+typedef MPI_Count(*MPIR_T_timestamp_fn) (void);
+
+typedef struct MPIR_T_source_s {
+#ifdef HAVE_ERROR_CHECKING
+    MPIR_T_object_kind kind;
+#endif
+    int index;
+    char *name;
+    char *desc;
+    MPI_T_source_order ordering;
+    MPIR_T_timestamp_fn timestamp_fn;
+    MPI_Count ticks_per_second;
+    MPI_Count max_ticks;
+
+    UT_hash_handle hh;          /* Makes this structure hashable */
+} MPIR_T_source_t;
+
+void MPIR_T_register_source(const char *name, const char *desc, MPI_T_source_order ordering,
+                            MPIR_T_timestamp_fn timestamp_fn, MPI_Count ticks_per_second,
+                            MPI_Count max_ticks, int *index);
+
+typedef struct MPIR_T_event_s {
+#ifdef HAVE_ERROR_CHECKING
+    MPIR_T_object_kind kind;
+#endif
+    int index;
+    int source_index;
+    char *name;
+    int verbosity;
+    MPI_Datatype *array_of_datatypes;
+    MPI_Aint *array_of_displacements;
+    int num_elements;
+    MPIR_T_enum_t *enumtype;
+    char *desc;
+    int bind;
+
+    struct MPIR_T_event_registration_s *reg_list_head;
+    struct MPIR_T_event_registration_s *reg_list_tail;
+
+    UT_hash_handle hh;          /* Makes this structure hashable */
+} MPIR_T_event_t;
+
+void MPIR_T_register_event(int source_index, const char *name, int verbosity,
+                           MPI_Datatype array_of_datatypes[], MPI_Aint array_of_displacements[],
+                           MPI_Aint num_elements, const char *desc, int bind,
+                           const char *category, int *index);
+
+typedef struct MPIR_T_event_cb_s {
+    MPI_T_event_cb_function *cb_function;
+    void *user_data;
+} MPIR_T_event_cb_t;
+
+typedef struct MPIR_T_event_registration_s {
+#ifdef HAVE_ERROR_CHECKING
+    MPIR_T_object_kind kind;
+#endif
+    MPIR_T_event_t *event;
+    void *obj_handle;
+    MPIR_T_event_cb_t callbacks[4];     /* one for each safety level */
+    MPI_T_event_dropped_cb_function *dropped_cb;
+    MPI_Count dropped_count;
+
+    struct MPIR_T_event_registration_s *next;
+} MPIR_T_event_registration_t;
+
+typedef struct MPIR_T_event_instance_s {
+#ifdef HAVE_ERROR_CHECKING
+    MPIR_T_object_kind kind;
+#endif
+    MPIR_T_event_t *event;
+    MPI_Count timestamp;
+    void *data;
+} MPIR_T_event_instance_t;
+
+void MPIR_T_event_instance(int event_index, MPI_T_cb_safety cb_safety, void *data);
+
+#ifdef HAVE_MPIT_EVENTS
+#define MPIR_T_DO_EVENT(...) MPIR_T_event_instance(__VA_ARGS__)
+#else
+#define MPIR_T_DO_EVENT(...) do {} while (0)
+#endif
 
 #endif /* MPITIMPL_H_INCLUDED */

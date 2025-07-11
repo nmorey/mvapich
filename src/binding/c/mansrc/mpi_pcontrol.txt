@@ -1,0 +1,27 @@
+/*D
+   MPI_Pcontrol - Controls profiling
+
+Synopsis:
+.vb
+int MPI_Pcontrol(const int level, ...)
+.ve
+
+Input Parameters:
++ level - Profiling level (integer)
+- varargs - varargs (\\ldots)
+
+Notes:
+	This routine provides a common interface for profiling control.  The
+	interpretation of 'level' and any other arguments is left to the
+	profiling library.  The intention is that a profiling library will
+	provide a replacement for this routine and define the interpretation
+	of the parameters.
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_OTHER
+
+D*/
+

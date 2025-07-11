@@ -1,5 +1,5 @@
 /*
-* Copyright (C) Mellanox Technologies Ltd. 2001-2015.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2015. ALL RIGHTS RESERVED.
 * Copyright (C) The University of Tennessee and The University 
 *               of Tennessee Research Foundation. 2015. ALL RIGHTS RESERVED.
 *
@@ -22,6 +22,9 @@ typedef enum {
     UCS_THREAD_MODE_MULTI,      /**< Multiple threads can access concurrently */
     UCS_THREAD_MODE_LAST
 } ucs_thread_mode_t;
+
+
+extern const char *ucs_thread_mode_names[];
 
 
 #endif

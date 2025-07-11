@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2001-2018.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2018. ALL RIGHTS RESERVED.
 *
 * See file LICENSE for terms.
 */
@@ -64,28 +64,42 @@
 enum {
     UCT_IB_MLX5_CMD_OP_QUERY_HCA_CAP           = 0x100,
     UCT_IB_MLX5_CMD_OP_CREATE_MKEY             = 0x200,
+    UCT_IB_MLX5_CMD_OP_CREATE_CQ               = 0x400,
     UCT_IB_MLX5_CMD_OP_CREATE_QP               = 0x500,
     UCT_IB_MLX5_CMD_OP_RST2INIT_QP             = 0x502,
     UCT_IB_MLX5_CMD_OP_INIT2RTR_QP             = 0x503,
     UCT_IB_MLX5_CMD_OP_RTR2RTS_QP              = 0x504,
     UCT_IB_MLX5_CMD_OP_2ERR_QP                 = 0x507,
     UCT_IB_MLX5_CMD_OP_2RST_QP                 = 0x50a,
+    UCT_IB_MLX5_CMD_OP_QUERY_QP                = 0x50b,
     UCT_IB_MLX5_CMD_OP_CREATE_RMP              = 0x90c,
     UCT_IB_MLX5_CMD_OP_CREATE_DCT              = 0x710,
     UCT_IB_MLX5_CMD_OP_DRAIN_DCT               = 0x712,
     UCT_IB_MLX5_CMD_OP_CREATE_XRQ              = 0x717,
-    UCT_IB_MLX5_CMD_OP_SET_XRQ_DC_PARAMS_ENTRY = 0x726
+    UCT_IB_MLX5_CMD_OP_SET_XRQ_DC_PARAMS_ENTRY = 0x726,
+    UCT_IB_MLX5_CMD_OP_QUERY_HCA_VPORT_CONTEXT = 0x762,
+    UCT_IB_MLX5_CMD_OP_QUERY_LAG               = 0x842,
+    UCT_IB_MLX5_CMD_OP_CREATE_GENERAL_OBJECT   = 0xa00,
+    UCT_IB_MLX5_CMD_OP_MODIFY_GENERAL_OBJECT   = 0xa01,
+    UCT_IB_MLX5_CMD_OP_QUERY_GENERAL_OBJECT    = 0xa02,
+    UCT_IB_MLX5_CMD_OP_ALLOW_OTHER_VHCA_ACCESS = 0xb16
 };
 
 enum {
-    UCT_IB_MLX5_HCA_CAP_OPMOD_GET_MAX	= 0,
-    UCT_IB_MLX5_HCA_CAP_OPMOD_GET_CUR	= 1
+    UCT_IB_MLX5_HCA_CAP_OPMOD_GET_MAX = 0,
+    UCT_IB_MLX5_HCA_CAP_OPMOD_GET_CUR = 1
 };
 
 enum {
-    UCT_IB_MLX5_CAP_GENERAL = 0,
-    UCT_IB_MLX5_CAP_ODP     = 2,
-    UCT_IB_MLX5_CAP_ATOMIC  = 3,
+    UCT_IB_MLX5_CAP_GENERAL   = 0x0,
+    UCT_IB_MLX5_CAP_ODP       = 0x2,
+    UCT_IB_MLX5_CAP_ATOMIC    = 0x3,
+    UCT_IB_MLX5_CAP_2_GENERAL = 0x20,
+};
+
+enum {
+    UCT_IB_MLX5_HCA_CAPS_2_ALLOWED_OBJ_FOR_OTHER_VHCA_ACCESS_MKEY = 0x4,
+    UCT_IB_MLX5_HCA_CAPS_2_CROSS_VHCA_OBJ_TO_OBJ_LOCAL_MKEY_TO_REMOTE_MKEY = 0x100
 };
 
 struct uct_ib_mlx5_cmd_hca_cap_bits {
@@ -99,7 +113,10 @@ struct uct_ib_mlx5_cmd_hca_cap_bits {
     uint8_t    reserved_at_90[0xb];
     uint8_t    log_max_qp[0x5];
 
-    uint8_t    reserved_at_a0[0xb];
+    uint8_t    reserved_at_a0[0x3];
+    uint8_t    ece[0x1];
+
+    uint8_t    reserved_at_a4[0x7];
     uint8_t    log_max_srq[0x5];
     uint8_t    reserved_at_b0[0x10];
 
@@ -129,12 +146,16 @@ struct uct_ib_mlx5_cmd_hca_cap_bits {
 
     uint8_t    reserved_at_120[0xa];
     uint8_t    log_max_ra_req_dc[0x6];
-    uint8_t    reserved_at_130[0xa];
+    uint8_t    reserved_at_130[0x8];
+    uint8_t    ooo_sl_mask[0x1];
+    uint8_t    reserved_at_139[0x1];
     uint8_t    log_max_ra_res_dc[0x6];
 
     uint8_t    reserved_at_140[0xa];
     uint8_t    log_max_ra_req_qp[0x6];
-    uint8_t    reserved_at_150[0xa];
+    uint8_t    reserved_at_150[0x2];
+    uint8_t    rts2rts_lag_tx_port_affinity[0x1];
+    uint8_t    reserved_at_153[0x7];
     uint8_t    log_max_ra_res_qp[0x6];
 
     uint8_t    end_pad[0x1];
@@ -199,7 +220,9 @@ struct uct_ib_mlx5_cmd_hca_cap_bits {
     uint8_t    wol_p[0x1];
 
     uint8_t    stat_rate_support[0x10];
-    uint8_t    reserved_at_1f0[0xc];
+    uint8_t    reserved_at_1f0[0x8];
+    uint8_t    init2_lag_tx_port_affinity[0x1];
+    uint8_t    reserved_at_1f9[0x3];
     uint8_t    cqe_version[0x4];
 
     uint8_t    compact_address_vector[0x1];
@@ -234,7 +257,8 @@ struct uct_ib_mlx5_cmd_hca_cap_bits {
     uint8_t    cq_oi[0x1];
     uint8_t    cq_resize[0x1];
     uint8_t    cq_moderation[0x1];
-    uint8_t    reserved_at_223[0x3];
+    uint8_t    reserved_at_223[0x2];
+    uint8_t    ib_striding_wq_cq_first_indication[0x1];
     uint8_t    cq_eq_remap[0x1];
     uint8_t    pg[0x1];
     uint8_t    block_lb_mc[0x1];
@@ -258,7 +282,8 @@ struct uct_ib_mlx5_cmd_hca_cap_bits {
     uint8_t    rc[0x1];
 
     uint8_t    uar_4k[0x1];
-    uint8_t    reserved_at_241[0x9];
+    uint8_t    dci_no_rdma_wr_optimized_performance[0x1];
+    uint8_t    reserved_at_242[0x8];
     uint8_t    uar_sz[0x6];
     uint8_t    reserved_at_250[0x8];
     uint8_t    log_pg_sz[0x8];
@@ -268,8 +293,10 @@ struct uct_ib_mlx5_cmd_hca_cap_bits {
     uint8_t    pad_tx_eth_packet[0x1];
     uint8_t    reserved_at_263[0x8];
     uint8_t    log_bf_reg_size[0x5];
-
-    uint8_t    reserved_at_270[0xb];
+    uint8_t    reserved_at_270[0x6];
+    uint8_t    lag_dct[0x2];
+    uint8_t    lag_tx_port_affinity[0x1];
+    uint8_t    reserved_at_279[0x2];
     uint8_t    lag_master[0x1];
     uint8_t    num_lag_ports[0x4];
 
@@ -370,9 +397,21 @@ struct uct_ib_mlx5_cmd_hca_cap_bits {
     uint8_t    num_of_uars_per_page[0x20];
     uint8_t    reserved_at_540[0x40];
 
-    uint8_t    reserved_at_580[0x3d];
+    uint8_t    reserved_at_580[0xb];
+    uint8_t    log_max_dci_stream_channels[0x5];
+    uint8_t    reserved_at_590[0x3];
+    uint8_t    log_max_dci_errored_streams[0x5];
+    uint8_t    reserved_at_598[0x8];
+
+    uint8_t    reserved_at_5a0[0x10];
+    uint8_t    enhanced_cqe_compression[0x1];
+    uint8_t    reserved_at_5b1[0x1];
+    uint8_t    crossing_vhca_mkey[0x1];
+    uint8_t    reserved_at_5b3[0x8];
+    uint8_t    must_be_0[0x1];
+    uint8_t    mini_cqe_resp_stride_index[0x1];
     uint8_t    cqe_128_always[0x1];
-    uint8_t    cqe_compression_128[0x1];
+    uint8_t    cqe_compression_128b[0x1];
     uint8_t    cqe_compression[0x1];
 
     uint8_t    cqe_compression_timeout[0x10];
@@ -431,6 +470,45 @@ struct uct_ib_mlx5_atomic_caps_bits {
     uint8_t    reserved_at_2c0[0x540];
 };
 
+struct uct_ib_mlx5_cmd_hca_cap_2_bits {
+    uint8_t    reserved_at_0[0x80];
+
+    uint8_t    reserved_at_80[0x3];
+    uint8_t    max_num_prog_sample_field[0x5];
+    uint8_t    reserved_at_88[0x3];
+    uint8_t    log_max_num_reserved_qpn[0x5];
+    uint8_t    atomic_rate_pa[0x1];
+    uint8_t    introspection_mkey_access_allowed[0x1];
+    uint8_t    reserved_at_92[0x1];
+    uint8_t    log_reserved_qpn_granularity[0x5];
+    uint8_t    reserved_at_98[0x3];
+    uint8_t    log_reserved_qpn_max_alloc[0x5];
+
+    uint8_t    max_reformat_insert_size[0x8];
+    uint8_t    max_reformat_insert_offset[0x8];
+    uint8_t    max_reformat_remove_size[0x8];
+    uint8_t    max_reformat_remove_offset[0x8];
+
+    uint8_t    multi_sl_qp[0x1];
+    uint8_t    non_tunnel_reformat[0x1];
+    uint8_t    reserved_at_c2[0x1];
+    uint8_t    log_min_stride_wqe_sz[0x5];
+    uint8_t    reserved_at_c8[0x3];
+    uint8_t    log_conn_track_granularity[0x5];
+    uint8_t    reserved_at_d0[0x3];
+    uint8_t    log_conn_track_max_alloc[0x5];
+    uint8_t    reserved_at_d8[0x3];
+    uint8_t    log_max_conn_track_offload[0x5];
+
+    uint8_t    cross_vhca_object_to_object_supported[0x20];
+
+    uint8_t    allowed_object_for_other_vhca_access[0x40];
+
+    uint8_t    introspection_mkey[0x20];
+
+    uint8_t    reserved_at_160[0x6a0];
+};
+
 struct uct_ib_mlx5_odp_per_transport_service_cap_bits {
     uint8_t         send[0x1];
     uint8_t         receive[0x1];
@@ -459,13 +537,14 @@ struct uct_ib_mlx5_odp_cap_bits {
 
     struct uct_ib_mlx5_odp_per_transport_service_cap_bits dc_odp_caps;
 
-    uint8_t         reserved_at_100[0x700];
+    uint8_t         reserved_at_120[0x700];
 };
 
 union uct_ib_mlx5_hca_cap_union_bits {
     struct uct_ib_mlx5_cmd_hca_cap_bits cmd_hca_cap;
     struct uct_ib_mlx5_odp_cap_bits odp_cap;
     struct uct_ib_mlx5_atomic_caps_bits atomic_caps;
+    struct uct_ib_mlx5_cmd_hca_cap_2_bits cmd_hca_cap_2;
     uint8_t    reserved_at_0[0x8000];
 };
 
@@ -490,12 +569,129 @@ struct uct_ib_mlx5_query_hca_cap_in_bits {
     uint8_t    reserved_at_40[0x40];
 };
 
+typedef enum {
+    /* QP are associated with port affinity */
+    UCT_IB_MLX5_LAG_QUEUE_AFFINITY = 0x0,
+    /* packets go to egress port through FT */
+    UCT_IB_MLX5_LAG_PORT_SELECT_FT = 0x1,
+    /* FDB select packet flow egress port */
+    UCT_IB_MLX5_LAG_MULTI_PORT_ESW = 0x2,
+    UCT_IB_MLX5_LAG_INVALID_MODE   = 0xFF
+} uct_ib_port_select_mode_t;
+
+struct uct_ib_mlx5_lag_context_bits {
+    uint8_t    reserved_at_0[0x15];
+    uint8_t    port_select_mode[0x3];
+    uint8_t    reserved_at_18[0x5];
+    uint8_t    lag_state[0x3];
+    uint8_t    reserved_at_20[0x20];
+};
+
+struct uct_ib_mlx5_query_lag_out_bits {
+    uint8_t    status[0x8];
+    uint8_t    reserved_at_8[0x18];
+
+    uint8_t    syndrome[0x20];
+
+    struct uct_ib_mlx5_lag_context_bits lag_context;
+};
+
+struct uct_ib_mlx5_query_lag_in_bits {
+    uint8_t    opcode[0x10];
+    uint8_t    uid[0x10];
+
+    uint8_t    reserved_at_20[0x10];
+    uint8_t    op_mod[0x10];
+
+    uint8_t    reserved_at_40[0x40];
+};
+
+struct uct_ib_mlx5_hca_vport_context_bits {
+    uint8_t    field_select[0x20];
+
+    uint8_t    reserved_at_20[0xe0];
+
+    uint8_t    sm_virt_aware[0x1];
+    uint8_t    has_smi[0x1];
+    uint8_t    has_raw[0x1];
+    uint8_t    grh_required[0x1];
+    uint8_t    reserved_at_104[0xc];
+    uint8_t    port_physical_state[0x4];
+    uint8_t    vport_state_policy[0x4];
+    uint8_t    port_state[0x4];
+    uint8_t    vport_state[0x4];
+
+    uint8_t    reserved_at_120[0x20];
+
+    uint8_t    system_image_guid[0x40];
+
+    uint8_t    port_guid[0x40];
+
+    uint8_t    node_guid[0x40];
+
+    uint8_t    cap_mask1[0x20];
+
+    uint8_t    cap_mask1_field_select[0x20];
+
+    uint8_t    cap_mask2[0x20];
+
+    uint8_t    cap_mask2_field_select[0x20];
+
+    uint8_t    reserved_at_280[0x10];
+
+    uint8_t    ooo_sl_mask[0x10];
+
+    uint8_t    reserved_at_2a0[0x40];
+
+    uint8_t    lid[0x10];
+    uint8_t    reserved_at_2f0[0x4];
+    uint8_t    init_type_reply[0x4];
+    uint8_t    lmc[0x3];
+    uint8_t    subnet_timeout[0x5];
+
+    uint8_t    sm_lid[0x10];
+    uint8_t    sm_sl[0x4];
+    uint8_t    reserved_at_314[0xc];
+
+    uint8_t    qkey_violation_counter[0x10];
+    uint8_t    pkey_violation_counter[0x10];
+
+    uint8_t    reserved_at_340[0xca0];
+};
+
+struct uct_ib_mlx5_query_hca_vport_context_out_bits {
+    uint8_t    status[0x8];
+    uint8_t    reserved_at_8[0x18];
+
+    uint8_t    syndrome[0x20];
+
+    uint8_t    reserved_at_40[0x40];
+
+    struct uct_ib_mlx5_hca_vport_context_bits hca_vport_context;
+};
+
+struct uct_ib_mlx5_query_hca_vport_context_in_bits {
+    uint8_t    opcode[0x10];
+    uint8_t    reserved_at_10[0x10];
+
+    uint8_t    reserved_at_20[0x10];
+    uint8_t    op_mod[0x10];
+
+    uint8_t    other_vport[0x1];
+    uint8_t    reserved_at_41[0xb];
+    uint8_t    port_num[0x4];
+    uint8_t    vport_number[0x10];
+
+    uint8_t    reserved_at_60[0x20];
+};
+
 enum {
-    UCT_IB_MLX5_MKC_ACCESS_MODE_PA    = 0x0,
-    UCT_IB_MLX5_MKC_ACCESS_MODE_MTT   = 0x1,
-    UCT_IB_MLX5_MKC_ACCESS_MODE_KLMS  = 0x2,
-    UCT_IB_MLX5_MKC_ACCESS_MODE_KSM   = 0x3,
-    UCT_IB_MLX5_MKC_ACCESS_MODE_MEMIC = 0x5
+    UCT_IB_MLX5_MKC_ACCESS_MODE_PA            = 0x0,
+    UCT_IB_MLX5_MKC_ACCESS_MODE_MTT           = 0x1,
+    UCT_IB_MLX5_MKC_ACCESS_MODE_KLMS          = 0x2,
+    UCT_IB_MLX5_MKC_ACCESS_MODE_KSM           = 0x3,
+    UCT_IB_MLX5_MKC_ACCESS_MODE_MEMIC         = 0x5,
+    UCT_IB_MLX5_MKC_ACCESS_MODE_CROSSING_VHCA = 0x6
 };
 
 struct uct_ib_mlx5_mkc_bits {
@@ -503,7 +699,9 @@ struct uct_ib_mlx5_mkc_bits {
     uint8_t    free[0x1];
     uint8_t    reserved_at_2[0x1];
     uint8_t    access_mode_4_2[0x3];
-    uint8_t    reserved_at_6[0x7];
+    uint8_t    alter_pd_to_vhca_id[0x1];
+    uint8_t    crossed_side_mkey[0x1];
+    uint8_t    reserved_at_8[0x5];
     uint8_t    relaxed_ordering_write[0x1];
     uint8_t    reserved_at_e[0x1];
     uint8_t    small_fence_on_rdma_read_response[0x1];
@@ -536,9 +734,15 @@ struct uct_ib_mlx5_mkc_bits {
 
     uint8_t    bsf_octword_size[0x20];
 
-    uint8_t    reserved_at_120[0x80];
+    uint8_t    reserved_at_120[0x60];
 
-    uint8_t    translations_octword_size[0x20];
+    uint8_t    crossing_target_gvmi_id[0x10];
+    uint8_t    reserved_at_190[0x10];
+
+    union {
+        uint8_t translations_octword_size[0x20];
+        uint8_t crossing_target_mkey[0x20];
+    };
 
     uint8_t    reserved_at_1c0[0x1b];
     uint8_t    log_entity_size[0x5];
@@ -677,8 +881,9 @@ struct uct_ib_mlx5_dctc_bits {
     uint8_t         atomic_like_write_en[0x1];
     uint8_t         latency_sensitive[0x1];
     uint8_t         rlky[0x1];
-    uint8_t         free_ar[0x1];
-    uint8_t         reserved_at_73[0xd];
+    uint8_t         force_full_handshake[0x1];
+    uint8_t         multi_path[0x1];
+    uint8_t         reserved_at_74[0xc];
 
     uint8_t         reserved_at_80[0x8];
     uint8_t         cs_res[0x8];
@@ -717,6 +922,10 @@ struct uct_ib_mlx5_dctc_bits {
     uint8_t         dscp[0x6];
 
     uint8_t         reserved_at_1c0[0x40];
+
+    uint8_t         ece[0x20];
+
+    uint8_t         reserved_at_220[0x160];
 };
 
 struct uct_ib_mlx5_create_dct_out_bits {
@@ -728,7 +937,7 @@ struct uct_ib_mlx5_create_dct_out_bits {
     uint8_t         reserved_at_40[0x8];
     uint8_t         dctn[0x18];
 
-    uint8_t         reserved_at_60[0x20];
+    uint8_t         ece[0x20];
 };
 
 struct uct_ib_mlx5_create_dct_in_bits {
@@ -1087,6 +1296,13 @@ enum {
     UCT_IB_MLX5_QPC_CS_RES_UP_TO_64B  = 0x2
 };
 
+enum {
+    UCT_IB_MLX5_QP_OPTPAR_RRE        = 1 << 1,
+    UCT_IB_MLX5_QP_OPTPAR_RAE        = 1 << 2,
+    UCT_IB_MLX5_QP_OPTPAR_RWE        = 1 << 3,
+    UCT_IB_MLX5_QP_OPTPAR_LAG_TX_AFF = 1 << 15
+};
+
 static inline unsigned uct_ib_mlx5_qpc_cs_res(unsigned size, int dc)
 {
     return (size > 32) ? UCT_IB_MLX5_QPC_CS_RES_UP_TO_64B :
@@ -1094,13 +1310,19 @@ static inline unsigned uct_ib_mlx5_qpc_cs_res(unsigned size, int dc)
                          UCT_IB_MLX5_QPC_CS_RES_DISABLE;
 }
 
+enum {
+    UCT_IB_MLX5_QPC_TS_FORMAT_FREE_RUNNING = 0x0,
+    UCT_IB_MLX5_QPC_TS_FORMAT_DEFAULT      = 0x1,
+    UCT_IB_MLX5_QPC_TS_FORMAT_REAL_TIME    = 0x2
+};
+
 struct uct_ib_mlx5_qpc_bits {
     uint8_t         state[0x4];
     uint8_t         lag_tx_port_affinity[0x4];
     uint8_t         st[0x8];
     uint8_t         reserved_at_10[0x3];
     uint8_t         pm_state[0x2];
-    uint8_t         reserved_at_15[0x1];
+    uint8_t         rdma_wr_disabled[0x1];
     uint8_t         req_e2e_credit_mode[0x2];
     uint8_t         offload_type[0x4];
     uint8_t         end_padding_mode[0x2];
@@ -1122,14 +1344,18 @@ struct uct_ib_mlx5_qpc_bits {
     uint8_t         log_rq_stride[0x3];
     uint8_t         no_sq[0x1];
     uint8_t         log_sq_size[0x4];
-    uint8_t         reserved_at_55[0x6];
+    uint8_t         reserved_at_55[0x3];
+    uint8_t         ts_format[0x2];
+    uint8_t         reserved_at_5a[0x1];
     uint8_t         rlky[0x1];
     uint8_t         ulp_stateless_offload_mode[0x4];
 
     uint8_t         counter_set_id[0x8];
     uint8_t         uar_page[0x18];
 
-    uint8_t         reserved_at_80[0x8];
+    uint8_t         reserved_at_80[0x3];
+    uint8_t         full_handshake[0x1];
+    uint8_t         cnak_reverse_sl[0x4];
     uint8_t         user_index[0x18];
 
     uint8_t         reserved_at_a0[0x3];
@@ -1157,10 +1383,12 @@ struct uct_ib_mlx5_qpc_bits {
     uint8_t         reserved_at_3c0[0x8];
     uint8_t         next_send_psn[0x18];
 
-    uint8_t         reserved_at_3e0[0x8];
+    uint8_t         reserved_at_3e0[0x4];
+    uint8_t         log_num_dci_stream_channels[0x4];
     uint8_t         cqn_snd[0x18];
 
-    uint8_t         reserved_at_400[0x8];
+    uint8_t         reserved_at_400[0x4];
+    uint8_t         log_num_dci_errored_streams[0x4];
     uint8_t         deth_sqpn[0x18];
 
     uint8_t         reserved_at_420[0x20];
@@ -1254,7 +1482,7 @@ struct uct_ib_mlx5_create_qp_in_bits {
 
     uint8_t         opt_param_mask[0x20];
 
-    uint8_t         reserved_at_a0[0x20];
+    uint8_t         ece[0x20];
 
     struct uct_ib_mlx5_qpc_bits qpc;
 
@@ -1274,7 +1502,9 @@ struct uct_ib_mlx5_init2rtr_qp_out_bits {
 
     uint8_t         syndrome[0x20];
 
-    uint8_t         reserved_at_40[0x40];
+    uint8_t         reserved_at_40[0x20];
+
+    uint8_t         ece[0x20];
 };
 
 struct uct_ib_mlx5_init2rtr_qp_in_bits {
@@ -1291,7 +1521,7 @@ struct uct_ib_mlx5_init2rtr_qp_in_bits {
 
     uint8_t         opt_param_mask[0x20];
 
-    uint8_t         reserved_at_a0[0x20];
+    uint8_t         ece[0x20];
 
     struct uct_ib_mlx5_qpc_bits qpc;
 
@@ -1380,8 +1610,231 @@ struct uct_ib_mlx5_modify_qp_in_bits {
     uint8_t         reserved_at_60[0x20];
 };
 
+struct uct_ib_mlx5_query_qp_out_bits {
+    uint8_t         status[0x8];
+    uint8_t         reserved_at_8[0x18];
+
+    uint8_t         syndrome[0x20];
+
+    uint8_t         reserved_at_40[0x40];
+
+    uint8_t         opt_param_mask[0x20];
+
+    uint8_t         reserved_at_a0[0x20];
+
+    struct uct_ib_mlx5_qpc_bits qpc;
+
+    uint8_t         reserved_at_800[0x80];
+
+    uint8_t         pas[0][0x40];
+};
+
+struct uct_ib_mlx5_query_qp_in_bits {
+    uint8_t         opcode[0x10];
+    uint8_t         reserved_at_10[0x10];
+
+    uint8_t         reserved_at_20[0x10];
+    uint8_t         op_mod[0x10];
+
+    uint8_t         reserved_at_40[0x8];
+    uint8_t         qpn[0x18];
+
+    uint8_t         reserved_at_60[0x20];
+};
+
 enum {
     UCT_IB_MLX5_EVENT_TYPE_SRQ_LAST_WQE       = 0x13
+};
+
+struct uct_ib_mlx5_general_obj_out_cmd_hdr_bits {
+    uint8_t         status[0x8];
+    uint8_t         reserved_at_8[0x18];
+
+    uint8_t         syndrome[0x20];
+
+    uint8_t         obj_id[0x20];
+
+    uint8_t         reserved_at_60[0x20];
+};
+
+struct uct_ib_mlx5_general_obj_in_cmd_hdr_bits {
+    uint8_t         opcode[0x10];
+    uint8_t         uid[0x10];
+
+    uint8_t         reserved_at_20[0x10];
+    uint8_t         obj_type[0x10];
+
+    uint8_t         obj_id[0x20];
+
+    uint8_t         alias_object[0x1];
+    uint8_t         reserved_at_61[0x2];
+    uint8_t         log_obj_range[0x5];
+    uint8_t         reserved_at_68[0x18];
+};
+
+struct uct_ib_mlx5_reserved_qpn_bits {
+    uint8_t         reserved_at_0[0x80];
+};
+
+struct uct_ib_mlx5_create_reserved_qpn_in_bits {
+    struct uct_ib_mlx5_general_obj_in_cmd_hdr_bits  hdr;
+    struct uct_ib_mlx5_modify_qp_in_bits            qpns;
+};
+
+enum {
+    UCT_IB_MLX5_OBJ_TYPE_RESERVED_QPN = 0x002C,
+    UCT_IB_MLX5_OBJ_TYPE_MKEY         = 0xFF01
+};
+
+struct uct_ib_mlx5_allow_other_vhca_access_in_bits {
+    uint8_t         opcode[0x10];
+    uint8_t         uid[0x10];
+
+    uint8_t         reserved_at_20[0x10];
+    uint8_t         op_mod[0x10];
+
+    uint8_t         reserved_at_40[0x40];
+
+    uint8_t         reserved_at_80[0x10];
+    uint8_t         object_type_to_be_accessed[0x10];
+
+    uint8_t         object_id_to_be_accessed[0x20];
+
+    uint8_t         reserved_at_c0[0x40];
+
+    uint8_t         access_key[0x100];
+};
+
+struct uct_ib_mlx5_allow_other_vhca_access_out_bits {
+    uint8_t         status[0x8];
+    uint8_t         reserved_at_8[0x18];
+
+    uint8_t         syndrome[0x20];
+
+    uint8_t         reserved_at_40[0x40];
+};
+
+struct uct_ib_mlx5_alias_context_bits {
+    uint8_t         vhca_id_to_be_accessed[0x10];
+    uint8_t         reserved_at_10[0xd];
+    uint8_t         status[0x3];
+
+    uint8_t         object_id_to_be_accessed[0x20];
+
+    uint8_t         reserved_at_40[0x40];
+
+    uint8_t         access_key[0x100];
+
+    uint8_t         metadata_1[0x20];
+    uint8_t         metadata_2[0x60];
+};
+
+struct uct_ib_mlx5_create_alias_obj_in_bits {
+    struct uct_ib_mlx5_general_obj_in_cmd_hdr_bits hdr;
+    struct uct_ib_mlx5_alias_context_bits alias_ctx;
+};
+
+struct uct_ib_mlx5_create_alias_obj_out_bits {
+    struct uct_ib_mlx5_general_obj_out_cmd_hdr_bits hdr;
+    struct uct_ib_mlx5_alias_context_bits alias_ctx;
+};
+
+struct uct_ib_mlx5_cqc_bits {
+    uint8_t         status[0x4];
+    uint8_t         as_notify[0x1];
+    uint8_t         initiator_src_dct[0x1];
+    uint8_t         dbr_umem_valid[0x1];
+    uint8_t         reserved_at_7[0x1];
+    uint8_t         cqe_sz[0x3];
+    uint8_t         cc[0x1];
+    uint8_t         reserved_at_c[0x1];
+    uint8_t         scqe_break_moderation_en[0x1];
+    uint8_t         oi[0x1];
+    uint8_t         cq_period_mode[0x2];
+    uint8_t         cqe_comp_en[0x1];
+    uint8_t         mini_cqe_res_format[0x2];
+    uint8_t         st[0x4];
+    uint8_t         reserved_at_18[0x1];
+    uint8_t         cqe_comp_layout[0x7];
+
+    uint8_t         dbr_umem_id[0x20];
+
+    uint8_t         reserved_at_40[0x14];
+    uint8_t         page_offset[0x6];
+    uint8_t         reserved_at_5a[0x2];
+    uint8_t         mini_cqe_res_format_ext[0x2];
+    uint8_t         cq_timestamp_format[0x2];
+
+    uint8_t         reserved_at_60[0x3];
+    uint8_t         log_cq_size[0x5];
+    uint8_t         uar_page[0x18];
+
+    uint8_t         reserved_at_80[0x4];
+    uint8_t         cq_period[0xc];
+    uint8_t         cq_max_count[0x10];
+
+    uint8_t         reserved_at_a0[0x18];
+    uint8_t         c_eqn[0x8];
+
+    uint8_t         reserved_at_c0[0x3];
+    uint8_t         log_page_size[0x5];
+    uint8_t         reserved_at_c8[0x18];
+
+    uint8_t         reserved_at_e0[0x20];
+
+    uint8_t         reserved_at_100[0x8];
+    uint8_t         last_notified_index[0x18];
+
+    uint8_t         reserved_at_120[0x8];
+    uint8_t         last_solicit_index[0x18];
+
+    uint8_t         reserved_at_140[0x8];
+    uint8_t         consumer_counter[0x18];
+
+    uint8_t         reserved_at_160[0x8];
+    uint8_t         producer_counter[0x18];
+
+    uint8_t         local_partition_id[0xc];
+    uint8_t         process_id[0x14];
+
+    uint8_t         reserved_at_1a0[0x20];
+
+    uint8_t         dbr_addr[0x40];
+};
+
+struct uct_ib_mlx5_create_cq_out_bits {
+    uint8_t         status[0x8];
+    uint8_t         reserved_at_8[0x18];
+
+    uint8_t         syndrome[0x20];
+
+    uint8_t         reserved_at_40[0x8];
+    uint8_t         cqn[0x18];
+
+    uint8_t         reserved_at_60[0x20];
+};
+
+struct uct_ib_mlx5_create_cq_in_bits {
+    uint8_t         opcode[0x10];
+    uint8_t         uid[0x10];
+
+    uint8_t         reserved_at_20[0x10];
+    uint8_t         op_mod[0x10];
+
+    uint8_t         reserved_at_40[0x40];
+
+    struct uct_ib_mlx5_cqc_bits cqc;
+
+    uint8_t         cq_umem_offset[0x40];
+
+    uint8_t         cq_umem_id[0x20];
+
+    uint8_t         cq_umem_valid[0x1];
+    uint8_t         reserved_at_2e1[0x1f];
+
+    uint8_t         reserved_at_300[0x580];
+
+    uint8_t         pas[];
 };
 
 #endif

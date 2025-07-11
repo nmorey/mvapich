@@ -1,0 +1,45 @@
+/*D
+   MPI_Type_create_keyval - Create an attribute keyval for MPI datatypes
+
+Synopsis:
+.vb
+int MPI_Type_create_keyval(MPI_Type_copy_attr_function *type_copy_attr_fn,
+                           MPI_Type_delete_attr_function *type_delete_attr_fn,
+                           int *type_keyval, void *extra_state)
+.ve
+
+Input Parameters:
++ type_copy_attr_fn - copy callback function for type_keyval (function)
+. type_delete_attr_fn - delete callback function for type_keyval (function)
+- extra_state - extra state for callback function (None)
+
+Output Parameters:
+. type_keyval - key value for future access (integer)
+
+Notes:
+Key values are global (available for any and all derived datatypes).
+
+Default copy and delete functions are available.  These are
++ MPI_TYPE_NULL_COPY_FN   - empty copy function
+. MPI_TYPE_NULL_DELETE_FN - empty delete function
+- MPI_TYPE_DUP_FN         - simple dup function
+
+There are subtle differences between C and Fortran that require that the
+copy_fn be written in the same language from which 'MPI_Type_create_keyval'
+is called.
+This should not be a problem for most users; only programmers using both
+Fortran and C in the same program need to be sure that they follow this rule.
+
+.N AttrErrReturn
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_OTHER
+
+D*/
+

@@ -8,33 +8,55 @@
 
 #include "mpiimpl.h"
 
-typedef enum MPIDI_IPCI_type {
-    MPIDI_IPCI_TYPE__NONE,      /* avoid empty enum */
-    MPIDI_IPCI_TYPE__XPMEM,
-    MPIDI_IPCI_TYPE__GPU
-} MPIDI_IPCI_type_t;
-
 typedef struct {
     MPIR_Group *node_group_ptr; /* cache node group, used at win_create. */
 } MPIDI_IPCI_global_t;
 
 /* memory handle definition
- * MPIDI_IPCI_ipc_handle_t: local memory handle
- * MPIDI_IPCI_ipc_attr_t: local memory attributes including available handle,
- *                        IPC type, and thresholds */
+ * MPIDI_IPCI_ipc_handle_t: memory handle send to remote processes
+ * MPIDI_IPCI_ipc_attr_t: local memory attributes used to prepare memory handle
+ */
 typedef union MPIDI_IPCI_ipc_handle {
     MPIDI_XPMEM_ipc_handle_t xpmem;
+    MPIDI_CMA_ipc_handle_t cma;
     MPIDI_GPU_ipc_handle_t gpu;
 } MPIDI_IPCI_ipc_handle_t;
 
 typedef struct MPIDI_IPCI_ipc_attr {
     MPIDI_IPCI_type_t ipc_type;
-    MPIDI_IPCI_ipc_handle_t ipc_handle;
-    MPL_pointer_attr_t gpu_attr;
-    struct {
-        size_t send_lmt_sz;
-    } threshold;
+    union {
+        MPIDI_XPMEM_ipc_attr_t xpmem;
+        MPIDI_CMA_ipc_attr_t cma;
+        MPIDI_GPU_ipc_attr_t gpu;
+    } u;
 } MPIDI_IPCI_ipc_attr_t;
+
+/* ctrl packet header types */
+typedef struct MPIDI_IPC_rndv_hdr {
+    MPIDI_IPCI_type_t ipc_type;
+    MPIDI_IPCI_ipc_handle_t ipc_handle;
+    uint64_t is_contig:8;
+    uint64_t flattened_sz:24;   /* only if it's non-contig, flattened type
+                                 * will be attached after this header. */
+    MPI_Aint count;             /* only if it's non-contig */
+} MPIDI_IPC_hdr;
+
+typedef struct MPIDI_IPC_rts {
+    MPIDIG_hdr_t hdr;
+    MPIDI_IPC_hdr ipc_hdr;
+} MPIDI_IPC_rts_t;
+
+typedef struct MPIDI_IPC_cts {
+    MPIDIG_hdr_t hdr;
+    MPIDI_IPC_hdr ipc_hdr;
+    MPIR_Request *sreq_ptr;
+    MPIR_Request *rreq_ptr;
+} MPIDI_IPC_cts_t;
+
+typedef struct MPIDI_IPC_ack {
+    MPIDI_IPCI_type_t ipc_type;
+    MPIR_Request *req_ptr;
+} MPIDI_IPC_ack_t;
 
 #ifdef MPL_USE_DBG_LOGGING
 extern MPL_dbg_class MPIDI_IPCI_DBG_GENERAL;

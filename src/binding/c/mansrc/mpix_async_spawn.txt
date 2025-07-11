@@ -1,0 +1,28 @@
+/*D
+   MPIX_Async_spawn - [short description]
+
+Synopsis:
+.vb
+int MPIX_Async_spawn(MPIX_Async_thing async_thing,
+                     MPIX_Async_poll_function *poll_fn, void *extra_state,
+                     MPIX_Stream stream)
+.ve
+
+Input Parameters:
++ async_thing - opaque pointer for async thing (None)
+. poll_fn - user defined poll function for progressing async things (function)
+. extra_state - extra state for callback function (None)
+- stream - stream object (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPIX_ERR_STREAM
+.N MPI_ERR_ARG
+.N MPI_ERR_OTHER
+
+D*/
+

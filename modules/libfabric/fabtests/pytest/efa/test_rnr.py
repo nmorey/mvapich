@@ -1,4 +1,5 @@
 import pytest
+import copy
 
 @pytest.mark.functional
 def test_rnr_read_cq_error(cmdline_args):
@@ -8,7 +9,13 @@ def test_rnr_read_cq_error(cmdline_args):
         pytest.skip("RNR requires 2 nodes")
         return
 
-    test = ClientServerTest(cmdline_args, "fi_efa_rnr_read_cq_error")
+    # Older efa kernel driver does not support RNR retry capability
+    # and the test will return FI_ENOSYS.
+    # Disable the strict mode for this test explicitly to mark it as skipped
+    # in this case.
+    cmdline_args_copy = copy.copy(cmdline_args)
+    cmdline_args_copy.strict_fabtests_mode = False
+    test = ClientServerTest(cmdline_args_copy, "fi_efa_rnr_read_cq_error")
     test.run()
 
 packet_type_option_map = {
@@ -37,7 +44,8 @@ packet_type_option_map = {
     "dc_longcts_tagrtm" : "-c 1 -T -U -S 1048576",
     "dc_eager_rtw" : "-c 1 -o write -U -S 4",
     "dc_longcts_rtw" : "-c 1 -o write -U -S 1048576",
-    "dc_write_rta": "-c 1 -A write -U -S 4"
+    "dc_write_rta": "-c 1 -A write -U -S 4",
+    "writedata": "-c 1 -o writedata -S 4"
 }
 
 @pytest.mark.functional
@@ -49,6 +57,12 @@ def test_rnr_queue_resend(cmdline_args, packet_type):
         pytest.skip("RNR test requires 2 nodes")
         return
 
-    test = ClientServerTest(cmdline_args,
+    # Older efa kernel driver does not support RNR retry capability
+    # and the test will return FI_ENOSYS.
+    # Disable the strict mode for this test explicitly to mark it as skipped
+    # in this case.
+    cmdline_args_copy = copy.copy(cmdline_args)
+    cmdline_args_copy.strict_fabtests_mode = False
+    test = ClientServerTest(cmdline_args_copy,
             "fi_efa_rnr_queue_resend " + packet_type_option_map[packet_type])
     test.run()

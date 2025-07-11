@@ -1,0 +1,50 @@
+/*D
+   MPI_Sendrecv - Sends and receives a message
+
+Synopsis:
+.vb
+int MPI_Sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+                 int dest, int sendtag, void *recvbuf, int recvcount,
+                 MPI_Datatype recvtype, int source, int recvtag, MPI_Comm comm,
+                 MPI_Status *status)
+.ve
+.vb
+int MPI_Sendrecv_c(const void *sendbuf, MPI_Count sendcount,
+                   MPI_Datatype sendtype, int dest, int sendtag, void *recvbuf,
+                   MPI_Count recvcount, MPI_Datatype recvtype, int source,
+                   int recvtag, MPI_Comm comm, MPI_Status *status)
+.ve
+
+Input Parameters:
++ sendbuf - initial address of send buffer (choice)
+. sendcount - number of elements in send buffer (non-negative integer)
+. sendtype - type of elements in send buffer (handle)
+. dest - rank of destination (integer)
+. sendtag - send tag (integer)
+. recvcount - number of elements in receive buffer (non-negative integer)
+. recvtype - type of elements receive buffer element (handle)
+. source - rank of source or MPI_ANY_SOURCE (integer)
+. recvtag - receive tag or MPI_ANY_TAG (integer)
+- comm - communicator (handle)
+
+Output Parameters:
++ recvbuf - initial address of receive buffer (choice)
+- status - status object (Status)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_BUFFER
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_RANK
+.N MPI_ERR_TAG
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

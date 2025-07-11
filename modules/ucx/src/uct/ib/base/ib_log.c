@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2001-2015.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2015. ALL RIGHTS RESERVED.
 *
 * See file LICENSE for terms.
 */
@@ -43,11 +43,11 @@ void uct_ib_log_dump_sg_list(uct_ib_iface_t *iface, uct_am_trace_type_t type,
                              struct ibv_sge *sg_list, int num_sge,
                              uint64_t inline_bitmap,
                              uct_log_data_dump_func_t data_dump,
-                             char *buf, size_t max)
+                             int data_dump_sge, char *buf, size_t max)
 {
     char data[256];
     size_t total_len       = 0;
-    size_t total_valid_len = 0;;
+    size_t total_valid_len = 0;
     char *s    = buf;
     char *ends = buf + max;
     void *md   = data;
@@ -64,7 +64,7 @@ void uct_ib_log_dump_sg_list(uct_ib_iface_t *iface, uct_am_trace_type_t type,
 
         s               += strlen(s);
 
-        if (data_dump) {
+        if ((i < data_dump_sge) && data_dump) {
             len = ucs_min(sg_list[i].length,
                           UCS_PTR_BYTE_DIFF(md, data) + sizeof(data));
             memcpy(md, (void*)sg_list[i].addr, len);
@@ -108,6 +108,22 @@ void uct_ib_log_dump_atomic_masked_cswap(int argsize, uint64_t compare, uint64_t
 {
     snprintf(buf, max, " [%d bit cmp %"PRIi64"/0x%"PRIx64" swap %"PRIi64"/0x%"PRIx64"]",
              argsize * 8, compare, compare_mask, swap, swap_mask);
+}
+
+void uct_ib_log_dump_qp_peer_info(uct_ib_iface_t *iface,
+                                  const struct ibv_ah_attr *ah_attr,
+                                  uint32_t dest_qpn, char *buf, size_t max)
+{
+    char *s    = buf;
+    char *ends = buf + max;
+
+    snprintf(s, ends - s, "[rqpn 0x%x ", dest_qpn);
+    s += strlen(s);
+
+    uct_ib_ah_attr_str(s, ends - s, ah_attr);
+    s += strlen(s);
+
+    snprintf(s, ends - s, "]");
 }
 
 void uct_ib_log_dump_recv_completion(uct_ib_iface_t *iface, uint32_t local_qp,
@@ -213,9 +229,26 @@ static void uct_ib_dump_send_wr(uct_ib_iface_t *iface, struct ibv_qp *qp,
     s += strlen(s);
 
     uct_ib_log_dump_sg_list(iface, UCT_AM_TRACE_TYPE_SEND, wr->sg_list,
-                            ucs_min(wr->num_sge, max_sge),
+                            wr->num_sge,
                             (wr->send_flags & IBV_SEND_INLINE) ? -1 : 0,
-                            data_dump, s, ends - s);
+                            data_dump, max_sge, s, ends - s);
+}
+
+void uct_ib_memlock_limit_msg(ucs_string_buffer_t *message, int sys_errno)
+{
+    size_t memlock_limit;
+    ucs_status_t status;
+
+    if (sys_errno == ENOMEM) {
+        status = ucs_sys_get_effective_memlock_rlimit(&memlock_limit);
+        if ((status == UCS_OK) && (memlock_limit != SIZE_MAX)) {
+            ucs_string_buffer_appendf(
+                    message,
+                    " : Please set max locked memory (ulimit -l) to 'unlimited'"
+                    " (current: %llu kbytes)",
+                    memlock_limit / UCS_KBYTE);
+        }
+    }
 }
 
 void __uct_ib_log_post_send(const char *file, int line, const char *function,
@@ -249,99 +282,3 @@ void __uct_ib_log_recv_completion(const char *file, int line, const char *functi
                                     packet_dump_cb, buf, sizeof(buf) - 1);
     uct_log_data(file, line, function, buf);
 }
-
-#if HAVE_DECL_IBV_EXP_POST_SEND
-static void uct_ib_dump_exp_send_wr(uct_ib_iface_t *iface, struct ibv_qp *qp,
-                                    struct ibv_exp_send_wr *wr, int max_sge,
-                                    uct_log_data_dump_func_t data_dump_cb,
-                                    char *buf, size_t max)
-{
-    static uct_ib_opcode_t exp_opcodes[] = {
-#if HAVE_DECL_IBV_EXP_WR_NOP
-        [IBV_EXP_WR_NOP]                  = { "NOP",        0},
-#endif
-        [IBV_EXP_WR_RDMA_WRITE]           = { "RDMA_WRITE", UCT_IB_OPCODE_FLAG_HAS_RADDR },
-        [IBV_EXP_WR_RDMA_READ]            = { "RDMA_READ",  UCT_IB_OPCODE_FLAG_HAS_RADDR },
-        [IBV_EXP_WR_SEND]                 = { "SEND",       0 },
-        [IBV_EXP_WR_SEND_WITH_IMM]        = { "SEND_IMM",   0 },
-        [IBV_EXP_WR_ATOMIC_CMP_AND_SWP]   = { "CSWAP",      UCT_IB_OPCODE_FLAG_HAS_ATOMIC },
-        [IBV_EXP_WR_ATOMIC_FETCH_AND_ADD] = { "FETCH_ADD",  UCT_IB_OPCODE_FLAG_HAS_ATOMIC },
-#if HAVE_DECL_IBV_EXP_WR_EXT_MASKED_ATOMIC_CMP_AND_SWP
-        [IBV_EXP_WR_EXT_MASKED_ATOMIC_CMP_AND_SWP]   = { "MASKED_CSWAP",
-                                                         UCT_IB_OPCODE_FLAG_HAS_EXT_ATOMIC },
-#endif
-#if HAVE_DECL_IBV_EXP_WR_EXT_MASKED_ATOMIC_FETCH_AND_ADD
-        [IBV_EXP_WR_EXT_MASKED_ATOMIC_FETCH_AND_ADD] = { "MASKED_FETCH_ADD",
-                                                         UCT_IB_OPCODE_FLAG_HAS_EXT_ATOMIC },
-#endif
-   };
-
-   char *s    = buf;
-   char *ends = buf + max;
-   uct_ib_opcode_t *op = &exp_opcodes[wr->exp_opcode];
-
-   /* opcode in legacy mode */
-   UCS_STATIC_ASSERT((int)IBV_SEND_SIGNALED  == (int)IBV_EXP_SEND_SIGNALED);
-   UCS_STATIC_ASSERT((int)IBV_SEND_FENCE     == (int)IBV_EXP_SEND_FENCE);
-   UCS_STATIC_ASSERT((int)IBV_SEND_SOLICITED == (int)IBV_EXP_SEND_SOLICITED);
-   uct_ib_dump_wr_opcode(qp, wr->wr_id, op, wr->exp_send_flags, s, ends - s);
-   s += strlen(s);
-
-   /* TODO DC address handle */
-
-   /* WR data in legacy mode */
-   UCS_STATIC_ASSERT((int)IBV_WR_ATOMIC_FETCH_AND_ADD ==  (int)IBV_EXP_WR_ATOMIC_FETCH_AND_ADD);
-   UCS_STATIC_ASSERT((int)IBV_WR_ATOMIC_CMP_AND_SWP   ==  (int)IBV_EXP_WR_ATOMIC_CMP_AND_SWP);
-   UCS_STATIC_ASSERT(ucs_offsetof(struct ibv_send_wr, opcode) ==
-                     ucs_offsetof(struct ibv_exp_send_wr, exp_opcode));
-   UCS_STATIC_ASSERT(ucs_offsetof(struct ibv_send_wr, wr) ==
-                     ucs_offsetof(struct ibv_exp_send_wr, wr));
-   uct_ib_dump_wr(qp, op, (struct ibv_send_wr*)wr, s, ends - s);
-   s += strlen(s);
-
-   /* Extended atomics */
-#if HAVE_IB_EXT_ATOMICS
-   if (op->flags & UCT_IB_OPCODE_FLAG_HAS_EXT_ATOMIC) {
-       uct_ib_log_dump_remote_addr(wr->ext_op.masked_atomics.remote_addr,
-                             wr->ext_op.masked_atomics.rkey,
-                             s, ends - s);
-       s += strlen(s);
-
-       if (wr->exp_opcode == IBV_EXP_WR_EXT_MASKED_ATOMIC_FETCH_AND_ADD) {
-           uct_ib_log_dump_atomic_masked_fadd(wr->ext_op.masked_atomics.log_arg_sz,
-                                          wr->ext_op.masked_atomics.wr_data.inline_data.op.fetch_add.add_val,
-                                          wr->ext_op.masked_atomics.wr_data.inline_data.op.fetch_add.field_boundary,
-                                          s, ends - s);
-       } else if (wr->exp_opcode == IBV_EXP_WR_EXT_MASKED_ATOMIC_CMP_AND_SWP) {
-           uct_ib_log_dump_atomic_masked_cswap(wr->ext_op.masked_atomics.log_arg_sz,
-                                           wr->ext_op.masked_atomics.wr_data.inline_data.op.cmp_swap.compare_val,
-                                           wr->ext_op.masked_atomics.wr_data.inline_data.op.cmp_swap.compare_mask,
-                                           wr->ext_op.masked_atomics.wr_data.inline_data.op.cmp_swap.swap_val,
-                                           wr->ext_op.masked_atomics.wr_data.inline_data.op.cmp_swap.swap_mask,
-                                           s, ends - s);
-       }
-       s += strlen(s);
-   }
-#endif
-
-   uct_ib_log_dump_sg_list(iface, UCT_AM_TRACE_TYPE_SEND, wr->sg_list,
-                           ucs_min(wr->num_sge, max_sge),
-                           (wr->exp_send_flags & IBV_EXP_SEND_INLINE) ? -1 : 0,
-                           data_dump_cb, s, ends - s);
-}
-
-void __uct_ib_log_exp_post_send(const char *file, int line, const char *function,
-                                uct_ib_iface_t *iface, struct ibv_qp *qp,
-                                struct ibv_exp_send_wr *wr, int max_sge,
-                                uct_log_data_dump_func_t packet_dump_cb)
-{
-    char buf[256] = {0};
-    while (wr != NULL) {
-        uct_ib_dump_exp_send_wr(iface, qp, wr, max_sge, packet_dump_cb,
-                                buf, sizeof(buf) - 1);
-        uct_log_data(file, line, function, buf);
-        wr = wr->next;
-    }
-}
-
-#endif

@@ -1,0 +1,120 @@
+# iov (segments 1, pack order normal, overlap none)
+test/iov/iov -datatype int -count 17 -seed 433 -iters 32768 -segments 1 -ordering normal -overlap none
+test/iov/iov -datatype short_int -count 17 -seed 434 -iters 32768 -segments 1 -ordering normal -overlap none
+test/iov/iov -datatype int:3+float:2 -count 17 -seed 435 -iters 32768 -segments 1 -ordering normal -overlap none
+test/iov/iov -datatype int:3+double:2 -count 17 -seed 436 -iters 32768 -segments 1 -ordering normal -overlap none
+test/iov/iov -datatype c_complex -count 17 -seed 437 -iters 32768 -segments 1 -ordering normal -overlap none
+test/iov/iov -datatype c_double_complex -count 17 -seed 438 -iters 32768 -segments 1 -ordering normal -overlap none
+test/iov/iov -datatype int -count 1075 -seed 439 -iters 128 -segments 1 -ordering normal -overlap none
+test/iov/iov -datatype short_int -count 1075 -seed 440 -iters 128 -segments 1 -ordering normal -overlap none
+test/iov/iov -datatype int:3+float:2 -count 1075 -seed 441 -iters 128 -segments 1 -ordering normal -overlap none
+test/iov/iov -datatype int:3+double:2 -count 1075 -seed 442 -iters 128 -segments 1 -ordering normal -overlap none
+test/iov/iov -datatype c_complex -count 1075 -seed 443 -iters 128 -segments 1 -ordering normal -overlap none
+test/iov/iov -datatype c_double_complex -count 1075 -seed 444 -iters 128 -segments 1 -ordering normal -overlap none
+test/iov/iov -datatype int -count 65536 -seed 445 -iters 32 -segments 1 -ordering normal -overlap none
+test/iov/iov -datatype short_int -count 65536 -seed 446 -iters 32 -segments 1 -ordering normal -overlap none
+test/iov/iov -datatype int:3+float:2 -count 65536 -seed 447 -iters 32 -segments 1 -ordering normal -overlap none
+test/iov/iov -datatype int:3+double:2 -count 65536 -seed 448 -iters 32 -segments 1 -ordering normal -overlap none
+test/iov/iov -datatype c_complex -count 65536 -seed 449 -iters 32 -segments 1 -ordering normal -overlap none
+test/iov/iov -datatype c_double_complex -count 65536 -seed 450 -iters 32 -segments 1 -ordering normal -overlap none
+
+# iov (segments 64, pack order normal, overlap none)
+test/iov/iov -datatype int -count 17 -seed 451 -iters 32768 -segments 64 -ordering normal -overlap none
+test/iov/iov -datatype short_int -count 17 -seed 452 -iters 32768 -segments 64 -ordering normal -overlap none
+test/iov/iov -datatype int:3+float:2 -count 17 -seed 453 -iters 32768 -segments 64 -ordering normal -overlap none
+test/iov/iov -datatype int:3+double:2 -count 17 -seed 454 -iters 32768 -segments 64 -ordering normal -overlap none
+test/iov/iov -datatype c_complex -count 17 -seed 455 -iters 32768 -segments 64 -ordering normal -overlap none
+test/iov/iov -datatype c_double_complex -count 17 -seed 456 -iters 32768 -segments 64 -ordering normal -overlap none
+test/iov/iov -datatype int -count 1075 -seed 457 -iters 128 -segments 64 -ordering normal -overlap none
+test/iov/iov -datatype short_int -count 1075 -seed 458 -iters 128 -segments 64 -ordering normal -overlap none
+test/iov/iov -datatype int:3+float:2 -count 1075 -seed 459 -iters 128 -segments 64 -ordering normal -overlap none
+test/iov/iov -datatype int:3+double:2 -count 1075 -seed 460 -iters 128 -segments 64 -ordering normal -overlap none
+test/iov/iov -datatype c_complex -count 1075 -seed 461 -iters 128 -segments 64 -ordering normal -overlap none
+test/iov/iov -datatype c_double_complex -count 1075 -seed 462 -iters 128 -segments 64 -ordering normal -overlap none
+test/iov/iov -datatype int -count 65536 -seed 463 -iters 32 -segments 64 -ordering normal -overlap none
+test/iov/iov -datatype short_int -count 65536 -seed 464 -iters 32 -segments 64 -ordering normal -overlap none
+test/iov/iov -datatype int:3+float:2 -count 65536 -seed 465 -iters 32 -segments 64 -ordering normal -overlap none
+test/iov/iov -datatype int:3+double:2 -count 65536 -seed 466 -iters 32 -segments 64 -ordering normal -overlap none
+test/iov/iov -datatype c_complex -count 65536 -seed 467 -iters 32 -segments 64 -ordering normal -overlap none
+test/iov/iov -datatype c_double_complex -count 65536 -seed 468 -iters 32 -segments 64 -ordering normal -overlap none
+
+# iov (segments 64, pack order reverse, overlap none)
+test/iov/iov -datatype int -count 17 -seed 469 -iters 32768 -segments 64 -ordering reverse -overlap none
+test/iov/iov -datatype short_int -count 17 -seed 470 -iters 32768 -segments 64 -ordering reverse -overlap none
+test/iov/iov -datatype int:3+float:2 -count 17 -seed 471 -iters 32768 -segments 64 -ordering reverse -overlap none
+test/iov/iov -datatype int:3+double:2 -count 17 -seed 472 -iters 32768 -segments 64 -ordering reverse -overlap none
+test/iov/iov -datatype c_complex -count 17 -seed 473 -iters 32768 -segments 64 -ordering reverse -overlap none
+test/iov/iov -datatype c_double_complex -count 17 -seed 474 -iters 32768 -segments 64 -ordering reverse -overlap none
+test/iov/iov -datatype int -count 1075 -seed 475 -iters 128 -segments 64 -ordering reverse -overlap none
+test/iov/iov -datatype short_int -count 1075 -seed 476 -iters 128 -segments 64 -ordering reverse -overlap none
+test/iov/iov -datatype int:3+float:2 -count 1075 -seed 477 -iters 128 -segments 64 -ordering reverse -overlap none
+test/iov/iov -datatype int:3+double:2 -count 1075 -seed 478 -iters 128 -segments 64 -ordering reverse -overlap none
+test/iov/iov -datatype c_complex -count 1075 -seed 479 -iters 128 -segments 64 -ordering reverse -overlap none
+test/iov/iov -datatype c_double_complex -count 1075 -seed 480 -iters 128 -segments 64 -ordering reverse -overlap none
+test/iov/iov -datatype int -count 65536 -seed 481 -iters 32 -segments 64 -ordering reverse -overlap none
+test/iov/iov -datatype short_int -count 65536 -seed 482 -iters 32 -segments 64 -ordering reverse -overlap none
+test/iov/iov -datatype int:3+float:2 -count 65536 -seed 483 -iters 32 -segments 64 -ordering reverse -overlap none
+test/iov/iov -datatype int:3+double:2 -count 65536 -seed 484 -iters 32 -segments 64 -ordering reverse -overlap none
+test/iov/iov -datatype c_complex -count 65536 -seed 485 -iters 32 -segments 64 -ordering reverse -overlap none
+test/iov/iov -datatype c_double_complex -count 65536 -seed 486 -iters 32 -segments 64 -ordering reverse -overlap none
+
+# iov (segments 64, pack order random, overlap none)
+test/iov/iov -datatype int -count 17 -seed 487 -iters 32768 -segments 64 -ordering random -overlap none
+test/iov/iov -datatype short_int -count 17 -seed 488 -iters 32768 -segments 64 -ordering random -overlap none
+test/iov/iov -datatype int:3+float:2 -count 17 -seed 489 -iters 32768 -segments 64 -ordering random -overlap none
+test/iov/iov -datatype int:3+double:2 -count 17 -seed 490 -iters 32768 -segments 64 -ordering random -overlap none
+test/iov/iov -datatype c_complex -count 17 -seed 491 -iters 32768 -segments 64 -ordering random -overlap none
+test/iov/iov -datatype c_double_complex -count 17 -seed 492 -iters 32768 -segments 64 -ordering random -overlap none
+test/iov/iov -datatype int -count 1075 -seed 493 -iters 128 -segments 64 -ordering random -overlap none
+test/iov/iov -datatype short_int -count 1075 -seed 494 -iters 128 -segments 64 -ordering random -overlap none
+test/iov/iov -datatype int:3+float:2 -count 1075 -seed 495 -iters 128 -segments 64 -ordering random -overlap none
+test/iov/iov -datatype int:3+double:2 -count 1075 -seed 496 -iters 128 -segments 64 -ordering random -overlap none
+test/iov/iov -datatype c_complex -count 1075 -seed 497 -iters 128 -segments 64 -ordering random -overlap none
+test/iov/iov -datatype c_double_complex -count 1075 -seed 498 -iters 128 -segments 64 -ordering random -overlap none
+test/iov/iov -datatype int -count 65536 -seed 499 -iters 32 -segments 64 -ordering random -overlap none
+test/iov/iov -datatype short_int -count 65536 -seed 500 -iters 32 -segments 64 -ordering random -overlap none
+test/iov/iov -datatype int:3+float:2 -count 65536 -seed 501 -iters 32 -segments 64 -ordering random -overlap none
+test/iov/iov -datatype int:3+double:2 -count 65536 -seed 502 -iters 32 -segments 64 -ordering random -overlap none
+test/iov/iov -datatype c_complex -count 65536 -seed 503 -iters 32 -segments 64 -ordering random -overlap none
+test/iov/iov -datatype c_double_complex -count 65536 -seed 504 -iters 32 -segments 64 -ordering random -overlap none
+
+# iov (segments 64, pack order normal, overlap regular)
+test/iov/iov -datatype int -count 17 -seed 505 -iters 32768 -segments 64 -ordering normal -overlap regular
+test/iov/iov -datatype short_int -count 17 -seed 506 -iters 32768 -segments 64 -ordering normal -overlap regular
+test/iov/iov -datatype int:3+float:2 -count 17 -seed 507 -iters 32768 -segments 64 -ordering normal -overlap regular
+test/iov/iov -datatype int:3+double:2 -count 17 -seed 508 -iters 32768 -segments 64 -ordering normal -overlap regular
+test/iov/iov -datatype c_complex -count 17 -seed 509 -iters 32768 -segments 64 -ordering normal -overlap regular
+test/iov/iov -datatype c_double_complex -count 17 -seed 510 -iters 32768 -segments 64 -ordering normal -overlap regular
+test/iov/iov -datatype int -count 1075 -seed 511 -iters 128 -segments 64 -ordering normal -overlap regular
+test/iov/iov -datatype short_int -count 1075 -seed 512 -iters 128 -segments 64 -ordering normal -overlap regular
+test/iov/iov -datatype int:3+float:2 -count 1075 -seed 513 -iters 128 -segments 64 -ordering normal -overlap regular
+test/iov/iov -datatype int:3+double:2 -count 1075 -seed 514 -iters 128 -segments 64 -ordering normal -overlap regular
+test/iov/iov -datatype c_complex -count 1075 -seed 515 -iters 128 -segments 64 -ordering normal -overlap regular
+test/iov/iov -datatype c_double_complex -count 1075 -seed 516 -iters 128 -segments 64 -ordering normal -overlap regular
+test/iov/iov -datatype int -count 65536 -seed 517 -iters 32 -segments 64 -ordering normal -overlap regular
+test/iov/iov -datatype short_int -count 65536 -seed 518 -iters 32 -segments 64 -ordering normal -overlap regular
+test/iov/iov -datatype int:3+float:2 -count 65536 -seed 519 -iters 32 -segments 64 -ordering normal -overlap regular
+test/iov/iov -datatype int:3+double:2 -count 65536 -seed 520 -iters 32 -segments 64 -ordering normal -overlap regular
+test/iov/iov -datatype c_complex -count 65536 -seed 521 -iters 32 -segments 64 -ordering normal -overlap regular
+test/iov/iov -datatype c_double_complex -count 65536 -seed 522 -iters 32 -segments 64 -ordering normal -overlap regular
+
+# iov (segments 64, pack order normal, overlap irregular)
+test/iov/iov -datatype int -count 17 -seed 523 -iters 32768 -segments 64 -ordering normal -overlap irregular
+test/iov/iov -datatype short_int -count 17 -seed 524 -iters 32768 -segments 64 -ordering normal -overlap irregular
+test/iov/iov -datatype int:3+float:2 -count 17 -seed 525 -iters 32768 -segments 64 -ordering normal -overlap irregular
+test/iov/iov -datatype int:3+double:2 -count 17 -seed 526 -iters 32768 -segments 64 -ordering normal -overlap irregular
+test/iov/iov -datatype c_complex -count 17 -seed 527 -iters 32768 -segments 64 -ordering normal -overlap irregular
+test/iov/iov -datatype c_double_complex -count 17 -seed 528 -iters 32768 -segments 64 -ordering normal -overlap irregular
+test/iov/iov -datatype int -count 1075 -seed 529 -iters 128 -segments 64 -ordering normal -overlap irregular
+test/iov/iov -datatype short_int -count 1075 -seed 530 -iters 128 -segments 64 -ordering normal -overlap irregular
+test/iov/iov -datatype int:3+float:2 -count 1075 -seed 531 -iters 128 -segments 64 -ordering normal -overlap irregular
+test/iov/iov -datatype int:3+double:2 -count 1075 -seed 532 -iters 128 -segments 64 -ordering normal -overlap irregular
+test/iov/iov -datatype c_complex -count 1075 -seed 533 -iters 128 -segments 64 -ordering normal -overlap irregular
+test/iov/iov -datatype c_double_complex -count 1075 -seed 534 -iters 128 -segments 64 -ordering normal -overlap irregular
+test/iov/iov -datatype int -count 65536 -seed 535 -iters 32 -segments 64 -ordering normal -overlap irregular
+test/iov/iov -datatype short_int -count 65536 -seed 536 -iters 32 -segments 64 -ordering normal -overlap irregular
+test/iov/iov -datatype int:3+float:2 -count 65536 -seed 537 -iters 32 -segments 64 -ordering normal -overlap irregular
+test/iov/iov -datatype int:3+double:2 -count 65536 -seed 538 -iters 32 -segments 64 -ordering normal -overlap irregular
+test/iov/iov -datatype c_complex -count 65536 -seed 539 -iters 32 -segments 64 -ordering normal -overlap irregular
+test/iov/iov -datatype c_double_complex -count 65536 -seed 540 -iters 32 -segments 64 -ordering normal -overlap irregular
+

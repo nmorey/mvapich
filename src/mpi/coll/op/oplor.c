@@ -17,15 +17,9 @@
 #define MPIR_LLOR(a,b) ((a)||(b))
 #endif
 
-#ifdef __ibmxl__
-void real16_lor(void *invec, void *inoutvec, int *Len);
-#else
-void real16_lor_(void *invec, void *inoutvec, int *Len);
-#endif
-
-void MPIR_LOR(void *invec, void *inoutvec, int *Len, MPI_Datatype * type)
+void MPIR_LOR(void *invec, void *inoutvec, MPI_Aint * Len, MPI_Datatype * type)
 {
-    int i, len = *Len;
+    MPI_Aint i, len = *Len;
 
     switch (*type) {
 #undef MPIR_OP_TYPE_MACRO
@@ -62,18 +56,6 @@ void MPIR_LOR(void *invec, void *inoutvec, int *Len, MPI_Datatype * type)
                 MPIR_OP_TYPE_GROUP(FORTRAN_INTEGER)
                 MPIR_OP_TYPE_GROUP(FORTRAN_INTEGER_EXTRA)
 #undef MPIR_OP_TYPE_MACRO
-#ifdef HAVE_FORTRAN_BINDING
-#ifndef __PGI
-        /* As of v20.1, PGI compilers only support real8 */
-        case (MPI_REAL16):
-#ifdef __ibmxl__
-            real16_lor(invec, inoutvec, Len);
-#else
-            real16_lor_(invec, inoutvec, Len);
-#endif
-            break;
-#endif /*ifndef __PGI*/
-#endif /*#ifdef HAVE_FORTRAN_BINDING*/
         default:
             MPIR_Assert(0);
             break;
@@ -99,12 +81,6 @@ int MPIR_LOR_check_dtype(MPI_Datatype type)
                 MPIR_OP_TYPE_GROUP(FLOATING_POINT)
                 MPIR_OP_TYPE_GROUP(FLOATING_POINT_EXTRA)
 #undef MPIR_OP_TYPE_MACRO
-#ifdef HAVE_FORTRAN_BINDING
-#ifndef __PGI
-        /* As of v20.1, PGI compilers only support real8 */
-        case (MPI_REAL16):
-#endif /*ifndef __PGI*/
-#endif /*#ifdef HAVE_FORTRAN_BINDING*/
                 return MPI_SUCCESS;
             /* --BEGIN ERROR HANDLING-- */
         default:

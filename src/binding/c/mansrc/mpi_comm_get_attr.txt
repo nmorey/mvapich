@@ -1,0 +1,42 @@
+/*D
+   MPI_Comm_get_attr - Retrieves attribute value by key
+
+Synopsis:
+.vb
+int MPI_Comm_get_attr(MPI_Comm comm, int comm_keyval, void *attribute_val,
+                      int *flag)
+.ve
+
+Input Parameters:
++ comm - communicator to which the attribute is attached (handle)
+- comm_keyval - key value (integer)
+
+Output Parameters:
++ attribute_val - attribute value, unless flag = false (None)
+- flag - false if no attribute is associated with the key (logical)
+
+Notes:
+    Attributes must be extracted from the same language as they were inserted
+    in with 'MPI_ATTR_PUT'.  The notes for C and Fortran below explain why.
+
+.N ThreadSafe
+
+Notes for C:
+    Even though the 'attribute_val' argument is declared as 'void *', it is
+    really the address of a void pointer (i.e., a 'void **').  Using
+    a 'void *', however, is more in keeping with C idiom and allows the
+    pointer to be passed without additional casts.
+
+.N Fortran
+    The 'attribute_val' in Fortran is a pointer to a Fortran integer, not
+    a pointer to a 'void *'.
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_KEYVAL
+.N MPI_ERR_OTHER
+
+D*/
+

@@ -1,0 +1,29 @@
+/*D
+   MPI_Test - Test for the completion of a request
+
+Synopsis:
+.vb
+int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status)
+.ve
+
+Input/Output Parameters:
+. request - communication request (handle)
+
+Output Parameters:
++ flag - true if operation completed (logical)
+- status - status object (Status)
+
+.N waitstatus
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_REQUEST
+.N MPI_ERR_OTHER
+
+D*/
+

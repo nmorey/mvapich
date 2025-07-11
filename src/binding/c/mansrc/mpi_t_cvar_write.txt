@@ -1,0 +1,25 @@
+/*D
+   MPI_T_cvar_write - Write a control variable
+
+Synopsis:
+.vb
+int MPI_T_cvar_write(MPI_T_cvar_handle handle, const void *buf)
+.ve
+
+Input Parameters:
++ handle - handle to the control variable to be written (handle)
+- buf - initial address of storage location for variable value (choice)
+
+.N ThreadSafe
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_T_ERR_CVAR_SET_NEVER
+.N MPI_T_ERR_CVAR_SET_NOT_NOW
+.N MPI_T_ERR_INVALID
+.N MPI_T_ERR_INVALID_HANDLE
+.N MPI_T_ERR_NOT_INITIALIZED
+.N MPI_ERR_OTHER
+
+D*/
+

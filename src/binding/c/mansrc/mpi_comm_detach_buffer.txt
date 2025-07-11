@@ -1,0 +1,29 @@
+/*D
+   MPI_Comm_detach_buffer - Removes an existing buffer (for use in MPI_Bsend etc) in the communicator
+
+Synopsis:
+.vb
+int MPI_Comm_detach_buffer(MPI_Comm comm, void *buffer_addr, int *size)
+.ve
+.vb
+int MPI_Comm_detach_buffer_c(MPI_Comm comm, void *buffer_addr, MPI_Count *size)
+.ve
+
+Input Parameters:
+. comm - communicator (handle)
+
+Output Parameters:
++ buffer_addr - initial buffer address (choice)
+- size - buffer size, in bytes (integer)
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Comm_attach_buffer, MPI_Bsend
+D*/
+

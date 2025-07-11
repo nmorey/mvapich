@@ -2,17 +2,6 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- *
- */
 
 #include "mpidimpl.h"
 
@@ -23,7 +12,7 @@
 /*
  * MPID_Rsend()
  */
-int MPID_Rsend(const void * buf, int count, MPI_Datatype datatype, int rank, int tag, MPIR_Comm * comm, int context_offset,
+int MPID_Rsend(const void * buf, MPI_Aint count, MPI_Datatype datatype, int rank, int tag, MPIR_Comm * comm, int attr,
 	       MPIR_Request ** request)
 {
     intptr_t data_sz;
@@ -37,10 +26,9 @@ int MPID_Rsend(const void * buf, int count, MPI_Datatype datatype, int rank, int
 #endif    
     int mpi_errno = MPI_SUCCESS;    
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_RSEND);
+    MPIR_FUNC_ENTER;
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_RSEND);
-
+    int context_offset = MPIR_PT2PT_ATTR_CONTEXT_OFFSET(attr);
     MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_OTHER,VERBOSE,(MPL_DBG_FDEST,
 					"rank=%d, tag=%d, context=%d", 
                               rank, tag, comm->context_id + context_offset));
@@ -87,9 +75,7 @@ int MPID_Rsend(const void * buf, int count, MPI_Datatype datatype, int rank, int
 	MPIDI_VC_FAI_send_seqnum(vc, seqnum);
 	MPIDI_Pkt_set_seqnum(ready_pkt, seqnum);
 	
-	MPID_THREAD_CS_ENTER(POBJ, vc->pobj_mutex);
 	mpi_errno = MPIDI_CH3_iStartMsg(vc, ready_pkt, sizeof(*ready_pkt), &sreq);
-	MPID_THREAD_CS_EXIT(POBJ, vc->pobj_mutex);
 	/* --BEGIN ERROR HANDLING-- */
 	if (mpi_errno != MPI_SUCCESS)
 	{
@@ -108,18 +94,12 @@ int MPID_Rsend(const void * buf, int count, MPI_Datatype datatype, int rank, int
 	goto fn_exit;
     }
     
-#if defined(CHANNEL_MRAIL)
-    /* OSU-MPI2 use rndv protocol for ready send */
-    if (data_sz + sizeof(MPIDI_CH3_Pkt_eager_send_t) <= vc->eager_max_msg_sz 
-        && ! vc->force_rndv) {
-#else /* defined(CHANNEL_MRAIL) */
-	if (vc->ready_eager_max_msg_sz < 0 || data_sz + sizeof(MPIDI_CH3_Pkt_ready_send_t) <= vc->ready_eager_max_msg_sz) {
-#endif
+    if (vc->ready_eager_max_msg_sz < 0 || data_sz + sizeof(MPIDI_CH3_Pkt_ready_send_t) <= vc->ready_eager_max_msg_sz) {
         if (dt_contig)
         {
             mpi_errno = MPIDI_CH3_EagerContigSend( &sreq,
                                                    MPIDI_CH3_PKT_READY_SEND,
-                                                   (char *)buf + dt_true_lb,
+                                                   MPIR_get_contig_ptr(buf, dt_true_lb),
                                                    data_sz, rank, tag, comm,
                                                    context_offset );
         }
@@ -134,30 +114,24 @@ int MPID_Rsend(const void * buf, int count, MPI_Datatype datatype, int rank, int
                                                       comm, context_offset );
         }
     } else {
-	/* Do rendezvous.  This will be sent as a regular send not as
+ 	/* Do rendezvous.  This will be sent as a regular send not as
            a ready send, so the receiver won't know to send an error
            if the receive has not been posted */
  	MPIDI_Request_create_sreq(sreq, mpi_errno, goto fn_exit);
-#if defined(CHANNEL_MRAIL)
-	//TODO: set rndvSend_fn 
-	MPIDI_Request_set_type(sreq, MPIDI_REQUEST_TYPE_RSEND);
-	mpi_errno = MPIDI_CH3_RndvSend( &sreq, buf, count, datatype, dt_contig,
-	                                data_sz, dt_true_lb, rank, tag, comm,
-	                                context_offset );
-#else
 	MPIDI_Request_set_type(sreq, MPIDI_REQUEST_TYPE_SEND);
 	mpi_errno = vc->rndvSend_fn( &sreq, buf, count, datatype, dt_contig,
                                      data_sz, dt_true_lb, rank, tag, comm,
                                      context_offset );
-#endif
 	/* Note that we don't increase the ref count on the datatype
 	   because this is a blocking call, and the calling routine
 	   must wait until sreq completes */
    }
-    	
 
   fn_exit:
     *request = sreq;
+    if (sreq) {
+        MPII_SENDQ_REMEMBER(sreq, rank, tag, comm->recvcontext_id, buf, count);
+    }
 
     MPL_DBG_STMT(MPIDI_CH3_DBG_OTHER,VERBOSE,
     {
@@ -174,6 +148,6 @@ int MPID_Rsend(const void * buf, int count, MPI_Datatype datatype, int rank, int
 		  );
     
   fn_fail:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_RSEND);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
 }

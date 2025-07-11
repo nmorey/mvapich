@@ -1,0 +1,48 @@
+/*D
+   MPI_Fetch_and_op - Perform one-sided read-modify-write.
+
+Synopsis:
+.vb
+int MPI_Fetch_and_op(const void *origin_addr, void *result_addr,
+                     MPI_Datatype datatype, int target_rank,
+                     MPI_Aint target_disp, MPI_Op op, MPI_Win win)
+.ve
+
+Input Parameters:
++ origin_addr - initial address of buffer (choice)
+. datatype - datatype of the entry in origin, result, and target buffers (handle)
+. target_rank - rank of target (non-negative integer)
+. target_disp - displacement from start of window to beginning of target buffer (non-negative integer)
+. op - reduce operation (handle)
+- win - window object (handle)
+
+Output Parameters:
+. result_addr - initial address of result buffer (choice)
+
+Notes:
+This operations is atomic with respect to other "accumulate" operations.
+
+The generic functionality of 'MPI_Get_accumulate' might limit the performance of
+fetch-and-increment or fetch-and-add calls that might be supported by special
+hardware operations. 'MPI_Fetch_and_op' thus allows for a fast implementation
+of a commonly used subset of the functionality of 'MPI_Get_accumulate'.
+
+The origin and result buffers (origin_addr and result_addr) must be disjoint.
+Any of the predefined operations for 'MPI_Reduce', as well as 'MPI_NO_OP' or
+'MPI_REPLACE', can be specified as op; user-defined functions cannot be used. The
+datatype argument must be a predefined datatype.
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_DISP
+.N MPI_ERR_OP
+.N MPI_ERR_RANK
+.N MPI_ERR_TYPE
+.N MPI_ERR_WIN
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Get_accumulate
+D*/
+

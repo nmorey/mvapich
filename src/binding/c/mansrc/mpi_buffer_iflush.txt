@@ -1,0 +1,23 @@
+/*D
+   MPI_Buffer_iflush - start a nonblocking flush in the globally shared buffer
+
+Synopsis:
+.vb
+int MPI_Buffer_iflush(MPI_Request *request)
+.ve
+
+Output Parameters:
+. request - communication request (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Buffer_flush
+D*/
+

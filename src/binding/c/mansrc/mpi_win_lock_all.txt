@@ -1,0 +1,43 @@
+/*D
+   MPI_Win_lock_all - Begin an RMA access epoch at all processes on the given window
+
+Synopsis:
+.vb
+int MPI_Win_lock_all(int assert, MPI_Win win)
+.ve
+
+Input Parameters:
++ assert - program assertion (integer)
+- win - window object (handle)
+
+Notes:
+
+This call is not collective.
+
+The 'assert' argument is used to indicate special conditions for the fence that
+an implementation may use to optimize the 'MPI_Win_lock_all' operation.  The
+value zero is always correct.  Other assertion values may be or''ed together.
+Assertions that are valid for 'MPI_Win_lock_all' are\:
+
+. 'MPI_MODE_NOCHECK' - No other process holds, or will attempt to acquire a
+  conflicting lock, while the caller holds the window lock. This is useful
+  when mutual exclusion is achieved by other means, but the coherence
+  operations that may be attached to the lock and unlock calls are still
+  required.
+
+There may be additional overheads associated with using 'MPI_Win_lock' and
+'MPI_Win_lock_all' concurrently on the same window. These overheads could be
+avoided by specifying the assertion 'MPI_MODE_NOCHECK' when possible
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_WIN
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Win_unlock_all
+D*/
+

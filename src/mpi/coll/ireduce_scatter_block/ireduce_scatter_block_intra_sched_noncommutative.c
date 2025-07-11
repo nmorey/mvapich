@@ -10,48 +10,41 @@
  * from EuroPVM/MPI 2005.  This function currently only implements support for
  * the power-of-2 case. */
 int MPIR_Ireduce_scatter_block_intra_sched_noncommutative(const void *sendbuf, void *recvbuf,
-                                                          int recvcount, MPI_Datatype datatype,
+                                                          MPI_Aint recvcount, MPI_Datatype datatype,
                                                           MPI_Op op, MPIR_Comm * comm_ptr,
                                                           MPIR_Sched_t s)
 {
     int mpi_errno = MPI_SUCCESS;
     int comm_size = comm_ptr->local_size;
     int rank = comm_ptr->rank;
-    int pof2;
     int log2_comm_size;
     int i, k;
-    int recv_offset, send_offset;
-    int block_size, total_count, size;
     MPI_Aint true_extent, true_lb;
     int buf0_was_inout;
     void *tmp_buf0;
     void *tmp_buf1;
     void *result_ptr;
-    MPIR_SCHED_CHKPMEM_DECL(2);
 
     MPIR_Type_get_true_extent_impl(datatype, &true_lb, &true_extent);
 
-    pof2 = 1;
-    log2_comm_size = 0;
-    while (pof2 < comm_size) {
-        pof2 <<= 1;
-        ++log2_comm_size;
-    }
-
 #ifdef HAVE_ERROR_CHECKING
     /* begin error checking */
-    MPIR_Assert(pof2 == comm_size);     /* FIXME this version only works for power of 2 procs */
+    MPIR_Assert(MPL_pof2(comm_size));   /* FIXME this version only works for power of 2 procs */
     /* end error checking */
 #endif
 
+    log2_comm_size = MPL_log2(comm_size);
+
     /* size of a block (count of datatype per block, NOT bytes per block) */
+    MPI_Aint block_size, total_count;
     block_size = recvcount;
     total_count = block_size * comm_size;
 
-    MPIR_SCHED_CHKPMEM_MALLOC(tmp_buf0, void *, true_extent * total_count, mpi_errno, "tmp_buf0",
-                              MPL_MEM_BUFFER);
-    MPIR_SCHED_CHKPMEM_MALLOC(tmp_buf1, void *, true_extent * total_count, mpi_errno, "tmp_buf1",
-                              MPL_MEM_BUFFER);
+    tmp_buf0 = MPIR_Sched_alloc_state(s, true_extent * total_count);
+    MPIR_ERR_CHKANDJUMP(!tmp_buf0, mpi_errno, MPI_ERR_OTHER, "**nomem");
+    tmp_buf1 = MPIR_Sched_alloc_state(s, true_extent * total_count);
+    MPIR_ERR_CHKANDJUMP(!tmp_buf1, mpi_errno, MPI_ERR_OTHER, "**nomem");
+
     /* adjust for potential negative lower bound in datatype */
     tmp_buf0 = (void *) ((char *) tmp_buf0 - true_lb);
     tmp_buf1 = (void *) ((char *) tmp_buf1 - true_lb);
@@ -71,6 +64,7 @@ int MPIR_Ireduce_scatter_block_intra_sched_noncommutative(const void *sendbuf, v
     MPIR_SCHED_BARRIER(s);
     buf0_was_inout = 1;
 
+    MPI_Aint send_offset, recv_offset, size;
     send_offset = 0;
     recv_offset = 0;
     size = total_count;
@@ -127,10 +121,8 @@ int MPIR_Ireduce_scatter_block_intra_sched_noncommutative(const void *sendbuf, v
     mpi_errno = MPIR_Sched_copy(result_ptr, size, datatype, recvbuf, size, datatype, s);
     MPIR_ERR_CHECK(mpi_errno);
 
-    MPIR_SCHED_CHKPMEM_COMMIT(s);
   fn_exit:
     return mpi_errno;
   fn_fail:
-    MPIR_SCHED_CHKPMEM_REAP(s);
     goto fn_exit;
 }

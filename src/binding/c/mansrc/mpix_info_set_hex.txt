@@ -1,0 +1,27 @@
+/*D
+   MPIX_Info_set_hex - [short description]
+
+Synopsis:
+.vb
+int MPIX_Info_set_hex(MPI_Info info, const char *key, const void *value,
+                      int value_size)
+.ve
+
+Input Parameters:
++ info - info object (handle)
+. key - key (string)
+. value - value (choice)
+- value_size - size of value (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_INFO
+.N MPI_ERR_OTHER
+
+D*/
+

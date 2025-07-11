@@ -1,0 +1,19 @@
+test/flatten/flatten -datatype int -count 17 -seed 649 -iters 32768
+test/flatten/flatten -datatype short_int -count 17 -seed 650 -iters 32768
+test/flatten/flatten -datatype int:3+float:2 -count 17 -seed 651 -iters 32768
+test/flatten/flatten -datatype int:3+double:2 -count 17 -seed 652 -iters 32768
+test/flatten/flatten -datatype c_complex -count 17 -seed 653 -iters 32768
+test/flatten/flatten -datatype c_double_complex -count 17 -seed 654 -iters 32768
+test/flatten/flatten -datatype int -count 1075 -seed 655 -iters 128
+test/flatten/flatten -datatype short_int -count 1075 -seed 656 -iters 128
+test/flatten/flatten -datatype int:3+float:2 -count 1075 -seed 657 -iters 128
+test/flatten/flatten -datatype int:3+double:2 -count 1075 -seed 658 -iters 128
+test/flatten/flatten -datatype c_complex -count 1075 -seed 659 -iters 128
+test/flatten/flatten -datatype c_double_complex -count 1075 -seed 660 -iters 128
+test/flatten/flatten -datatype int -count 65536 -seed 661 -iters 32
+test/flatten/flatten -datatype short_int -count 65536 -seed 662 -iters 32
+test/flatten/flatten -datatype int:3+float:2 -count 65536 -seed 663 -iters 32
+test/flatten/flatten -datatype int:3+double:2 -count 65536 -seed 664 -iters 32
+test/flatten/flatten -datatype c_complex -count 65536 -seed 665 -iters 32
+test/flatten/flatten -datatype c_double_complex -count 65536 -seed 666 -iters 32
+

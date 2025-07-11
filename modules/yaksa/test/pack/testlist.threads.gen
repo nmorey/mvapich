@@ -1,0 +1,120 @@
+# pack (segments 1, pack order normal, overlap none)
+test/pack/pack -datatype int -count 17 -seed 109 -iters 32768 -segments 1 -ordering normal -overlap none -oplist int -num-threads 4
+test/pack/pack -datatype short_int -count 17 -seed 110 -iters 32768 -segments 1 -ordering normal -overlap none -oplist int -num-threads 4
+test/pack/pack -datatype int:3+float:2 -count 17 -seed 111 -iters 32768 -segments 1 -ordering normal -overlap none -oplist float -num-threads 4
+test/pack/pack -datatype int:3+double:2 -count 17 -seed 112 -iters 32768 -segments 1 -ordering normal -overlap none -oplist float -num-threads 4
+test/pack/pack -datatype c_complex -count 17 -seed 113 -iters 32768 -segments 1 -ordering normal -overlap none -oplist complex -num-threads 4
+test/pack/pack -datatype c_double_complex -count 17 -seed 114 -iters 32768 -segments 1 -ordering normal -overlap none -oplist complex -num-threads 4
+test/pack/pack -datatype int -count 1075 -seed 115 -iters 128 -segments 1 -ordering normal -overlap none -oplist int -num-threads 4
+test/pack/pack -datatype short_int -count 1075 -seed 116 -iters 128 -segments 1 -ordering normal -overlap none -oplist int -num-threads 4
+test/pack/pack -datatype int:3+float:2 -count 1075 -seed 117 -iters 128 -segments 1 -ordering normal -overlap none -oplist float -num-threads 4
+test/pack/pack -datatype int:3+double:2 -count 1075 -seed 118 -iters 128 -segments 1 -ordering normal -overlap none -oplist float -num-threads 4
+test/pack/pack -datatype c_complex -count 1075 -seed 119 -iters 128 -segments 1 -ordering normal -overlap none -oplist complex -num-threads 4
+test/pack/pack -datatype c_double_complex -count 1075 -seed 120 -iters 128 -segments 1 -ordering normal -overlap none -oplist complex -num-threads 4
+test/pack/pack -datatype int -count 65536 -seed 121 -iters 32 -segments 1 -ordering normal -overlap none -oplist int -num-threads 4
+test/pack/pack -datatype short_int -count 65536 -seed 122 -iters 32 -segments 1 -ordering normal -overlap none -oplist int -num-threads 4
+test/pack/pack -datatype int:3+float:2 -count 65536 -seed 123 -iters 32 -segments 1 -ordering normal -overlap none -oplist float -num-threads 4
+test/pack/pack -datatype int:3+double:2 -count 65536 -seed 124 -iters 32 -segments 1 -ordering normal -overlap none -oplist float -num-threads 4
+test/pack/pack -datatype c_complex -count 65536 -seed 125 -iters 32 -segments 1 -ordering normal -overlap none -oplist complex -num-threads 4
+test/pack/pack -datatype c_double_complex -count 65536 -seed 126 -iters 32 -segments 1 -ordering normal -overlap none -oplist complex -num-threads 4
+
+# pack (segments 64, pack order normal, overlap none)
+test/pack/pack -datatype int -count 17 -seed 127 -iters 32768 -segments 64 -ordering normal -overlap none -oplist int -num-threads 4
+test/pack/pack -datatype short_int -count 17 -seed 128 -iters 32768 -segments 64 -ordering normal -overlap none -oplist int -num-threads 4
+test/pack/pack -datatype int:3+float:2 -count 17 -seed 129 -iters 32768 -segments 64 -ordering normal -overlap none -oplist float -num-threads 4
+test/pack/pack -datatype int:3+double:2 -count 17 -seed 130 -iters 32768 -segments 64 -ordering normal -overlap none -oplist float -num-threads 4
+test/pack/pack -datatype c_complex -count 17 -seed 131 -iters 32768 -segments 64 -ordering normal -overlap none -oplist complex -num-threads 4
+test/pack/pack -datatype c_double_complex -count 17 -seed 132 -iters 32768 -segments 64 -ordering normal -overlap none -oplist complex -num-threads 4
+test/pack/pack -datatype int -count 1075 -seed 133 -iters 128 -segments 64 -ordering normal -overlap none -oplist int -num-threads 4
+test/pack/pack -datatype short_int -count 1075 -seed 134 -iters 128 -segments 64 -ordering normal -overlap none -oplist int -num-threads 4
+test/pack/pack -datatype int:3+float:2 -count 1075 -seed 135 -iters 128 -segments 64 -ordering normal -overlap none -oplist float -num-threads 4
+test/pack/pack -datatype int:3+double:2 -count 1075 -seed 136 -iters 128 -segments 64 -ordering normal -overlap none -oplist float -num-threads 4
+test/pack/pack -datatype c_complex -count 1075 -seed 137 -iters 128 -segments 64 -ordering normal -overlap none -oplist complex -num-threads 4
+test/pack/pack -datatype c_double_complex -count 1075 -seed 138 -iters 128 -segments 64 -ordering normal -overlap none -oplist complex -num-threads 4
+test/pack/pack -datatype int -count 65536 -seed 139 -iters 32 -segments 64 -ordering normal -overlap none -oplist int -num-threads 4
+test/pack/pack -datatype short_int -count 65536 -seed 140 -iters 32 -segments 64 -ordering normal -overlap none -oplist int -num-threads 4
+test/pack/pack -datatype int:3+float:2 -count 65536 -seed 141 -iters 32 -segments 64 -ordering normal -overlap none -oplist float -num-threads 4
+test/pack/pack -datatype int:3+double:2 -count 65536 -seed 142 -iters 32 -segments 64 -ordering normal -overlap none -oplist float -num-threads 4
+test/pack/pack -datatype c_complex -count 65536 -seed 143 -iters 32 -segments 64 -ordering normal -overlap none -oplist complex -num-threads 4
+test/pack/pack -datatype c_double_complex -count 65536 -seed 144 -iters 32 -segments 64 -ordering normal -overlap none -oplist complex -num-threads 4
+
+# pack (segments 64, pack order reverse, overlap none)
+test/pack/pack -datatype int -count 17 -seed 145 -iters 32768 -segments 64 -ordering reverse -overlap none -oplist int -num-threads 4
+test/pack/pack -datatype short_int -count 17 -seed 146 -iters 32768 -segments 64 -ordering reverse -overlap none -oplist int -num-threads 4
+test/pack/pack -datatype int:3+float:2 -count 17 -seed 147 -iters 32768 -segments 64 -ordering reverse -overlap none -oplist float -num-threads 4
+test/pack/pack -datatype int:3+double:2 -count 17 -seed 148 -iters 32768 -segments 64 -ordering reverse -overlap none -oplist float -num-threads 4
+test/pack/pack -datatype c_complex -count 17 -seed 149 -iters 32768 -segments 64 -ordering reverse -overlap none -oplist complex -num-threads 4
+test/pack/pack -datatype c_double_complex -count 17 -seed 150 -iters 32768 -segments 64 -ordering reverse -overlap none -oplist complex -num-threads 4
+test/pack/pack -datatype int -count 1075 -seed 151 -iters 128 -segments 64 -ordering reverse -overlap none -oplist int -num-threads 4
+test/pack/pack -datatype short_int -count 1075 -seed 152 -iters 128 -segments 64 -ordering reverse -overlap none -oplist int -num-threads 4
+test/pack/pack -datatype int:3+float:2 -count 1075 -seed 153 -iters 128 -segments 64 -ordering reverse -overlap none -oplist float -num-threads 4
+test/pack/pack -datatype int:3+double:2 -count 1075 -seed 154 -iters 128 -segments 64 -ordering reverse -overlap none -oplist float -num-threads 4
+test/pack/pack -datatype c_complex -count 1075 -seed 155 -iters 128 -segments 64 -ordering reverse -overlap none -oplist complex -num-threads 4
+test/pack/pack -datatype c_double_complex -count 1075 -seed 156 -iters 128 -segments 64 -ordering reverse -overlap none -oplist complex -num-threads 4
+test/pack/pack -datatype int -count 65536 -seed 157 -iters 32 -segments 64 -ordering reverse -overlap none -oplist int -num-threads 4
+test/pack/pack -datatype short_int -count 65536 -seed 158 -iters 32 -segments 64 -ordering reverse -overlap none -oplist int -num-threads 4
+test/pack/pack -datatype int:3+float:2 -count 65536 -seed 159 -iters 32 -segments 64 -ordering reverse -overlap none -oplist float -num-threads 4
+test/pack/pack -datatype int:3+double:2 -count 65536 -seed 160 -iters 32 -segments 64 -ordering reverse -overlap none -oplist float -num-threads 4
+test/pack/pack -datatype c_complex -count 65536 -seed 161 -iters 32 -segments 64 -ordering reverse -overlap none -oplist complex -num-threads 4
+test/pack/pack -datatype c_double_complex -count 65536 -seed 162 -iters 32 -segments 64 -ordering reverse -overlap none -oplist complex -num-threads 4
+
+# pack (segments 64, pack order random, overlap none)
+test/pack/pack -datatype int -count 17 -seed 163 -iters 32768 -segments 64 -ordering random -overlap none -oplist int -num-threads 4
+test/pack/pack -datatype short_int -count 17 -seed 164 -iters 32768 -segments 64 -ordering random -overlap none -oplist int -num-threads 4
+test/pack/pack -datatype int:3+float:2 -count 17 -seed 165 -iters 32768 -segments 64 -ordering random -overlap none -oplist float -num-threads 4
+test/pack/pack -datatype int:3+double:2 -count 17 -seed 166 -iters 32768 -segments 64 -ordering random -overlap none -oplist float -num-threads 4
+test/pack/pack -datatype c_complex -count 17 -seed 167 -iters 32768 -segments 64 -ordering random -overlap none -oplist complex -num-threads 4
+test/pack/pack -datatype c_double_complex -count 17 -seed 168 -iters 32768 -segments 64 -ordering random -overlap none -oplist complex -num-threads 4
+test/pack/pack -datatype int -count 1075 -seed 169 -iters 128 -segments 64 -ordering random -overlap none -oplist int -num-threads 4
+test/pack/pack -datatype short_int -count 1075 -seed 170 -iters 128 -segments 64 -ordering random -overlap none -oplist int -num-threads 4
+test/pack/pack -datatype int:3+float:2 -count 1075 -seed 171 -iters 128 -segments 64 -ordering random -overlap none -oplist float -num-threads 4
+test/pack/pack -datatype int:3+double:2 -count 1075 -seed 172 -iters 128 -segments 64 -ordering random -overlap none -oplist float -num-threads 4
+test/pack/pack -datatype c_complex -count 1075 -seed 173 -iters 128 -segments 64 -ordering random -overlap none -oplist complex -num-threads 4
+test/pack/pack -datatype c_double_complex -count 1075 -seed 174 -iters 128 -segments 64 -ordering random -overlap none -oplist complex -num-threads 4
+test/pack/pack -datatype int -count 65536 -seed 175 -iters 32 -segments 64 -ordering random -overlap none -oplist int -num-threads 4
+test/pack/pack -datatype short_int -count 65536 -seed 176 -iters 32 -segments 64 -ordering random -overlap none -oplist int -num-threads 4
+test/pack/pack -datatype int:3+float:2 -count 65536 -seed 177 -iters 32 -segments 64 -ordering random -overlap none -oplist float -num-threads 4
+test/pack/pack -datatype int:3+double:2 -count 65536 -seed 178 -iters 32 -segments 64 -ordering random -overlap none -oplist float -num-threads 4
+test/pack/pack -datatype c_complex -count 65536 -seed 179 -iters 32 -segments 64 -ordering random -overlap none -oplist complex -num-threads 4
+test/pack/pack -datatype c_double_complex -count 65536 -seed 180 -iters 32 -segments 64 -ordering random -overlap none -oplist complex -num-threads 4
+
+# pack (segments 64, pack order normal, overlap regular)
+test/pack/pack -datatype int -count 17 -seed 181 -iters 32768 -segments 64 -ordering normal -overlap regular -oplist int -num-threads 4
+test/pack/pack -datatype short_int -count 17 -seed 182 -iters 32768 -segments 64 -ordering normal -overlap regular -oplist int -num-threads 4
+test/pack/pack -datatype int:3+float:2 -count 17 -seed 183 -iters 32768 -segments 64 -ordering normal -overlap regular -oplist float -num-threads 4
+test/pack/pack -datatype int:3+double:2 -count 17 -seed 184 -iters 32768 -segments 64 -ordering normal -overlap regular -oplist float -num-threads 4
+test/pack/pack -datatype c_complex -count 17 -seed 185 -iters 32768 -segments 64 -ordering normal -overlap regular -oplist complex -num-threads 4
+test/pack/pack -datatype c_double_complex -count 17 -seed 186 -iters 32768 -segments 64 -ordering normal -overlap regular -oplist complex -num-threads 4
+test/pack/pack -datatype int -count 1075 -seed 187 -iters 128 -segments 64 -ordering normal -overlap regular -oplist int -num-threads 4
+test/pack/pack -datatype short_int -count 1075 -seed 188 -iters 128 -segments 64 -ordering normal -overlap regular -oplist int -num-threads 4
+test/pack/pack -datatype int:3+float:2 -count 1075 -seed 189 -iters 128 -segments 64 -ordering normal -overlap regular -oplist float -num-threads 4
+test/pack/pack -datatype int:3+double:2 -count 1075 -seed 190 -iters 128 -segments 64 -ordering normal -overlap regular -oplist float -num-threads 4
+test/pack/pack -datatype c_complex -count 1075 -seed 191 -iters 128 -segments 64 -ordering normal -overlap regular -oplist complex -num-threads 4
+test/pack/pack -datatype c_double_complex -count 1075 -seed 192 -iters 128 -segments 64 -ordering normal -overlap regular -oplist complex -num-threads 4
+test/pack/pack -datatype int -count 65536 -seed 193 -iters 32 -segments 64 -ordering normal -overlap regular -oplist int -num-threads 4
+test/pack/pack -datatype short_int -count 65536 -seed 194 -iters 32 -segments 64 -ordering normal -overlap regular -oplist int -num-threads 4
+test/pack/pack -datatype int:3+float:2 -count 65536 -seed 195 -iters 32 -segments 64 -ordering normal -overlap regular -oplist float -num-threads 4
+test/pack/pack -datatype int:3+double:2 -count 65536 -seed 196 -iters 32 -segments 64 -ordering normal -overlap regular -oplist float -num-threads 4
+test/pack/pack -datatype c_complex -count 65536 -seed 197 -iters 32 -segments 64 -ordering normal -overlap regular -oplist complex -num-threads 4
+test/pack/pack -datatype c_double_complex -count 65536 -seed 198 -iters 32 -segments 64 -ordering normal -overlap regular -oplist complex -num-threads 4
+
+# pack (segments 64, pack order normal, overlap irregular)
+test/pack/pack -datatype int -count 17 -seed 199 -iters 32768 -segments 64 -ordering normal -overlap irregular -oplist int -num-threads 4
+test/pack/pack -datatype short_int -count 17 -seed 200 -iters 32768 -segments 64 -ordering normal -overlap irregular -oplist int -num-threads 4
+test/pack/pack -datatype int:3+float:2 -count 17 -seed 201 -iters 32768 -segments 64 -ordering normal -overlap irregular -oplist float -num-threads 4
+test/pack/pack -datatype int:3+double:2 -count 17 -seed 202 -iters 32768 -segments 64 -ordering normal -overlap irregular -oplist float -num-threads 4
+test/pack/pack -datatype c_complex -count 17 -seed 203 -iters 32768 -segments 64 -ordering normal -overlap irregular -oplist complex -num-threads 4
+test/pack/pack -datatype c_double_complex -count 17 -seed 204 -iters 32768 -segments 64 -ordering normal -overlap irregular -oplist complex -num-threads 4
+test/pack/pack -datatype int -count 1075 -seed 205 -iters 128 -segments 64 -ordering normal -overlap irregular -oplist int -num-threads 4
+test/pack/pack -datatype short_int -count 1075 -seed 206 -iters 128 -segments 64 -ordering normal -overlap irregular -oplist int -num-threads 4
+test/pack/pack -datatype int:3+float:2 -count 1075 -seed 207 -iters 128 -segments 64 -ordering normal -overlap irregular -oplist float -num-threads 4
+test/pack/pack -datatype int:3+double:2 -count 1075 -seed 208 -iters 128 -segments 64 -ordering normal -overlap irregular -oplist float -num-threads 4
+test/pack/pack -datatype c_complex -count 1075 -seed 209 -iters 128 -segments 64 -ordering normal -overlap irregular -oplist complex -num-threads 4
+test/pack/pack -datatype c_double_complex -count 1075 -seed 210 -iters 128 -segments 64 -ordering normal -overlap irregular -oplist complex -num-threads 4
+test/pack/pack -datatype int -count 65536 -seed 211 -iters 32 -segments 64 -ordering normal -overlap irregular -oplist int -num-threads 4
+test/pack/pack -datatype short_int -count 65536 -seed 212 -iters 32 -segments 64 -ordering normal -overlap irregular -oplist int -num-threads 4
+test/pack/pack -datatype int:3+float:2 -count 65536 -seed 213 -iters 32 -segments 64 -ordering normal -overlap irregular -oplist float -num-threads 4
+test/pack/pack -datatype int:3+double:2 -count 65536 -seed 214 -iters 32 -segments 64 -ordering normal -overlap irregular -oplist float -num-threads 4
+test/pack/pack -datatype c_complex -count 65536 -seed 215 -iters 32 -segments 64 -ordering normal -overlap irregular -oplist complex -num-threads 4
+test/pack/pack -datatype c_double_complex -count 65536 -seed 216 -iters 32 -segments 64 -ordering normal -overlap irregular -oplist complex -num-threads 4
+

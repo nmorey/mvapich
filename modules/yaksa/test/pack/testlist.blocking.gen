@@ -1,0 +1,120 @@
+# pack (segments 1, pack order normal, overlap none)
+test/pack/pack -datatype int -count 17 -seed 217 -iters 32768 -segments 1 -ordering normal -overlap none -oplist int -blocking
+test/pack/pack -datatype short_int -count 17 -seed 218 -iters 32768 -segments 1 -ordering normal -overlap none -oplist int -blocking
+test/pack/pack -datatype int:3+float:2 -count 17 -seed 219 -iters 32768 -segments 1 -ordering normal -overlap none -oplist float -blocking
+test/pack/pack -datatype int:3+double:2 -count 17 -seed 220 -iters 32768 -segments 1 -ordering normal -overlap none -oplist float -blocking
+test/pack/pack -datatype c_complex -count 17 -seed 221 -iters 32768 -segments 1 -ordering normal -overlap none -oplist complex -blocking
+test/pack/pack -datatype c_double_complex -count 17 -seed 222 -iters 32768 -segments 1 -ordering normal -overlap none -oplist complex -blocking
+test/pack/pack -datatype int -count 1075 -seed 223 -iters 128 -segments 1 -ordering normal -overlap none -oplist int -blocking
+test/pack/pack -datatype short_int -count 1075 -seed 224 -iters 128 -segments 1 -ordering normal -overlap none -oplist int -blocking
+test/pack/pack -datatype int:3+float:2 -count 1075 -seed 225 -iters 128 -segments 1 -ordering normal -overlap none -oplist float -blocking
+test/pack/pack -datatype int:3+double:2 -count 1075 -seed 226 -iters 128 -segments 1 -ordering normal -overlap none -oplist float -blocking
+test/pack/pack -datatype c_complex -count 1075 -seed 227 -iters 128 -segments 1 -ordering normal -overlap none -oplist complex -blocking
+test/pack/pack -datatype c_double_complex -count 1075 -seed 228 -iters 128 -segments 1 -ordering normal -overlap none -oplist complex -blocking
+test/pack/pack -datatype int -count 65536 -seed 229 -iters 32 -segments 1 -ordering normal -overlap none -oplist int -blocking
+test/pack/pack -datatype short_int -count 65536 -seed 230 -iters 32 -segments 1 -ordering normal -overlap none -oplist int -blocking
+test/pack/pack -datatype int:3+float:2 -count 65536 -seed 231 -iters 32 -segments 1 -ordering normal -overlap none -oplist float -blocking
+test/pack/pack -datatype int:3+double:2 -count 65536 -seed 232 -iters 32 -segments 1 -ordering normal -overlap none -oplist float -blocking
+test/pack/pack -datatype c_complex -count 65536 -seed 233 -iters 32 -segments 1 -ordering normal -overlap none -oplist complex -blocking
+test/pack/pack -datatype c_double_complex -count 65536 -seed 234 -iters 32 -segments 1 -ordering normal -overlap none -oplist complex -blocking
+
+# pack (segments 64, pack order normal, overlap none)
+test/pack/pack -datatype int -count 17 -seed 235 -iters 32768 -segments 64 -ordering normal -overlap none -oplist int -blocking
+test/pack/pack -datatype short_int -count 17 -seed 236 -iters 32768 -segments 64 -ordering normal -overlap none -oplist int -blocking
+test/pack/pack -datatype int:3+float:2 -count 17 -seed 237 -iters 32768 -segments 64 -ordering normal -overlap none -oplist float -blocking
+test/pack/pack -datatype int:3+double:2 -count 17 -seed 238 -iters 32768 -segments 64 -ordering normal -overlap none -oplist float -blocking
+test/pack/pack -datatype c_complex -count 17 -seed 239 -iters 32768 -segments 64 -ordering normal -overlap none -oplist complex -blocking
+test/pack/pack -datatype c_double_complex -count 17 -seed 240 -iters 32768 -segments 64 -ordering normal -overlap none -oplist complex -blocking
+test/pack/pack -datatype int -count 1075 -seed 241 -iters 128 -segments 64 -ordering normal -overlap none -oplist int -blocking
+test/pack/pack -datatype short_int -count 1075 -seed 242 -iters 128 -segments 64 -ordering normal -overlap none -oplist int -blocking
+test/pack/pack -datatype int:3+float:2 -count 1075 -seed 243 -iters 128 -segments 64 -ordering normal -overlap none -oplist float -blocking
+test/pack/pack -datatype int:3+double:2 -count 1075 -seed 244 -iters 128 -segments 64 -ordering normal -overlap none -oplist float -blocking
+test/pack/pack -datatype c_complex -count 1075 -seed 245 -iters 128 -segments 64 -ordering normal -overlap none -oplist complex -blocking
+test/pack/pack -datatype c_double_complex -count 1075 -seed 246 -iters 128 -segments 64 -ordering normal -overlap none -oplist complex -blocking
+test/pack/pack -datatype int -count 65536 -seed 247 -iters 32 -segments 64 -ordering normal -overlap none -oplist int -blocking
+test/pack/pack -datatype short_int -count 65536 -seed 248 -iters 32 -segments 64 -ordering normal -overlap none -oplist int -blocking
+test/pack/pack -datatype int:3+float:2 -count 65536 -seed 249 -iters 32 -segments 64 -ordering normal -overlap none -oplist float -blocking
+test/pack/pack -datatype int:3+double:2 -count 65536 -seed 250 -iters 32 -segments 64 -ordering normal -overlap none -oplist float -blocking
+test/pack/pack -datatype c_complex -count 65536 -seed 251 -iters 32 -segments 64 -ordering normal -overlap none -oplist complex -blocking
+test/pack/pack -datatype c_double_complex -count 65536 -seed 252 -iters 32 -segments 64 -ordering normal -overlap none -oplist complex -blocking
+
+# pack (segments 64, pack order reverse, overlap none)
+test/pack/pack -datatype int -count 17 -seed 253 -iters 32768 -segments 64 -ordering reverse -overlap none -oplist int -blocking
+test/pack/pack -datatype short_int -count 17 -seed 254 -iters 32768 -segments 64 -ordering reverse -overlap none -oplist int -blocking
+test/pack/pack -datatype int:3+float:2 -count 17 -seed 255 -iters 32768 -segments 64 -ordering reverse -overlap none -oplist float -blocking
+test/pack/pack -datatype int:3+double:2 -count 17 -seed 256 -iters 32768 -segments 64 -ordering reverse -overlap none -oplist float -blocking
+test/pack/pack -datatype c_complex -count 17 -seed 257 -iters 32768 -segments 64 -ordering reverse -overlap none -oplist complex -blocking
+test/pack/pack -datatype c_double_complex -count 17 -seed 258 -iters 32768 -segments 64 -ordering reverse -overlap none -oplist complex -blocking
+test/pack/pack -datatype int -count 1075 -seed 259 -iters 128 -segments 64 -ordering reverse -overlap none -oplist int -blocking
+test/pack/pack -datatype short_int -count 1075 -seed 260 -iters 128 -segments 64 -ordering reverse -overlap none -oplist int -blocking
+test/pack/pack -datatype int:3+float:2 -count 1075 -seed 261 -iters 128 -segments 64 -ordering reverse -overlap none -oplist float -blocking
+test/pack/pack -datatype int:3+double:2 -count 1075 -seed 262 -iters 128 -segments 64 -ordering reverse -overlap none -oplist float -blocking
+test/pack/pack -datatype c_complex -count 1075 -seed 263 -iters 128 -segments 64 -ordering reverse -overlap none -oplist complex -blocking
+test/pack/pack -datatype c_double_complex -count 1075 -seed 264 -iters 128 -segments 64 -ordering reverse -overlap none -oplist complex -blocking
+test/pack/pack -datatype int -count 65536 -seed 265 -iters 32 -segments 64 -ordering reverse -overlap none -oplist int -blocking
+test/pack/pack -datatype short_int -count 65536 -seed 266 -iters 32 -segments 64 -ordering reverse -overlap none -oplist int -blocking
+test/pack/pack -datatype int:3+float:2 -count 65536 -seed 267 -iters 32 -segments 64 -ordering reverse -overlap none -oplist float -blocking
+test/pack/pack -datatype int:3+double:2 -count 65536 -seed 268 -iters 32 -segments 64 -ordering reverse -overlap none -oplist float -blocking
+test/pack/pack -datatype c_complex -count 65536 -seed 269 -iters 32 -segments 64 -ordering reverse -overlap none -oplist complex -blocking
+test/pack/pack -datatype c_double_complex -count 65536 -seed 270 -iters 32 -segments 64 -ordering reverse -overlap none -oplist complex -blocking
+
+# pack (segments 64, pack order random, overlap none)
+test/pack/pack -datatype int -count 17 -seed 271 -iters 32768 -segments 64 -ordering random -overlap none -oplist int -blocking
+test/pack/pack -datatype short_int -count 17 -seed 272 -iters 32768 -segments 64 -ordering random -overlap none -oplist int -blocking
+test/pack/pack -datatype int:3+float:2 -count 17 -seed 273 -iters 32768 -segments 64 -ordering random -overlap none -oplist float -blocking
+test/pack/pack -datatype int:3+double:2 -count 17 -seed 274 -iters 32768 -segments 64 -ordering random -overlap none -oplist float -blocking
+test/pack/pack -datatype c_complex -count 17 -seed 275 -iters 32768 -segments 64 -ordering random -overlap none -oplist complex -blocking
+test/pack/pack -datatype c_double_complex -count 17 -seed 276 -iters 32768 -segments 64 -ordering random -overlap none -oplist complex -blocking
+test/pack/pack -datatype int -count 1075 -seed 277 -iters 128 -segments 64 -ordering random -overlap none -oplist int -blocking
+test/pack/pack -datatype short_int -count 1075 -seed 278 -iters 128 -segments 64 -ordering random -overlap none -oplist int -blocking
+test/pack/pack -datatype int:3+float:2 -count 1075 -seed 279 -iters 128 -segments 64 -ordering random -overlap none -oplist float -blocking
+test/pack/pack -datatype int:3+double:2 -count 1075 -seed 280 -iters 128 -segments 64 -ordering random -overlap none -oplist float -blocking
+test/pack/pack -datatype c_complex -count 1075 -seed 281 -iters 128 -segments 64 -ordering random -overlap none -oplist complex -blocking
+test/pack/pack -datatype c_double_complex -count 1075 -seed 282 -iters 128 -segments 64 -ordering random -overlap none -oplist complex -blocking
+test/pack/pack -datatype int -count 65536 -seed 283 -iters 32 -segments 64 -ordering random -overlap none -oplist int -blocking
+test/pack/pack -datatype short_int -count 65536 -seed 284 -iters 32 -segments 64 -ordering random -overlap none -oplist int -blocking
+test/pack/pack -datatype int:3+float:2 -count 65536 -seed 285 -iters 32 -segments 64 -ordering random -overlap none -oplist float -blocking
+test/pack/pack -datatype int:3+double:2 -count 65536 -seed 286 -iters 32 -segments 64 -ordering random -overlap none -oplist float -blocking
+test/pack/pack -datatype c_complex -count 65536 -seed 287 -iters 32 -segments 64 -ordering random -overlap none -oplist complex -blocking
+test/pack/pack -datatype c_double_complex -count 65536 -seed 288 -iters 32 -segments 64 -ordering random -overlap none -oplist complex -blocking
+
+# pack (segments 64, pack order normal, overlap regular)
+test/pack/pack -datatype int -count 17 -seed 289 -iters 32768 -segments 64 -ordering normal -overlap regular -oplist int -blocking
+test/pack/pack -datatype short_int -count 17 -seed 290 -iters 32768 -segments 64 -ordering normal -overlap regular -oplist int -blocking
+test/pack/pack -datatype int:3+float:2 -count 17 -seed 291 -iters 32768 -segments 64 -ordering normal -overlap regular -oplist float -blocking
+test/pack/pack -datatype int:3+double:2 -count 17 -seed 292 -iters 32768 -segments 64 -ordering normal -overlap regular -oplist float -blocking
+test/pack/pack -datatype c_complex -count 17 -seed 293 -iters 32768 -segments 64 -ordering normal -overlap regular -oplist complex -blocking
+test/pack/pack -datatype c_double_complex -count 17 -seed 294 -iters 32768 -segments 64 -ordering normal -overlap regular -oplist complex -blocking
+test/pack/pack -datatype int -count 1075 -seed 295 -iters 128 -segments 64 -ordering normal -overlap regular -oplist int -blocking
+test/pack/pack -datatype short_int -count 1075 -seed 296 -iters 128 -segments 64 -ordering normal -overlap regular -oplist int -blocking
+test/pack/pack -datatype int:3+float:2 -count 1075 -seed 297 -iters 128 -segments 64 -ordering normal -overlap regular -oplist float -blocking
+test/pack/pack -datatype int:3+double:2 -count 1075 -seed 298 -iters 128 -segments 64 -ordering normal -overlap regular -oplist float -blocking
+test/pack/pack -datatype c_complex -count 1075 -seed 299 -iters 128 -segments 64 -ordering normal -overlap regular -oplist complex -blocking
+test/pack/pack -datatype c_double_complex -count 1075 -seed 300 -iters 128 -segments 64 -ordering normal -overlap regular -oplist complex -blocking
+test/pack/pack -datatype int -count 65536 -seed 301 -iters 32 -segments 64 -ordering normal -overlap regular -oplist int -blocking
+test/pack/pack -datatype short_int -count 65536 -seed 302 -iters 32 -segments 64 -ordering normal -overlap regular -oplist int -blocking
+test/pack/pack -datatype int:3+float:2 -count 65536 -seed 303 -iters 32 -segments 64 -ordering normal -overlap regular -oplist float -blocking
+test/pack/pack -datatype int:3+double:2 -count 65536 -seed 304 -iters 32 -segments 64 -ordering normal -overlap regular -oplist float -blocking
+test/pack/pack -datatype c_complex -count 65536 -seed 305 -iters 32 -segments 64 -ordering normal -overlap regular -oplist complex -blocking
+test/pack/pack -datatype c_double_complex -count 65536 -seed 306 -iters 32 -segments 64 -ordering normal -overlap regular -oplist complex -blocking
+
+# pack (segments 64, pack order normal, overlap irregular)
+test/pack/pack -datatype int -count 17 -seed 307 -iters 32768 -segments 64 -ordering normal -overlap irregular -oplist int -blocking
+test/pack/pack -datatype short_int -count 17 -seed 308 -iters 32768 -segments 64 -ordering normal -overlap irregular -oplist int -blocking
+test/pack/pack -datatype int:3+float:2 -count 17 -seed 309 -iters 32768 -segments 64 -ordering normal -overlap irregular -oplist float -blocking
+test/pack/pack -datatype int:3+double:2 -count 17 -seed 310 -iters 32768 -segments 64 -ordering normal -overlap irregular -oplist float -blocking
+test/pack/pack -datatype c_complex -count 17 -seed 311 -iters 32768 -segments 64 -ordering normal -overlap irregular -oplist complex -blocking
+test/pack/pack -datatype c_double_complex -count 17 -seed 312 -iters 32768 -segments 64 -ordering normal -overlap irregular -oplist complex -blocking
+test/pack/pack -datatype int -count 1075 -seed 313 -iters 128 -segments 64 -ordering normal -overlap irregular -oplist int -blocking
+test/pack/pack -datatype short_int -count 1075 -seed 314 -iters 128 -segments 64 -ordering normal -overlap irregular -oplist int -blocking
+test/pack/pack -datatype int:3+float:2 -count 1075 -seed 315 -iters 128 -segments 64 -ordering normal -overlap irregular -oplist float -blocking
+test/pack/pack -datatype int:3+double:2 -count 1075 -seed 316 -iters 128 -segments 64 -ordering normal -overlap irregular -oplist float -blocking
+test/pack/pack -datatype c_complex -count 1075 -seed 317 -iters 128 -segments 64 -ordering normal -overlap irregular -oplist complex -blocking
+test/pack/pack -datatype c_double_complex -count 1075 -seed 318 -iters 128 -segments 64 -ordering normal -overlap irregular -oplist complex -blocking
+test/pack/pack -datatype int -count 65536 -seed 319 -iters 32 -segments 64 -ordering normal -overlap irregular -oplist int -blocking
+test/pack/pack -datatype short_int -count 65536 -seed 320 -iters 32 -segments 64 -ordering normal -overlap irregular -oplist int -blocking
+test/pack/pack -datatype int:3+float:2 -count 65536 -seed 321 -iters 32 -segments 64 -ordering normal -overlap irregular -oplist float -blocking
+test/pack/pack -datatype int:3+double:2 -count 65536 -seed 322 -iters 32 -segments 64 -ordering normal -overlap irregular -oplist float -blocking
+test/pack/pack -datatype c_complex -count 65536 -seed 323 -iters 32 -segments 64 -ordering normal -overlap irregular -oplist complex -blocking
+test/pack/pack -datatype c_double_complex -count 65536 -seed 324 -iters 32 -segments 64 -ordering normal -overlap irregular -oplist complex -blocking
+

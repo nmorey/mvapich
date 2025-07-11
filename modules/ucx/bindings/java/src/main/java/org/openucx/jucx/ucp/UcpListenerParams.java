@@ -1,5 +1,5 @@
 /*
- * Copyright (C) Mellanox Technologies Ltd. 2019. ALL RIGHTS RESERVED.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2019. ALL RIGHTS RESERVED.
  * See file LICENSE for terms.
  */
 package org.openucx.jucx.ucp;
@@ -14,12 +14,13 @@ public class UcpListenerParams extends UcxParams {
     public UcpListenerParams clear() {
         super.clear();
         sockAddr = null;
+        connectionHandler = null;
         return this;
     }
 
     private InetSocketAddress sockAddr;
 
-    private UcpListenerConnectionHandler connectionHandler;
+    UcpListenerConnectionHandler connectionHandler;
 
     /**
      *  An address, on which {@link UcpListener} would bind.

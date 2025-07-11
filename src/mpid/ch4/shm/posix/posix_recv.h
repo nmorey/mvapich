@@ -10,6 +10,16 @@
 #include "posix_eager.h"
 #include "ch4_impl.h"
 
+/* Active message only need local vci since all messages go to the same per-vci queue */
+#define MPIDI_POSIX_RECV_VSI(vci_) \
+    do { \
+        int vci_src_tmp; \
+        MPIDI_EXPLICIT_VCIS(comm, attr, rank, comm->rank, vci_src_tmp, vci_); \
+        if (vci_src_tmp == 0 && vci_ == 0) { \
+            vci_ = MPIDI_get_vci(DST_VCI_FROM_RECVER, comm, rank, comm->rank, tag); \
+        } \
+    } while (0)
+
 /* Hook triggered after posting a SHM receive request.
  * It hints the SHM/POSIX internal transport that the user is expecting
  * an incoming message from a specific rank, thus allowing the transport
@@ -22,25 +32,17 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_POSIX_recv_posted_hook(MPIR_Request * reques
     MPIDI_POSIX_EAGER_RECV_POSTED_HOOK(request, rank, comm);
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_mpi_recv(void *buf,
-                                                  MPI_Aint count,
-                                                  MPI_Datatype datatype,
-                                                  int rank,
-                                                  int tag,
-                                                  MPIR_Comm * comm,
-                                                  int context_offset, MPI_Status * status,
-                                                  MPIR_Request ** request)
-{
-    int mpi_errno =
-        MPIDIG_mpi_recv(buf, count, datatype, rank, tag, comm, context_offset, status, request, 1);
-    MPIDI_POSIX_recv_posted_hook(*request, rank, comm);
-    return mpi_errno;
-}
-
 MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_mpi_imrecv(void *buf, MPI_Aint count,
                                                     MPI_Datatype datatype, MPIR_Request * message)
 {
-    return MPIDIG_mpi_imrecv(buf, count, datatype, message);
+    int mpi_errno = MPI_SUCCESS;
+
+    int vci = MPIDI_Request_get_vci(message);
+    MPIDI_POSIX_THREAD_CS_ENTER_VCI(vci);
+    mpi_errno = MPIDIG_mpi_imrecv(buf, count, datatype, message);
+    MPIDI_POSIX_THREAD_CS_EXIT_VCI(vci);
+
+    return mpi_errno;
 }
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_mpi_irecv(void *buf,
@@ -48,11 +50,27 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_mpi_irecv(void *buf,
                                                    MPI_Datatype datatype,
                                                    int rank,
                                                    int tag,
-                                                   MPIR_Comm * comm, int context_offset,
+                                                   MPIR_Comm * comm, int attr,
                                                    MPIR_Request ** request)
 {
-    int mpi_errno =
-        MPIDIG_mpi_irecv(buf, count, datatype, rank, tag, comm, context_offset, request, 1, NULL);
+    int context_offset = MPIR_PT2PT_ATTR_CONTEXT_OFFSET(attr);
+
+    bool need_lock;
+    int vci;
+    if (*request) {
+        need_lock = false;
+        vci = MPIDI_Request_get_vci(*request);
+    } else {
+        need_lock = true;
+        MPIDI_POSIX_RECV_VSI(vci);
+        MPIDI_POSIX_THREAD_CS_ENTER_VCI(vci);
+    }
+    int mpi_errno = MPIDIG_mpi_irecv(buf, count, datatype, rank, tag, comm, context_offset,
+                                     vci, request, 1, NULL);
+    if (need_lock) {
+        MPIDI_POSIX_THREAD_CS_EXIT_VCI(vci);
+    }
+
     MPIDI_POSIX_recv_posted_hook(*request, rank, comm);
     return mpi_errno;
 }

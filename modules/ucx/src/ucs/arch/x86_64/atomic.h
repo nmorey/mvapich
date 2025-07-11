@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2001-2015.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2015. ALL RIGHTS RESERVED.
 *
 * See file LICENSE for terms.
 */
@@ -48,6 +48,13 @@
               : "r"(swap), "m"(*ptr), "0" (compare) \
               : "memory"); \
         return prev; \
+    }
+
+#define UCS_DEFINE_ATOMIC_BOOL_CSWAP(wordsize, suffix) \
+    static inline uint##wordsize##_t ucs_atomic_bool_cswap##wordsize(volatile uint##wordsize##_t *ptr, \
+                                                                     uint##wordsize##_t compare, \
+                                                                     uint##wordsize##_t swap) { \
+        return ucs_atomic_cswap##wordsize(ptr, compare, swap) == compare; \
     }
 
 #endif

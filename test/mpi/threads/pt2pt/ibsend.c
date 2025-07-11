@@ -10,7 +10,7 @@
    It starts a single receiver thread that expects
    NUMSENDS from NUMTHREADS sender threads, that
    use [i]bsend/[i]send to send a message of size MSGSIZE
-   to its right neigbour or rank 0 if (my_rank==comm_size-1), i.e.
+   to its right neighbor or rank 0 if (my_rank==comm_size-1), i.e.
    target_rank = (my_rank+1)%size .
 
    After all messages have been received, the
@@ -33,7 +33,7 @@
 
 int rank, size;
 
-MTEST_THREAD_RETURN_TYPE receiver(void *ptr)
+static MTEST_THREAD_RETURN_TYPE receiver(void *ptr)
 {
     int k;
     char buf[MSGSIZE];
@@ -42,11 +42,11 @@ MTEST_THREAD_RETURN_TYPE receiver(void *ptr)
         MPI_Recv(buf, MSGSIZE, MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG,
                  MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-    return NULL;
+    MTEST_THREAD_RETURN_EXPRESSION;
 }
 
 
-MTEST_THREAD_RETURN_TYPE sender_bsend(void *ptr)
+static MTEST_THREAD_RETURN_TYPE sender_bsend(void *ptr)
 {
     char buffer[MSGSIZE];
     int i;
@@ -54,10 +54,10 @@ MTEST_THREAD_RETURN_TYPE sender_bsend(void *ptr)
     for (i = 0; i < NUMSENDS; i++)
         MPI_Bsend(buffer, MSGSIZE, MPI_CHAR, (rank + 1) % size, 0, MPI_COMM_WORLD);
 
-    return NULL;
+    MTEST_THREAD_RETURN_EXPRESSION;
 }
 
-MTEST_THREAD_RETURN_TYPE sender_ibsend(void *ptr)
+static MTEST_THREAD_RETURN_TYPE sender_ibsend(void *ptr)
 {
     char buffer[MSGSIZE];
     int i;
@@ -67,10 +67,10 @@ MTEST_THREAD_RETURN_TYPE sender_ibsend(void *ptr)
         MPI_Ibsend(buffer, MSGSIZE, MPI_CHAR, (rank + 1) % size, 0, MPI_COMM_WORLD, &reqs[i]);
     MPI_Waitall(NUMSENDS, reqs, MPI_STATUSES_IGNORE);
 
-    return NULL;
+    MTEST_THREAD_RETURN_EXPRESSION;
 }
 
-MTEST_THREAD_RETURN_TYPE sender_isend(void *ptr)
+static MTEST_THREAD_RETURN_TYPE sender_isend(void *ptr)
 {
     char buffer[MSGSIZE];
     int i;
@@ -80,10 +80,10 @@ MTEST_THREAD_RETURN_TYPE sender_isend(void *ptr)
         MPI_Isend(buffer, MSGSIZE, MPI_CHAR, (rank + 1) % size, 0, MPI_COMM_WORLD, &reqs[i]);
     MPI_Waitall(NUMSENDS, reqs, MPI_STATUSES_IGNORE);
 
-    return NULL;
+    MTEST_THREAD_RETURN_EXPRESSION;
 }
 
-MTEST_THREAD_RETURN_TYPE sender_send(void *ptr)
+static MTEST_THREAD_RETURN_TYPE sender_send(void *ptr)
 {
     char buffer[MSGSIZE];
     int i;
@@ -91,17 +91,16 @@ MTEST_THREAD_RETURN_TYPE sender_send(void *ptr)
     for (i = 0; i < NUMSENDS; i++)
         MPI_Send(buffer, MSGSIZE, MPI_CHAR, (rank + 1) % size, 0, MPI_COMM_WORLD);
 
-    return NULL;
+    MTEST_THREAD_RETURN_EXPRESSION;
 }
 
 int main(int argc, char *argv[])
 {
 
-    int provided, i[2], k;
+    int provided, k;
     char *buffer, *ptr_dt;
     buffer = (char *) malloc(BUFSIZE * sizeof(char));
     MTEST_VG_MEM_INIT(buffer, BUFSIZE * sizeof(char));
-    MPI_Status status;
     MPI_Comm communicator;
     int bs;
 

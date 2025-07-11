@@ -1,0 +1,37 @@
+/*D
+   MPI_Rsend - Blocking ready send
+
+Synopsis:
+.vb
+int MPI_Rsend(const void *buf, int count, MPI_Datatype datatype, int dest,
+              int tag, MPI_Comm comm)
+.ve
+.vb
+int MPI_Rsend_c(const void *buf, MPI_Count count, MPI_Datatype datatype,
+                int dest, int tag, MPI_Comm comm)
+.ve
+
+Input Parameters:
++ buf - initial address of send buffer (choice)
+. count - number of elements in send buffer (non-negative integer)
+. datatype - datatype of each send buffer element (handle)
+. dest - rank of destination (integer)
+. tag - message tag (integer)
+- comm - communicator (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_BUFFER
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_RANK
+.N MPI_ERR_TAG
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

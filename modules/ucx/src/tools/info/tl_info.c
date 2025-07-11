@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2001-2015.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2015. ALL RIGHTS RESERVED.
 *
 * See file LICENSE for terms.
 */
@@ -16,6 +16,7 @@
 #include <ucs/debug/log.h>
 #include <ucs/async/async.h>
 #include <ucs/sys/string.h>
+#include <uct/api/v2/uct_v2.h>
 
 
 #define PRINT_CAP(_name, _cap_flags, _max) \
@@ -53,6 +54,11 @@
             printf(" + %.3f * N", (_func)->m * 1e9); \
         } \
         printf(" nsec\n"); \
+    }
+
+#define PRINT_MD_MEM_TYPE(_strb, _md_attr, _mem_type, _cap) \
+    if ((_md_attr)._cap##_mem_types & UCS_BIT(_mem_type)) { \
+        ucs_string_buffer_appendf(_strb, UCS_PP_MAKE_STRING(_cap) ","); \
     }
 
 
@@ -118,7 +124,7 @@ static const char *size_limit_to_str(size_t min_size, size_t max_size)
 static void print_iface_info(uct_worker_h worker, uct_md_h md,
                              uct_tl_resource_desc_t *resource)
 {
-    char buf[200]                   = {0};
+    char buf[256]                   = {0};
     uct_iface_params_t iface_params = {
         .field_mask            = UCT_IFACE_PARAM_FIELD_OPEN_MODE   |
                                  UCT_IFACE_PARAM_FIELD_DEVICE      |
@@ -143,8 +149,15 @@ static void print_iface_info(uct_worker_h worker, uct_md_h md,
         return;
     }
 
-    printf("#   Transport: %s\n", resource->tl_name);
-    printf("#      Device: %s\n", resource->dev_name);
+    printf("#      Transport: %s\n", resource->tl_name);
+    printf("#         Device: %s\n", resource->dev_name);
+    printf("#           Type: %s\n", uct_device_type_names[resource->dev_type]);
+    printf("#  System device: %s",
+           ucs_topo_sys_device_get_name(resource->sys_device));
+    if (resource->sys_device != UCS_SYS_DEVICE_ID_UNKNOWN) {
+        printf(" (%d)", resource->sys_device);
+    }
+    printf("\n");
 
     status = uct_iface_open(md, worker, &iface_params, iface_config, &iface);
     uct_config_release(iface_config);
@@ -285,12 +298,14 @@ static void print_iface_info(uct_worker_h worker, uct_md_h md,
         }
 
         buf[0] = '\0';
-        if (iface_attr.cap.flags & (UCT_IFACE_FLAG_ERRHANDLE_SHORT_BUF   |
-                                    UCT_IFACE_FLAG_ERRHANDLE_BCOPY_BUF   |
-                                    UCT_IFACE_FLAG_ERRHANDLE_ZCOPY_BUF   |
-                                    UCT_IFACE_FLAG_ERRHANDLE_AM_ID       |
-                                    UCT_IFACE_FLAG_ERRHANDLE_REMOTE_MEM  |
-                                    UCT_IFACE_FLAG_ERRHANDLE_PEER_FAILURE)) {
+        if (iface_attr.cap.flags & (UCT_IFACE_FLAG_ERRHANDLE_SHORT_BUF    |
+                                    UCT_IFACE_FLAG_ERRHANDLE_BCOPY_BUF    |
+                                    UCT_IFACE_FLAG_ERRHANDLE_ZCOPY_BUF    |
+                                    UCT_IFACE_FLAG_ERRHANDLE_AM_ID        |
+                                    UCT_IFACE_FLAG_ERRHANDLE_REMOTE_MEM   |
+                                    UCT_IFACE_FLAG_ERRHANDLE_PEER_FAILURE |
+                                    UCT_IFACE_FLAG_EP_CHECK               |
+                                    UCT_IFACE_FLAG_EP_KEEPALIVE)) {
 
             if (iface_attr.cap.flags & (UCT_IFACE_FLAG_ERRHANDLE_SHORT_BUF |
                                         UCT_IFACE_FLAG_ERRHANDLE_BCOPY_BUF |
@@ -316,6 +331,12 @@ static void print_iface_info(uct_worker_h worker, uct_md_h md,
             }
             if (iface_attr.cap.flags & UCT_IFACE_FLAG_ERRHANDLE_PEER_FAILURE) {
                 strncat(buf, " peer failure,", sizeof(buf) - strlen(buf) - 1);
+            }
+            if (iface_attr.cap.flags & UCT_IFACE_FLAG_EP_CHECK) {
+                strncat(buf, " ep_check,", sizeof(buf) - strlen(buf) - 1);
+            }
+            if (iface_attr.cap.flags & UCT_IFACE_FLAG_EP_KEEPALIVE) {
+                strncat(buf, " keepalive,", sizeof(buf) - strlen(buf) - 1);
             }
             buf[strlen(buf) - 1] = '\0';
         } else {
@@ -372,12 +393,14 @@ static void print_md_info(uct_component_h component,
                           ucs_config_print_flags_t print_flags,
                           const char *req_tl_name)
 {
+    UCS_STRING_BUFFER_ONSTACK(strb, 256);
     uct_tl_resource_desc_t *resources, tmp;
     unsigned resource_index, j, num_resources, count;
+    ucs_memory_type_t mem_type;
     ucs_status_t status;
     const char *tl_name;
     uct_md_config_t *md_config;
-    uct_md_attr_t md_attr;
+    uct_md_attr_v2_t md_attr;
     uct_md_h md;
 
     status = uct_md_config_read(component, NULL, NULL, &md_config);
@@ -398,6 +421,10 @@ static void print_md_info(uct_component_h component,
         goto out_close_md;
     }
 
+    if (!(print_opts & PRINT_DEVICES)) {
+        goto out_free_list;
+    }
+
     if (req_tl_name != NULL) {
         resource_index = 0;
         while (resource_index < num_resources) {
@@ -412,7 +439,8 @@ static void print_md_info(uct_component_h component,
         }
     }
 
-    status = uct_md_query(md, &md_attr);
+    md_attr.field_mask = UINT64_MAX;
+    status             = uct_md_query_v2(md, &md_attr);
     if (status != UCS_OK) {
         printf("# < failed to query memory domain >\n");
         goto out_free_list;
@@ -420,27 +448,64 @@ static void print_md_info(uct_component_h component,
         printf("#\n");
         printf("# Memory domain: %s\n", md_name);
         printf("#     Component: %s\n", component_attr->name);
-        if (md_attr.cap.flags & UCT_MD_FLAG_ALLOC) {
+        if (md_attr.flags & UCT_MD_FLAG_ALLOC) {
             printf("#             allocate: %s\n",
-                   size_limit_to_str(0, md_attr.cap.max_alloc));
+                   size_limit_to_str(0, md_attr.max_alloc));
         }
-        if (md_attr.cap.flags & UCT_MD_FLAG_REG) {
-            printf("#             register: %s, cost: ",
-                   size_limit_to_str(0, md_attr.cap.max_reg));
+        if (md_attr.flags & UCT_MD_FLAG_REG) {
+            printf("#             register: %s",
+                   size_limit_to_str(0, md_attr.max_reg));
+            if (md_attr.flags & UCT_MD_FLAG_REG_DMABUF) {
+                printf(", dmabuf");
+            }
+            printf(", cost: ");
             PRINT_LINEAR_FUNC_NS(&md_attr.reg_cost);
         }
-        if (md_attr.cap.flags & UCT_MD_FLAG_NEED_RKEY) {
+        if (md_attr.flags & UCT_MD_FLAG_NEED_RKEY) {
             printf("#           remote key: %zu bytes\n", md_attr.rkey_packed_size);
         }
-        if (md_attr.cap.flags & UCT_MD_FLAG_NEED_MEMH) {
+        if (md_attr.flags & UCT_MD_FLAG_NEED_MEMH) {
             printf("#           local memory handle is required for zcopy\n");
         }
-        if (md_attr.cap.flags & UCT_MD_FLAG_RKEY_PTR) {
+        if (component_attr->flags & UCT_COMPONENT_FLAG_RKEY_PTR) {
             printf("#           rkey_ptr is supported\n");
         }
-        if (md_attr.cap.flags & UCT_MD_FLAG_SOCKADDR) {
-            printf("#           supports client-server connection establishment via sockaddr\n");
+        if (md_attr.flags & UCT_MD_FLAG_INVALIDATE) {
+            printf("#           memory invalidation is supported\n");
         }
+
+        ucs_memory_type_for_each(mem_type) {
+            if (!(UCS_BIT(mem_type) &
+                  (md_attr.reg_mem_types | md_attr.alloc_mem_types))) {
+                continue;
+            }
+
+            ucs_string_buffer_appendf(&strb, "%s",
+                                      ucs_memory_type_names[mem_type]);
+            if (!(UCS_BIT(mem_type) &
+                  (md_attr.access_mem_types | md_attr.alloc_mem_types |
+                   md_attr.reg_mem_types | md_attr.cache_mem_types |
+                   md_attr.detect_mem_types | md_attr.dmabuf_mem_types))) {
+                ucs_string_buffer_appendf(&strb, ", ");
+                continue;
+            }
+
+            ucs_string_buffer_appendf(&strb, " (");
+
+            PRINT_MD_MEM_TYPE(&strb, md_attr, mem_type, access);
+            PRINT_MD_MEM_TYPE(&strb, md_attr, mem_type, alloc);
+            PRINT_MD_MEM_TYPE(&strb, md_attr, mem_type, reg_nonblock);
+            PRINT_MD_MEM_TYPE(&strb, md_attr, mem_type, reg);
+            PRINT_MD_MEM_TYPE(&strb, md_attr, mem_type, cache);
+            PRINT_MD_MEM_TYPE(&strb, md_attr, mem_type, detect);
+            PRINT_MD_MEM_TYPE(&strb, md_attr, mem_type, dmabuf);
+            ucs_string_buffer_rtrim(&strb, ",");
+
+            ucs_string_buffer_appendf(&strb, "), ");
+        }
+
+        ucs_string_buffer_rtrim(&strb, ", ");
+        printf("#         memory types: %s\n", ucs_string_buffer_cstr(&strb));
     }
 
     if (num_resources == 0) {
@@ -570,12 +635,14 @@ static void print_uct_component_info(uct_component_h component,
 
     for (i = 0; i < component_attr.md_resource_count; ++i) {
         print_md_info(component, &component_attr,
-                      component_attr.md_resources[i].md_name,
-                      print_opts, print_flags, req_tl_name);
+                      component_attr.md_resources[i].md_name, print_opts,
+                      print_flags, req_tl_name);
     }
 
-    if (component_attr.flags & UCT_COMPONENT_FLAG_CM) {
-        print_cm_info(component, &component_attr);
+    if (print_opts & PRINT_DEVICES) {
+        if (component_attr.flags & UCT_COMPONENT_FLAG_CM) {
+            print_cm_info(component, &component_attr);
+        }
     }
 }
 
@@ -592,11 +659,9 @@ void print_uct_info(int print_opts, ucs_config_print_flags_t print_flags,
         return;
     }
 
-    if (print_opts & PRINT_DEVICES) {
-        for (i = 0; i < num_components; ++i) {
-            print_uct_component_info(components[i], print_opts, print_flags,
-                                     req_tl_name);
-        }
+    for (i = 0; i < num_components; ++i) {
+        print_uct_component_info(components[i], print_opts, print_flags,
+                                 req_tl_name);
     }
 
     uct_release_component_list(components);

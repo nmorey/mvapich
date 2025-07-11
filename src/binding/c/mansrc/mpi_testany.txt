@@ -1,0 +1,41 @@
+/*D
+   MPI_Testany - Tests for completion of any previdously initiated requests
+
+Synopsis:
+.vb
+int MPI_Testany(int count, MPI_Request array_of_requests[], int *indx,
+                int *flag, MPI_Status *status)
+.ve
+
+Input Parameters:
+. count - count (non-negative integer)
+
+Input/Output Parameters:
+. array_of_requests - array of requests (handle)
+
+Output Parameters:
++ indx - index of operation that completed or MPI_UNDEFINED if none completed (integer)
+. flag - true if one of the operations is complete (logical)
+- status - status object (Status)
+
+Notes:
+
+While it is possible to list a request handle more than once in the
+'array_of_requests', such an action is considered erroneous and may cause the
+program to unexecpectedly terminate or produce incorrect results.
+
+.N waitstatus
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COUNT
+.N MPI_ERR_REQUEST
+.N MPI_ERR_OTHER
+
+D*/
+

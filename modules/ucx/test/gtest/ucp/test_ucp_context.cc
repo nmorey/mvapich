@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2001-2015.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2015. ALL RIGHTS RESERVED.
 *
 * See file LICENSE for terms.
 */
@@ -9,15 +9,22 @@ extern "C" {
 #include <ucs/sys/sys.h>
 }
 
-
-class test_ucp_context : public ucp_test {
-public:
-    static ucp_params_t get_ctx_params() {
-        ucp_params_t params = ucp_test::get_ctx_params();
-        params.features |= UCP_FEATURE_TAG | UCP_FEATURE_WAKEUP;
-        return params;
-    }
+class test_ucp_lib_query : public ucs::test {
 };
+
+UCS_TEST_F(test_ucp_lib_query, test_max_thread_support) {
+    ucs_status_t status;
+    ucp_lib_attr_t params;
+    memset(&params, 0, sizeof(ucp_lib_attr_t));
+    params.field_mask = UCP_LIB_ATTR_FIELD_MAX_THREAD_LEVEL;
+    status            = ucp_lib_query(&params);
+    ASSERT_EQ(UCS_OK, status);
+#if ENABLE_MT
+    EXPECT_EQ(UCS_THREAD_MODE_MULTI, params.max_thread_level);
+#else
+    EXPECT_EQ(UCS_THREAD_MODE_SERIALIZED, params.max_thread_level);
+#endif
+}
 
 UCS_TEST_P(test_ucp_context, minimal_field_mask) {
     ucs::handle<ucp_config_t*> config;
@@ -32,7 +39,7 @@ UCS_TEST_P(test_ucp_context, minimal_field_mask) {
         ucp_params_t params;
         VALGRIND_MAKE_MEM_UNDEFINED(&params, sizeof(params));
         params.field_mask = UCP_PARAM_FIELD_FEATURES;
-        params.features   = get_ctx_params().features;
+        params.features   = get_variant_ctx_params().features;
 
         UCS_TEST_CREATE_HANDLE(ucp_context_h, ucph, ucp_cleanup,
                                ucp_init, &params, config.get());
@@ -75,14 +82,14 @@ UCS_TEST_P(test_ucp_version, wrong_api_version) {
     UCS_TEST_CREATE_HANDLE(ucp_config_t*, config, ucp_config_release,
                            ucp_config_read, NULL, NULL);
 
-    ucp_params_t params = get_ctx_params();
     ucp_context_h ucph;
     ucs_status_t status;
     size_t warn_count;
     {
         scoped_log_handler slh(hide_warns_logger);
         warn_count = m_warnings.size();
-        status = ucp_init_version(99, 99, &params, config.get(), &ucph);
+        status = ucp_init_version(99, 99, &get_variant_ctx_params(),
+                                  config.get(), &ucph);
     }
     if (status != UCS_OK) {
         ADD_FAILURE() << "Failed to create UCP with wrong version";
@@ -100,11 +107,13 @@ UCS_TEST_P(test_ucp_version, version_string) {
 
     ucp_get_version(&major_version, &minor_version, &release_number);
 
-    char buffer[256];
-    snprintf(buffer, sizeof(buffer), "%d.%d.%d", major_version, minor_version,
-             release_number);
+    std::string string_version     = std::to_string(major_version) + '.' +
+                                     std::to_string(minor_version) + '.' +
+                                     std::to_string(release_number);
+    std::string ucp_string_version = ucp_get_version_string();
 
-    EXPECT_EQ(std::string(buffer), std::string(ucp_get_version_string()));
+    EXPECT_EQ(string_version,
+              ucp_string_version.substr(0, string_version.length()));
 }
 
 UCP_INSTANTIATE_TEST_CASE_TLS(test_ucp_version, all, "all")

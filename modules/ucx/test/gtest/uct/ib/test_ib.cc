@@ -1,17 +1,24 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2001-2014.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2014. ALL RIGHTS RESERVED.
 * Copyright (C) UT-Battelle, LLC. 2014. ALL RIGHTS RESERVED.
 * See file LICENSE for terms.
 */
 
 #include <uct/ib/test_ib.h>
+#ifdef HAVE_MLX5_DV
+extern "C" {
+#include <uct/ib/mlx5/ib_mlx5.h>
+#include <uct/ib/rc/accel/rc_mlx5_common.h>
+}
+#endif
+
 
 test_uct_ib::test_uct_ib() : m_e1(NULL), m_e2(NULL) { }
 
 void test_uct_ib::create_connected_entities() {
     m_e1 = uct_test::create_entity(0);
     m_e2 = uct_test::create_entity(0);
-    
+
     m_entities.push_back(m_e1);
     m_entities.push_back(m_e2);
 
@@ -93,8 +100,7 @@ public:
         pack_params.gid       = gid_in;
         pack_params.lid       = lid_in;
         pack_params.roce_info = iface->gid_info.roce_info;
-        /* to suppress gcc 4.3.4 warning */
-        pack_params.path_mtu  = (enum ibv_mtu)0;
+        pack_params.path_mtu  = iface->config.path_mtu;
         pack_params.gid_index = std::numeric_limits<uint8_t>::max();
         pack_params.pkey      = iface->pkey;
         address_size          = uct_ib_address_size(&pack_params);
@@ -124,8 +130,15 @@ public:
             EXPECT_EQ(gid_in.global.interface_id, unpack_params.gid.global.interface_id);
         }
 
-        EXPECT_TRUE(!(unpack_params.flags & UCT_IB_ADDRESS_PACK_FLAG_PATH_MTU));
-        EXPECT_EQ(UCT_IB_ADDRESS_INVALID_PATH_MTU, unpack_params.path_mtu);
+        if (iface->config.path_mtu == IBV_MTU_4096) {
+            EXPECT_FALSE(unpack_params.flags &
+                         UCT_IB_ADDRESS_PACK_FLAG_PATH_MTU);
+            EXPECT_EQ(UCT_IB_ADDRESS_INVALID_PATH_MTU, unpack_params.path_mtu);
+        } else {
+            EXPECT_TRUE(unpack_params.flags &
+                        UCT_IB_ADDRESS_PACK_FLAG_PATH_MTU);
+            EXPECT_EQ(iface->config.path_mtu, unpack_params.path_mtu);
+        }
 
         EXPECT_TRUE(!(unpack_params.flags & UCT_IB_ADDRESS_PACK_FLAG_GID_INDEX));
         EXPECT_EQ(UCT_IB_ADDRESS_INVALID_GID_INDEX, unpack_params.gid_index);
@@ -172,6 +185,20 @@ UCS_TEST_P(test_uct_ib_addr, address_pack) {
     test_address_pack(UCT_IB_LINK_LOCAL_PREFIX);
     test_address_pack(UCT_IB_SITE_LOCAL_PREFIX | htobe64(0x7200));
     test_address_pack(0xdeadfeedbeefa880ul);
+}
+
+UCS_TEST_P(test_uct_ib_addr, address_pack_path_mtu, "IB_PATH_MTU=2048")
+{
+    uct_ib_iface_t *iface = ucs_derived_of(m_entities.front()->iface(),
+                                           uct_ib_iface_t);
+    size_t addr_len       = uct_ib_iface_address_size(iface);
+    std::vector<char> buffer(addr_len);
+    uct_ib_address_t *addr = (uct_ib_address_t*)&buffer[0];
+    uct_ib_iface_address_pack(iface, addr);
+    uct_ib_address_pack_params_t params;
+    uct_ib_address_unpack(addr, &params);
+    EXPECT_TRUE(params.flags & UCT_IB_ADDRESS_PACK_FLAG_PATH_MTU);
+    EXPECT_EQ(IBV_MTU_2048, params.path_mtu);
 }
 
 UCS_TEST_P(test_uct_ib_addr, fill_ah_attr) {
@@ -268,6 +295,16 @@ void test_uct_ib_with_specific_port::cleanup() {
         m_ibctx = NULL;
     }
 }
+
+class test_uct_ib_roce : public test_uct_ib {
+};
+
+UCS_TEST_P(test_uct_ib_roce, local_subnet_only, "IB_ROCE_LOCAL_SUBNET=y")
+{
+    send_recv_short();
+}
+
+UCT_INSTANTIATE_IB_TEST_CASE(test_uct_ib_roce);
 
 class test_uct_ib_lmc : public test_uct_ib_with_specific_port {
 public:
@@ -369,6 +406,57 @@ UCS_TEST_P(test_uct_ib_gid_idx, non_default_gid_idx, "GID_INDEX=1") {
 
 UCT_INSTANTIATE_IB_TEST_CASE(test_uct_ib_gid_idx);
 
+
+#if HAVE_DEVX
+class test_uct_ib_sl : public test_uct_ib_with_specific_port {
+public:
+    void check_port_attr() {
+        ucs_status_t status;
+        ucs::handle<uct_md_h> uct_md;
+
+        UCS_TEST_CREATE_HANDLE(uct_md_h, uct_md, uct_ib_md_close, uct_ib_md_open,
+                               &uct_ib_component,
+                               ibv_get_device_name(m_ibctx->device),
+                               m_md_config);
+
+        uct_ib_mlx5_md_t *ib_md = ucs_derived_of(uct_md, uct_ib_mlx5_md_t);
+
+        /* check if OOO SL mask can be detected for the port */
+        status = uct_ib_mlx5_devx_query_ooo_sl_mask(ib_md, m_port,
+                                                    &m_ooo_sl_mask);
+        EXPECT_TRUE((status == UCS_OK) || (status == UCS_ERR_UNSUPPORTED));
+        if (status != UCS_OK) {
+            UCS_TEST_SKIP_R("OOO SL mask couldn't be detected for " +
+                            m_dev_name + ":" + ucs::to_string(m_port));
+        }
+    }
+
+protected:
+    uint16_t m_ooo_sl_mask;
+};
+
+UCS_TEST_P(test_uct_ib_sl, check_ib_sl_config) {
+    // go over all SLs, check UCTs could be initialized on a specific SL
+    // and able to send/recv traffic
+    for (uint8_t sl = 0; sl < UCT_IB_SL_NUM; ++sl)  {
+        if (!has_transport("rc_verbs") && !has_transport("ud_verbs")) {
+            // if AR is configured on the given SL, set AR_ENABLE to "y",
+            // otherwise - to "n" in order to test that AR_ENABLE parameter
+            // works as expected w/o errors and warnings
+            modify_config("IB_AR_ENABLE",
+                          (m_ooo_sl_mask & UCS_BIT(sl)) ? "y" : "n");
+        }
+        modify_config("IB_SL", ucs::to_string(static_cast<uint16_t>(sl)));
+
+        test_uct_ib::init();
+        send_recv_short();
+        test_uct_ib::cleanup();
+    }
+}
+
+UCT_INSTANTIATE_IB_TEST_CASE(test_uct_ib_sl);
+#endif
+
 class test_uct_ib_utils : public ucs::test {
 };
 
@@ -455,6 +543,260 @@ UCS_TEST_F(test_uct_ib_utils, sec_to_rnr_time) {
 }
 
 
+#if HAVE_DEVX
+class test_uct_ib_sl_utils : public test_uct_ib_utils {
+protected:
+    ucs_status_t ib_select_sl(ucs_ternary_auto_value_t ar_enable,
+                              uint64_t test_ooo_sl_mask,
+                              const uct_ib_iface_config_t &config,
+                              uint8_t &sl) const {
+        uint16_t ooo_sl_mask = (test_ooo_sl_mask !=
+                                m_ooo_sl_mask_not_detected) ?
+                               static_cast<uint16_t>(test_ooo_sl_mask) : 0;
+        return uct_ib_mlx5_select_sl(&config, ar_enable, ooo_sl_mask,
+                                     (test_ooo_sl_mask !=
+                                      m_ooo_sl_mask_not_detected),
+                                     "mlx5_0", 1, &sl);
+    }
+
+    ucs_status_t select_sl_ok(ucs_ternary_auto_value_t ar_enable,
+                              unsigned long config_sl,
+                              uint64_t ooo_sl_mask,
+                              const uct_ib_iface_config_t &config) const {
+        uint16_t sls_with_ar, sls_without_ar;
+        ucs_status_t status;
+        uint8_t sl;
+
+        if (ooo_sl_mask != m_ooo_sl_mask_not_detected) {
+            sls_with_ar    = static_cast<uint16_t>(ooo_sl_mask);
+            sls_without_ar = static_cast<uint16_t>(~ooo_sl_mask);
+        } else {
+            sls_with_ar    =
+            sls_without_ar = 0;
+        }
+
+        status = ib_select_sl(ar_enable, ooo_sl_mask, config, sl);
+        if ((ooo_sl_mask == 0) || (ar_enable == UCS_AUTO)) {
+            if (config_sl == UCS_ULUNITS_AUTO) {
+                EXPECT_EQ(m_default_sl, sl);
+            } else {
+                EXPECT_EQ(static_cast<uint8_t>(config_sl), sl);
+            }
+        } else if (config_sl == UCS_ULUNITS_AUTO) {
+            if ((ar_enable == UCS_YES) ||
+                ((ar_enable == UCS_TRY) && (sls_with_ar != 0))) {
+                EXPECT_EQ(ucs_ffs64_safe(sls_with_ar), sl);
+            } else if ((ar_enable == UCS_NO) ||
+                       ((ar_enable == UCS_TRY) && (sls_without_ar != 0))) {
+                EXPECT_EQ(ucs_ffs64_safe(sls_without_ar), sl);
+            } else {
+                EXPECT_EQ(UCS_TRY, ar_enable);
+                EXPECT_EQ(m_default_sl, sl);
+            }
+        } else {
+            EXPECT_EQ(static_cast<uint8_t>(config_sl), sl);
+        }
+
+        return status;
+    }
+
+    static ucs_log_func_rc_t
+    wrap_errors_check_sl_masks_logger(const char *file, unsigned line,
+                                      const char *function,
+                                      ucs_log_level_t level,
+                                      const ucs_log_component_config_t *
+                                      comp_conf,
+                                      const char *message, va_list ap)
+    {
+        if (level == UCS_LOG_LEVEL_ERROR) {
+            std::string err_str = format_message(message, ap);
+
+            for (uint8_t sl = 0; sl < UCT_IB_SL_NUM; ++sl) {
+                std::string sl_val = ucs::to_string(static_cast<uint16_t>(sl));
+
+                if ((err_str.find(sl_val + ", ") == std::string::npos) &&
+                    (err_str.find(sl_val + " }") == std::string::npos)) {
+                    return UCS_LOG_FUNC_RC_CONTINUE;
+                }
+            }
+
+            return UCS_LOG_FUNC_RC_STOP;
+        }
+
+        return UCS_LOG_FUNC_RC_CONTINUE;
+    }
+
+    ucs_status_t select_sl_nok(ucs_ternary_auto_value_t ar_enable,
+                               unsigned long config_sl, uint64_t ooo_sl_mask,
+                               const uct_ib_iface_config_t &config) const {
+        scoped_log_handler slh(((ooo_sl_mask != m_ooo_sl_mask_not_detected) &&
+                                (config_sl == UCS_ULUNITS_AUTO)) ?
+                               wrap_errors_check_sl_masks_logger :
+                               wrap_errors_logger);
+        uint8_t sl;
+
+        EXPECT_NE(UCS_AUTO, ar_enable);
+
+        return ib_select_sl(ar_enable, ooo_sl_mask, config, sl);
+    }
+
+    void select_sl(ucs_ternary_auto_value_t ar_enable, unsigned long config_sl,
+                   uint64_t ooo_sl_mask, ucs_status_t exp_status) const {
+        uct_ib_iface_config_t config = {};
+        ucs_status_t status;
+
+        config.sl = config_sl;
+
+        if (exp_status == UCS_OK) {
+            status = select_sl_ok(ar_enable, config_sl, ooo_sl_mask, config);
+        } else {
+            status = select_sl_nok(ar_enable, config_sl, ooo_sl_mask, config);
+        }
+        EXPECT_EQ(exp_status, status);
+    }
+
+protected:
+    const static uint64_t m_ooo_sl_mask_not_detected;
+    const static uint8_t  m_default_sl;
+};
+
+const uint64_t test_uct_ib_sl_utils::m_ooo_sl_mask_not_detected =
+                                     std::numeric_limits<uint64_t>::max();
+const uint8_t  test_uct_ib_sl_utils::m_default_sl               = 0;
+
+
+UCS_TEST_F(test_uct_ib_sl_utils, sl_selection) {
+    const ucs_status_t err_status = UCS_ERR_UNSUPPORTED;
+
+    for (unsigned i = 0; i < static_cast<unsigned>(UCS_TERNARY_LAST); i++) {
+        ucs_ternary_auto_value_t ar_enable =
+            static_cast<ucs_ternary_auto_value_t>(i);
+
+        // select the default SL, with empty OOO SL mask
+        select_sl(ar_enable, UCS_ULUNITS_AUTO, 0,
+                  (ar_enable == UCS_YES) ? err_status : UCS_OK);
+
+        // select the default SL, without OOO SL mask (not detected)
+        select_sl(ar_enable, UCS_ULUNITS_AUTO, m_ooo_sl_mask_not_detected,
+                  ((ar_enable != UCS_TRY) && (ar_enable != UCS_AUTO)) ?
+                  err_status : UCS_OK);
+
+        for (uint8_t sl = 0; sl < UCT_IB_SL_NUM; ++sl) {
+            // select the default SL, with OOO SL mask which contains only <sl>
+            select_sl(ar_enable, UCS_ULUNITS_AUTO, UCS_BIT(sl), UCS_OK);
+
+            // select SL=<sl>, with empty OOO SL mask
+            select_sl(ar_enable, sl, 0,
+                      (ar_enable == UCS_YES) ? err_status : UCS_OK);
+
+            // select SL=<sl>, without OOO SL mask (not detected)
+            select_sl(ar_enable, sl, m_ooo_sl_mask_not_detected,
+                      ((ar_enable != UCS_TRY) && (ar_enable != UCS_AUTO)) ?
+                      err_status : UCS_OK);
+
+            /* select SL=<sl>, with OOO SL mask which contains only <sl> */
+            select_sl(ar_enable, sl, UCS_BIT(sl),
+                      (ar_enable == UCS_NO) ? err_status : UCS_OK);
+
+            // select SL=<sl>, with OOO SL mask which doesn't contain <sl>, but
+            // it contains one another element
+            select_sl(ar_enable, sl, UCS_BIT(UCT_IB_SL_NUM - 1 - sl),
+                      (ar_enable == UCS_YES) ? err_status : UCS_OK);
+
+            // select SL=<sl>, with OOO SL mask which contains <sl> and two
+            // other elements
+            select_sl(ar_enable, sl,
+                      UCS_BIT(sl)                       |
+                      UCS_BIT((sl + 1) % UCT_IB_SL_NUM) |
+                      UCS_BIT((sl + 2) % UCT_IB_SL_NUM),
+                      (ar_enable == UCS_NO) ? err_status : UCS_OK);
+
+            // select SL=<sl>, with OOO SL mask which doesn't contain <sl>
+            select_sl(ar_enable, sl,
+                      UCS_BIT((sl + 1) % UCT_IB_SL_NUM) |
+                      UCS_BIT((sl + 2) % UCT_IB_SL_NUM) |
+                      UCS_BIT((sl + 3) % UCT_IB_SL_NUM),
+                      (ar_enable == UCS_YES) ? err_status : UCS_OK);
+
+            // select SL=<sl>, with full OOO SL mask
+            select_sl(ar_enable, sl, UCS_MASK(UCT_IB_SL_NUM),
+                      (ar_enable == UCS_NO) ? err_status : UCS_OK);
+
+            // select SL=<sl>, with full OOO SL mask, except <sl>
+            select_sl(ar_enable, sl, UCS_MASK(UCT_IB_SL_NUM) & ~UCS_BIT(sl),
+                      (ar_enable == UCS_YES) ? err_status : UCS_OK);
+        }
+    }
+}
+
+UCS_TEST_F(test_uct_ib_sl_utils, query_ooo_sl_mask) {
+    int num_devices;
+    struct ibv_device **ib_device_list;
+    ucs_status_t status;
+
+    ib_device_list = ibv_get_device_list(&num_devices);
+    if (ib_device_list == NULL) {
+        num_devices = 0;
+    }
+
+    for (int i = 0; i < num_devices; ++i) {
+        const char *dev_name = ibv_get_device_name(ib_device_list[i]);
+        uct_md_config_t *md_config;
+        uct_ib_mlx5_md_t *ib_mlx5_md;
+        uct_ib_device_t *dev;
+        uct_md_h md;
+
+        if (!uct_ib_device_is_accessible(ib_device_list[i])) {
+            /* Skip non-existing IB devices */
+            continue;
+        }
+
+        status = uct_md_config_read(&uct_ib_component, NULL, NULL, &md_config);
+        EXPECT_UCS_OK(status);
+        if (status != UCS_OK) {
+            continue;
+        }
+
+        status = uct_ib_md_open(&uct_ib_component, dev_name, md_config, &md);
+        EXPECT_UCS_OK(status);
+        if (status != UCS_OK) {
+            goto out_md_config_release;
+        }
+
+        ib_mlx5_md = ucs_derived_of(md, uct_ib_mlx5_md_t);
+        dev        = &ib_mlx5_md->super.dev;
+
+        for (uint8_t port_num = dev->first_port;
+             port_num <= dev->num_ports; ++port_num) {
+            uint16_t ooo_sl_mask = 0;
+            ucs_string_buffer_t strb;
+
+            status = uct_ib_mlx5_devx_query_ooo_sl_mask(ib_mlx5_md, port_num,
+                                                        &ooo_sl_mask);
+            EXPECT_TRUE((status == UCS_OK) || (status == UCS_ERR_UNSUPPORTED));
+            if ((status != UCS_OK) && (status != UCS_ERR_UNSUPPORTED)) {
+                continue;
+            }
+
+            ucs_string_buffer_init(&strb);
+            UCS_TEST_MESSAGE << "OOO SL mask for " << dev_name << " - { "
+                             << ucs_mask_str(ooo_sl_mask, &strb) << " }";
+            ucs_string_buffer_cleanup(&strb);
+        }
+
+        uct_ib_md_close(md);
+
+out_md_config_release:
+        uct_config_release(md_config);
+    }
+
+    if (ib_device_list != NULL) {
+        ibv_free_device_list(ib_device_list);
+    }
+}
+#endif
+
+
 class test_uct_event_ib : public test_uct_ib {
 public:
     test_uct_event_ib() {
@@ -525,29 +867,38 @@ public:
         }
     }
 
-    void check_send_cq(uct_iface_t *iface, size_t val) {
-        uct_ib_iface_t *ib_iface = ucs_derived_of(iface, uct_ib_iface_t);
-        struct ibv_cq  *send_cq = ib_iface->cq[UCT_IB_DIR_TX];
-
-        if (val != send_cq->comp_events_completed) {
-            uint32_t completed_evt = send_cq->comp_events_completed;
-            /* need this call to acknowledge the completion to prevent iface dtor hung*/
-            ibv_ack_cq_events(ib_iface->cq[UCT_IB_DIR_TX], 1);
-            UCS_TEST_ABORT("send_cq->comp_events_completed have to be 1 but the value "
-                           << completed_evt);
+    size_t get_comp_events(const uct_iface_t *iface, const uct_ib_dir_t dir)
+    {
+        uct_ib_iface_t *ib_iface;
+#if HAVE_MLX5_DV
+        uct_rc_mlx5_iface_common_t *rc_mlx5_iface;
+        if (has_transport("dc_mlx5") || has_transport("rc_mlx5")) {
+            rc_mlx5_iface = ucs_derived_of(iface, uct_rc_mlx5_iface_common_t);
+            return rc_mlx5_iface->cq[dir].cq_sn;
         }
+#endif
+        ib_iface = ucs_derived_of(iface, uct_ib_iface_t);
+        return ib_iface->cq[dir]->comp_events_completed;
     }
 
-    void check_recv_cq(uct_iface_t *iface, size_t val) {
+    void ack_cq(const uct_iface_t *iface, const uct_ib_dir_t dir)
+    {
         uct_ib_iface_t *ib_iface = ucs_derived_of(iface, uct_ib_iface_t);
-        struct ibv_cq  *recv_cq = ib_iface->cq[UCT_IB_DIR_RX];
 
-        if (val != recv_cq->comp_events_completed) {
-            uint32_t completed_evt = recv_cq->comp_events_completed;
-            /* need this call to acknowledge the completion to prevent iface dtor hung*/
-            ibv_ack_cq_events(ib_iface->cq[UCT_IB_DIR_RX], 1);
-            UCS_TEST_ABORT("recv_cq->comp_events_completed have to be 1 but the value "
-                           << completed_evt);
+        ibv_ack_cq_events(ib_iface->cq[dir], 1);
+    }
+
+    void check_cq(const uct_iface_t *iface, const uct_ib_dir_t dir,
+                  const size_t value)
+    {
+        size_t completed_events = get_comp_events(iface, dir);
+
+        if (value != completed_events) {
+            /* acknowledge the completion to prevent iface dtor hung */
+            ack_cq(iface, dir);
+            UCS_TEST_ABORT(
+                    "completed_events have to be 1 but the value "
+                    << completed_events);
         }
     }
 
@@ -583,8 +934,8 @@ UCS_TEST_SKIP_COND_P(test_uct_event_ib, tx_cq,
 
     /* check initial state of the fd and [send|recv]_cq */
     EXPECT_FALSE(m_async_event_ctx.wait_for_event(*m_e1, 0));
-    check_send_cq(m_e1->iface(), 0);
-    check_recv_cq(m_e1->iface(), 0);
+    check_cq(m_e1->iface(), UCT_IB_DIR_TX, 0);
+    check_cq(m_e1->iface(), UCT_IB_DIR_RX, 0);
 
     /* send the data */
     send_msg_e1_e2();
@@ -598,8 +949,8 @@ UCS_TEST_SKIP_COND_P(test_uct_event_ib, tx_cq,
     ASSERT_EQ(status, UCS_ERR_BUSY);
 
     /* make sure [send|recv]_cq handled properly */
-    check_send_cq(m_e1->iface(), 1);
-    check_recv_cq(m_e1->iface(), 0);
+    check_cq(m_e1->iface(), UCT_IB_DIR_TX, 1);
+    check_cq(m_e1->iface(), UCT_IB_DIR_RX, 0);
 
     m_e1->flush();
 }
@@ -620,8 +971,8 @@ UCS_TEST_SKIP_COND_P(test_uct_event_ib, txrx_cq,
 
     /* check initial state of the fd and [send|recv]_cq */
     EXPECT_FALSE(m_async_event_ctx.wait_for_event(*m_e1, 0));
-    check_send_cq(m_e1->iface(), 0);
-    check_recv_cq(m_e1->iface(), 0);
+    check_cq(m_e1->iface(), UCT_IB_DIR_TX, 0);
+    check_cq(m_e1->iface(), UCT_IB_DIR_RX, 0);
 
     /* send the data */
     send_msg_e1_e2(msg_count);
@@ -646,12 +997,79 @@ UCS_TEST_SKIP_COND_P(test_uct_event_ib, txrx_cq,
     ASSERT_EQ(UCS_ERR_BUSY, status);
 
     /* make sure [send|recv]_cq handled properly */
-    check_send_cq(m_e1->iface(), 1);
-    check_recv_cq(m_e1->iface(), 1);
+    check_cq(m_e1->iface(), UCT_IB_DIR_TX, 1);
+    check_cq(m_e1->iface(), UCT_IB_DIR_RX, 1);
 
     m_e1->flush();
     m_e2->flush();
 }
 
-
 UCT_INSTANTIATE_IB_TEST_CASE(test_uct_event_ib);
+
+class test_uct_ib_mtu : public test_uct_ib {
+public:
+    void create_connected_entities()
+    {
+        modify_config("IB_PATH_MTU", "4096");
+        m_e1 = uct_test::create_entity(0);
+        modify_config("IB_PATH_MTU", "2048");
+        m_e2 = uct_test::create_entity(0);
+
+        m_entities.push_back(m_e1);
+        m_entities.push_back(m_e2);
+
+        m_e1->connect(0, *m_e2, 0);
+        m_e2->connect(0, *m_e1, 0);
+    }
+
+    static ucs_status_t
+    ib_am_bcopy_handler(void *arg, void *data, size_t length, unsigned flags)
+    {
+        EXPECT_EQ((size_t)arg, length);
+        ++test_uct_ib::m_ib_am_handler_counter;
+        return UCS_OK;
+    }
+
+    static size_t ib_am_bcopy_pack_cb(void *dest, void *arg)
+    {
+        size_t length = (size_t)arg;
+
+        memset(dest, 0, length);
+        return length;
+    }
+
+    void send_recv_bcopy(uct_ep_h ep, entity *ent, size_t length)
+    {
+        size_t start_am_counter = test_uct_ib::m_ib_am_handler_counter;
+        uct_ib_iface_t *iface   = ucs_derived_of(ep->iface, uct_ib_iface_t);
+        uct_iface_attr_t attr;
+        ucs_status_t status;
+        size_t len;
+
+        status = uct_iface_query(&iface->super.super, &attr);
+        ASSERT_UCS_OK(status);
+        ASSERT_TRUE(attr.cap.flags & UCT_IFACE_FLAG_AM_BCOPY);
+        ASSERT_LE(length, attr.cap.am.max_bcopy);
+
+        /* set a callback for the uct to invoke for receiving the data */
+        uct_iface_set_am_handler(ent->iface(), 0, ib_am_bcopy_handler,
+                                 (void*)length, 0);
+
+        /* send the data */
+        len = uct_ep_am_bcopy(ep, 0, ib_am_bcopy_pack_cb, (void*)length, 0);
+        ASSERT_EQ(length, len);
+
+        flush();
+        wait_for_value(&test_uct_ib::m_ib_am_handler_counter,
+                       start_am_counter + 1, true);
+    }
+};
+
+UCS_TEST_SKIP_COND_P(test_uct_ib_mtu, non_equal_mtu,
+                     !check_caps(UCT_IFACE_FLAG_AM_BCOPY))
+{
+    send_recv_bcopy(m_e1->ep(0), m_e2, m_e1->iface_attr().cap.am.max_bcopy);
+    send_recv_bcopy(m_e2->ep(0), m_e1, m_e2->iface_attr().cap.am.max_bcopy);
+}
+
+UCT_INSTANTIATE_RC_TEST_CASE(test_uct_ib_mtu);

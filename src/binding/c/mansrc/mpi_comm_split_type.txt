@@ -1,0 +1,35 @@
+/*D
+   MPI_Comm_split_type - Creates new communicators based on split types and keys
+
+Synopsis:
+.vb
+int MPI_Comm_split_type(MPI_Comm comm, int split_type, int key, MPI_Info info,
+                        MPI_Comm *newcomm)
+.ve
+
+Input Parameters:
++ comm - communicator (handle)
+. split_type - type of processes to be grouped together (integer)
+. key - control of rank assignment (integer)
+- info - info argument (handle)
+
+Output Parameters:
+. newcomm - new communicator (handle)
+
+Notes:
+  The 'split_type' must be non-negative or 'MPI_UNDEFINED'.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_INFO
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Comm_free
+D*/
+

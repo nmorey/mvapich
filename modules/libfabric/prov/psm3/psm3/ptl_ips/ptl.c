@@ -129,20 +129,18 @@ int ips_ptl_epaddr_stats_get(psm2_epaddr_t epaddr, uint64_t *stats_o)
 }
 #endif // 0	// unused code, specific to QLogic MPI
 
+/* periodic (PSMI_CONTEXT_STATUS_CHECK_INTERVAL_MSECS (250ms)) check for
+ * health of HW and network link.
+ */
 static
 psm2_error_t
-psmi_context_check_status_callback(struct psmi_timer *t, uint64_t current)
+psm3_context_check_status_callback(struct psmi_timer *t, uint64_t current)
 {
 	struct ptl_ips *ptl = (struct ptl_ips *)t->context;
 	const uint64_t current_count = get_cycles();
 	psm2_error_t err;
 
-	err = psm3_context_check_status(ptl->ep);
-	if (err == PSM2_OK || err == PSM2_OK_NO_PROGRESS)
-	{
-		int rc = psmi_hal_spio_process_events((struct ptl *)ptl);
-		err = rc >= 0 ? PSM2_OK : PSM2_INTERNAL_ERR;
-	}
+	err = psmi_hal_context_check_status(ptl);
 	psm3_timer_request_always(&ptl->timerq, &ptl->status_timer,
 				  current_count + ptl->status_cyc_timeout);
 
@@ -162,7 +160,7 @@ psm2_error_t ips_ptl_init(const psm2_ep_t ep, ptl_t *ptl_gen, ptl_ctl_t *ctl)
 	/* Preconditions */
 	psmi_assert_always(ep != NULL);
 	psmi_assert_always(ep->epaddr != NULL);
-	psmi_assert_always(!psm3_epid_zero(ep->epid));
+	psmi_assert_always(!psm3_epid_zero_internal(ep->epid));
 	psmi_assert_always(ep->hfi_num_sendbufs > 0);
 
 	memset(ptl, 0, sizeof(struct ptl_ips));
@@ -208,7 +206,7 @@ psm2_error_t ips_ptl_init(const psm2_ep_t ep, ptl_t *ptl_gen, ptl_ctl_t *ctl)
 	 * up.
 	 */
 	psmi_timer_entry_init(&ptl->status_timer,
-			      psmi_context_check_status_callback, ptl);
+			      psm3_context_check_status_callback, ptl);
 
 	/* cache the context's status timeout in cycles */
 	ptl->status_cyc_timeout =
@@ -251,10 +249,11 @@ psm2_error_t ips_ptl_init(const psm2_ep_t ep, ptl_t *ptl_gen, ptl_ctl_t *ctl)
 		goto fail;
 
 	/*
-	 * Receive thread, always initialized but not necessary creates a
+	 * ips_ptl threads, always initialized but not necessary creates a
 	 * pthread.
 	 */
-	err = psm3_ips_ptl_rcvthread_init(ptl_gen, &ptl->recvq);
+	if ((err = psm3_ips_ptl_rcvthread_init(ptl_gen, &ptl->recvq)))
+		goto fail;
 fail:
 	return err;
 }
@@ -264,13 +263,20 @@ static psm2_error_t ips_ptl_fini(ptl_t *ptl_gen, int force, uint64_t timeout_in)
 	struct ptl_ips *ptl = (struct ptl_ips *)ptl_gen;
 	psm2_error_t err = PSM2_OK;
 
-	if ((err = psm3_ips_proto_fini(&ptl->proto, force, timeout_in)))
-		goto fail;
-
-	/* We have to cancel the thread after terminating the protocol because
+	/* Finalize the protocol before stopping the threads because
 	 * connect/disconnect packets use interrupts and the kernel doesn't
 	 * like to have no pollers waiting */
+	if ((err = psm3_ips_proto_disconnect_all(&ptl->proto, force, timeout_in)))
+		goto fail;
+
+	/* stop the threads.  They may be accessing fields in proto such as
+	 * proto->mr_cache, or ep linked lists.  In practice the threads are
+	 * already mostly blocked since our caller has psm3_creation_lock */
 	if ((err = psm3_ips_ptl_rcvthread_fini(ptl_gen)))
+		goto fail;
+
+	/* now free the proto resources */
+	if ((err = psm3_ips_proto_fini(&ptl->proto)))
 		goto fail;
 
 	if ((err = psm3_ips_epstate_fini(&ptl->epstate)))

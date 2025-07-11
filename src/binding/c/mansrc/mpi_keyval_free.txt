@@ -1,0 +1,48 @@
+/*D
+   MPI_Comm_free_keyval - Frees an attribute key for communicators
+
+Synopsis:
+.vb
+int MPI_Comm_free_keyval(int *comm_keyval)
+.ve
+
+Input/Output Parameters:
+. comm_keyval - key value (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_KEYVAL
+.N MPI_ERR_OTHER
+
+D*/
+
+/*D
+   MPI_Keyval_free - Frees an attribute key for communicators
+
+Synopsis:
+.vb
+int MPI_Keyval_free(int *keyval)
+.ve
+
+Input/Output Parameters:
+. keyval - Frees the integer key value (integer)
+
+.N Deprecated
+   The replacement for this routine is 'MPI_Comm_free_keyval'.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_KEYVAL
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Keyval_create, MPI_Comm_free_keyval
+D*/
+

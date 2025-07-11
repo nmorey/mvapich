@@ -1,0 +1,31 @@
+/*D
+   MPI_Error_string - Return a string for a given error code
+
+Synopsis:
+.vb
+int MPI_Error_string(int errorcode, char *string, int *resultlen)
+.ve
+
+Input Parameters:
+. errorcode - Error code returned by an MPI routine (integer)
+
+Output Parameters:
++ string - Text that corresponds to the errorcode (string)
+- resultlen - Length (in printable characters) of the result returned in string (integer)
+
+Notes:
+Error codes are the values return by MPI routines (in C) or in the
+'ierr' argument (in Fortran).  These can be converted into error classes
+with the routine 'MPI_Error_class'.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_OTHER
+
+D*/
+

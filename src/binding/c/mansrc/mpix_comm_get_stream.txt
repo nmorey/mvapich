@@ -1,0 +1,27 @@
+/*D
+   MPIX_Comm_get_stream - Get the stream object that is attached to the communicator
+
+Synopsis:
+.vb
+int MPIX_Comm_get_stream(MPI_Comm comm, int idx, MPIX_Stream *stream)
+.ve
+
+Input Parameters:
++ comm - communicator (handle)
+- idx - idx (integer)
+
+Output Parameters:
+. stream - stream object (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+D*/
+

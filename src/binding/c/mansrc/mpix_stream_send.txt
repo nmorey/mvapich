@@ -1,0 +1,42 @@
+/*D
+   MPIX_Stream_send - Send message from a specific local stream to a specific destination stream
+
+Synopsis:
+.vb
+int MPIX_Stream_send(const void *buf, int count, MPI_Datatype datatype,
+                     int dest, int tag, MPI_Comm comm, int source_stream_index,
+                     int dest_stream_index)
+.ve
+.vb
+int MPIX_Stream_send_c(const void *buf, MPI_Count count, MPI_Datatype datatype,
+                       int dest, int tag, MPI_Comm comm,
+                       int source_stream_index, int dest_stream_index)
+.ve
+
+Input Parameters:
++ buf - initial address of send buffer (choice)
+. count - number of elements in send buffer (non-negative integer)
+. datatype - datatype of each send buffer element (handle)
+. dest - rank of destination (integer)
+. tag - message tag (integer)
+. comm - communicator (handle)
+. source_stream_index - source_stream_index (integer)
+- dest_stream_index - dest_stream_index (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_BUFFER
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_RANK
+.N MPI_ERR_TAG
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

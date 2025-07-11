@@ -37,6 +37,7 @@
 #include <unistd.h>
 
 #include <ofi_mr.h>
+#include <ofi_mem.h>
 #include <ofi_hmem.h>
 #include <ofi_enosys.h>
 #include <rdma/fi_ext.h>
@@ -166,12 +167,17 @@ void ofi_monitor_cleanup(struct ofi_mem_monitor *monitor)
  */
 void ofi_monitors_init(void)
 {
+	pthread_mutex_init(&mm_lock, NULL);
 	pthread_mutex_init(&mm_state_lock, NULL);
+	pthread_rwlock_init(&mm_list_rwlock, NULL);
 
 	uffd_monitor->init(uffd_monitor);
 	memhooks_monitor->init(memhooks_monitor);
 	cuda_monitor->init(cuda_monitor);
+	cuda_ipc_monitor->init(cuda_ipc_monitor);
 	rocr_monitor->init(rocr_monitor);
+	rocr_ipc_monitor->init(rocr_ipc_monitor);
+	xpmem_monitor->init(xpmem_monitor);
 	ze_monitor->init(ze_monitor);
 	import_monitor->init(import_monitor);
 
@@ -277,6 +283,10 @@ void ofi_monitors_cleanup(void)
 	rocr_monitor->cleanup(rocr_monitor);
 	ze_monitor->cleanup(ze_monitor);
 	import_monitor->cleanup(import_monitor);
+
+	pthread_rwlock_destroy(&mm_list_rwlock);
+	pthread_mutex_destroy(&mm_state_lock);
+	pthread_mutex_destroy(&mm_lock);
 }
 
 /* Monitors array must be of size OFI_HMEM_MAX. */
@@ -460,6 +470,28 @@ void ofi_monitor_unsubscribe(struct ofi_mem_monitor *monitor,
 	monitor->unsubscribe(monitor, addr, len, hmem_info);
 }
 
+int ofi_monitor_start_no_op(struct ofi_mem_monitor *monitor)
+{
+	return FI_SUCCESS;
+}
+
+void ofi_monitor_stop_no_op(struct ofi_mem_monitor *monitor)
+{
+}
+
+int ofi_monitor_subscribe_no_op(struct ofi_mem_monitor *notifier,
+			 const void *addr, size_t len,
+			 union ofi_mr_hmem_info *hmem_info)
+{
+	return FI_SUCCESS;
+}
+
+void ofi_monitor_unsubscribe_no_op(struct ofi_mem_monitor *notifier,
+			    const void *addr, size_t len,
+			    union ofi_mr_hmem_info *hmem_info)
+{
+}
+
 #if HAVE_UFFD_MONITOR
 
 #include <poll.h>
@@ -542,7 +574,7 @@ static int ofi_uffd_register(const void *addr, size_t len, size_t page_size)
 	if (ret < 0) {
 		if (errno != EINVAL) {
 			FI_WARN(&core_prov, FI_LOG_MR,
-				"ioctl/uffd_unreg: %s\n", strerror(errno));
+				"ioctl/uffd_reg: %s\n", strerror(errno));
 		}
 		return -errno;
 	}
@@ -596,8 +628,9 @@ static void ofi_uffd_unsubscribe(struct ofi_mem_monitor *monitor,
 	}
 }
 
-static bool ofi_uffd_valid(struct ofi_mem_monitor *monitor, const void *addr,
-			   size_t len, union ofi_mr_hmem_info *hmem_info)
+static bool ofi_uffd_valid(struct ofi_mem_monitor *monitor,
+			   const struct ofi_mr_info *info,
+			   struct ofi_mr_entry *entry)
 {
 	/* no-op */
 	return true;
@@ -685,8 +718,8 @@ static void ofi_import_monitor_unsubscribe(struct ofi_mem_monitor *notifier,
 					   const void *addr, size_t len,
 					   union ofi_mr_hmem_info *hmem_info);
 static bool ofi_import_monitor_valid(struct ofi_mem_monitor *notifier,
-				     const void *addr, size_t len,
-				     union ofi_mr_hmem_info *hmem_info);
+				     const struct ofi_mr_info *info,
+				     struct ofi_mr_entry *entry);
 
 struct ofi_import_monitor {
 	struct ofi_mem_monitor monitor;
@@ -748,11 +781,13 @@ static void ofi_import_monitor_unsubscribe(struct ofi_mem_monitor *notifier,
 }
 
 static bool ofi_import_monitor_valid(struct ofi_mem_monitor *notifier,
-				     const void *addr, size_t len,
-				     union ofi_mr_hmem_info *hmem_info)
+				     const struct ofi_mr_info *info,
+				     struct ofi_mr_entry *entry)
 {
 	assert(impmon.impfid);
-	return impmon.impfid->export_ops->valid(impmon.impfid, addr, len);
+	return impmon.impfid->export_ops->valid(impmon.impfid,
+						entry->info.iov.iov_base,
+						entry->info.iov.iov_len);
 }
 
 static void ofi_import_monitor_notify(struct fid_mem_monitor *monitor,

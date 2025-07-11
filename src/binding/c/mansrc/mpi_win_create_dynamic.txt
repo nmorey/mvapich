@@ -1,0 +1,41 @@
+/*D
+   MPI_Win_create_dynamic - Create an MPI Window object for one-sided communication
+
+Synopsis:
+.vb
+int MPI_Win_create_dynamic(MPI_Info info, MPI_Comm comm, MPI_Win *win)
+.ve
+
+Input Parameters:
++ info - info argument (handle)
+- comm - intra-communicator (handle)
+
+Output Parameters:
+. win - window object returned by the call (handle)
+
+Notes:
+
+Users are cautioned that displacement arithmetic can overflow in variables of
+type 'MPI_Aint' and result in unexpected values on some platforms. This issue may
+be addressed in a future version of MPI.
+
+Memory in this window may not be used as the target of one-sided accesses in
+this window until it is attached using the function 'MPI_Win_attach'. That is, in
+addition to using 'MPI_Win_create_dynamic' to create an MPI window, the user must
+use 'MPI_Win_attach' before any local memory may be the target of an MPI RMA
+operation. Only memory that is currently accessible may be attached.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_INFO
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Win_attach MPI_Win_detach MPI_Win_allocate MPI_Win_allocate_shared MPI_Win_create MPI_Win_free
+D*/
+

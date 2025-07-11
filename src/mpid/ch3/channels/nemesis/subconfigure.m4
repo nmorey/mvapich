@@ -44,11 +44,12 @@ AC_MSG_NOTICE([RUNNING CONFIGURE FOR ch3:nemesis])
 ##fi
 
 dnl AC_CHECK_HEADER(net/if.h) fails on Solaris; extra header files needed
-AC_TRY_COMPILE([
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <net/if.h>
-],,lac_cv_header_net_if_h=yes,lac_cv_header_net_if_h=no)
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+    #include <sys/types.h>
+    #include <sys/socket.h>
+    #include <net/if.h>
+    ]],[])],
+    lac_cv_header_net_if_h=yes,lac_cv_header_net_if_h=no)
 
 echo "checking for net/if.h... $lac_cv_header_net_if_h"
 
@@ -77,22 +78,18 @@ AC_CHECK_HEADERS([ \
 # other headers.  2.57 changes the syntax (!) of check_headers to allow 
 # additional headers.
 AC_CACHE_CHECK([for netinet/in.h],ac_cv_header_netinet_in_h,[
-AC_TRY_COMPILE([#ifdef HAVE_SYS_TYPES_H
-#include <sys/types.h>
-#endif
-#include <netinet/in.h>],[int a=0;],
-    ac_cv_header_netinet_in_h=yes,
-    ac_cv_header_netinet_in_h=no)])
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+        #ifdef HAVE_SYS_TYPES_H
+        #include <sys/types.h>
+        #endif
+        #include <netinet/in.h>
+        ]],[[int a=0;]])],
+        ac_cv_header_netinet_in_h=yes,
+        ac_cv_header_netinet_in_h=no)
+])
 if test "$ac_cv_header_netinet_in_h" = yes ; then
     AC_DEFINE(HAVE_NETINET_IN_H,1,[Define if netinet/in.h exists])
 fi
-
-AC_ARG_ENABLE(fast, [--enable-fast - pick the appropriate options for fast execution.
-This turns off error checking and timing collection],,enable_fast=no)
-
-# make sure we support signal
-AC_CHECK_HEADERS(signal.h)
-AC_CHECK_FUNCS(signal)
 
 nemesis_nets_dirs=""
 nemesis_nets_strings=""
@@ -149,7 +146,7 @@ for net in $nemesis_networks ; do
 done
 nemesis_nets_array_sz=$net_index
 
-AC_ARG_WITH(papi, [--with-papi[=path] - specify path where papi include and lib directories can be found],, with_papi=no)
+AC_ARG_WITH(papi, [  --with-papi[=path] - specify path where papi include and lib directories can be found],, with_papi=no)
 
 if test "${with_papi}" != "no" ; then
     if test "${with_papi}" != "yes" ; then
@@ -172,18 +169,15 @@ if test "${with_papi}" != "no" ; then
 #    AC_CHECK_LIB(perfctr, perfctr_info, , [AC_MSG_ERROR(['perfctr library not found.  Did you specify --with-papi=?'])])
 fi
 
-# handle missing mkstemp, or missing mkstemp declaration
-AC_CHECK_FUNCS(mkstemp)
-AC_CHECK_FUNCS(rand)
-AC_CHECK_FUNCS(srand)
-
 # Check for available shared memory functions
 #PAC_ARG_SHARED_MEMORY
 #if test "$with_shared_memory" != "mmap" -a "$with_shared_memory" != "sysv"; then
 #    AC_MSG_ERROR([cannot support shared memory:  need either sysv shared memory functions or mmap in order to support shared memory])
 #fi
 
-AC_ARG_ENABLE(nemesis-shm-collectives, [--enable-nemesis-shm-collectives - enables use of shared memory for collective communication within a node],
+AC_ARG_ENABLE(nemesis-shm-collectives, [
+  --enable-nemesis-shm-collectives - enables use of shared memory for collective
+                                     communication within a node],
     AC_DEFINE(ENABLED_SHM_COLLECTIVES, 1, [Define to enable shared-memory collectives]))
 
 
@@ -192,56 +186,13 @@ AC_DEFINE(MPID_NEM_INLINE,1,[Define to turn on the inlining optimizations in Nem
 AC_DEFINE(PREFETCH_CELL,1,[Define to turn on the prefetching optimization in Nemesis code])     
 AC_DEFINE(USE_FASTBOX,1,[Define to use the fastboxes in Nemesis code])  
 
-# We may need this only for tcp and related netmodules
-# Check for h_addr or h_addr_list
-AC_CACHE_CHECK([whether struct hostent contains h_addr_list],
-pac_cv_have_haddr_list,[
-AC_TRY_COMPILE([
-#include <netdb.h>],[struct hostent hp;hp.h_addr_list[0]=0;],
-pac_cv_have_haddr_list=yes,pac_cv_have_haddr_list=no)])
-if test "$pac_cv_have_haddr_list" = "yes" ; then
-    AC_DEFINE(HAVE_H_ADDR_LIST,1,[Define if struct hostent contains h_addr_list])
-fi
-
-# If we need the socket code, see if we can use struct ifconf
-# sys/socket.h is needed on Solaris
-AC_CACHE_CHECK([whether we can use struct ifconf],
-pac_cv_have_struct_ifconf,[
-AC_TRY_COMPILE([
-#include <sys/types.h>
-#ifdef HAVE_SYS_SOCKET_H
-#include <sys/socket.h>
-#endif
-#include <net/if.h>
-],[struct ifconf conftest; int s; s = sizeof(conftest);],
-pac_cv_have_struct_ifconf=yes,pac_cv_have_struct_ifconf=no)])
-
-# Intentionally not testing whether _SVID_SOURCE or _POSIX_C_SOURCE affects
-# ifconf availability.  Making those sort of modifications at this stage
-# invalidates nearly all of our previous tests, since those macros fundamentally
-# change many features of the compiler on most platforms.  See ticket #1568.
-
-if test "$pac_cv_have_struct_ifconf" = "yes" ; then
-    AC_DEFINE(HAVE_STRUCT_IFCONF,1,[Define if struct ifconf can be used])
-fi
-
-AC_CACHE_CHECK([whether we can use struct ifreq],
-pac_cv_have_struct_ifreq,[
-AC_TRY_COMPILE([
-#include <sys/types.h>
-#ifdef HAVE_SYS_SOCKET_H
-#include <sys/socket.h>
-#endif
-#include <net/if.h>
-],[struct ifreq conftest; int s; s = sizeof(conftest);],
-pac_cv_have_struct_ifreq=yes,pac_cv_have_struct_ifreq=no)])
-
-if test "$pac_cv_have_struct_ifreq" = "yes" ; then
-    AC_DEFINE(HAVE_STRUCT_IFREQ,1,[Define if struct ifreq can be used])
-fi
-
 # allow the user to select different local LMT implementations
-AC_ARG_WITH(nemesis-local-lmt, [--with-nemesis-local-lmt=method - specify an implementation for local large message transfers (LMT).  Method is one of: 'default', 'shm_copy', or 'none'.  'default' is the same as 'shm_copy'.],,with_nemesis_local_lmt=default)
+AC_ARG_WITH(nemesis-local-lmt, [
+  --with-nemesis-local-lmt=method - specify an implementation for local large
+                                    message transfers (LMT).  Method is one of:
+                                    'default', 'shm_copy', or 'none'.
+                                    'default' is the same as 'shm_copy'.
+],,with_nemesis_local_lmt=default)
 case "$with_nemesis_local_lmt" in
     shm_copy|default)
     local_lmt_impl=MPID_NEM_LOCAL_LMT_SHM_COPY
@@ -274,8 +225,6 @@ AC_CONFIG_FILES([
 src/mpid/ch3/channels/nemesis/include/mpid_nem_net_module_defs.h
 src/mpid/ch3/channels/nemesis/src/mpid_nem_net_array.c
 ])
-
-AC_DEFINE([CHANNEL_NEMESIS], [1], [Define if using the nemesis channel])
 
 ])dnl end AM_COND_IF(BUILD_CH3_NEMESIS,...)
 ])dnl end _BODY

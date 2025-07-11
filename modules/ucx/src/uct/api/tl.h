@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2001-2019.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2019. ALL RIGHTS RESERVED.
 *
 * See file LICENSE for terms.
 */
@@ -74,6 +74,10 @@ typedef ucs_status_t (*uct_ep_am_short_func_t)(uct_ep_h ep,
                                                uint64_t header,
                                                const void *payload,
                                                unsigned length);
+
+typedef ucs_status_t (*uct_ep_am_short_iov_func_t)(uct_ep_h ep, uint8_t id,
+                                                   const uct_iov_t *iov,
+                                                   size_t iovcnt);
 
 typedef ssize_t      (*uct_ep_am_bcopy_func_t)(uct_ep_h ep,
                                                uint8_t id,
@@ -215,6 +219,9 @@ typedef ucs_status_t (*uct_ep_check_func_t)(uct_ep_h ep,
 typedef ucs_status_t (*uct_ep_create_func_t)(const uct_ep_params_t *params,
                                              uct_ep_h *ep_p);
 
+typedef ucs_status_t (*uct_ep_connect_func_t)(
+        uct_ep_h ep, const uct_ep_connect_params_t *params);
+
 typedef ucs_status_t (*uct_ep_disconnect_func_t)(uct_ep_h ep, unsigned flags);
 
 typedef ucs_status_t (*uct_cm_ep_conn_notify_func_t)(uct_ep_h ep);
@@ -299,6 +306,7 @@ typedef struct uct_iface_ops {
 
     /* endpoint - active message */
     uct_ep_am_short_func_t              ep_am_short;
+    uct_ep_am_short_iov_func_t          ep_am_short_iov;
     uct_ep_am_bcopy_func_t              ep_am_bcopy;
     uct_ep_am_zcopy_func_t              ep_am_zcopy;
 
@@ -333,6 +341,7 @@ typedef struct uct_iface_ops {
 
     /* endpoint - connection establishment */
     uct_ep_create_func_t                ep_create;
+    uct_ep_connect_func_t               ep_connect;
     uct_ep_disconnect_func_t            ep_disconnect;
     uct_cm_ep_conn_notify_func_t        cm_ep_conn_notify;
     uct_ep_destroy_func_t               ep_destroy;

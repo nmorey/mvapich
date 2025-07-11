@@ -1,0 +1,23 @@
+/*D
+   MPI_Win_call_errhandler - Call the error handler installed on a window
+
+Synopsis:
+.vb
+int MPI_Win_call_errhandler(MPI_Win win, int errorcode)
+.ve
+
+Input Parameters:
++ win - window with error handler (handle)
+- errorcode - error code (integer)
+
+.N ThreadSafeNoUpdate
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_WIN
+.N MPI_ERR_OTHER
+
+D*/
+

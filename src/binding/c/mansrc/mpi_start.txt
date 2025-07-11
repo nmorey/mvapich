@@ -1,0 +1,22 @@
+/*D
+   MPI_Start - Initiates a communication with a persistent request handle
+
+Synopsis:
+.vb
+int MPI_Start(MPI_Request *request)
+.ve
+
+Input/Output Parameters:
+. request - communication request (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_REQUEST
+.N MPI_ERR_OTHER
+
+D*/
+

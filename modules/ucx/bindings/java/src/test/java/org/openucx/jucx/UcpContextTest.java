@@ -1,5 +1,5 @@
 /*
- * Copyright (C) Mellanox Technologies Ltd. 2019.  ALL RIGHTS RESERVED.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2019. ALL RIGHTS RESERVED.
  * See file LICENSE for terms.
  */
 
@@ -7,28 +7,31 @@ package org.openucx.jucx;
 
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import org.openucx.jucx.ucp.UcpContext;
 import org.openucx.jucx.ucp.UcpParams;
+import org.openucx.jucx.ucs.UcsConstants;
+
+import static org.junit.Assert.*;
 
 public class UcpContextTest {
 
     public static UcpContext createContext(UcpParams contextParams) {
         UcpContext context = new UcpContext(contextParams);
         assertTrue(context.getNativeId() > 0);
+        assertTrue(UcsConstants.MEMORY_TYPE.isMemTypeSupported(context.getMemoryTypesMask(),
+            UcsConstants.MEMORY_TYPE.UCS_MEMORY_TYPE_HOST));
         return context;
     }
 
     public static void closeContext(UcpContext context) {
         context.close();
-        assertEquals(context.getNativeId(), null);
+        assertNull(context.getNativeId());
     }
 
     @Test
     public void testCreateSimpleUcpContext() {
-        UcpParams contextParams = new UcpParams().requestTagFeature();
+        UcpParams contextParams = new UcpParams().requestTagFeature()
+            .requestAmFeature();
         UcpContext context = createContext(contextParams);
         closeContext(context);
     }

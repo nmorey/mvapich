@@ -1,0 +1,28 @@
+/*D
+   MPI_Barrier_init - Creates a persistent request for barrier
+
+Synopsis:
+.vb
+int MPI_Barrier_init(MPI_Comm comm, MPI_Info info, MPI_Request *request)
+.ve
+
+Input Parameters:
++ comm - communicator (handle)
+- info - info argument (handle)
+
+Output Parameters:
+. request - communication request (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_INFO
+.N MPI_ERR_OTHER
+
+D*/
+

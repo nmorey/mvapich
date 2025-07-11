@@ -29,7 +29,7 @@
 /* _INVALID exists to avoid accidental macro evaluations to 0 */
 #define MPICH_THREAD_GRANULARITY__INVALID 0
 #define MPICH_THREAD_GRANULARITY__GLOBAL 1
-#define MPICH_THREAD_GRANULARITY__POBJ 2
+/* removed POBJ */
 #define MPICH_THREAD_GRANULARITY__LOCKFREE 3
 /* _SINGLE is the "null" granularity, where all processes are single-threaded */
 #define MPICH_THREAD_GRANULARITY__SINGLE 4
@@ -60,10 +60,8 @@
 #define MPICH_LOGGING__EXTERNAL 4
 
 /* Possible values for process state */
-#define MPICH_MPI_STATE__PRE_INIT 0
-#define MPICH_MPI_STATE__POST_INIT 1
-#define MPICH_MPI_STATE__POST_FINALIZED 2
-/* Internal init states. */
-#define MPICH_MPI_STATE__IN_INIT 3      /* can call MPIR_Err_return_comm(...) on error */
+#define MPICH_MPI_STATE__UNINITIALIZED     0
+#define MPICH_MPI_STATE__MPIR_INITIALIZED  1
+#define MPICH_MPI_STATE__INITIALIZED       2
 
 #endif /* MPICHCONFCONST_H_INCLUDED */

@@ -1,0 +1,15 @@
+/*D
+   MPI_Op_c2f - converts MPI_Op to Fortran INTEGER
+
+Synopsis:
+.vb
+MPI_Fint MPI_Op_c2f(MPI_Op op)
+.ve
+
+Input Parameters:
+. op - op (handle)
+
+.N ThreadSafe
+
+D*/
+

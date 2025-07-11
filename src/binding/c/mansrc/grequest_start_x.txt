@@ -1,0 +1,35 @@
+/*D
+   MPIX_Grequest_start - Create and return a user-defined extended request
+
+Synopsis:
+.vb
+int MPIX_Grequest_start(MPI_Grequest_query_function *query_fn,
+                        MPI_Grequest_free_function *free_fn,
+                        MPI_Grequest_cancel_function *cancel_fn,
+                        MPIX_Grequest_poll_function *poll_fn,
+                        MPIX_Grequest_wait_function *wait_fn, void *extra_state,
+                        MPI_Request *request)
+.ve
+
+Input Parameters:
++ query_fn - callback function invoked when request status is queried (function)
+. free_fn - callback function invoked when request is freed (function)
+. cancel_fn - callback function invoked when request is cancelled (function)
+. poll_fn - callback function invoked when request completion is tested (function)
+. wait_fn - callback function invoked when request is waited on (function)
+- extra_state - extra state (None)
+
+Output Parameters:
+. request - generalized request (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_OTHER
+
+D*/
+

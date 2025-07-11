@@ -1,0 +1,29 @@
+/*D
+   MPIX_Stream_comm_create - Create a new communicator with local stream attached
+
+Synopsis:
+.vb
+int MPIX_Stream_comm_create(MPI_Comm comm, MPIX_Stream stream,
+                            MPI_Comm *newcomm)
+.ve
+
+Input Parameters:
++ comm - communicator (handle)
+- stream - stream object (handle)
+
+Output Parameters:
+. newcomm - new stream-associated communicator (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPIX_ERR_STREAM
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+D*/
+

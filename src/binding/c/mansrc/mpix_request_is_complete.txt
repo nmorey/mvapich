@@ -1,0 +1,21 @@
+/*D
+   MPIX_Request_is_complete - [short description]
+
+Synopsis:
+.vb
+int MPIX_Request_is_complete(MPI_Request request)
+.ve
+
+Input Parameters:
+. request - communication request (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_OTHER
+
+D*/
+

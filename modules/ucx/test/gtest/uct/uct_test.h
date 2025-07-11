@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2001-2019.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2021. ALL RIGHTS RESERVED.
 *
 * Copyright (C) UT-Battelle, LLC. 2015. ALL RIGHTS RESERVED.
 * Copyright (C) ARM Ltd. 2017.  ALL RIGHTS RESERVED
@@ -14,13 +14,14 @@
 
 #include <poll.h>
 #include <uct/api/uct.h>
+#include <uct/api/v2/uct_v2.h>
 #include <ucs/sys/sys.h>
 #include <ucs/async/async.h>
 #include <ucs/async/pipe.h>
 #include <common/mem_buffer.h>
 #include <common/test.h>
 #include <vector>
-
+#include <atomic>
 
 
 #define DEFAULT_DELAY_MS           1.0
@@ -46,6 +47,7 @@ struct resource {
     virtual ~resource() {};
     virtual std::string name() const;
     uct_component_h         component;
+    std::string             component_name;
     std::string             md_name;
     ucs_cpu_set_t           local_cpus;
     std::string             tl_name;
@@ -54,23 +56,31 @@ struct resource {
     uct_device_type_t       dev_type;
     ucs::sock_addr_storage  listen_sock_addr;     /* sockaddr to listen on */
     ucs::sock_addr_storage  connect_sock_addr;    /* sockaddr to connect to */
+    ucs::sock_addr_storage  source_sock_addr;     /* sockaddr to connect from */
     int                     variant;
 
     resource();
-    resource(uct_component_h component, const std::string& md_name,
-             const ucs_cpu_set_t& local_cpus, const std::string& tl_name,
-             const std::string& dev_name, uct_device_type_t dev_type);
-    resource(uct_component_h component, const uct_md_attr_t& md_attr,
+    resource(uct_component_h component, const std::string& component_name,
+             const std::string& md_name, const ucs_cpu_set_t& local_cpus,
+             const std::string& tl_name, const std::string& dev_name,
+             uct_device_type_t dev_type);
+    resource(uct_component_h component, const uct_component_attr& cmpnt_attr,
+             const uct_md_attr_t& md_attr,
              const uct_md_resource_desc_t& md_resource,
              const uct_tl_resource_desc_t& tl_resource);
+    static bool is_equal_tl_name(const resource &rsc, const std::string &name);
+    static bool
+    is_equal_component_name(const resource &rsc, const std::string &name);
 };
 
 struct resource_speed : public resource {
     double bw;
 
     resource_speed() : resource(), bw(0) { }
-    resource_speed(uct_component_h component, const uct_worker_h& worker,
-                   const uct_md_h& md, const uct_md_attr_t& md_attr,
+    resource_speed(uct_component_h component,
+                   const uct_component_attr& cmpnt_attr,
+                   const uct_worker_h& worker, const uct_md_h& md,
+                   const uct_md_attr_t& md_attr,
                    const uct_md_resource_desc_t& md_resource,
                    const uct_tl_resource_desc_t& tl_resource);
 };
@@ -104,12 +114,6 @@ public:
      */
     static std::vector<const resource*> enum_resources(const std::string& tl_name);
 
-    /* By default generate test variant for all tls. If variant is specific to
-     * the particular transport tl_name need to be specified accordingly */
-    static void generate_test_variant(int variant,
-                                      const std::string &variant_name,
-                                      std::vector<resource>& test_res,
-                                      const std::string &tl_name="");
     uct_test();
     virtual ~uct_test();
 
@@ -133,11 +137,12 @@ protected:
         entity(const resource& resource, uct_md_config_t *md_config,
                uct_cm_config_t *cm_config);
 
-        void mem_alloc_host(size_t length, uct_allocated_memory_t *mem) const;
+        void mem_alloc_host(size_t length, unsigned mem_flags,
+                            uct_allocated_memory_t *mem) const;
 
         void mem_free_host(const uct_allocated_memory_t *mem) const;
 
-        void mem_type_reg(uct_allocated_memory_t *mem) const;
+        void mem_type_reg(uct_allocated_memory_t *mem, unsigned flags) const;
 
         void mem_type_dereg(uct_allocated_memory_t *mem) const;
 
@@ -155,7 +160,7 @@ protected:
 
         uct_md_h md() const;
 
-        const uct_md_attr& md_attr() const;
+        const uct_md_attr_v2_t& md_attr() const;
 
         uct_worker_h worker() const;
 
@@ -164,6 +169,8 @@ protected:
         const uct_cm_attr_t& cm_attr() const;
 
         uct_listener_h listener() const;
+
+        uct_listener_h revoke_listener() const;
 
         uct_iface_h iface() const;
 
@@ -177,42 +184,31 @@ protected:
         size_t num_eps() const;
         void reserve_ep(unsigned index);
 
-        void create_ep(unsigned index);
+        void create_ep(unsigned index = 0, unsigned path_index = 0);
         void destroy_ep(unsigned index);
         void revoke_ep(unsigned index);
         void destroy_eps();
         void connect(unsigned index, entity& other, unsigned other_index);
-        void connect(unsigned index, entity& other, unsigned other_index,
-                     const ucs::sock_addr_storage &remote_addr,
-                     uct_cm_ep_priv_data_pack_callback_t pack_cb,
-                     uct_cm_ep_client_connect_callback_t connect_cb,
-                     uct_ep_disconnect_cb_t disconnect_cb,
-                     void *user_data);
         void connect_to_iface(unsigned index, entity& other);
         void connect_to_ep(unsigned index, entity& other,
                            unsigned other_index);
-        void connect_to_sockaddr(unsigned index, entity& other,
+        void connect_to_sockaddr(unsigned index,
                                  const ucs::sock_addr_storage &remote_addr,
-                                 uct_cm_ep_priv_data_pack_callback_t pack_cb,
+                                 const ucs::sock_addr_storage *local_addr,
+                                 uct_cm_ep_resolve_callback_t resolve_cb,
                                  uct_cm_ep_client_connect_callback_t connect_cb,
                                  uct_ep_disconnect_cb_t disconnect_cb,
-                                 void *user_sata);
+                                 void *user_data);
 
-        void listen(const ucs::sock_addr_storage &listen_addr,
-                    const uct_listener_params_t &params);
+        ucs_status_t listen(const ucs::sock_addr_storage &listen_addr,
+                            const uct_listener_params_t &params);
         void disconnect(uct_ep_h ep);
 
         void flush() const;
 
-        size_t                   max_conn_priv;
+        ucs_async_context_t &async() const;
 
-        class scoped_async_lock {
-        public:
-            scoped_async_lock(entity &e);
-            ~scoped_async_lock();
-        private:
-            entity &m_entity;
-        };
+        size_t                   max_conn_priv;
 
     private:
         class async_wrapper {
@@ -225,16 +221,12 @@ protected:
             async_wrapper(const async_wrapper &);
         };
 
-        entity(const entity&);
-
 
         void connect_p2p_ep(uct_ep_h from, uct_ep_h to);
-        void cuda_mem_alloc(size_t length, uct_allocated_memory_t *mem) const;
-        void cuda_mem_free(const uct_allocated_memory_t *mem) const;
 
         const resource              m_resource;
         ucs::handle<uct_md_h>       m_md;
-        uct_md_attr_t               m_md_attr;
+        uct_md_attr_v2_t            m_md_attr;
         mutable async_wrapper       m_async;
         ucs::handle<uct_worker_h>   m_worker;
         ucs::handle<uct_cm_h>       m_cm;
@@ -248,9 +240,10 @@ protected:
 
     class mapped_buffer {
     public:
-        mapped_buffer(size_t size, uint64_t seed, const entity& entity,
+        mapped_buffer(size_t size, uint64_t seed, const entity &entity,
                       size_t offset = 0,
-                      ucs_memory_type_t mem_type = UCS_MEMORY_TYPE_HOST);
+                      ucs_memory_type_t mem_type = UCS_MEMORY_TYPE_HOST,
+                      unsigned mem_flags = UCT_MD_MEM_ACCESS_ALL);
         virtual ~mapped_buffer();
 
         void *ptr() const;
@@ -262,6 +255,7 @@ protected:
 
         void pattern_fill(uint64_t seed);
         void pattern_check(uint64_t seed);
+        void memset(int c);
 
         static size_t pack(void *dest, void *arg);
 
@@ -293,7 +287,7 @@ protected:
         }
 
         void signal();
-        bool wait_for_event(entity &e, int timeout);
+        bool wait_for_event(entity &e, double timeout_sec);
 
     private:
         struct pollfd    wakeup_fd;
@@ -303,16 +297,16 @@ protected:
         bool             aux_pipe_init;
     };
 
-    template <typename T>
-    static std::vector<const resource*> filter_resources(const std::vector<T>& resources,
-                                                         const std::string& tl_name)
+    template<typename T>
+    static std::vector<const resource*>
+    filter_resources(const std::vector<T> &resources,
+                     bool is_equal(const resource&, const std::string&),
+                     const std::string &filter)
     {
         std::vector<const resource*> result;
-        for (typename std::vector<T>::const_iterator iter = resources.begin();
-                        iter != resources.end(); ++iter)
-        {
-            if (tl_name.empty() || (iter->tl_name == tl_name)) {
-                result.push_back(&*iter);
+        for (size_t i = 0; i < resources.size(); ++i) {
+            if (filter.empty() || is_equal(resources[i], filter)) {
+                result.push_back(&resources[i]);
             }
         }
         return result;
@@ -328,7 +322,8 @@ protected:
         }
     }
 
-    void wait_for_bits(volatile uint64_t *flag, uint64_t mask,
+    template <typename FlagType, typename MaskType>
+    void wait_for_bits(FlagType *flag, MaskType mask,
                        double timeout = DEFAULT_TIMEOUT_SEC) const
     {
         ucs_time_t deadline = ucs_get_time() +
@@ -355,19 +350,41 @@ protected:
         }
     }
 
+    template <typename T>
+    void wait_for_value_change(volatile T *var, entity *e = NULL,
+                               bool progress = true,
+                               double timeout = DEFAULT_TIMEOUT_SEC) const
+    {
+        ucs_time_t deadline = ucs_get_time() +
+                              ucs_time_from_sec(timeout) *
+                              ucs::test_time_multiplier();
+        T initial_value     = *var;
+
+        while ((ucs_get_time() < deadline) && (*var == initial_value)) {
+            if (progress) {
+                short_progress_loop(DEFAULT_DELAY_MS, e);
+            } else {
+                twait();
+            }
+        }
+    }
+
     virtual void init();
     virtual void cleanup();
     virtual void modify_config(const std::string& name, const std::string& value,
-                               bool optional = false);
+                               modify_config_mode_t mode = FAIL_IF_NOT_EXIST);
     bool get_config(const std::string& name, std::string& value) const;
-    void stats_activate();
-    void stats_restore();
 
     virtual bool has_transport(const std::string& tl_name) const;
     virtual bool has_ud() const;
     virtual bool has_rc() const;
     virtual bool has_rc_or_dc() const;
     virtual bool has_ib() const;
+    virtual bool has_mm() const;
+    virtual bool has_cuda_ipc() const;
+    virtual bool has_cma() const;
+    virtual bool has_ugni() const;
+    virtual bool has_gpu() const;
 
     bool is_caps_supported(uint64_t required_flags);
     bool check_caps(uint64_t required_flags, uint64_t invalid_flags = 0);
@@ -377,7 +394,8 @@ protected:
     const entity& ent(unsigned index) const;
     unsigned progress() const;
     void flush(ucs_time_t deadline = ULONG_MAX) const;
-    virtual void short_progress_loop(double delay_ms = DEFAULT_DELAY_MS) const;
+    virtual void short_progress_loop(double delay_ms = DEFAULT_DELAY_MS,
+                                     entity *e = NULL) const;
     virtual void twait(int delta_ms = DEFAULT_DELAY_MS) const;
     static void set_cm_resources(std::vector<resource>& all_resources);
     static bool is_interface_usable(struct ifaddrs *ifa, const char *name);
@@ -387,19 +405,31 @@ protected:
     static void set_cm_sockaddr_resources(uct_component_h cmpt, const char *cmpt_name,
                                           ucs_cpu_set_t local_cpus,
                                           std::vector<resource>& all_resources);
-    static void set_interface_rscs(uct_component_h comt, const char * name,
-                                   ucs_cpu_set_t local_cpus, struct ifaddrs *ifa,
+    static void set_interface_rscs(uct_component_h cmpt, const char *cmpt_name,
+                                   const char *md_name, ucs_cpu_set_t local_cpus,
+                                   struct ifaddrs *ifa,
                                    std::vector<resource>& all_resources);
     static void init_sockaddr_rsc(resource *rsc, struct sockaddr *listen_addr,
-                                  struct sockaddr *connect_addr, size_t size);
-    uct_test::entity* create_entity(size_t rx_headroom,
-                                    uct_error_handler_t err_handler = NULL,
-                                    uct_tag_unexp_eager_cb_t eager_cb = NULL,
-                                    uct_tag_unexp_rndv_cb_t rndv_cb = NULL,
-                                    void *eager_arg = NULL,
-                                    void *rndv_arg = NULL,
-                                    uct_async_event_cb_t async_event_cb = NULL,
-                                    void *async_event_arg = NULL);
+                                  struct sockaddr *connect_addr, size_t size,
+                                  bool init_src);
+    uct_test::entity *
+    create_entity(size_t rx_headroom, uct_error_handler_t err_handler = NULL,
+                  uct_tag_unexp_eager_cb_t eager_cb = NULL,
+                  uct_tag_unexp_rndv_cb_t rndv_cb = NULL,
+                  void *eager_arg = NULL, void *rndv_arg = NULL,
+                  uct_async_event_cb_t async_event_cb = NULL,
+                  void *async_event_arg = NULL, size_t am_alignment = 0ul,
+                  size_t am_align_offset = 0ul);
+    void
+    create_connected_entities(size_t rx_headroom,
+                              uct_error_handler_t err_handler = NULL,
+                              uct_tag_unexp_eager_cb_t eager_cb = NULL,
+                              uct_tag_unexp_rndv_cb_t rndv_cb = NULL,
+                              void *eager_arg = NULL, void *rndv_arg = NULL,
+                              uct_async_event_cb_t async_event_cb = NULL,
+                              void *async_event_arg = NULL,
+                              size_t am_alignment = 0ul,
+                              size_t am_align_offset = 0ul);
     uct_test::entity* create_entity(uct_iface_params_t &params);
     uct_test::entity* create_entity();
     int max_connections();
@@ -436,11 +466,11 @@ protected:
     rc_verbs,           \
     dc_mlx5,            \
     ud_verbs,           \
-    ud_mlx5,            \
-    cm
+    ud_mlx5
 
-#define UCT_TEST_SOCKADDR_TLS \
-    sockaddr
+
+#define UCT_TEST_CMS rdmacm, tcp
+
 
 #define UCT_TEST_NO_SELF_TLS \
     UCT_TEST_IB_TLS,         \
@@ -461,11 +491,14 @@ protected:
 #define UCT_TEST_ROCM_MEM_TYPE_TLS \
     rocm_copy
 
-#define UCT_TEST_TLS      \
+#define UCT_TEST_NO_GPU_MEM_TYPE_TLS \
     UCT_TEST_NO_SELF_TLS, \
-    UCT_TEST_CUDA_MEM_TYPE_TLS, \
-    UCT_TEST_ROCM_MEM_TYPE_TLS, \
     self
+
+#define UCT_TEST_TLS \
+    UCT_TEST_NO_GPU_MEM_TYPE_TLS, \
+    UCT_TEST_ROCM_MEM_TYPE_TLS, \
+    UCT_TEST_CUDA_MEM_TYPE_TLS
 
 /**
  * Instantiate the parametrized test case for all transports.
@@ -475,7 +508,7 @@ protected:
 #define UCT_INSTANTIATE_TEST_CASE(_test_case) \
     UCS_PP_FOREACH(_UCT_INSTANTIATE_TEST_CASE, _test_case, UCT_TEST_TLS)
 #define _UCT_INSTANTIATE_TEST_CASE(_test_case, _tl_name) \
-    INSTANTIATE_TEST_CASE_P(_tl_name, _test_case, \
+    INSTANTIATE_TEST_SUITE_P(_tl_name, _test_case, \
                             testing::ValuesIn(_test_case::enum_resources(UCS_PP_QUOTE(_tl_name))));
 
 
@@ -487,6 +520,7 @@ protected:
 #define UCT_INSTANTIATE_IB_TEST_CASE(_test_case) \
     UCS_PP_FOREACH(_UCT_INSTANTIATE_TEST_CASE, _test_case, UCT_TEST_IB_TLS)
 
+
 /**
  * Instantiate the parametrized test case for all transports excluding SELF.
  *
@@ -495,8 +529,39 @@ protected:
 #define UCT_INSTANTIATE_NO_SELF_TEST_CASE(_test_case) \
     UCS_PP_FOREACH(_UCT_INSTANTIATE_TEST_CASE, _test_case, UCT_TEST_NO_SELF_TLS)
 
+
+/**
+ * Instantiate the parametrized test case for all transports excluding GPU.
+ *
+ * @param _test_case  Test case class, derived from uct_test.
+ */
+#define UCT_INSTANTIATE_NO_GPU_TEST_CASE(_test_case) \
+    UCS_PP_FOREACH(_UCT_INSTANTIATE_TEST_CASE, _test_case, UCT_TEST_NO_GPU_MEM_TYPE_TLS)
+
+
+/**
+ * Instantiate the parametrized test case for CUDA.
+ *
+ * @param _test_case  Test case class, derived from uct_test.
+ */
+#define UCT_INSTANTIATE_CUDA_TEST_CASE(_test_case) \
+    UCS_PP_FOREACH(_UCT_INSTANTIATE_TEST_CASE, _test_case, UCT_TEST_CUDA_MEM_TYPE_TLS)
+
+
+/**
+ * Instantiate the parametrized test case for all sockaddr CMs.
+ *
+ * @param _test_case  Test case class, derived from @ref test_uct_sockaddr.
+ */
 #define UCT_INSTANTIATE_SOCKADDR_TEST_CASE(_test_case) \
-    UCS_PP_FOREACH(_UCT_INSTANTIATE_TEST_CASE, _test_case, UCT_TEST_SOCKADDR_TLS)
+    UCS_PP_FOREACH(_UCT_INSTANTIATE_CM_TEST_CASE, _test_case, UCT_TEST_CMS)
+
+
+#define _UCT_INSTANTIATE_CM_TEST_CASE(_test_case, _cm_name) \
+    INSTANTIATE_TEST_SUITE_P(_cm_name, _test_case, \
+                            testing::ValuesIn(_test_case::enum_cm_resources( \
+                                    UCS_PP_QUOTE(_cm_name))));
+
 
 /**
  * Instantiate the parametrized test case for the RC/DC transports.

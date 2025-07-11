@@ -42,24 +42,19 @@
 
 int MPIR_Scan_intra_recursive_doubling(const void *sendbuf,
                                        void *recvbuf,
-                                       int count,
+                                       MPI_Aint count,
                                        MPI_Datatype datatype,
-                                       MPI_Op op, MPIR_Comm * comm_ptr, MPIR_Errflag_t * errflag)
+                                       MPI_Op op, MPIR_Comm * comm_ptr, MPIR_Errflag_t errflag)
 {
     MPI_Status status;
     int rank, comm_size;
     int mpi_errno = MPI_SUCCESS;
-    int mpi_errno_ret = MPI_SUCCESS;
     int mask, dst, is_commutative;
     MPI_Aint true_extent, true_lb, extent;
     void *partial_scan, *tmp_buf;
     MPIR_CHKLMEM_DECL(2);
 
-    if (count == 0)
-        return MPI_SUCCESS;
-
-    comm_size = comm_ptr->local_size;
-    rank = comm_ptr->rank;
+    MPIR_THREADCOMM_RANK_SIZE(comm_ptr, rank, comm_size);
 
     is_commutative = MPIR_Op_is_commutative(op);
 
@@ -102,14 +97,7 @@ int MPIR_Scan_intra_recursive_doubling(const void *sendbuf,
                                       dst, MPIR_SCAN_TAG, tmp_buf,
                                       count, datatype, dst,
                                       MPIR_SCAN_TAG, comm_ptr, &status, errflag);
-            if (mpi_errno) {
-                /* for communication errors, just record the error but continue */
-                *errflag =
-                    MPIX_ERR_PROC_FAILED ==
-                    MPIR_ERR_GET_CLASS(mpi_errno) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER;
-                MPIR_ERR_SET(mpi_errno, *errflag, "**fail");
-                MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-            }
+            MPIR_ERR_CHECK(mpi_errno);
 
             if (rank > dst) {
                 mpi_errno = MPIR_Reduce_local(tmp_buf, partial_scan, count, datatype, op);
@@ -134,11 +122,6 @@ int MPIR_Scan_intra_recursive_doubling(const void *sendbuf,
 
   fn_exit:
     MPIR_CHKLMEM_FREEALL();
-
-    if (mpi_errno_ret)
-        mpi_errno = mpi_errno_ret;
-    else if (*errflag != MPIR_ERR_NONE)
-        MPIR_ERR_SET(mpi_errno, *errflag, "**coll_fail");
     return mpi_errno;
   fn_fail:
     goto fn_exit;

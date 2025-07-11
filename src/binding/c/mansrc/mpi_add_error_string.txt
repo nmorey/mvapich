@@ -1,0 +1,35 @@
+/*D
+   MPI_Add_error_string - Associates an error string with an MPI error code or class
+
+Synopsis:
+.vb
+int MPI_Add_error_string(int errorcode, const char *string)
+.ve
+
+Input Parameters:
++ errorcode - error code or class (integer)
+- string - text corresponding to errorcode (string)
+
+Notes:
+The string must be no more than 'MPI_MAX_ERROR_STRING' characters long.
+The length of the string is as defined in the calling language.
+The length of the string does not include the null terminator in C or C++.
+Note that the string is 'const' even though the MPI standard does not
+specify it that way.
+
+According to the MPI-2 standard, it is erroneous to call 'MPI_Add_error_string'
+for an error code or class with a value less than or equal
+to 'MPI_ERR_LASTCODE'.  Thus, you cannot replace the predefined error messages
+with this routine.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_OTHER
+
+D*/
+

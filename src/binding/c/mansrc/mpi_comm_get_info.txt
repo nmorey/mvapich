@@ -1,0 +1,26 @@
+/*D
+   MPI_Comm_get_info - Returns a new info object containing the hints
+
+Synopsis:
+.vb
+int MPI_Comm_get_info(MPI_Comm comm, MPI_Info *info_used)
+.ve
+
+Input Parameters:
+. comm - communicator object (handle)
+
+Output Parameters:
+. info_used - new info object (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+D*/
+

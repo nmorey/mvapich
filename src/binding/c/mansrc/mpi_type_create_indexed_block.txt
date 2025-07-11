@@ -1,0 +1,60 @@
+/*D
+   MPI_Type_create_indexed_block - Create an indexed datatype with constant-sized blocks
+
+Synopsis:
+.vb
+int MPI_Type_create_indexed_block(int count, int blocklength,
+                                  const int array_of_displacements[],
+                                  MPI_Datatype oldtype, MPI_Datatype *newtype)
+.ve
+.vb
+int MPI_Type_create_indexed_block_c(MPI_Count count, MPI_Count blocklength,
+                                    const MPI_Count array_of_displacements[],
+                                    MPI_Datatype oldtype,
+                                    MPI_Datatype *newtype)
+.ve
+
+Input Parameters:
++ count - length of array of displacements (non-negative integer)
+. blocklength - size of block (non-negative integer)
+. array_of_displacements - array of displacements (integer)
+- oldtype - old datatype (handle)
+
+Output Parameters:
+. newtype - new datatype (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+Notes:
+The indices are displacements, and are based on a zero origin.  A common error
+is to do something like the following
+.vb
+    integer a(100)
+    integer blens(10), indices(10)
+    do i=1,10
+10       indices(i) = 1 + (i-1)*10
+    call MPI_TYPE_CREATE_INDEXED_BLOCK(10,1,indices,MPI_INTEGER,newtype,ierr)
+    call MPI_TYPE_COMMIT(newtype,ierr)
+    call MPI_SEND(a,1,newtype,...)
+.ve
+expecting this to send "a(1),a(11),..." because the indices have values
+"1,11,...".   Because these are `displacements` from the beginning of "a",
+it actually sends "a(1+1),a(1+11),...".
+
+If you wish to consider the displacements as indices into a Fortran array,
+consider declaring the Fortran array with a zero origin
+.vb
+    integer a(0:99)
+.ve
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

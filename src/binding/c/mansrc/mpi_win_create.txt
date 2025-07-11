@@ -1,0 +1,76 @@
+/*D
+   MPI_Win_create - Create an MPI Window object for one-sided communication
+
+Synopsis:
+.vb
+int MPI_Win_create(void *base, MPI_Aint size, int disp_unit, MPI_Info info,
+                   MPI_Comm comm, MPI_Win *win)
+.ve
+.vb
+int MPI_Win_create_c(void *base, MPI_Aint size, MPI_Aint disp_unit,
+                     MPI_Info info, MPI_Comm comm, MPI_Win *win)
+.ve
+
+Input Parameters:
++ base - initial address of window (choice)
+. size - size of window in bytes (non-negative integer)
+. disp_unit - local unit size for displacements, in bytes (positive integer)
+. info - info argument (handle)
+- comm - intra-communicator (handle)
+
+Output Parameters:
+. win - window object (handle)
+
+Notes:
+
+The displacement unit argument is provided to facilitate address arithmetic in
+RMA operations: the target displacement argument of an RMA operation is scaled
+by the factor disp_unit specified by the target process, at window creation.
+
+The info argument provides optimization hints to the runtime about the expected
+usage pattern of the window. The following info keys are predefined.
+
+. no_locks - If set to true, then the implementation may assume that passive
+    target synchronization (i.e., 'MPI_Win_lock', 'MPI_Win_lock_all') will not be used on
+    the given window. This implies that this window is not used for 3-party
+    communication, and RMA can be implemented with no (less) asynchronous agent
+    activity at this process.
+
+. accumulate_ordering - Controls the ordering of accumulate operations at the
+    target.  The argument string should contain a comma-separated list of the
+    following read/write ordering rules, where e.g. "raw" means read-after-write:
+    "rar,raw,war,waw".
+
+. accumulate_ops - If set to same_op, the implementation will assume that all
+    concurrent accumulate calls to the same target address will use the same
+    operation. If set to same_op_no_op, then the implementation will assume that
+    all concurrent accumulate calls to the same target address will use the same
+    operation or 'MPI_NO_OP'. This can eliminate the need to protect access for
+    certain operation types where the hardware can guarantee atomicity. The default
+    is same_op_no_op.
+
+. mpi_accumulate_granularity - Controls the desired synchronization granularity
+    for accumulate ops. It sets the size of memory range in bytes for which the
+    MPI library should acquire a synchronization primitive to ensure the atomicity
+    of updates. The default is 0 which let the MPI library decides the granularity.
+    When the info hint is set to a positive value, the actual range of synchroniation
+    is round-up to the next size that fits the Datatype used in the accumulate
+    operation (see MPI standard 4.1). All processes in the group of a windows must
+    set to the same value.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_DISP
+.N MPI_ERR_INFO
+.N MPI_ERR_SIZE
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Win_allocate MPI_Win_allocate_shared MPI_Win_create_dynamic MPI_Win_free
+D*/
+

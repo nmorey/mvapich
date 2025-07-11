@@ -1,6 +1,7 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2001-2015.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2015. ALL RIGHTS RESERVED.
 * Copyright (C) ARM Ltd. 2016-2020.  ALL RIGHTS RESERVED.
+* Copyright (C) Stony Brook University. 2016-2020.  ALL RIGHTS RESERVED.
 *
 * See file LICENSE for terms.
 */
@@ -19,6 +20,9 @@
 #ifdef __ARM_NEON
 #include <arm_neon.h>
 #endif
+#ifdef __ARM_FEATURE_SVE
+#include <arm_sve.h>
+#endif
 
 
 #define UCS_ARCH_CACHE_LINE_SIZE 64
@@ -35,6 +39,12 @@ BEGIN_C_DECLS
 #define ucs_aarch64_isb(_op)          asm volatile ("isb " #_op ::: "memory")
 #define ucs_aarch64_dsb(_op)          asm volatile ("dsb " #_op ::: "memory")
 
+/**
+ * Data Gathering Hint on Arm, see kernel patch:
+ * https://lore.kernel.org/linux-arm-kernel/20211221035556.60346-1-wangxiongfeng2@huawei.com/T/
+ */
+#define ucs_aarch64_dgh()             asm volatile ("hint #6" : : : "memory")
+
 /* The macro is used to serialize stores across Normal NC (or Device) and WB
  * memory, (see Arm Spec, B2.7.2).  Based on recent changes in Linux kernel:
  * https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=22ec71615d824f4f11d38d0e55a88d8956b7e45f
@@ -43,19 +53,16 @@ BEGIN_C_DECLS
  * of DSB. The barrier used for synchronization of access between write back
  * and device mapped memory (PCIe BAR).
  */
-#define ucs_memory_bus_fence()        ucs_aarch64_dmb(oshsy)
 #define ucs_memory_bus_store_fence()  ucs_aarch64_dmb(oshst)
 #define ucs_memory_bus_load_fence()   ucs_aarch64_dmb(oshld)
 
 /* The macro is used to flush all pending stores from write combining buffer.
- * Some uarch "auto" flush the stores once cache line is full (no need for additional barrier).
+ * Micro-arch "auto" flush the stores once WC buffer is full or on a timeout.
+ * DGH instruction hint provides a formal way to flush the gather buffer.  See
+ * rdma subsystem patch:
+ * https://patchwork.kernel.org/project/linux-rdma/patch/0-v1-c5dade92f363+11-mlx5_io_stop_wc_jgg@nvidia.com/
  */
-#if defined(HAVE_AARCH64_THUNDERX2)
-#define ucs_memory_bus_cacheline_wc_flush()
-#else
-/* The macro is used to flush stores to Normal NC or Device memory */
-#define ucs_memory_bus_cacheline_wc_flush()     ucs_aarch64_dmb(oshst)
-#endif
+#define ucs_memory_bus_cacheline_wc_flush()     ucs_aarch64_dgh()
 
 #define ucs_memory_cpu_fence()        ucs_aarch64_dmb(ish)
 #define ucs_memory_cpu_store_fence()  ucs_aarch64_dmb(ishst)
@@ -141,11 +148,13 @@ static inline void ucs_cpu_init()
 
 static inline void ucs_arch_wait_mem(void *address)
 {
-    unsigned long tmp;
-    asm volatile ("ldxrb %w0, %1 \n"
+    /* Suppress potential warning that variable was set but never used */
+    unsigned long UCS_V_UNUSED tmp;
+    asm volatile ("ldaxrb %w0, [%1] \n"
                   "wfe           \n"
                   : "=&r"(tmp)
-                  : "Q"(address));
+                  : "r"(address)
+                  : "memory");
 }
 
 #if !HAVE___CLEAR_CACHE
@@ -204,7 +213,7 @@ static inline void ucs_arch_clear_cache(void *start, void *end)
     dic = (ctr_el0 >> 29) & 0x1;
     idc = (ctr_el0 >> 28) & 0x1;
 
-    /* 
+    /*
      * Check if Data cache clean to the Point of Unification is required for instruction to
      * data coherence
      */
@@ -230,10 +239,30 @@ static inline void ucs_arch_clear_cache(void *start, void *end)
 }
 #endif
 
+#if defined(__ARM_FEATURE_SVE)
+static inline void *memcpy_aarch64_sve(void *dest, const void *src, size_t len)
+{
+    uint8_t *dest_u8      = (uint8_t*) dest;
+    const uint8_t *src_u8 = (uint8_t*) src;
+    uint64_t i            = 0;
+    svbool_t pg           = svwhilelt_b8_u64(i, (uint64_t)len);
+
+    do {
+        svst1_u8(pg, &dest_u8[i], svld1_u8(pg, &src_u8[i]));
+        i += svcntb();
+        pg = svwhilelt_b8_u64(i, (uint64_t)len);
+    } while (svptest_first(svptrue_b8(), pg));
+
+    return dest;
+}
+#endif
+
 static inline void *ucs_memcpy_relaxed(void *dst, const void *src, size_t len)
 {
 #if defined(HAVE_AARCH64_THUNDERX2)
-    return __memcpy_thunderx2(dst, src,len);
+    return __memcpy_thunderx2(dst, src, len);
+#elif defined(__ARM_FEATURE_SVE)
+    return memcpy_aarch64_sve(dst, src, len);
 #else
     return memcpy(dst, src, len);
 #endif
@@ -244,6 +273,8 @@ ucs_memcpy_nontemporal(void *dst, const void *src, size_t len)
 {
 #if defined(HAVE_AARCH64_THUNDERX2)
     __memcpy_thunderx2(dst, src,len);
+#elif defined(__ARM_FEATURE_SVE)
+    memcpy_aarch64_sve(dst, src, len);
 #else
     memcpy(dst, src, len);
 #endif

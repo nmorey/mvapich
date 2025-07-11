@@ -4,240 +4,92 @@
  */
 
 #include "mpiimpl.h"
-
-/* -- Begin Profiling Symbol Block for routine MPI_Reduce_local */
-#if defined(HAVE_PRAGMA_WEAK)
-#pragma weak MPI_Reduce_local = PMPI_Reduce_local
-#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
-#pragma _HP_SECONDARY_DEF PMPI_Reduce_local  MPI_Reduce_local
-#elif defined(HAVE_PRAGMA_CRI_DUP)
-#pragma _CRI duplicate MPI_Reduce_local as PMPI_Reduce_local
-#elif defined(HAVE_WEAK_ATTRIBUTE)
-int MPI_Reduce_local(const void *inbuf, void *inoutbuf, int count, MPI_Datatype datatype, MPI_Op op)
-    __attribute__ ((weak, alias("PMPI_Reduce_local")));
+#ifdef BUILD_MPI_ABI
+#include "mpi_abi_util.h"
 #endif
-/* -- End Profiling Symbol Block */
 
-/* Define MPICH_MPI_FROM_PMPI if weak symbols are not supported to build
-   the MPI routines */
-#ifndef MPICH_MPI_FROM_PMPI
-#undef MPI_Reduce_local
-#define MPI_Reduce_local PMPI_Reduce_local
-/* any utility functions should go here, usually prefixed with PMPI_LOCAL to
- * correctly handle weak symbols and the profiling interface */
+static void call_user_op(const void *inbuf, void *inoutbuf, int count, MPI_Datatype datatype,
+                         MPIR_User_function uop)
+{
+    /* Take off the global locks before calling user functions */
+    MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+#ifndef BUILD_MPI_ABI
+    (uop.c_function) ((void *) inbuf, inoutbuf, &count, &datatype);
+#else
+    ABI_Datatype t = ABI_Datatype_from_mpi(datatype);
+    (uop.c_function) ((void *) inbuf, inoutbuf, &count, &t);
+#endif
+    MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+}
 
-int MPIR_Reduce_local(const void *inbuf, void *inoutbuf, int count, MPI_Datatype datatype,
+static void call_user_op_large(const void *inbuf, void *inoutbuf, MPI_Count count,
+                               MPI_Datatype datatype, MPIR_User_function uop)
+{
+    /* Take off the global locks before calling user functions */
+    MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+#ifndef BUILD_MPI_ABI
+    (uop.c_large_function) ((void *) inbuf, inoutbuf, &count, &datatype);
+#else
+    ABI_Datatype t = ABI_Datatype_from_mpi(datatype);
+    (uop.c_large_function) ((void *) inbuf, inoutbuf, &count, &t);
+#endif
+    MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+}
+
+static void call_user_op_x(const void *inbuf, void *inoutbuf, MPI_Count count,
+                           MPI_Datatype datatype, MPIR_User_function uop, void *extra_state)
+{
+    /* Take off the global locks before calling user functions */
+    MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+#ifndef BUILD_MPI_ABI
+    (uop.c_x_function) ((void *) inbuf, inoutbuf, count, datatype, extra_state);
+#else
+    ABI_Datatype t = ABI_Datatype_from_mpi(datatype);
+    (uop.c_x_function) ((void *) inbuf, inoutbuf, count, t, extra_state);
+#endif
+    MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+}
+
+int MPIR_Reduce_local(const void *inbuf, void *inoutbuf, MPI_Aint count, MPI_Datatype datatype,
                       MPI_Op op)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Op *op_ptr;
-    MPI_User_function *uop;
-#ifdef HAVE_CXX_BINDING
-    int is_cxx_uop = 0;
-#endif
-#if defined(HAVE_FORTRAN_BINDING) && !defined(HAVE_FINT_IS_INT)
-    int is_f77_uop = 0;
-#endif
 
     if (count == 0)
         goto fn_exit;
 
-#ifdef _ENABLE_CUDA_
-    int stride = 0;
-    MPI_Aint true_lb, true_extent, extent;
-    MPIR_Type_get_true_extent_impl(datatype, &true_lb, &true_extent);
-    MPIR_Datatype_get_extent_macro(datatype, extent);
-    stride = count * MPL_MAX(extent, true_extent);
-    int recv_mem_type = 0;
-    int send_mem_type = 0;
-    char *recv_host_buf = NULL;
-    char *send_host_buf = NULL;
-    char *temp_recvbuf = inoutbuf;
-    const char *temp_sendbuf = inbuf;
-
-    if (mvp_enable_device) {
-        recv_mem_type = is_device_buffer(inoutbuf);
-        if (inbuf != MPI_IN_PLACE) {
-            send_mem_type = is_device_buffer(inbuf);
-        }
-    }
-    if (mvp_enable_device && send_mem_type) {
-        send_host_buf = (char *)MPL_malloc(stride);
-        MVP_MPID_Memcpy_Device((void *)send_host_buf, (void *)inbuf, stride,
-                               deviceMemcpyDeviceToHost);
-        inbuf = send_host_buf;
-    }
-    if (mvp_enable_device && recv_mem_type) {
-        recv_host_buf = (char *)MPL_malloc(stride);
-        MVP_MPID_Memcpy_Device((void *)recv_host_buf, (void *)inoutbuf, stride,
-                               deviceMemcpyDeviceToHost);
-        inoutbuf = recv_host_buf;
-    }
-#endif
-
     if (HANDLE_IS_BUILTIN(op)) {
+        MPIR_op_function *uop;
         /* --BEGIN ERROR HANDLING-- */
         mpi_errno = (*MPIR_OP_HDL_TO_DTYPE_FN(op)) (datatype);
         if (mpi_errno != MPI_SUCCESS)
             goto fn_exit;
         /* --END ERROR HANDLING-- */
-        /* get the function by indexing into the op table */
-        uop = MPIR_OP_HDL_TO_FN(op);
+        /* FIXME: ENABLE_GPU is irrelevant here. We should check whether inbuf or inoutbuf is device buffer */
+        /* use count=0 since we don't make MPIR_CVAR_YAKSA_REDUCTION_THRESHOLD decision here */
+        if (ENABLE_GPU && MPIR_Typerep_reduce_is_supported(op, 0, datatype)) {
+            mpi_errno = MPIR_Typerep_reduce(inbuf, inoutbuf, count, datatype, op);
+            if (mpi_errno != MPI_SUCCESS)
+                goto fn_exit;
+        } else {
+            /* get the function by indexing into the op table */
+            uop = MPIR_OP_HDL_TO_FN(op);
+            (*uop) ((void *) inbuf, inoutbuf, &count, &datatype);
+        }
     } else {
         MPIR_Op_get_ptr(op, op_ptr);
 
-#ifdef HAVE_CXX_BINDING
-        if (op_ptr->language == MPIR_LANG__CXX) {
-            uop = (MPI_User_function *) op_ptr->function.c_function;
-            is_cxx_uop = 1;
-        } else
-#endif
-        {
-            if (op_ptr->language == MPIR_LANG__C) {
-                uop = (MPI_User_function *) op_ptr->function.c_function;
-            } else {
-                uop = (MPI_User_function *) op_ptr->function.f77_function;
-#if defined(HAVE_FORTRAN_BINDING) && !defined(HAVE_FINT_IS_INT)
-                is_f77_uop = 1;
-#endif
-            }
-        }
-    }
-
-    /* actually perform the reduction */
-#ifdef HAVE_CXX_BINDING
-    if (is_cxx_uop) {
-        (*MPIR_Process.cxx_call_op_fn) (inbuf, inoutbuf, count, datatype, uop);
-    } else
-#endif
-    {
-#if defined(HAVE_FORTRAN_BINDING) && !defined(HAVE_FINT_IS_INT)
-        if (is_f77_uop) {
-            MPI_Fint lcount = (MPI_Fint) count;
-            MPI_Fint ldtype = (MPI_Fint) datatype;
-            MPII_F77_User_function *uop_f77 = (MPII_F77_User_function *) uop;
-
-            (*uop_f77) ((void *) inbuf, inoutbuf, &lcount, &ldtype);
+        if (op_ptr->kind == MPIR_OP_KIND__USER_X) {
+            call_user_op_x(inbuf, inoutbuf, count, datatype, op_ptr->function, op_ptr->extra_state);
+        } else if (op_ptr->kind == MPIR_OP_KIND__USER_LARGE) {
+            call_user_op_large(inbuf, inoutbuf, (MPI_Count) count, datatype, op_ptr->function);
         } else {
-            (*uop) ((void *) inbuf, inoutbuf, &count, &datatype);
+            MPIR_Assert(count <= INT_MAX);
+            call_user_op(inbuf, inoutbuf, (int) count, datatype, op_ptr->function);
         }
-#else
-        (*uop) ((void *) inbuf, inoutbuf, &count, &datatype);
-#endif
     }
 
-#ifdef _ENABLE_CUDA_
-    if (mvp_enable_device && recv_mem_type) {
-        inoutbuf = temp_recvbuf;
-        inbuf = temp_sendbuf;
-        MVP_MPID_Memcpy_Device((void *)inoutbuf, (void *)recv_host_buf, stride,
-                               deviceMemcpyHostToDevice);
-    }
-    if (mvp_enable_device && recv_mem_type) {
-        if (recv_host_buf) {
-            MPL_free(recv_host_buf);
-            recv_host_buf = NULL;
-        }
-    }
-    if (mvp_enable_device && send_mem_type) {
-        if (send_host_buf) {
-            MPL_free(send_host_buf);
-            send_host_buf = NULL;
-        }
-    }
-#endif
-
-fn_exit:
+  fn_exit:
     return mpi_errno;
-}
-
-#endif
-
-/*@
-MPI_Reduce_local - Applies a reduction operator to local arguments.
-
-Input Parameters:
-+ inbuf - address of the input buffer (choice)
-. count - number of elements in each buffer (integer)
-. datatype - data type of elements in the buffers (handle)
-- op - reduction operation (handle)
-
-Output Parameters:
-. inoutbuf - address of input-output buffer (choice)
-
-.N ThreadSafe
-
-.N Fortran
-
-.N collops
-
-.N Errors
-.N MPI_SUCCESS
-.N MPI_ERR_COUNT
-.N MPI_ERR_TYPE
-.N MPI_ERR_BUFFER
-.N MPI_ERR_BUFFER_ALIAS
-@*/
-int MPI_Reduce_local(const void *inbuf, void *inoutbuf, int count, MPI_Datatype datatype, MPI_Op op)
-{
-    int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_REDUCE_LOCAL);
-
-    MPIR_ERRTEST_INITIALIZED_ORDIE();
-
-    MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPIR_FUNC_TERSE_COLL_ENTER(MPID_STATE_MPI_REDUCE_LOCAL);
-
-    /* Validate parameters */
-#ifdef HAVE_ERROR_CHECKING
-    {
-        MPID_BEGIN_ERROR_CHECKS;
-        {
-            MPIR_ERRTEST_OP(op, mpi_errno);
-
-            if (!HANDLE_IS_BUILTIN(op)) {
-                MPIR_Op *op_ptr;
-                MPIR_Op_get_ptr(op, op_ptr);
-                MPIR_Op_valid_ptr(op_ptr, mpi_errno);
-                if (mpi_errno != MPI_SUCCESS)
-                    goto fn_fail;
-            } else {
-                mpi_errno = (*MPIR_OP_HDL_TO_DTYPE_FN(op)) (datatype);
-                if (mpi_errno != MPI_SUCCESS)
-                    goto fn_fail;
-            }
-            if (count != 0) {
-                MPIR_ERRTEST_ALIAS_COLL(inbuf, inoutbuf, mpi_errno);
-            }
-            MPIR_ERRTEST_NAMED_BUF_INPLACE(inbuf, "inbuf", count, mpi_errno);
-            MPIR_ERRTEST_NAMED_BUF_INPLACE(inoutbuf, "inoutbuf", count, mpi_errno);
-        }
-        MPID_END_ERROR_CHECKS;
-    }
-#endif /* HAVE_ERROR_CHECKING */
-
-
-    /* ... body of routine ...  */
-
-    mpi_errno = MPIR_Reduce_local(inbuf, inoutbuf, count, datatype, op);
-    MPIR_ERR_CHECK(mpi_errno);
-
-    /* ... end of body of routine ... */
-
-fn_exit:
-    MPIR_FUNC_TERSE_COLL_EXIT(MPID_STATE_MPI_REDUCE_LOCAL);
-    MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    return mpi_errno;
-
-fn_fail:
-    /* --BEGIN ERROR HANDLING-- */
-    {
-        mpi_errno =
-            MPIR_Err_create_code(mpi_errno, MPIR_ERR_RECOVERABLE, __func__, __LINE__, MPI_ERR_OTHER,
-                                 "**mpi_reduce_local", "**mpi_reduce_local %p %p %d %D %O", inbuf,
-                                 inoutbuf, count, datatype, op);
-    }
-    mpi_errno = MPIR_Err_return_comm(NULL, __func__, mpi_errno);
-    goto fn_exit;
-    /* --END ERROR HANDLING-- */
 }

@@ -1,0 +1,36 @@
+/*D
+   MPI_Type_create_hvector - Create a datatype with a constant stride given in bytes
+
+Synopsis:
+.vb
+int MPI_Type_create_hvector(int count, int blocklength, MPI_Aint stride,
+                            MPI_Datatype oldtype, MPI_Datatype *newtype)
+.ve
+.vb
+int MPI_Type_create_hvector_c(MPI_Count count, MPI_Count blocklength,
+                              MPI_Count stride, MPI_Datatype oldtype,
+                              MPI_Datatype *newtype)
+.ve
+
+Input Parameters:
++ count - number of blocks (non-negative integer)
+. blocklength - number of elements in each block (non-negative integer)
+. stride - number of bytes between start of each block (integer)
+- oldtype - old datatype (handle)
+
+Output Parameters:
+. newtype - new datatype (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

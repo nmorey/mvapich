@@ -1,0 +1,15 @@
+/*D
+   MPI_Group_f2c - converts Fortran INTEGER to MPI_Group
+
+Synopsis:
+.vb
+MPI_Group MPI_Group_f2c(MPI_Fint group)
+.ve
+
+Input Parameters:
+. group - group (None)
+
+.N ThreadSafe
+
+D*/
+

@@ -1,0 +1,47 @@
+/*D
+   MPI_Isendrecv_replace - Starts a nonblocking send and receive with a single buffer
+
+Synopsis:
+.vb
+int MPI_Isendrecv_replace(void *buf, int count, MPI_Datatype datatype, int dest,
+                          int sendtag, int source, int recvtag, MPI_Comm comm,
+                          MPI_Request *request)
+.ve
+.vb
+int MPI_Isendrecv_replace_c(void *buf, MPI_Count count, MPI_Datatype datatype,
+                            int dest, int sendtag, int source, int recvtag,
+                            MPI_Comm comm, MPI_Request *request)
+.ve
+
+Input Parameters:
++ count - number of elements in send and receive buffer (non-negative integer)
+. datatype - type of elements in send and receive buffer (handle)
+. dest - rank of destination (integer)
+. sendtag - send message tag (integer)
+. source - rank of source or MPI_ANY_SOURCE (integer)
+. recvtag - receive message tag or MPI_ANY_TAG (integer)
+- comm - communicator (handle)
+
+Input/Output Parameters:
+. buf - initial address of send and receive buffer (choice)
+
+Output Parameters:
+. request - communication request (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_BUFFER
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_RANK
+.N MPI_ERR_TAG
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

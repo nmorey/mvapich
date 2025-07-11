@@ -1,0 +1,39 @@
+/*D
+   MPI_Win_allocate - Create and allocate an MPI Window object for one-sided communication
+
+Synopsis:
+.vb
+int MPI_Win_allocate(MPI_Aint size, int disp_unit, MPI_Info info, MPI_Comm comm,
+                     void *baseptr, MPI_Win *win)
+.ve
+.vb
+int MPI_Win_allocate_c(MPI_Aint size, MPI_Aint disp_unit, MPI_Info info,
+                       MPI_Comm comm, void *baseptr, MPI_Win *win)
+.ve
+
+Input Parameters:
++ size - size of window in bytes (non-negative integer)
+. disp_unit - local unit size for displacements, in bytes (positive integer)
+. info - info argument (handle)
+- comm - intra-communicator (handle)
+
+Output Parameters:
++ baseptr - initial address of window (choice)
+- win - window object returned by call (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_DISP
+.N MPI_ERR_INFO
+.N MPI_ERR_SIZE
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Win_allocate_shared MPI_Win_create MPI_Win_create_dynamic MPI_Win_free
+D*/
+

@@ -1,0 +1,38 @@
+/*D
+   MPI_Type_create_hindexed_block - Create an hindexed datatype with constant-sized blocks
+
+Synopsis:
+.vb
+int MPI_Type_create_hindexed_block(int count, int blocklength,
+                                   const MPI_Aint array_of_displacements[],
+                                   MPI_Datatype oldtype, MPI_Datatype *newtype)
+.ve
+.vb
+int MPI_Type_create_hindexed_block_c(MPI_Count count, MPI_Count blocklength,
+                                     const MPI_Count array_of_displacements[],
+                                     MPI_Datatype oldtype,
+                                     MPI_Datatype *newtype)
+.ve
+
+Input Parameters:
++ count - length of array of displacements (non-negative integer)
+. blocklength - size of block (non-negative integer)
+. array_of_displacements - byte displacement of each block (integer)
+- oldtype - old datatype (handle)
+
+Output Parameters:
+. newtype - new datatype (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

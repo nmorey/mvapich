@@ -40,7 +40,7 @@ int main(int argc, char **argv)
 
     MTest_Reduce_scatter(sendbuf, &recvbuf, recvcounts, MPI_INT, MPI_SUM, comm);
 
-    sumval = (size * (rank + (rank + size - 1))) / 2;
+    sumval = size * rank + ((size - 1) * size) / 2;
 /* recvbuf should be size * (rank + i) */
     if (recvbuf != sumval) {
         err++;

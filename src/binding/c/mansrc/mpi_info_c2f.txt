@@ -1,0 +1,15 @@
+/*D
+   MPI_Info_c2f - converts MPI_Info to Fortran INTEGER
+
+Synopsis:
+.vb
+MPI_Fint MPI_Info_c2f(MPI_Info info)
+.ve
+
+Input Parameters:
+. info - info argument (handle)
+
+.N ThreadSafe
+
+D*/
+

@@ -1,0 +1,41 @@
+/*D
+   MPI_Comm_free - Marks the communicator object for deallocation
+
+Synopsis:
+.vb
+int MPI_Comm_free(MPI_Comm *comm)
+.ve
+
+Input/Output Parameters:
+. comm - communicator to be destroyed (handle)
+
+Notes:
+This routine `frees` a communicator.  Because the communicator may still
+be in use by other MPI routines, the actual communicator storage will not
+be freed until all references to this communicator are removed.  For most
+users, the effect of this routine is the same as if it was in fact freed
+at this time of this call.
+
+Null Handles:
+The MPI 1.1 specification, in the section on opaque objects, explicitly
+disallows freeing a null communicator.  The text from the standard is:
+.vb
+ A null handle argument is an erroneous IN argument in MPI calls, unless an
+ exception is explicitly stated in the text that defines the function. Such
+ exception is allowed for handles to request objects in Wait and Test calls
+ (sections Communication Completion and Multiple Completions). Otherwise, a
+ null handle can only be passed to a function that allocates a new object and
+ returns a reference to it in the handle.
+.ve
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+D*/
+

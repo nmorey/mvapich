@@ -22,7 +22,7 @@
 
 
 typedef struct {
-    int count;
+    MPI_Count count;
     ADIO_Offset fp_ind;
     ADIO_Offset disp;
     ADIO_Offset byte_off;
@@ -60,7 +60,7 @@ void ADIOI_Print_flatlist_node(ADIOI_Flatlist_node * flatlist_node_p)
  * agg_file_view_state for all clients, which is the view for each
  * aggregator of a client's filetype. */
 void ADIOI_Exch_file_views(int myrank, int nprocs, int file_ptr_type,
-                           ADIO_File fd, int count,
+                           ADIO_File fd, MPI_Aint count,
                            MPI_Datatype datatype, ADIO_Offset off,
                            view_state * my_mem_view_state_arr,
                            view_state * agg_file_view_state_arr,
@@ -80,7 +80,7 @@ void ADIOI_Exch_file_views(int myrank, int nprocs, int file_ptr_type,
     MPI_Request *send_req_arr = NULL, *recv_req_arr = NULL;
     MPI_Status *statuses = NULL;
     ADIO_Offset disp_off_sz_ext_typesz[6];
-    MPI_Aint memtype_extent, filetype_extent;
+    MPI_Aint lb, memtype_extent, filetype_extent;
     int ret = -1;
 
     /* parameters for datatypes */
@@ -96,7 +96,7 @@ void ADIOI_Exch_file_views(int myrank, int nprocs, int file_ptr_type,
      * freed in the close and should have been flattened in the file
      * view. */
     MPI_Type_size_x(datatype, &memtype_sz);
-    MPI_Type_extent(datatype, &memtype_extent);
+    MPI_Type_get_extent(datatype, &lb, &memtype_extent);
     if (memtype_sz == memtype_extent) {
         memtype_is_contig = 1;
         flat_mem_p = ADIOI_Flatten_and_find(datatype);
@@ -105,7 +105,7 @@ void ADIOI_Exch_file_views(int myrank, int nprocs, int file_ptr_type,
         flat_mem_p = ADIOI_Flatten_and_find(datatype);
     }
 
-    MPI_Type_extent(fd->filetype, &filetype_extent);
+    MPI_Type_get_extent(fd->filetype, &lb, &filetype_extent);
     MPI_Type_size_x(fd->filetype, &filetype_sz);
     flat_file_p = ADIOI_Flatten_and_find(fd->filetype);
     if (filetype_extent == filetype_sz) {
@@ -157,7 +157,7 @@ void ADIOI_Exch_file_views(int myrank, int nprocs, int file_ptr_type,
      * send_count_arr */
 
     if (memtype_is_contig) {
-        /* if memory is contigous, we now replace memtype_sz and
+        /* if memory is contiguous, we now replace memtype_sz and
          * memtype_extent with the full access size */
         memtype_sz *= count;
         memtype_extent = memtype_sz;
@@ -298,13 +298,13 @@ void ADIOI_Exch_file_views(int myrank, int nprocs, int file_ptr_type,
         recv_req_arr = (MPI_Request *) ADIOI_Calloc(2 * (recv_req_arr_sz), sizeof(MPI_Request));
         for (i = 0; i < nprocs; i++) {
             if (recv_count_arr[i].count > 0) {
-                MPI_Irecv(client_file_view_state_arr[i].flat_type_p->indices,
-                          recv_count_arr[i].count, ADIO_OFFSET, i,
-                          INDICES, fd->comm, &recv_req_arr[j]);
+                MPI_Irecv_c(client_file_view_state_arr[i].flat_type_p->indices,
+                            recv_count_arr[i].count, ADIO_OFFSET, i,
+                            INDICES, fd->comm, &recv_req_arr[j]);
                 j++;
-                MPI_Irecv(client_file_view_state_arr[i].flat_type_p->blocklens,
-                          recv_count_arr[i].count, ADIO_OFFSET, i,
-                          BLOCK_LENS, fd->comm, &recv_req_arr[j]);
+                MPI_Irecv_c(client_file_view_state_arr[i].flat_type_p->blocklens,
+                            recv_count_arr[i].count, ADIO_OFFSET, i,
+                            BLOCK_LENS, fd->comm, &recv_req_arr[j]);
                 j++;
             }
         }
@@ -314,13 +314,13 @@ void ADIOI_Exch_file_views(int myrank, int nprocs, int file_ptr_type,
         j = 0;
         for (i = 0; i < nprocs; i++) {
             if (send_count_arr[i].count > 0) {
-                MPI_Isend(flat_file_p->indices,
-                          send_count_arr[i].count, ADIO_OFFSET, i,
-                          INDICES, fd->comm, &send_req_arr[j]);
+                MPI_Isend_c(flat_file_p->indices,
+                            send_count_arr[i].count, ADIO_OFFSET, i,
+                            INDICES, fd->comm, &send_req_arr[j]);
                 j++;
-                MPI_Isend(flat_file_p->blocklens,
-                          send_count_arr[i].count, ADIO_OFFSET, i,
-                          BLOCK_LENS, fd->comm, &send_req_arr[j]);
+                MPI_Isend_c(flat_file_p->blocklens,
+                            send_count_arr[i].count, ADIO_OFFSET, i,
+                            BLOCK_LENS, fd->comm, &send_req_arr[j]);
                 j++;
             }
         }
@@ -328,13 +328,13 @@ void ADIOI_Exch_file_views(int myrank, int nprocs, int file_ptr_type,
         j = 0;
         for (i = 0; i < fd->hints->cb_nodes; i++) {
             if (send_count_arr[i].count > 0) {
-                MPI_Isend(flat_file_p->indices,
-                          send_count_arr[i].count, ADIO_OFFSET,
-                          fd->hints->ranklist[i], INDICES, fd->comm, &send_req_arr[j]);
+                MPI_Isend_c(flat_file_p->indices,
+                            send_count_arr[i].count, ADIO_OFFSET,
+                            fd->hints->ranklist[i], INDICES, fd->comm, &send_req_arr[j]);
                 j++;
-                MPI_Isend(flat_file_p->blocklens,
-                          send_count_arr[i].count, ADIO_OFFSET,
-                          fd->hints->ranklist[i], BLOCK_LENS, fd->comm, &send_req_arr[j]);
+                MPI_Isend_c(flat_file_p->blocklens,
+                            send_count_arr[i].count, ADIO_OFFSET,
+                            fd->hints->ranklist[i], BLOCK_LENS, fd->comm, &send_req_arr[j]);
                 j++;
             }
         }

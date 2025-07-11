@@ -1,0 +1,42 @@
+/*D
+   MPI_Precv_init - Creates a partitioned communication receive request
+
+Synopsis:
+.vb
+int MPI_Precv_init(void *buf, int partitions, MPI_Count count,
+                   MPI_Datatype datatype, int dest, int tag, MPI_Comm comm,
+                   MPI_Info info, MPI_Request *request)
+.ve
+
+Input Parameters:
++ buf - initial address of recv buffer (choice)
+. partitions - number of partitions (non-negative integer)
+. count - number of elements send per partition (non-negative integer)
+. datatype - type of each element (handle)
+. dest - rank of destination (integer)
+. tag - message tag (integer)
+. comm - communicator (handle)
+- info - info argument (handle)
+
+Output Parameters:
+. request - communication request (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_BUFFER
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_INFO
+.N MPI_ERR_RANK
+.N MPI_ERR_TAG
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Parrived, MPI_Request_free
+D*/
+

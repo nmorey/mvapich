@@ -1,0 +1,22 @@
+/*D
+   MPI_Errhandler_free - Frees an MPI-style errorhandler
+
+Synopsis:
+.vb
+int MPI_Errhandler_free(MPI_Errhandler *errhandler)
+.ve
+
+Input/Output Parameters:
+. errhandler - MPI error handler (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ERRHANDLER
+.N MPI_ERR_OTHER
+
+D*/
+

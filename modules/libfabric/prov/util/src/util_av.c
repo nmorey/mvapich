@@ -288,12 +288,15 @@ int ofi_av_insert_addr(struct util_av *av, const void *addr, fi_addr_t *fi_addr)
 	struct util_av_entry *entry = NULL;
 
 	assert(ofi_mutex_held(&av->lock));
+	ofi_straddr_log(av->prov, FI_LOG_INFO, FI_LOG_AV, "inserting addr", addr);
 	HASH_FIND(hh, av->hash, addr, av->addrlen, entry);
 	if (entry) {
 		if (fi_addr)
 			*fi_addr = ofi_buf_index(entry);
-		ofi_atomic_inc32(&entry->use_cnt);
-		return 0;
+		if (ofi_atomic_inc32(&entry->use_cnt) > 1) {
+			ofi_straddr_log(av->prov, FI_LOG_WARN, FI_LOG_AV,
+							"addr already in AV", addr);
+		}
 	} else {
 		entry = ofi_ibuf_alloc(av->av_entry_pool);
 		if (!entry) {
@@ -307,6 +310,8 @@ int ofi_av_insert_addr(struct util_av *av, const void *addr, fi_addr_t *fi_addr)
 		memcpy(entry->data, addr, av->addrlen);
 		ofi_atomic_initialize32(&entry->use_cnt, 1);
 		HASH_ADD(hh, av->hash, data, av->addrlen, entry);
+		FI_INFO(av->prov, FI_LOG_AV, "fi_addr: %" PRIu64 "\n",
+			ofi_buf_index(entry));
 	}
 	return 0;
 }
@@ -324,6 +329,7 @@ int ofi_av_remove_addr(struct util_av *av, fi_addr_t fi_addr)
 		return FI_SUCCESS;
 
 	HASH_DELETE(hh, av->hash, av_entry);
+	FI_DBG(av->prov, FI_LOG_AV, "av_remove fi_addr: %" PRIu64 "\n", fi_addr);
 	ofi_ibuf_free(av_entry);
 	return 0;
 }
@@ -397,7 +403,7 @@ int ofi_av_close_lightweight(struct util_av *av)
 	if (av->eq)
 		ofi_atomic_dec32(&av->eq->ref);
 
-	ofi_mutex_destroy(&av->ep_list_lock);
+	ofi_genlock_destroy(&av->ep_list_lock);
 
 	ofi_atomic_dec32(&av->domain->ref);
 	ofi_mutex_destroy(&av->lock);
@@ -491,17 +497,25 @@ static int util_av_init(struct util_av *av, const struct fi_av_attr *attr,
 static int util_verify_av_attr(struct util_domain *domain,
 			       const struct fi_av_attr *attr)
 {
+	char str1[20], str2[20];
+
 	switch (attr->type) {
 	case FI_AV_MAP:
 	case FI_AV_TABLE:
 		if ((domain->av_type != FI_AV_UNSPEC) &&
 		    (attr->type != domain->av_type)) {
-			FI_INFO(domain->prov, FI_LOG_AV, "Invalid AV type\n");
-		   	return -FI_EINVAL;
+			fi_tostr_r(str1, sizeof(str1), &domain->av_type,
+				   FI_TYPE_AV_TYPE),
+			fi_tostr_r(str2, sizeof(str2), &attr->type,
+				   FI_TYPE_AV_TYPE);
+			FI_WARN(domain->prov, FI_LOG_AV,
+				"Invalid AV type. domain->av_type: %s "
+				"attr->type: %s\n", str1, str2);
+			return -FI_EINVAL;
 		}
 		break;
 	default:
-		FI_WARN(domain->prov, FI_LOG_AV, "invalid av type\n");
+		FI_WARN(domain->prov, FI_LOG_AV, "Invalid AV type\n");
 		return -FI_EINVAL;
 	}
 
@@ -510,7 +524,7 @@ static int util_verify_av_attr(struct util_domain *domain,
 		return -FI_ENOSYS;
 	}
 
-	if (attr->flags & ~(FI_EVENT | FI_READ | FI_SYMMETRIC)) {
+	if (attr->flags & ~(FI_EVENT | FI_READ | FI_SYMMETRIC | FI_PEER)) {
 		FI_WARN(domain->prov, FI_LOG_AV, "invalid flags\n");
 		return -FI_EINVAL;
 	}
@@ -538,7 +552,11 @@ int ofi_av_init_lightweight(struct util_domain *domain, const struct fi_av_attr 
 	 */
 	av->context = context;
 	av->domain = domain;
-	ofi_mutex_init(&av->ep_list_lock);
+
+	ret = ofi_genlock_init(&av->ep_list_lock, OFI_LOCK_MUTEX);
+	if (ret)
+		return ret;
+
 	dlist_init(&av->ep_list);
 	ofi_atomic_inc32(&domain->ref);
 	return 0;
@@ -683,7 +701,7 @@ int ofi_ip_av_insert(struct fid_av *av_fid, const void *addr, size_t count,
 	if (ret)
 		return ret;
 
-	return ofi_ip_av_insertv(av, addr, ofi_sizeofaddr(addr),
+	return ofi_ip_av_insertv(av, addr, count ? ofi_sizeofaddr(addr) : 0,
 				 count, fi_addr, flags, context);
 }
 

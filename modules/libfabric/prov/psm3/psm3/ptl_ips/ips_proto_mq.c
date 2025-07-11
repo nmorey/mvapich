@@ -149,15 +149,16 @@ int ips_proto_mq_eager_complete(void *reqp, uint32_t nbytes)
 	 * completion notification sent to the sender, this is the only place
 	 * where send side chb's can be freed and put back into the mpool.
 	 */
-#ifdef PSM_CUDA
-	struct ips_cuda_hostbuf *chb;
-	if (req->cuda_hostbuf_used) {
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
+	struct ips_gpu_hostbuf *chb;
+	if (req->gpu_hostbuf_used) {
 		while (!STAILQ_EMPTY(&req->sendreq_prefetch)) {
 			/* If any prefetched buffers weren't used, they
 			   must be reclaimed here. */
 			chb = STAILQ_FIRST(&req->sendreq_prefetch);
 			STAILQ_REMOVE_HEAD(&req->sendreq_prefetch,
 						   req_next);
+			PSM3_GPU_HOSTBUF_RESET(chb);
 			psm3_mpool_put(chb);
 		}
 	}
@@ -202,10 +203,9 @@ ips_shortcpy(void *vdest, const void *vsrc, uint32_t nchars))
 	unsigned char *dest = vdest;
 	const unsigned char *src = vsrc;
 
-#ifdef PSM_CUDA
-	if (PSMI_IS_CUDA_ENABLED && (PSMI_IS_CUDA_MEM(vdest) || PSMI_IS_CUDA_MEM((void *) vsrc))) {
-		PSMI_CUDA_CALL(cuMemcpy,
-			       (CUdeviceptr)vdest, (CUdeviceptr)vsrc, nchars);
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
+	if (PSMI_IS_GPU_ENABLED && (PSMI_IS_GPU_MEM(vdest) || PSMI_IS_GPU_MEM(vsrc))) {
+		PSM3_GPU_MEMCPY(vdest, vsrc, nchars);
 		return;
 	}
 #endif
@@ -224,7 +224,7 @@ ips_shortcpy(void *vdest, const void *vsrc, uint32_t nchars))
 	return;
 }
 
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 PSMI_ALWAYS_INLINE(
 void
 ips_shortcpy_host_mem(void *vdest, const void *vsrc, uint32_t nchars))
@@ -357,7 +357,7 @@ ips_ptl_mq_eager(struct ips_proto *proto, psm2_mq_req_t req,
 		}
 #endif
 
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 		if (req->is_buf_gpu_mem) {
 			// flags will get handled in pio transfer_frame
 			// but use cuMemcpy instead of GDRCopy
@@ -370,7 +370,7 @@ ips_ptl_mq_eager(struct ips_proto *proto, psm2_mq_req_t req,
 			// TBD USER_BUF_GPU only useful for RTS
 			ips_scb_flags(scb) |= IPS_SEND_FLAG_USER_BUF_GPU;
 		}
-#endif // PSM_CUDA
+#endif // PSM_CUDA || PSM_ONEAPI
 
 		buf += pktlen;
 		offset += pktlen;
@@ -437,7 +437,7 @@ psm2_error_t
 ips_ptl_mq_rndv(struct ips_proto *proto, psm2_mq_req_t req,
 		ips_epaddr_t *ipsaddr, const void *buf, uint32_t len)
 {
-	psmi_assert(proto->msgflowid < EP_FLOW_LAST);
+	psmi_assert(proto->msgflowid < EP_NUM_FLOW_ENTRIES);
 	struct ips_flow *flow = &ipsaddr->flows[proto->msgflowid];
 	psm2_error_t err = PSM2_OK;
 	ips_scb_t *scb;
@@ -464,7 +464,7 @@ ips_ptl_mq_rndv(struct ips_proto *proto, psm2_mq_req_t req,
 	// small synchronous payload is sent in RTS itself
 	// CTS becomes the synchronous ACK
 	if (len <= flow->frag_size &&
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 	    !req->is_buf_gpu_mem &&
 #endif
 	    (psmi_hal_has_cap(PSM_HAL_CAP_NON_DW_PKT_SIZE) || !(len & 0x3))) {
@@ -477,16 +477,17 @@ ips_ptl_mq_rndv(struct ips_proto *proto, psm2_mq_req_t req,
 		req->send_msgoff = 0;
 	}
 
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 	/* Used to indicate to the receiver that the send
 	 * is issued on a device buffer. This helps the
 	 * receiver select TID instead of using eager buffers.
 	 */
 	if (req->is_buf_gpu_mem) {
+		_HFI_VDBG("Req bufer is on GPU\n");
 		ips_scb_flags(scb) |= IPS_SEND_FLAG_USER_BUF_GPU;
 		scb->mq_req = req;	/* request comes from GPU domain (device) ... */
 	}
-	req->cuda_hostbuf_used = 0;
+	req->gpu_hostbuf_used = 0;
 	if ((!(proto->flags & IPS_PROTO_FLAG_GPUDIRECT_RDMA_SEND) &&
 	   req->is_buf_gpu_mem &&
 	    (len > GPUDIRECT_THRESH_RV)) ||
@@ -494,69 +495,52 @@ ips_ptl_mq_rndv(struct ips_proto *proto, psm2_mq_req_t req,
 	    req->is_buf_gpu_mem &&
 	    (len > gpudirect_rdma_send_limit))) {
 		/* send from intermediate host buffer */
-		struct ips_cuda_hostbuf *chb;
+		_HFI_VDBG("send from intermediate host buffer\n");
+		struct ips_gpu_hostbuf *chb;
 		uint32_t offset, window_len;
 		int prefetch_lookahead = 0;
 
 		STAILQ_INIT(&req->sendreq_prefetch);
 		offset = 0;
-		req->cuda_hostbuf_used = 1;
+		req->gpu_hostbuf_used = 1;
 		/* start prefetching */
 		req->prefetch_send_msgoff = 0;
 		while ((offset < len) &&
-		       (prefetch_lookahead < proto->cuda_prefetch_limit)) {
+		       (prefetch_lookahead < proto->gpu_prefetch_limit)) {
 			chb = NULL;
 			window_len =
-				ips_cuda_next_window(
+				ips_gpu_next_window(
 						     proto->mq->hfi_base_window_rv,
 						     offset, len);
 
 			unsigned bufsz;
-			if (window_len <= CUDA_SMALLHOSTBUF_SZ) {
-				chb = (struct ips_cuda_hostbuf *)
+			if (window_len <= GPU_SMALLHOSTBUF_SZ) {
+				chb = (struct ips_gpu_hostbuf *)
 					psm3_mpool_get(
-					proto->cuda_hostbuf_pool_small_send);
-				bufsz = proto->cuda_hostbuf_small_send_cfg.bufsz;
+					proto->gpu_hostbuf_pool_small_send);
+				bufsz = proto->gpu_hostbuf_small_send_cfg.bufsz;
 			}
 			if (chb == NULL) {
-				chb = (struct ips_cuda_hostbuf *)
+				chb = (struct ips_gpu_hostbuf *)
 					psm3_mpool_get(
-					proto->cuda_hostbuf_pool_send);
-				bufsz = proto->cuda_hostbuf_send_cfg.bufsz;
+					proto->gpu_hostbuf_pool_send);
+				bufsz = proto->gpu_hostbuf_send_cfg.bufsz;
 			}
 
 			/* any buffers available? */
-			if (chb == NULL)
+			if (chb == NULL) {
 				break;
+			}
 
 			req->prefetch_send_msgoff += window_len;
 
 			chb->offset = offset;
 			chb->size = window_len;
 			chb->req = req;
-			chb->gpu_buf = (CUdeviceptr) buf + offset;
+			chb->gpu_buf = (uint8_t*)buf + offset;
 			chb->bytes_read = 0;
 
-			if (proto->cudastream_send == NULL) {
-				PSMI_CUDA_CALL(cuStreamCreate,
-					   &proto->cudastream_send, CU_STREAM_NON_BLOCKING);
-			}
-			if (chb->host_buf == NULL) {
-				PSMI_CUDA_CALL(cuMemHostAlloc,
-					       (void **) &chb->host_buf,
-					       bufsz,
-					       CU_MEMHOSTALLOC_PORTABLE);
-			}
-			if (chb->copy_status == NULL) {
-				PSMI_CUDA_CALL(cuEventCreate, &chb->copy_status, CU_EVENT_DEFAULT);
-			}
-			PSMI_CUDA_CALL(cuMemcpyDtoHAsync,
-				       chb->host_buf, chb->gpu_buf,
-				       window_len,
-				       proto->cudastream_send);
-			PSMI_CUDA_CALL(cuEventRecord,
-				       chb->copy_status,
-				       proto->cudastream_send);
+			PSM3_GPU_MEMCPY_DTOH_START(proto, chb, window_len, bufsz);
 
 			STAILQ_INSERT_TAIL(&req->sendreq_prefetch, chb,
 					   req_next);
@@ -583,10 +567,10 @@ ips_ptl_mq_rndv(struct ips_proto *proto, psm2_mq_req_t req,
 					! unlikely(req->flags_internal & PSMI_REQ_FLAG_FASTPATH))))
 		goto fail;
 #ifdef PSM_HAVE_REG_MR
-// TBD - we may want to include odd bytes at start
-// and end of message in the RTS itself as opposed to being in last
-// EXPTID payload packet's header
-// then the RDMA Write can be better aligned and may perform better
+	// TBD - we may want to include odd bytes at start
+	// and end of message in the RTS itself as opposed to being in last
+	// EXPTID payload packet's header
+	// then the RDMA Write can be better aligned and may perform better
 	// Start registering memory for anticipated CTS requesting RDMA
 	// TBD - we could reduce duation of memory pin by doing this only
 	// once we receive CTS, but that will put this call in the critical
@@ -595,7 +579,7 @@ ips_ptl_mq_rndv(struct ips_proto *proto, psm2_mq_req_t req,
 	// length, etc below)
 	//
 	// register buffer we will use as source for RDMA Write
-	// for PSM_CUDA, a group of host bounce buffers may be used above
+	// for PSM_CUDA/PSM_ONEAPI, a group of host bounce buffers may be used above
 	// ips_scb_buffer catches when RTS contains the data, in which case no
 	// need for memory registration.  While unlkely we also skip
 	// registration for zero length sync messages
@@ -604,14 +588,15 @@ ips_ptl_mq_rndv(struct ips_proto *proto, psm2_mq_req_t req,
 			&& len > proto->mq->hfi_thresh_rv
 			&& proto->protoexp 	/* expected tid recieve enabled */
 			&& ips_epaddr_rdma_connected(ipsaddr)
-#ifdef PSM_CUDA
+			&& !req->mr
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 			&& len > GPUDIRECT_THRESH_RV
-			&& ! req->cuda_hostbuf_used
+			&& ! req->gpu_hostbuf_used
 #endif
 		) {
 		req->mr = psm3_verbs_reg_mr(proto->mr_cache, 0,
 						 req->req_data.buf, req->req_data.send_msglen, IBV_ACCESS_RDMA
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 						| (req->is_buf_gpu_mem?IBV_ACCESS_IS_GPU_ADDR:0)
 #endif
 						);
@@ -624,7 +609,7 @@ ips_ptl_mq_rndv(struct ips_proto *proto, psm2_mq_req_t req,
 		/* Assume that we already put a few rndv requests in flight.  This helps
 		 * for bibw microbenchmarks and doesn't hurt the 'blocking' case since
 		 * we're going to poll anyway */
-		psm3_poll_internal(proto->ep, 1);
+		psm3_poll_internal(proto->ep, 1, 0);
 	}
 
 fail:
@@ -638,24 +623,18 @@ fail:
 	return err;
 }
 
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 static inline
-int psmi_cuda_is_buffer_gpu_mem(void *ubuf)
-{
-	return (PSMI_IS_CUDA_ENABLED && PSMI_IS_CUDA_MEM(ubuf));
-}
-
-static inline
-int psmi_cuda_is_needed_rendezvous(struct ips_proto *proto, uint32_t len)
+int psm3_is_needed_rendezvous(struct ips_proto *proto, uint32_t len)
 {
 	if (
-		len > cuda_thresh_rndv){
+		len > gpu_thresh_rndv){
 		return 1;
 	}
 
 	return 0;
 }
-#endif
+#endif //PSM_CUDA || PSM_ONEAPI
 
 
 psm2_error_t
@@ -669,9 +648,9 @@ psm3_ips_proto_mq_isend(psm2_mq_t mq, psm2_epaddr_t mepaddr, uint32_t flags_user
 	ips_epaddr_t *ipsaddr;
 	ips_scb_t *scb;
 	psm2_mq_req_t req;
-#if defined(PSM_CUDA)
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 	int gpu_mem = 0;
-#endif // PSM_CUDA
+#endif // PSM_CUDA || PSM_ONEAPI
 
 	req = psm3_mq_req_alloc(mq, MQE_TYPE_SEND);
 	if_pf(req == NULL)
@@ -696,13 +675,13 @@ psm3_ips_proto_mq_isend(psm2_mq_t mq, psm2_epaddr_t mepaddr, uint32_t flags_user
 	req->req_data.tag = *tag;
 	req->req_data.context = context;
 
-#ifdef PSM_CUDA
-	req->is_buf_gpu_mem = len && psmi_cuda_is_buffer_gpu_mem((void*)ubuf);
-	req->cuda_hostbuf_used = 0;
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
+	req->is_buf_gpu_mem = PSM3_IS_BUFFER_GPU_MEM(ubuf, len);
+	req->gpu_hostbuf_used = 0;
 	if (req->is_buf_gpu_mem) {
 		gpu_mem = 1;
-		psmi_cuda_set_attr_sync_memops(ubuf);
-		if (psmi_cuda_is_needed_rendezvous(proto, len))
+		PSM3_MARK_BUF_SYNCHRONOUS(ubuf);
+		if (psm3_is_needed_rendezvous(proto, len))
 			goto do_rendezvous;
 	}
 #endif
@@ -722,7 +701,7 @@ psm3_ips_proto_mq_isend(psm2_mq_t mq, psm2_epaddr_t mepaddr, uint32_t flags_user
 		ips_scb_copy_tag(scb->ips_lrh.tag, tag->tag);
 
 		const void *user_buffer = ubuf;
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 		if (!req->is_buf_gpu_mem) {
 			mq_copy_tiny_host_mem((uint32_t *) &scb->ips_lrh.hdr_data,
 							  (uint32_t *) user_buffer, len);
@@ -746,15 +725,15 @@ psm3_ips_proto_mq_isend(psm2_mq_t mq, psm2_epaddr_t mepaddr, uint32_t flags_user
 				proto->strat_stats.tiny_gdrcopy_isend_bytes += len;
 			} else {
 				user_buffer = ubuf;
-#endif // PSM_CUDA
 				mq_copy_tiny((uint32_t *) &scb->ips_lrh.hdr_data,
 						 (uint32_t *) user_buffer, len);
-#ifdef PSM_CUDA
 				proto->strat_stats.tiny_cuCopy_isend++;
 				proto->strat_stats.tiny_cuCopy_isend_bytes += len;
 			}
 		}
 #else
+		mq_copy_tiny((uint32_t *) &scb->ips_lrh.hdr_data,
+			 (uint32_t *) user_buffer, len);
 		proto->strat_stats.tiny_cpu_isend++;
 		proto->strat_stats.tiny_cpu_isend_bytes += len;
 #endif
@@ -793,7 +772,7 @@ psm3_ips_proto_mq_isend(psm2_mq_t mq, psm2_epaddr_t mepaddr, uint32_t flags_user
 #ifdef PSM_HAVE_REG_MR
 		int used_send_dma = 0;
 #endif
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 		if (req->is_buf_gpu_mem) {
 			// TBD USER_BUF_GPU only useful for RTS
 			ips_scb_flags(scb) |= IPS_SEND_FLAG_USER_BUF_GPU;
@@ -833,7 +812,7 @@ psm3_ips_proto_mq_isend(psm2_mq_t mq, psm2_epaddr_t mepaddr, uint32_t flags_user
 				}
 			}
 		} else
-#endif // PSM_CUDA
+#endif // PSM_CUDA || PSM_ONEAPI
 		{
 #ifdef PSM_HAVE_REG_MR
 			if (len > proto->iovec_thresh_eager) {
@@ -926,7 +905,7 @@ psm3_ips_proto_mq_isend(psm2_mq_t mq, psm2_epaddr_t mepaddr, uint32_t flags_user
 	} else if (len <= mq->hfi_thresh_rv) {
 		req->send_msgoff = 0;
 		req->rts_peer = (psm2_epaddr_t) ipsaddr;
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 		if (req->is_buf_gpu_mem) {
 #ifdef PSM_HAVE_REG_MR
 			// TBD - no upper bound for send DMA here
@@ -945,7 +924,7 @@ psm3_ips_proto_mq_isend(psm2_mq_t mq, psm2_epaddr_t mepaddr, uint32_t flags_user
 				proto->strat_stats.eager_cuCopy_isend_bytes += len;
 			}
 		} else
-#endif
+#endif // PSM_CUDA || PSM_ONEAPI
 		{
 #ifdef PSM_HAVE_REG_MR
 			// TBD - no upper bound for send DMA here
@@ -976,16 +955,17 @@ psm3_ips_proto_mq_isend(psm2_mq_t mq, psm2_epaddr_t mepaddr, uint32_t flags_user
 		     len, tag->tag[0], tag->tag[1], tag->tag[2], req);
 	} else {		/* skip eager accounting below */
 do_rendezvous:
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 		if (gpu_mem) {
 			proto->strat_stats.rndv_gpu_isend++;
 			proto->strat_stats.rndv_gpu_isend_bytes += len;
 		} else {
-#endif
 			proto->strat_stats.rndv_cpu_isend++;
 			proto->strat_stats.rndv_cpu_isend_bytes += len;
-#ifdef PSM_CUDA
 		}
+#else
+		proto->strat_stats.rndv_cpu_isend++;
+		proto->strat_stats.rndv_cpu_isend_bytes += len;
 #endif
 
 		mq->stats.tx_num++;
@@ -1001,7 +981,7 @@ do_rendezvous:
 	mq->stats.tx_num++;
 	mq->stats.tx_eager_num++;
 	mq->stats.tx_eager_bytes += len;
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 	if (gpu_mem) {
 		mq->stats.tx_eager_gpu_num++;
 		mq->stats.tx_eager_gpu_bytes += len;
@@ -1023,7 +1003,8 @@ psm3_ips_proto_mq_send(psm2_mq_t mq, psm2_epaddr_t mepaddr, uint32_t flags,
 	struct ips_flow *flow;
 	ips_epaddr_t *ipsaddr;
 	ips_scb_t *scb;
-#if   defined(PSM_CUDA)
+
+#if   defined(PSM_CUDA) || defined (PSM_ONEAPI)
 	int gpu_mem = 0;
 #endif
 
@@ -1041,11 +1022,11 @@ psm3_ips_proto_mq_send(psm2_mq_t mq, psm2_epaddr_t mepaddr, uint32_t flags,
 
 	psmi_assert(proto->msgflowid < EP_FLOW_LAST);
 
-#ifdef PSM_CUDA
-	gpu_mem = len && psmi_cuda_is_buffer_gpu_mem((void*)ubuf);
+#if defined(PSM_CUDA) || defined (PSM_ONEAPI)
+	gpu_mem = PSM3_IS_BUFFER_GPU_MEM(ubuf, len);
 	if (gpu_mem) {
-		psmi_cuda_set_attr_sync_memops(ubuf);
-		if (psmi_cuda_is_needed_rendezvous(proto, len))
+		PSM3_MARK_BUF_SYNCHRONOUS(ubuf);
+		if (psm3_is_needed_rendezvous(proto, len))
 			goto do_rendezvous;
 	}
 #endif
@@ -1063,7 +1044,7 @@ psm3_ips_proto_mq_send(psm2_mq_t mq, psm2_epaddr_t mepaddr, uint32_t flags,
 		    ipsaddr->msgctl->mq_send_seqnum);
 		ipsaddr->msgctl->mq_send_seqnum++;
 		ips_scb_copy_tag(scb->ips_lrh.tag, tag->tag);
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 		const void *user_buffer = ubuf;
 		if (!gpu_mem) {
 			mq_copy_tiny_host_mem((uint32_t *) &scb->ips_lrh.hdr_data,
@@ -1088,16 +1069,15 @@ psm3_ips_proto_mq_send(psm2_mq_t mq, psm2_epaddr_t mepaddr, uint32_t flags,
 				proto->strat_stats.tiny_gdrcopy_send_bytes += len;
 			} else {
 				user_buffer = ubuf;
-#endif // PSM_CUDA
-				mq_copy_tiny
-					((uint32_t *) &scb->ips_lrh.hdr_data,
+				mq_copy_tiny(
+					(uint32_t *) &scb->ips_lrh.hdr_data,
 					     (uint32_t *) ubuf, len);
-#ifdef PSM_CUDA
 				proto->strat_stats.tiny_cuCopy_send++;
 				proto->strat_stats.tiny_cuCopy_send_bytes += len;
 			}
 		}
 #else
+		mq_copy_tiny((uint32_t *) &scb->ips_lrh.hdr_data, (uint32_t *) ubuf, len);
 		proto->strat_stats.tiny_cpu_send++;
 		proto->strat_stats.tiny_cpu_send_bytes += len;
 #endif
@@ -1122,7 +1102,7 @@ psm3_ips_proto_mq_send(psm2_mq_t mq, psm2_epaddr_t mepaddr, uint32_t flags,
 		ips_scb_copy_tag(scb->ips_lrh.tag, tag->tag);
 
 		const void * user_buffer = ubuf;
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 		int converted = 0;
 		if (gpu_mem) {
 			// TBD USER_BUF_GPU only useful for RTS
@@ -1159,7 +1139,7 @@ psm3_ips_proto_mq_send(psm2_mq_t mq, psm2_epaddr_t mepaddr, uint32_t flags,
 				}
 			}
 		} else
-#endif // PSM_CUDA
+#endif // PSM_CUDA || PSM_ONEAPI
 		{
 #ifdef PSM_HAVE_REG_MR
 			if (len > proto->iovec_thresh_eager_blocking) {
@@ -1234,7 +1214,7 @@ psm3_ips_proto_mq_send(psm2_mq_t mq, psm2_epaddr_t mepaddr, uint32_t flags,
 				psmi_assert(flow->transfer == PSM_TRANSFER_PIO);
 				/* PIO and now have a bounce buffer */
 				/* copy to bounce buffer */
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 				if (!gpu_mem || converted) {
 					// host address
 					ips_shortcpy_host_mem
@@ -1269,8 +1249,8 @@ psm3_ips_proto_mq_send(psm2_mq_t mq, psm2_epaddr_t mepaddr, uint32_t flags,
 		if (err > PSM2_OK_NO_PROGRESS)
 			return err;
 
-#ifdef PSM_CUDA
-		req->cuda_hostbuf_used = 0;
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
+		req->gpu_hostbuf_used = 0;
 		if (gpu_mem) {
 			req->is_buf_gpu_mem = 1;
 #ifdef PSM_HAVE_REG_MR
@@ -1293,7 +1273,7 @@ psm3_ips_proto_mq_send(psm2_mq_t mq, psm2_epaddr_t mepaddr, uint32_t flags,
 			req->is_buf_gpu_mem = 0;
 #else
 		{
-#endif // PSM_CUDA
+#endif // PSM_CUDA || PSM_ONEAPI
 #ifdef PSM_HAVE_REG_MR
 			// TBD - no upper bound for send DMA here
 			// non-priority MR and will fallback if can't register
@@ -1344,18 +1324,19 @@ do_rendezvous:
 		req->flags_user = flags;
 		req->flags_internal |= PSMI_REQ_FLAG_IS_INTERNAL;
 
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 		if (gpu_mem) {
 			req->is_buf_gpu_mem = 1;
 			proto->strat_stats.rndv_gpu_send++;
 			proto->strat_stats.rndv_gpu_send_bytes += len;
 		} else {
 			req->is_buf_gpu_mem = 0;
-#endif
 			proto->strat_stats.rndv_cpu_send++;
 			proto->strat_stats.rndv_cpu_send_bytes += len;
-#ifdef PSM_CUDA
 		}
+#else
+		proto->strat_stats.rndv_cpu_send++;
+		proto->strat_stats.rndv_cpu_send_bytes += len;
 #endif
 
 		mq->stats.tx_num++;
@@ -1372,7 +1353,7 @@ do_rendezvous:
 	mq->stats.tx_num++;
 	mq->stats.tx_eager_num++;
 	mq->stats.tx_eager_bytes += len;
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 	if (gpu_mem) {
 		mq->stats.tx_eager_gpu_num++;
 		mq->stats.tx_eager_gpu_bytes += len;
@@ -1403,7 +1384,7 @@ ips_proto_mq_rts_match_callback(psm2_mq_req_t req, int was_posted)
 	psmi_assert(req->req_data.recv_msglen == req->req_data.send_msglen);
 	req->mq->stats.rx_user_num++;
 	req->mq->stats.rx_user_bytes += req->req_data.recv_msglen;
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 	/* Cases where we do not use TIDs:
 	 * 0) Received full message as payload to RTS, CTS is just an ack
 	 * 1) Recv on a host buffer, Send on a gpu buffer and len is <= 3 bytes
@@ -1422,7 +1403,7 @@ ips_proto_mq_rts_match_callback(psm2_mq_req_t req, int was_posted)
 		|| ! ips_epaddr_rdma_connected((ips_epaddr_t *) epaddr)
 #endif
 		) {
-#else // PSM_CUDA
+#else // PSM_CUDA || PSM_ONEAPI
 	if (req->recv_msgoff >= req->req_data.recv_msglen ||
 	    proto->protoexp == NULL	/* no expected tid recieve */
 #ifdef PSM_HAVE_REG_MR
@@ -1430,7 +1411,7 @@ ips_proto_mq_rts_match_callback(psm2_mq_req_t req, int was_posted)
 #endif
 	    || req->req_data.recv_msglen <= proto->mq->hfi_thresh_rv /* less rv theshold */
 		) {  /* no expected tid recieve */
-#endif // PSM_CUDA
+#endif // PSM_CUDA || PSM_ONEAPI
 #ifdef PSM_HAVE_REG_MR
 //do_long_data:
 #endif
@@ -1439,7 +1420,7 @@ ips_proto_mq_rts_match_callback(psm2_mq_req_t req, int was_posted)
 		/* there is no order requirement, try to push CTS request
 		 * directly, if fails, then queue it for later try. */
 		_HFI_VDBG("pushing CTS recv off %u len %u"
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 			" rGPU %u sGPU %u"
 #endif
 			" rv thresh %u"
@@ -1448,7 +1429,7 @@ ips_proto_mq_rts_match_callback(psm2_mq_req_t req, int was_posted)
 #endif
 			" epaddr %p RDMA %u\n",
 			req->recv_msgoff, req->req_data.recv_msglen,
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 			req->is_buf_gpu_mem, req->is_sendbuf_gpu_mem,
 #endif
 			proto->mq->hfi_thresh_rv,
@@ -1459,7 +1440,7 @@ ips_proto_mq_rts_match_callback(psm2_mq_req_t req, int was_posted)
 
 		if (req->recv_msgoff < req->req_data.recv_msglen) {
 			// RTS did not have the message as payload
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 			if (req->is_buf_gpu_mem) {
 				proto->strat_stats.rndv_long_gpu_recv++;
 				proto->strat_stats.rndv_long_gpu_recv_bytes += req->req_data.recv_msglen;
@@ -1467,7 +1448,7 @@ ips_proto_mq_rts_match_callback(psm2_mq_req_t req, int was_posted)
 #endif
 				proto->strat_stats.rndv_long_cpu_recv++;
 				proto->strat_stats.rndv_long_cpu_recv_bytes += req->req_data.recv_msglen;
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 			}
 #endif
 		}
@@ -1510,7 +1491,7 @@ ips_proto_mq_rts_match_callback(psm2_mq_req_t req, int was_posted)
 		// with pick LONG DATA above if recv_msgoff >= recv_msglen
 		// and send_msglen should == recv_msglen
 		psmi_assert(req->req_data.send_msglen);	// 0 len uses LONG_DATA above
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 		// for GPU receive buffer we need to sort things out at a lower level
 		// since may use a host bounce buffer for RDMA and need to register it
 		if (! req->is_buf_gpu_mem) {
@@ -1554,7 +1535,7 @@ psm3_ips_proto_mq_push_cts_req(struct ips_proto *proto, psm2_mq_req_t req)
 	ptl_arg_t *args;
 
 	PSM2_LOG_MSG("entering");
-	psmi_assert(proto->msgflowid < EP_FLOW_LAST);
+	psmi_assert(proto->msgflowid < EP_NUM_FLOW_ENTRIES);
 	flow = &ipsaddr->flows[proto->msgflowid];
 	scb = psm3_ips_scbctrl_alloc(&proto->scbc_egr, 1, 0, 0);
 	if (scb == NULL)
@@ -1596,10 +1577,9 @@ psm3_ips_proto_mq_push_rts_data(struct ips_proto *proto, psm2_mq_req_t req)
 	uintptr_t buf = (uintptr_t) req->req_data.buf + req->recv_msgoff;
 	ips_epaddr_t *ipsaddr = (ips_epaddr_t *) (req->rts_peer);
 	uint32_t nbytes_left = req->req_data.send_msglen - req->recv_msgoff;
-	uint32_t nbytes_sent = 0;
 	uint32_t nbytes_this, chunk_size;
 	uint32_t frag_size, unaligned_bytes;
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 	int converted = 0;
 #endif
 	struct ips_flow *flow;
@@ -1615,7 +1595,7 @@ psm3_ips_proto_mq_push_rts_data(struct ips_proto *proto, psm2_mq_req_t req)
 		frag_size = flow->frag_size;
 		chunk_size = min(proto->ep->chunk_max_segs*frag_size,
 					 proto->ep->chunk_max_size);
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 		if (req->is_buf_gpu_mem) {
 #ifdef PSM_HAVE_REG_MR
 			// rare, but when RV connection not available, we
@@ -1634,7 +1614,7 @@ psm3_ips_proto_mq_push_rts_data(struct ips_proto *proto, psm2_mq_req_t req)
 				proto->strat_stats.rndv_long_gdr_send_bytes += dostats*req->req_data.send_msglen;
 			} else
 #endif
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 				// for GPU send buffer <= 3, receiver can select
 				// LONG DATA and we can use GDRCopy
 				// must repin per attempt
@@ -1672,7 +1652,7 @@ psm3_ips_proto_mq_push_rts_data(struct ips_proto *proto, psm2_mq_req_t req)
 				proto->strat_stats.rndv_long_copy_cpu_send += dostats;
 				proto->strat_stats.rndv_long_copy_cpu_send_bytes += dostats*req->req_data.send_msglen;
 			}
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 		}
 #endif
 	}
@@ -1708,7 +1688,7 @@ psm3_ips_proto_mq_push_rts_data(struct ips_proto *proto, psm2_mq_req_t req)
 		/* attached unaligned bytes into packet header */
 		unaligned_bytes = nbytes_left & 0x3;
 		if (unaligned_bytes) {
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 			if (!req->is_buf_gpu_mem
 			    || converted
 			    )
@@ -1728,7 +1708,6 @@ psm3_ips_proto_mq_push_rts_data(struct ips_proto *proto, psm2_mq_req_t req)
 			req->send_msgoff += unaligned_bytes;
 
 			nbytes_left -= unaligned_bytes;
-			nbytes_sent += unaligned_bytes;
 		}
 		scb->ips_lrh.data[1].u32w0 = req->recv_msgoff;
 		ips_scb_buffer(scb) = (void *)buf;
@@ -1738,7 +1717,7 @@ psm3_ips_proto_mq_push_rts_data(struct ips_proto *proto, psm2_mq_req_t req)
 			ips_scb_flags(scb) |= IPS_SEND_FLAG_SEND_MR;
 		}
 #endif
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 		// SDMA identifies GPU buffers itself. But PIO path needs flags
 		if (req->is_buf_gpu_mem
 		) {
@@ -1751,7 +1730,7 @@ psm3_ips_proto_mq_push_rts_data(struct ips_proto *proto, psm2_mq_req_t req)
 			// TBD USER_BUF_GPU only useful for RTS
 			ips_scb_flags(scb) |= IPS_SEND_FLAG_USER_BUF_GPU;
 		}
-#endif
+#endif /* PSM_CUDA || PSM_ONEAPI */
 
 		scb->frag_size = frag_size;
 		nbytes_this = min(chunk_size, nbytes_left);
@@ -1770,7 +1749,6 @@ psm3_ips_proto_mq_push_rts_data(struct ips_proto *proto, psm2_mq_req_t req)
 
 		buf += nbytes_this;
 		req->recv_msgoff += nbytes_this;
-		nbytes_sent += nbytes_this;
 		nbytes_left -= nbytes_this;
 		if (nbytes_left == 0) {
 			/* because of scb callback, use eager complete */
@@ -1839,8 +1817,8 @@ psm3_ips_proto_mq_handle_cts(struct ips_recvhdrq_event *rcv_ev)
 			    p_hdr->data[1].u32w0);
 		proto->epaddr_stats.cts_rdma_recv++;
 
-#ifdef PSM_CUDA
-		psmi_assert(p_hdr->data[1].u32w1 > min(cuda_thresh_rndv, mq->hfi_thresh_rv));	// msglen
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
+		psmi_assert(p_hdr->data[1].u32w1 > min(gpu_thresh_rndv, mq->hfi_thresh_rv));	// msglen
 #else
 		psmi_assert(p_hdr->data[1].u32w1 > mq->hfi_thresh_rv);	// msglen
 #endif
@@ -1855,15 +1833,15 @@ psm3_ips_proto_mq_handle_cts(struct ips_recvhdrq_event *rcv_ev)
 
 #ifdef PSM_HAVE_REG_MR
 		if (! req->mr
-#ifdef PSM_CUDA
-			&& ! req->cuda_hostbuf_used
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
+			&& ! req->gpu_hostbuf_used
 #endif
 			) {
 			// we predicted use of LONG DATA and remote side chose RDMA
 			// or we failed to register memory previously.
 			req->mr = psm3_verbs_reg_mr(proto->mr_cache, 0,
 							req->req_data.buf, req->req_data.send_msglen, IBV_ACCESS_RDMA
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 								| (req->is_buf_gpu_mem?IBV_ACCESS_IS_GPU_ADDR:0)
 #endif
 							);
@@ -1910,7 +1888,7 @@ psm3_ips_proto_mq_handle_cts(struct ips_recvhdrq_event *rcv_ev)
 			// for send DMA if req->mr != NULL.
 			if (req->mr &&
 				(!psm3_verbs_user_space_mr(req->mr)
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 				|| (req->is_buf_gpu_mem && req->req_data.send_msglen <= proto->iovec_gpu_thresh_eager)
 				|| (!req->is_buf_gpu_mem && req->req_data.send_msglen <= proto->iovec_thresh_eager)
 #else
@@ -2040,7 +2018,7 @@ psm3_ips_proto_mq_handle_rts(struct ips_recvhdrq_event *rcv_ev)
 	if (p_hdr->flags & IPS_SEND_FLAG_BLOCKING)
 		req->type |= MQE_TYPE_WAITING_PEER;
 
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 	if (p_hdr->flags & IPS_SEND_FLAG_USER_BUF_GPU)
 		req->is_sendbuf_gpu_mem = 1;
 	else
@@ -2296,7 +2274,7 @@ psm3_ips_proto_mq_handle_eager(struct ips_recvhdrq_event *rcv_ev)
 		 */
 		if (req) {
 			//u32w0 is offset - only cnt recv msgs on 1st pkt in msg
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 			int use_gdrcopy = 0;
 			if (!req->is_buf_gpu_mem) {
 				if (req->state == MQ_STATE_UNEXP) {
@@ -2327,7 +2305,7 @@ psm3_ips_proto_mq_handle_eager(struct ips_recvhdrq_event *rcv_ev)
 			}
 			psm3_mq_handle_data(mq, req,
 				p_hdr->data[1].u32w0, payload, paylen);
-#endif // PSM_CUDA
+#endif // PSM_CUDA || PSM_ONEAPI
 
 			if (msgorder == IPS_MSG_ORDER_FUTURE_RECV)
 				ret = IPS_RECVHDRQ_BREAK;
@@ -2443,10 +2421,10 @@ psm3_ips_proto_mq_handle_data(struct ips_recvhdrq_event *rcv_ev)
 	psm2_mq_req_t req;
 	struct ips_flow *flow;
 
-#if defined(PSM_CUDA)
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 	int use_gdrcopy = 0;
 	struct ips_proto *proto = rcv_ev->proto;
-#endif // PSM_CUDA
+#endif // PSM_CUDA || PSM_ONEAPI
 	psmi_copy_tiny_fn_t psmi_copy_tiny_fn = mq_copy_tiny;
 
 
@@ -2466,7 +2444,7 @@ psm3_ips_proto_mq_handle_data(struct ips_recvhdrq_event *rcv_ev)
 	paylen = ips_recvhdrq_event_paylen(rcv_ev);
 	psmi_assert(paylen == 0 || payload);
 
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 	// cpu stats already tracked when sent CTS
 	if (req->is_buf_gpu_mem) {
 		req->req_data.buf = req->user_gpu_buffer;
@@ -2479,8 +2457,8 @@ psm3_ips_proto_mq_handle_data(struct ips_recvhdrq_event *rcv_ev)
 						paylen + p_hdr->data[1].u32w0, 1, proto->ep))) {
 				req->req_data.buf = buf;
 				psmi_copy_tiny_fn = mq_copy_tiny_host_mem;
-				proto->strat_stats.rndv_long_gdr_recv++;
-				proto->strat_stats.rndv_long_gdr_recv_bytes += paylen;
+				proto->strat_stats.rndv_long_gdrcopy_recv++;
+				proto->strat_stats.rndv_long_gdrcopy_recv_bytes += paylen;
 			} else {
 				proto->strat_stats.rndv_long_cuCopy_recv++;
 				proto->strat_stats.rndv_long_cuCopy_recv_bytes += paylen;
@@ -2488,8 +2466,8 @@ psm3_ips_proto_mq_handle_data(struct ips_recvhdrq_event *rcv_ev)
 		} else if (PSMI_USE_GDR_COPY_RECV(paylen)) {
 			// let mq_handle_data do the conversion
 			use_gdrcopy = 1;
-			//proto->strat_stats.rndv_long_gdr_recv++;
-			proto->strat_stats.rndv_long_gdr_recv_bytes += paylen;
+			//proto->strat_stats.rndv_long_gdrcopy_recv++;
+			proto->strat_stats.rndv_long_gdrcopy_recv_bytes += paylen;
 		} else {
 			if (p_hdr->data[1].u32w0 < 4) proto->strat_stats.rndv_long_cuCopy_recv++;
 			proto->strat_stats.rndv_long_cuCopy_recv_bytes += paylen;
@@ -2510,7 +2488,7 @@ psm3_ips_proto_mq_handle_data(struct ips_recvhdrq_event *rcv_ev)
 	}
 
 	psm3_mq_handle_data(mq, req, p_hdr->data[1].u32w0, payload, paylen
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 				, use_gdrcopy, rcv_ev->proto->ep);
 #else
 				);

@@ -1,0 +1,22 @@
+/*D
+   MPI_File_call_errhandler - Call the error handler installed on a file
+
+Synopsis:
+.vb
+int MPI_File_call_errhandler(MPI_File fh, int errorcode)
+.ve
+
+Input Parameters:
++ fh - file with error handler (handle)
+- errorcode - error code (integer)
+
+.N ThreadSafeNoUpdate
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_OTHER
+
+D*/
+

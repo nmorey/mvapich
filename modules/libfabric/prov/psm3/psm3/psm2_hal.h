@@ -60,6 +60,7 @@
 /* Forward declaration of PSM structs: */
 struct psm2_mq;
 struct ips_recvhdrq_event;
+struct ips_scb_pendlist;
 struct ips_flow;
 struct ips_scb;
 struct ips_epinfo;
@@ -188,6 +189,12 @@ typedef enum
 		 * This should only be true if PSM_HAL_CAP_RDMA also true.
 		 */
 	PSM_HAL_CAP_GPUDIRECT_RDMA              = (1UL << 6),
+		/* Does the HAL support Nvidia GPU? */
+	PSM_HAL_CAP_NVIDIA_GPU                  = (1UL << 7),
+		/* Does the HAL support INTEL GPU? */
+	PSM_HAL_CAP_INTEL_GPU                   = (1UL << 8),
+		/* does HAL allow process to process via same NIC */
+	PSM_HAL_CAP_NIC_LOOPBACK		= (1UL << 9),
 
 } psmi_hal_capability_bits;
 
@@ -199,11 +206,12 @@ typedef enum
 	PSM_HAL_PSMI_RUNTIME_RTS_RX_THREAD	= (1UL <<  0),
 	/* Rx thread is started. */
 	PSM_HAL_PSMI_RUNTIME_RX_THREAD_STARTED	= (1UL <<  1),
-	PSM_HAL_PSMI_RUNTIME_INTR_ENABLED       = (1UL <<  2),
-	PSM_HAL_PARAMS_VALID_NUM_UNITS          = (1UL <<  4),
-	PSM_HAL_PARAMS_VALID_NUM_PORTS          = (1UL <<  5),
-	PSM_HAL_PARAMS_VALID_DEFAULT_PKEY       = (1UL <<  6),
-	PSM_HAL_PARAMS_VALID_CACHE              = (1UL <<  7),
+	PSM_HAL_PSMI_RUNTIME_RX_THREAD_WAITING	= (1UL <<  2),
+	PSM_HAL_PSMI_RUNTIME_INTR_ENABLED       = (1UL <<  3),
+	PSM_HAL_PARAMS_VALID_NUM_UNITS          = (1UL <<  5),
+	PSM_HAL_PARAMS_VALID_NUM_PORTS          = (1UL <<  6),
+	PSM_HAL_PARAMS_VALID_DEFAULT_PKEY       = (1UL <<  7),
+	PSM_HAL_PARAMS_VALID_CACHE              = (1UL <<  8),
 
 } psmi_hal_sw_status;
 
@@ -249,7 +257,9 @@ typedef struct _psmi_hal_params
 
 
 typedef enum {
-	PSMI_HAL_POLL_TYPE_URGENT = 1
+	PSMI_HAL_POLL_TYPE_NONE = 0,
+	PSMI_HAL_POLL_TYPE_URGENT = 1,
+	PSMI_HAL_POLL_TYPE_ANYRCV = 2
 } psmi_hal_poll_type;
 
 /* Forward declaration of incomplete struct type _psmi_hal_instance and
@@ -287,9 +297,9 @@ struct _psmi_hal_instance
 	const char* (*hfp_identify)(void);
 
 	const char *(*hfp_get_unit_name)(int unit);
-	int (*hfp_get_port_subnet_name)(int unit, int port, char *buf, size_t bufsize);
+	int (*hfp_get_port_subnet_name)(int unit, int port, int addr_index, char *buf, size_t bufsize);
 	int (*hfp_get_port_speed)(int unit, int port, uint64_t *speed);
-	int (*hfp_get_port_lid)(int unit, int port);
+	int (*hfp_get_port_lid)(int unit, int port, int addr_index);
 
 	void (*hfp_mq_init_defaults)(struct psm2_mq *mq);
 	void (*hfp_ep_open_opts_get_defaults)(struct psm3_ep_open_opts *opts);
@@ -297,7 +307,7 @@ struct _psmi_hal_instance
 	/* Initialize PSM3_PRINT_STATS stats for given ep */
 	void (*hfp_context_initstats)(psm2_ep_t ep);
 
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 	void (*hfp_gdr_open)(void);
 #endif
 
@@ -333,7 +343,7 @@ struct _psmi_hal_instance
 	   be callable before the hal instance is initialized. */
 	int (*hfp_get_default_pkey)(void);
 
-	int (*hfp_get_port_subnet)(int unit, int port,
+	int (*hfp_get_port_subnet)(int unit, int port, int addr_index,
 				psmi_subnet128_t *subnet, psmi_naddr128_t *addr,
 				int *idx, psmi_gid128_t *gid);
 
@@ -348,7 +358,7 @@ struct _psmi_hal_instance
 #if PSMI_HAL_INST_CNT > 1 || defined(PSM_DEBUG)
 	/* Context open includes opening the device file, and get hw params. */
 	int (*hfp_context_open)(int unit,
-				int port,
+				int port, int addr_index,
 				uint64_t open_timeout,
 				psm2_ep_t ep,
 				psm2_uuid_t const job_key,
@@ -356,6 +366,7 @@ struct _psmi_hal_instance
 
 	/* Close the context, including the device file. */
 	int (*hfp_close_context)(psm2_ep_t ep);
+	psm2_error_t (*hfp_context_check_status)(struct ptl_ips *ptl);
 
 #ifdef PSM_FI
 	int (*hfp_faultinj_allowed)(const char *name, psm2_ep_t ep);
@@ -397,15 +408,18 @@ struct _psmi_hal_instance
 	psm2_error_t (*hfp_ips_path_rec_init)(struct ips_proto *proto,
 				struct ips_path_rec *path_rec,
 				struct _ibta_path_rec *response);
+	/* background threads */
 	psm2_error_t (*hfp_ips_ptl_pollintr)(psm2_ep_t ep,
 				struct ips_recvhdrq *recvq, int fd_pipe,
 				int next_timeout,
-				uint64_t *pollok, uint64_t *pollcyc);
-#ifdef PSM_CUDA
+				uint64_t *pollok, uint64_t *pollcyc, uint64_t *pollintr);
+
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
+	/* Direct GPU Copy */
 	void (*hfp_gdr_close)(void);
 	void* (*hfp_gdr_convert_gpu_to_host_addr)(unsigned long buf,
                                 size_t size, int flags, psm2_ep_t ep);
-#endif /* PSM_CUDA */
+#endif /* PSM_CUDA || PSM_ONEAPI */
 	/* Given an open context and index, return an error, or the
 	 * corresponding pkey for the index as programmed by the SM */
 	/* Returns an int, so -1 indicates an error. */
@@ -418,11 +432,19 @@ struct _psmi_hal_instance
 				       uint32_t *payload, uint32_t length,
 				       uint32_t isCtrlMsg, uint32_t cksum_valid,
 				       uint32_t cksum
-#ifdef PSM_CUDA
-				, uint32_t is_cuda_payload
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
+				, uint32_t is_gpu_payload
 #endif
 		);
-	psm2_error_t (*hfp_spio_process_events)(const struct ptl *ptl);
+	psm2_error_t (*hfp_transfer_frame)(struct ips_proto *proto,
+				       struct ips_flow *flow, struct ips_scb *scb,
+				       uint32_t *payload, uint32_t length,
+				       uint32_t isCtrlMsg, uint32_t cksum_valid,
+				       uint32_t cksum
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
+				, uint32_t is_gpu_payload
+#endif
+		);
 	psm2_error_t (*hfp_drain_sdma_completions)(struct ips_proto *proto);
 	int (*hfp_get_node_id)(int unit, int *nodep);
 
@@ -432,6 +454,34 @@ struct _psmi_hal_instance
 /* This is the current psmi_hal_instance, or, NULL if not initialized.
    The HIC should not modify the contents of the HAL instance directly. */
 extern psmi_hal_instance_t *psm3_hal_current_hal_instance;
+
+/* This block is part of a workaround to force static compilation to include
+ * HAL objects when linking. By referencing a dummy variable located within
+ * the HAL object, this forces the linker to not trim out the HAL because a
+ * symbol is required.
+ */
+#ifdef PSM_VERBS
+extern int verbs_hal_called;
+#define PSMI_HAL_INI_VERBS() do { verbs_hal_called = 1; } while(0)
+#else
+#define PSMI_HAL_INI_VERBS()
+#endif
+#ifdef PSM_SOCKETS
+extern int sockets_hal_called;
+#define PSMI_HAL_INI_SOCKETS() do { sockets_hal_called = 1; } while(0)
+#else
+#define PSMI_HAL_INI_SOCKETS()
+#endif
+#define PSMI_HAL_INI_GEN1()
+/* This macro isolates the ifdefs to only the above block, so that the only
+ * thing needed to be called is the PSMI_HAL_INI() macro to ensure the
+ * workaround is valid. */
+#define PSMI_HAL_INI() do { \
+	PSMI_HAL_INI_VERBS(); \
+	PSMI_HAL_INI_SOCKETS(); \
+	PSMI_HAL_INI_GEN1(); \
+	} while(0)
+
 
 /* Declare functions called by the HAL INSTANCES. */
 void psm3_hal_register_instance(psmi_hal_instance_t *);
@@ -505,7 +555,7 @@ int psm3_hal_pre_init_cache_func(enum psmi_hal_pre_init_cache_func_krnls k, ...)
 #define psmi_hal_mq_init_defaults(...)		                PSMI_HAL_DISPATCH_FUNC(mq_init_defaults,__VA_ARGS__)
 #define psmi_hal_ep_open_opts_get_defaults(...)	                PSMI_HAL_DISPATCH_FUNC(ep_open_opts_get_defaults,__VA_ARGS__)
 #define psmi_hal_context_initstats(...)				PSMI_HAL_DISPATCH_FUNC(context_initstats,__VA_ARGS__)
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 #define psmi_hal_gdr_open(...)                                  PSMI_HAL_DISPATCH_FUNC(gdr_open,__VA_ARGS__)
 #endif
 #define psmi_hal_finalize_(...)                                 PSMI_HAL_DISPATCH_FUNC(finalize_,__VA_ARGS__)
@@ -529,6 +579,7 @@ int psm3_hal_pre_init_cache_func(enum psmi_hal_pre_init_cache_func_krnls k, ...)
 	/* DISPATCH  - potentially inline */
 #define psmi_hal_context_open(...)				PSMI_HAL_DISPATCH(context_open,__VA_ARGS__)
 #define psmi_hal_close_context(...)				PSMI_HAL_DISPATCH(close_context,__VA_ARGS__)
+#define psmi_hal_context_check_status(...)				PSMI_HAL_DISPATCH(context_check_status,__VA_ARGS__)
 
 #ifdef PSM_FI
 #define psmi_hal_faultinj_allowed(...)				PSMI_HAL_DISPATCH(faultinj_allowed,__VA_ARGS__)
@@ -550,17 +601,17 @@ int psm3_hal_pre_init_cache_func(enum psmi_hal_pre_init_cache_func_krnls k, ...)
 #define psmi_hal_ips_ibta_init(...)                             PSMI_HAL_DISPATCH(ips_ibta_init,__VA_ARGS__)
 #define psmi_hal_ips_path_rec_init(...)                         PSMI_HAL_DISPATCH(ips_path_rec_init,__VA_ARGS__)
 #define psmi_hal_ips_ptl_pollintr(...)                          PSMI_HAL_DISPATCH(ips_ptl_pollintr,__VA_ARGS__)
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 #define psmi_hal_gdr_close(...)                                 PSMI_HAL_DISPATCH(gdr_close,__VA_ARGS__)
 #define psmi_hal_gdr_convert_gpu_to_host_addr(...)              PSMI_HAL_DISPATCH(gdr_convert_gpu_to_host_addr,__VA_ARGS__)
-#endif /* PSM_CUDA */
+#endif /* PSM_CUDA || PSM_ONEAPI */
 
 #define psmi_hal_get_port_index2pkey(...)			PSMI_HAL_DISPATCH(get_port_index2pkey,__VA_ARGS__)
 #define psmi_hal_poll_type(...)					PSMI_HAL_DISPATCH(poll_type,__VA_ARGS__)
 
 
 #define psmi_hal_spio_transfer_frame(...)			PSMI_HAL_DISPATCH(spio_transfer_frame,__VA_ARGS__)
-#define psmi_hal_spio_process_events(...)			PSMI_HAL_DISPATCH(spio_process_events,__VA_ARGS__)
+#define psmi_hal_transfer_frame(...)				PSMI_HAL_DISPATCH(transfer_frame,__VA_ARGS__)
 #define psmi_hal_drain_sdma_completions(...)			PSMI_HAL_DISPATCH(drain_sdma_completions,__VA_ARGS__)
 #define psmi_hal_get_node_id(...)				PSMI_HAL_DISPATCH(get_node_id,__VA_ARGS__)
 

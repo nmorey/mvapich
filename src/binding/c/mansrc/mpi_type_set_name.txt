@@ -1,0 +1,22 @@
+/*D
+   MPI_Type_set_name - set datatype name
+
+Synopsis:
+.vb
+int MPI_Type_set_name(MPI_Datatype datatype, const char *type_name)
+.ve
+
+Input Parameters:
++ datatype - datatype whose identifier is to be set (handle)
+- type_name - the character string which is remembered as the name (string)
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

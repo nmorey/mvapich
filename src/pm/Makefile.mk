@@ -2,17 +2,6 @@
 ## Copyright (C) by Argonne National Laboratory
 ##     See COPYRIGHT in top-level directory
 ##
-## Copyright (c) 2001-2022, The Ohio State University. All rights
-## reserved.
-##
-## This file is part of the MVAPICH software package developed by the
-## team members of The Ohio State University's Network-Based Computing
-## Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
-##
-## For detailed copyright and licensing information, please refer to the
-## copyright file COPYRIGHT in the top level MVAPICH directory.
-##
-
 
 # util comes first, sets some variables that may be used by each process
 # manager's Makefile.mk
@@ -34,24 +23,9 @@ include $(top_srcdir)/src/pm/remshell/Makefile.mk
 ## other.
 
 # has its own full automake setup, not Makefile.mk
-src_pm_mpirun_src_hostfile_libhostfile_a_YFLAGS = -d -p hostfile_yy
-src_pm_mpirun_src_slurm_libnodelist_a_YFLAGS = -d -p nodelist_yy
-src_pm_mpirun_src_slurm_libtasklist_a_YFLAGS = -d -p tasklist_yy
-
-if BUILD_PM_MPIRUN
-include $(top_srcdir)/src/pm/mpirun/Makefile.mk
-endif BUILD_PM_MPIRUN
-
-# has its own full automake setup, not Makefile.mk
 if BUILD_PM_HYDRA
 SUBDIRS += src/pm/hydra
 DIST_SUBDIRS += src/pm/hydra
 MANDOC_SUBDIRS += src/pm/hydra
+HTMLDOC_SUBDIRS += src/pm/hydra
 endif BUILD_PM_HYDRA
-
-# has its own full automake setup, not Makefile.mk
-if BUILD_PM_HYDRA2
-SUBDIRS += src/pm/hydra2
-DIST_SUBDIRS += src/pm/hydra2
-MANDOC_SUBDIRS += src/pm/hydra2
-endif BUILD_PM_HYDRA2

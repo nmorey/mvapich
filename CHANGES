@@ -1,80 +1,238 @@
 ===============================================================================
-                               Changes in 3.4.3
+                               Changes in 4.3.0
+===============================================================================
+# Support MPI memory allocation kinds side document.
+
+# Support MPI ABI Proposal. Configure with --enable-mpi-abi and build with
+  mpicc_abi. By default, mpicc still builds and links with MPICH ABI.
+
+# Experimental API MPIX_Op_create_x. It supports user callback function with
+  extra_state context and op destructor callback. It supports language bindings
+  to use proxy function for language-specific user callbacks.
+
+# Experimental API MPIX_{Comm,File,Session,Win}_create_errhandler_x. They allow
+  user error handlers to have extra_state context and corresponding destructor.
+  This allows language bindings to implement user error handlers via proxy.
+
+# Experimental API MPIX_Request_is_complete. This is a pure request state query
+  function that will not invoke progress, nor will free the request. This should
+  help applications that want separate task dependency checking from progress
+  engine to avoid progress contentions, especially in multi-threaded context.
+  It is also useful for tools to profile non-deterministic calls such as
+  MPI_Test.
+
+# Experimental API MPIX_Async_start. This function let applications to inject
+  progress hooks to MPI progress. It allows application to implement custom
+  asynchronous operations that will be progressed by MPI. It avoids having to
+  implement separate progress mechanisms that may either take additional
+  resource or contend with MPI progress and negatively impact performance. It
+  also allows applications to create custom MPI operations, such as MPI
+  nonblocking collectives, and achieve near native performance.
+
+# Added benchmark tests test/mpi/bench/p2p_{latency,bw}. 
+
+# Added CMA support in CH4 IPC.
+
+# Added IPC read algorithm for intranode Allgather and Allgatherv.
+
+# Added CVAR MPIR_CVAR_CH4_SHM_POSIX_TOPO_ENABLE to enable non-temporal memcpy
+  for inter-numa shm communication.
+
+# Added CVAR MPIR_CVAR_DEBUG_PROGRESS_TIMEOUT for debugging MPI deadlock issues.  
+
+# ch4:ucx now supports dynamic processes. MPI_Comm_spawn{_multiple} will work.
+  MPI_Open_port will fail due to ucx port name exceeds current MPI_MAX_PORT_NAME
+  of 256. One can work around by use an info hint "port_name_size" and use a
+  larger port name buffer.
+
+# PMI-1 defines PMI_MAX_PORT_NAME, which may be different from MPI_MAX_PORT_NAME.
+  This is used by "PMI_Lookup_name". Consequently, MPI_Lookup_name accepts info
+  hint "port_name_size" that may be larger than MPI_MAX_PORT_NAME. If the port
+  name does not fit in "port_name_size", it will return a truncation error.
+
+# Autogen default to use -yaksa-depth=2.
+
+# Default MPIR_CVAR_CH4_ROOTS_ONLY_PMI to on.
+
+# Added ch4 netmod API am_tag_send and am_tag_recv.
+
+# Added MPIR_CVAR_CH4_OFI_EAGER_THRESHOLD to force RNDV send mode.
+
+# Make check target will run ROMIO tests.
+
+# Add back handle conversion macros (f2c/c2f) to preserve ABI
+  compatibility with older MPICH libraries
+
+# Fix compilation issue with g++ in -std=gnu++20 mode
+
+# Fix bug in MPI_ANY_SOURCE handling observed using the libfabric CXI
+  provider
+
+# Add NIC information to error messages in ch4:ofi netmod
+
+===============================================================================
+                               Changes in 4.2
+===============================================================================
+# Complete support MPI 4.1 specification
+
+# Experimental thread communicator feature (e.g. MPIX_Threadcomm_init).
+  See paper "Frustrated With MPI+Threads? Try MPIxThreads!",
+  https://doi.org/10.1145/3615318.3615320.
+
+# Experimental datatype functions MPIX_Type_iov_len and MPIX_Type_Iov
+
+# Experimental op MPIX_EQUAL for MPI_Reduce and MPI_Allreduce (intra
+  communicator only)
+
+# Use --with-{pmi,pmi2,pmix]=[path] to configure external PMI library.
+  Convenience options for Slurm and cray deprecated. Use --with-pmi=oldcray
+  for older Cray environment.
+
+# Error checking default changed to runtime (used to be all).
+
+# Use the error handler bound to MPI_COMM_SELF as the default error handler.
+
+# Use ierror instead of ierr in "use mpi" Fortran interface. This affects
+  user code if they call with explicit keyword, e.g. call MPI_Init(ierr=arg).
+  "ierror" is the correct name specified in the MPI specification. We only
+  added subroutine interface in "mpi.mod" since 4.1.
+
+# Handle conversion functions, such as MPI_Comm_c2f, MPI_Comm_f2c, etc., are
+  no longer macros. MPI-4.1 require these to be actual functions.
+
+# Yaksa updated to auto detect the GPU architecture and only build for
+  the detected arch. This applies to CUDA and HIP support.
+
+# MPI_Win_shared_query can be used on windows created by MPI_Win_create,
+  MPI_Win_allocate, in addition to windows created by MPI_Win_allocate_shared.
+  MPI_Win_allocate will create shared memory whenever feasible, including between
+  spawned processes on the same node.
+
+# Fortran mpi.mod support Type(c_ptr) buffer output for MPI_Alloc_mem,
+  MPI_Win_allocate, and MPI_Win_allocate_shared.
+
+# New functions added in MPI-4.1: MPI_Remove_error_string, MPI_Remove_error_code,
+  and MPI_Remove_error_class
+
+# New functions added in MPI-4.1: MPI_Request_get_status_all,
+  MPI_Request_get_status_any, and MPI_Request_get_status_some.
+
+# New function added in MPI-4.1: MPI_Type_get_value_index.
+
+# New functions added in MPI-4.1: MPI_Comm_attach_buffer, MPI_Session_attach_buffer,
+  MPI_Comm_detach_buffer, MPI_Session_detach_buffer,
+  MPI_Buffer_flush, MPI_Comm_flush_buffer, MPI_Session_flush_buffer,
+  MPI_Buffer_iflush, MPI_Comm_iflush_buffer, and MPI_Session_iflush_buffer.
+  Also added constant MPI_BUFFER_AUTOMATIC to allow automatic buffers.
+
+# Support for "mpi_memory_alloc_kinds" info key. Memory allocation kind
+  requests can be made via argument to mpiexec, or as info during
+  session creation. Kinds supported are "mpi" (with standard defined
+  restrictors) and "system". Queries for supported kinds can be made on
+  MPI objects such as sessions, comms, windows, or files. MPI 4.1 states
+  that supported kinds can also be found in MPI_INFO_ENV, but it was
+  decided at the October 2023 meeting that this was a mistake and will
+  be removed in an erratum.
+
+
+===============================================================================
+                               Changes in 4.1
 ===============================================================================
 
-# Fix bugs in GPFS ROMIO driver
+# Thread-cs in ch4 changed to per-vci.
 
-# Fix bugs in DAOS ROMIO driver
+# Testsuite (test/mpi) is configured separately from mpich configure.
 
-# Fix nemesis shm bug on systems with weak memory consistency
+# Added options in autogen to accelerate CI builds, including using pre-built
+  sub-modules. Added -yaksa-depth option to generate shallower yaksa pup code
+  for faster build and smaller binaries.
 
-# Fix progress issue in ch4:ucx finalize
+# Support singleton init using hydra.
 
-# Fix nonblocking collective issue during finalize
+# On OSX, link option flat_namespace is no longer turned on by default.
 
-# Fix UBSan warnings in 32-bit builds
+# Generate mpi.mod Fortran interfaces using Python 3. For many compilers,
+  including gfortran, flags such as -fallow-mismatched-args is no longer
+  necessary.
 
-# Fix predefined datatype handle leaks
+# Fixed message queue debugger interface in ch4.
 
-# Fix bug in topology-aware communicator creation
+# PMI (src/pmi) is refactored as a subdir and can be separately distributed.
 
-# Fix Slurm nodelist parsing
+# Added MPIX_Comm_get_failed.
 
-# Fix testcase for out-of-tree configuration
+# Experimental MPIX stream API to enable explicit thread contexts.
 
-# Fix truncation testcase for possible disconnection error
+# Experimental MPIX gpu enqueue API. It currently only supports CUDA streams.
 
-# Hydra help message improvements
+# Delays GPU resource allocation in yaksa.
 
-# Add support for DAOS pool and container labels
+# CH3 nemesis ofi netmod is removed.
 
-===============================================================================
-                               Changes in 3.4.2
-===============================================================================
+# New collective algorithms. All collective algorithms are listed in
+  src/mpi/coll/coll_algorithms.txt
 
-# Update configure options to support --disable-ze and --disable-cuda
-  to explicitly disable GPU-awareness
+# Removed hydra2. We will port unique features of hydra2, including
+  tree-launching, to hydra in the future release.
 
-# Update embedded hwloc to version 2.4.1. Fixes a build issue on
-  systems with OpenCL.
+# Added in-repository wiki documentation.
 
-# Fixes for Argobots thread package support.
+# Added stream workq to support optimizations for enqueue operations.
 
-# Fixes for the DAOS ROMIO driver (thanks to Intel for contributing)
+# Better support for large count APIs by eliminating type conversion issues.
 
-# Fix additional bugs in GPU-aware nonblocking op collectives
+# Hydra now uses libpmi (src/pmi) for handling PMI messages.
 
-# Fix 'make check' errors with embedded MPL and json-c libraries
-
-# Fix support for GNI provider in ch4:ofi netmod
-
-# Fix bug in dynamic window memory registration with ch4:ofi netmod
-
-# Fix bug in persistent pt2pt when used with MPI_PROC_NULL
-
-# Fix bug in hydra nameserver when freeing published entries
-
-# Fix bugs in GPFS ROMIO driver (thanks to IBM for contributing)
-
-# Fix bug in darray type creation (thanks to IBM for contributing)
-
-# Fix bugs in XPMEM support
-
-# Fix bug in MPI_Comm_spawn_multiple where non-root args were not ignored
+# Many bug fixes and enhancements.
 
 ===============================================================================
-                               Changes in 3.4.1
+                               Changes in 4.0
 ===============================================================================
 
-# Fix bug in GPU memory hooks that caused failures with NCCL
+# All MPI-4 APIs have been implemented. Major MPI-4 features include MPI
+  sessions, partitioned point-to-point communications, events in the MPI tool
+  information interface, large-count functions, persistent collectives,
+  MPI_Comm_idup_with_info, MPI_Isendrecv and MPI_Isendrecv_replace,
+  MPI_Info_get_string, MPI_Comm_split_type with new split_type --
+  MPI_COMM_TYPE_HW_GUIDED and MPI_COMM_TYPE_HW_UNGUIDED.
 
-# Fix bug in GPU-aware nonblocking op collectives
+# Add QMPI (experimental) support.
 
-# Hide symbols from embedded json-c module
+# Add MPIX_Delete_error_{class,code,string}.
 
-# Removed anonymous struct/union usage in MPL
+# MPI_Info objects can be accessed before MPI_Init{_thread}.
 
-# Disable Java support in embedded UCX module
+# Generate C API interface functions including man page notes and error
+  checking using Python scripts.
+
+# Generate Fortran bindings using Python scripts.
+
+# Generate collective entrance functions and generate per-algorithm tests.
+
+# Support explicit --without-cuda configure option.
+
+# Drop support for UCX version < 1.7.0.
+
+# Configure now optionally require Python 3 (when F08 is enabled).
+
+# Multi-NIC support in ch4:ofi.
+
+# Default to ch4:ofi when configure doesn't have a clear choice. Add message
+  block at the end of configure to advise user.
+
+# Multiple VCI is fully implemented including the active message fallback paths.
+
+# Extend IPC to support non-contig datatypes.
+
+# Add AMD GPU support using HIP.
+
+# Add generic RNDV callback mechanism with active messages.
+
+# Refactor ch4 dynamic process functions.
+
+# Avoid building MPL and hwloc multiple times.
+
+# Many bug fixes and code clean-ups.
 
 ===============================================================================
                                Changes in 3.4
@@ -83,7 +241,7 @@
 # ch4 replaces ch3 as the default device configuration. If no network
   module is specified at configuration-time, MPICH will search the
   user environment in order to select one to build. The user will be
-  prompted to choose if no preferred network library is dectected.
+  prompted to choose if no preferred network library is detected.
 
 # Add support for Yaksa datatype engine (default in ch4).
 
@@ -100,6 +258,8 @@
 # Add Quobyte ADIO driver to ROMIO (contributed by Quobyte).
 
 # Add support for Arm compiler toolchain
+
+# Add support for NVIDIA HPC compilers
 
 # Add support for flang/f18 Fortran compiler
 
@@ -187,7 +347,7 @@
    transport functions.
 
  # Improvements to derived datatype testing (DTPools -
-   https://wiki.mpich.org/mpich/index.php/DTPools).
+   https://github.com/pmodels/mpich/blob/main/doc/wiki/design/DTPools.md).
 
  # Added new "non-catastrophic" error codes to expose internal
    resource exhaustion.
@@ -256,7 +416,7 @@
  # Added experimental support for Open Fabrics Interfaces (OFI) version 1.0.0.
    https://github.com/ofiwg/libfabric (thanks to Intel for code contribution)
 
- # The Myrinet MX network module, which had a life cyle from 1.1 till
+ # The Myrinet MX network module, which had a life cycle from 1.1 till
    3.1.2, has now been deleted.
 
  # Several other minor bug fixes, memory leak fixes, and code cleanup.
@@ -343,7 +503,7 @@
  # Blue Gene/Q implementation supports MPI-3. This release contains a
    functional and compliant Blue Gene/Q implementation of the MPI-3 standard.
    Instructions to build on Blue Gene/Q are on the mpich.org wiki:
-   http://wiki.mpich.org/mpich/index.php/BGQ
+   https://github.com/pmodels/mpich/blob/main/doc/wiki/source_code/BGQ.md
 
  # Fortran 2008 bindings (experimental). Build with --enable-fortran=all. Must have
    a Fortran 2008 + TS 29113 capable compiler.
@@ -426,7 +586,7 @@
 
  # Several improvements to the Hydra process binding code.  See the
    Hydra wiki page for more information:
-   http://wiki.mpich.org/mpich/index.php/Using_the_Hydra_Process_Manager
+   https://github.com/pmodels/mpich/blob/main/doc/wiki/how_to/Using_the_Hydra_Process_Manager.md
 
  # MPICH now supports operations on very large datatypes (those that describe
    more than 32 bits of data).  This work also allows MPICH to fully support
@@ -1272,7 +1432,7 @@ www.mcs.anl.gov/mpi/mpich2/mpich2_1_0_6changes.htm.
 
 - Many enhancements to MPE
 
-- Enhanced support for features and idiosyncracies of Fortran 77 and 
+- Enhanced support for features and idiosyncrasies of Fortran 77 and 
   Fortran 90 compilers, including gfortran, g95, and xlf
 
 - Enhanced support for C++ compilers that do not fully support abstract
@@ -1286,13 +1446,13 @@ www.mcs.anl.gov/mpi/mpich2/mpich2_1_0_6changes.htm.
 - Man pages for mpiexec and mpif90
 
 - Enhancements for developers, including a more flexible and general 
-  mechanism for inserting logging and information messages, controlable
+  mechanism for inserting logging and information messages, controllable
   with --mpich-dbg-xxx command line arguments or MPICH_DBG_XXX environment
   variables.
 
 - Note to developers: 
   This release contains many changes to the structure of the CH3
-  device implementation (in src/mpid/ch3), including signficant
+  device implementation (in src/mpid/ch3), including significant
   reworking of the files (many files have been combined into fewer files
   representing logical grouping of functions).  The next release of 
   MPICH2 will contain even more significant changes to the device 
@@ -1323,7 +1483,7 @@ www.mcs.anl.gov/mpi/mpich2/mpich2_1_0_6changes.htm.
     and provides count of real drawables in preview drawables.
 
   - new slog2 tools, slog2filter and slog2updater, which both are logfile
-    format convertors.  slog2filter removes undesirable categories of
+    format converters.  slog2filter removes undesirable categories of
     drawables as well as alters the slog2 file structure.  slog2updater
     is a slog2filter that reads in older logfile format, 2.0.5, and 
     writes out the latest format 2.0.6.
@@ -1640,7 +1800,7 @@ www.mcs.anl.gov/mpi/mpich2/mpich2_1_0_6changes.htm.
 - The CH3 interface and device now provide a mechanism for using RDMA (remote
   direct memory access) to transfer data between processes.
 
-- Logging capabilities for MPI and internal routines have been readded.  See
+- Logging capabilities for MPI and internal routines have been re-added.  See
   the documentation in doc/logging for details.
 
 - A "meminit" option was added to --enable-g to force all bytes associated with

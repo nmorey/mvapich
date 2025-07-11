@@ -14,7 +14,7 @@ use Data::Dumper;
 use Getopt::Long;
 
 # Help perl find the YAML parsing module
-use lib '/tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/local_perl/lib';
+use lib 'maint/local_perl/lib';
 use YAML::Tiny qw();
 
 # To format README file
@@ -28,18 +28,25 @@ my $debug = 0;
 my @pvars = ();
 my @categories=();
 my $yaml = YAML::Tiny->new();
-my @dirs = ();
-my @cfiles = ();
-my %skipfiles = ();
+my $pvarfile = "src/mpi_t/mvp_pvars.txt";
+my $pvarcolfile = "src/mpi_t/mvp_coll_pvars.txt";
 
 # namespace prefix for function names
 my $fn_ns = "MPIR_T_MVP_pvar";
+# namespace prefix for variable and type names
+# MVAPICH-specific prefix
+my $ns = "MVP";
+# an alternative namespace used for environment variables, unused if set to ""
+my $alt_ns = "UCR";
+# deprecated prefix for backward compatibility
+my $dep_ns = "MV2";
 
 # Default :output source files
 # NOTE: it's important to use single quote. abs_srcdir may contain sigils
 #   e.g. /var/lib/jenkins/workspace/hzhou-custom@2/config/ch3-sock/label/centos64
-my $header_file = '/tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/include/mvp_pvars.h';
-my $c_file      = '/tmp/Mxoh_WAZg_/mvapich-3.0rc/maint/../src/mpi/mvp/mvp_pvars.c';
+my $header_file = 'src/include/mvp_pvars.h';
+my $c_file      = 'src/util/mvp_pvars.c';
+my $readme_file = 'README_MVP.envvar';
 
 sub Usage {
     print <<EOT;
@@ -49,44 +56,30 @@ Usage: $0 [OPTIONS]
 Supported options:
     --help              - this output (optional)
     --debug             - enable some debugging output (optional)
+    --namespace=STR     - use STR as variable/type prefix in generated code (optional, default=$ns)
+    --alt-namespace=STR - use STR as alternative variable/type prefix in generated code (optional, default=$alt_ns)
     --header=STR        - specify the header file name (optional, default=$header_file)
     --c-file=STR        - specify the C file name (optional, default=$c_file)
-    --dirs=STR          - recursively parse C or header files under the directories as specified
-    --skip=STR          - skip parsing files as specified (optional)
+    --readme-file=STR   - specify the readme file name (optional, default=$readme_file)
 
 EOT
     exit 1;
 }
 
 # Step 1: Process options
-my $dirline;
-my $skipline = "";
 GetOptions(
     "help!"           => \&Usage,
     "debug!"          => \$debug,
+    "namespace=s"     => \$ns,
+    "alt-namespace=s" => \$alt_ns,
     "header=s"        => \$header_file,
     "c-file=s"        => \$c_file,
-    "dirs=s"          => \$dirline,
-    "skips=s"         => \$skipline
+    "readme-file=s"   => \$readme_file,
 ) or Usage();
 
-Usage unless $dirline;
 
-print "dirline = $dirline\n" if $debug;
-@dirs = split(/[:,;\s]+/, $dirline);
-
-my @skips = split(/[:,;\s]+/, $skipline);
-%skipfiles = map {$_ => 1} @skips;
-
-# Step 2: Search all cfiles and put them in @cfiles.
-foreach my $dir (@dirs) {
-    ExpandDir($dir);
-}
-
-# Step 3: Parse each cfile and put results in  @pvars and @categories.
-foreach my $cfile (@cfiles) {
-    ProcessFile($cfile);
-}
+ProcessFile($pvarfile);
+ProcessFile($pvarcolfile);
 
 # Step 4: Preprocess pvars:
 # *) Make sure that all categories referenced by pvars actually exist
@@ -99,17 +92,19 @@ print "Categories include: \n".Dumper(@categories) if $debug;
 print "Pvars include :\n".Dumper(@pvars)."\n" if $debug;
 
 my $run_timestamp = gmtime($ENV{SOURCE_DATE_EPOCH} || time)." UTC";
+my $uc_ns = uc($ns);
 
 # Setup output files
 open(OUTPUT_H,      '>', $header_file);
 open(OUTPUT_C,      '>', $c_file);
+#open(OUTPUT_README, '>', $readme_file);
 
 #===============================================================
 # Step 5.1: Dump the header file.
 my $hdr_guard = Header2InclGuard($header_file);
 print OUTPUT_H <<EOT;
 /*
- * Copyright (C) by Argonne National Laboratory
+ * Copyright (C) by Network Based Computing Laboratory
  *     See COPYRIGHT in top-level directory
  */
 
@@ -122,13 +117,31 @@ print OUTPUT_H <<EOT;
 
 #if !defined($hdr_guard)
 #define $hdr_guard
-
 #include "mpiimpl.h"
+#ifdef ENABLE_PVAR_MVP
 
-/* Initializes pvar values from the environment */
-int ${fn_ns}_init(void);
-int ${fn_ns}_finalize(void);
+#define MVP_COLL_PVAR_UPDATE_START(c, t) \\
+  do { \\
+    MPIR_T_PVAR_COUNTER_INC(MVP, c, 1); \\
+    MPIR_T_PVAR_TIMER_START(MVP, t); \\
+  } while(0);
+#define MVP_COLL_PVAR_UPDATE_END(t) \\
+  MPIR_T_PVAR_TIMER_END(MVP, t);
 
+#define MVP_MPIC_PVAR_BYTE_COUNTER(arr, tag, count, datatype) \\
+  do { \\
+    MPI_Aint pvar_msg_sz; \\
+    MPIR_Datatype_get_size_macro(datatype, pvar_msg_sz); \\
+    pvar_msg_sz *= count; \\
+    if (tag < MPIR_BARRIER_TAG || tag > MPIR_FIRST_NBC_TAG) { \\
+        MPIR_T_PVAR_COUNTER_ARRAY_INC(MVP, arr, 0, pvar_msg_sz); \\
+    } else { \\
+        MPIR_T_PVAR_COUNTER_ARRAY_INC(MVP, arr, tag, pvar_msg_sz); \\
+    } \\
+  } while (0);
+
+
+void MPIR_REGISTER_MVP_VARIABLES(void);
 /* Extern declarations for each pvar
  * (definitions in $c_file) */
 
@@ -136,12 +149,22 @@ EOT
 
 foreach my $p (@pvars) {
     printf OUTPUT_H "/* declared in $p->{location} */\n";
-    printf OUTPUT_H "extern %s PVAR_%s_%s;\n", Type2Ctype($p->{type}, $p->{datatype}),$p->{type},$p->{name};
+
+    if ($p->{type} eq 'COUNTER_ARRAY') {
+        printf OUTPUT_H "extern %s PVAR_%s_%s[%s];\n", Type2Ctype($p->{type}, $p->{datatype}),'COUNTER',$p->{name}, $p->{size};
+    } else {
+        printf OUTPUT_H "extern %s PVAR_%s_%s;\n", Type2Ctype($p->{type}, $p->{datatype}),$p->{type},$p->{name};
+    }
 }
 print OUTPUT_H <<EOT;
 
 #define MVP_PVAR_COUNT ${\scalar @pvars}
-
+#else /* ENABLE_PVAR_MVP */
+#define MVP_COLL_PVAR_UPDATE_START(c, t)
+#define MVP_COLL_PVAR_UPDATE_END(t)
+#define MPIR_REGISTER_MVP_VARIABLES()
+#define MVP_PVAR_COUNT 0
+#endif /* ENABLE_PVAR_MVP */
 #endif /* $hdr_guard */
 EOT
 close(OUTPUT_H);
@@ -151,7 +174,7 @@ close(OUTPUT_H);
 
 print OUTPUT_C <<EOT;
 /*
- * Copyright (C) by Argonne National Laboratory
+ * Copyright (C) by Network Based Computing Laboratory
  *     See COPYRIGHT in top-level directory
  */
 
@@ -161,43 +184,23 @@ print OUTPUT_C <<EOT;
  *
  * DO NOT EDIT!!!
  */
-
-#include <mpichconf.h>
 #include "mpiimpl.h"
-
+#ifdef ENABLE_PVAR_MVP
 EOT
 
 # Declaring definitions
-
 foreach my $p (@pvars) {
-   printf OUTPUT_C "%s PVAR_%s_%s;\n",Type2Ctype($p->{type}, $p->{datatype}),$p->{type},$p->{name};
-}
-
-print OUTPUT_C <<EOT;
-
-void initialize_mvp_cats(void)
-{
-    /* MPIR_T_cat_add_subcat(const char *parent_name, const char *child_name) */
-EOT
-
-foreach my $category (@categories) {
-    my $cat_name = $category->{name};
-    my @sub_cats = split(', ', $category->{subcats});
-    foreach my $sub_cat (@sub_cats){
-        # print "$cat_name, $sub_cat \n";
-        printf OUTPUT_C qq(     MPIR_T_cat_add_subcat(%s %s);\n),
-                qq("$cat_name",),
-                qq("$sub_cat");
-
+    if ($p->{type} eq 'COUNTER_ARRAY') {
+        printf OUTPUT_C "%s PVAR_%s_%s[%s];\n",Type2Ctype($p->{type}, $p->{datatype}),'COUNTER',$p->{name}, $p->{size};
+    } else {
+        printf OUTPUT_C "%s PVAR_%s_%s;\n",Type2Ctype($p->{type}, $p->{datatype}),$p->{type},$p->{name};
     }
 }
 
 print OUTPUT_C <<EOT;
-}
 
-void MPIT_REGISTER_MVP_VARIABLES(void)
+void MPIR_REGISTER_MVP_VARIABLES(void)
 {
-    initialize_mvp_cats();
 
 EOT
 
@@ -224,7 +227,18 @@ foreach my $p (@pvars) {
                         qq(         "$p->{category}", /* Category Name */),
                         qq(         "$p->{description}" /* Description */);
 
-    } elsif ($p->{type} eq "LEVEL"){
+    } elsif ($p->{type} eq "COUNTER_ARRAY"){
+         printf OUTPUT_C qq(     MPIR_T_PVAR_COUNTER_ARRAY_REGISTER_STATIC(\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s);\n),
+                        qq(         $p->{module}, /* Module */),
+                        qq(         $p->{datatype}, /* Datatype */),
+                        qq(         $p->{name}, /* Name */),
+                        qq(         $p->{verbosity}, /* Verbosity */),
+                        qq(         $p->{bind}, /* Bind */),
+                        qq(         ($p->{flags}), /* Flags */),
+                        qq(         "$p->{category}", /* Category Name */),
+                        qq(         "$p->{description}" /* Description */);
+
+    } else{
         printf OUTPUT_C qq(     MPIR_T_PVAR_LEVEL_REGISTER_STATIC(\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s);\n),
                         qq(         $p->{module}, /* Module */),
                         qq(         $p->{datatype}, /* Datatype */),
@@ -242,12 +256,13 @@ foreach my $p (@pvars) {
 print OUTPUT_C <<EOT;
 
 }
-
+#endif /* ENABLE_PVAR_MVP */
 EOT
 
 # print OUTPUT_C "Pvars include :\n".Dumper(@pvars)."\n";
 
 close(OUTPUT_C);
+
 #===============================================================
 # Helper subroutines used in this script
 
@@ -281,6 +296,7 @@ sub Type2Ctype {
     my %typemap = (
         'TIMER'     => 'MPIR_T_pvar_timer_t',
         'COUNTER'  => mpiType2Ctype($dtype),
+        'COUNTER_ARRAY'  => mpiType2Ctype($dtype),
         'LEVEL'  => mpiType2Ctype($dtype),
     );
     die "unknown type '$type', stopped" unless exists $typemap{$type};
@@ -351,6 +367,10 @@ sub ProcessFile {
 				die "ERROR: pvar $pvar->{name} has no flags in $cfile\n" unless exists $pvar->{flags};
 				die "ERROR: pvar $pvar->{name} has no category in $cfile\n" unless exists $pvar->{category};
 				die "ERROR: pvar $pvar->{name} has no description in $cfile\n" unless exists $pvar->{description};
+                if ($pvar->{type} eq 'COUNTER_ARRAY') {
+                    die "ERROR: pvar $pvar->{name} has no size in $cfile\n" unless exists $pvar->{size};
+                }
+
             }
             push (@pvars, @{$info->{pvars}});
         }
@@ -360,37 +380,10 @@ sub ProcessFile {
             foreach my $cat (@{$info->{categories}}) {
                 $cat->{location} = $cfile;
                 die "ERROR: category has no name in $cfile\n" unless exists $cat->{name};
-                die "ERROR: category $cat->{name} has no sub-category in $cfile\n"
-                    unless exists $cat->{subcats};
+                die "ERROR: category $cat->{name} has no description in $cfile\n"
+                    unless exists $cat->{description};
             }
             push (@categories, @{$info->{categories}});
         }
-    }
-}
-
-# Search cfiles recursively in the directory passed in.
-# Push file names along with their paths to back of @cfiles.
-sub ExpandDir {
-    my $dir = $_[0];
-    my @subdirs = ();
-    my $DIR_HANDLE;
-    opendir $DIR_HANDLE, "$dir" or die "Error: open directory $dir -- $!\n";
-    for my $filename (sort readdir $DIR_HANDLE) {
-        if ($filename =~ /^\./) {
-            next;
-        } elsif (-d "$dir/$filename") {
-            $subdirs[$#subdirs + 1] = "$dir/$filename";
-        } elsif ($filename =~ /(.*\.(?:[Cchi]|txt))(pp){0,1}$/) {
-            if (!defined($skipfiles{"$dir/$filename"}))
-            {
-                $cfiles[$#cfiles + 1] = "$dir/$filename";
-            }
-        }
-    }
-    closedir $DIR_HANDLE;
-
-    # Recursively search subdirs
-    foreach $dir (@subdirs) {
-        ExpandDir($dir);
     }
 }

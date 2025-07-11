@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2001-2018.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2018. ALL RIGHTS RESERVED.
 *
 * See file LICENSE for terms.
 */
@@ -34,13 +34,15 @@ typedef struct ucp_listener {
                                                  creates a handle to
                                                  connection request to the
                                                  remote endpoint */
+    int                            conn_reqs; /* count unprocessed connection
+                                                 requests */
     void                           *arg;      /* User's arg for the accept
                                                  callback */
     uct_worker_cb_id_t             prog_id;   /* Slow-path callback */
 } ucp_listener_t;
 
 
-void ucp_listener_schedule_accept_cb(ucp_ep_h ep);
+void ucp_listener_schedule_accept_cb(ucp_conn_request_h conn_request);
 
 int ucp_listener_accept_cb_remove_filter(const ucs_callbackq_elem_t *elem,
                                          void *arg);

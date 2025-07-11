@@ -1,0 +1,28 @@
+/*D
+   MPI_Comm_disconnect - Disconnect from a communicator
+
+Synopsis:
+.vb
+int MPI_Comm_disconnect(MPI_Comm *comm)
+.ve
+
+Input/Output Parameters:
+. comm - communicator (handle)
+
+Notes:
+This routine waits for all pending communication to complete, then frees the
+communicator and sets 'comm' to 'MPI_COMM_NULL'.  It may not be called
+with 'MPI_COMM_WORLD' or 'MPI_COMM_SELF'.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Comm_connect, MPI_Comm_join
+D*/
+

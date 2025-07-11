@@ -62,7 +62,7 @@ static int rma_write_trigger(void *src, size_t size,
 static int run_test(void)
 {
 	int ret = 0;
-	uint64_t start_tx, start_rx;
+	uint64_t start_tx;
 
 	ret = ft_init_fabric();
 	if (ret)
@@ -77,7 +77,8 @@ static int run_test(void)
 		return ret;
 
 	start_tx = fi_cntr_read(txcntr);
-	start_rx = fi_cntr_read(rxcntr);
+
+	ft_sync();
 	if (opts.dst_addr) {
 		sprintf(tx_buf, "%s%s", welcome_text1, welcome_text2);
 
@@ -105,9 +106,9 @@ static int run_test(void)
 
 		fprintf(stdout, "Received completion events for RMA write operations\n");
 	} else {
-		/* The value of the rx counter should have increased by 2
-		 * for both operations (write and triggered) */
-		ret = fi_cntr_wait(rxcntr, start_rx + 2, -1);
+		/* The value of the rma counter should have increased by 2
+		 * for both remote operations (write and triggered) */
+		ret = fi_cntr_wait(rma_cntr, 2, -1);
 		if (ret < 0) {
 			FT_PRINTERR("fi_cntr_wait", ret);
 			goto out;
@@ -116,7 +117,6 @@ static int run_test(void)
 		ret = check_recv_msg(welcome_text2);
 		if (ret)
 			return ret;
-		fprintf(stdout, "Received data from Client: %s\n", (char *) rx_buf);
 	}
 
 out:
@@ -128,7 +128,8 @@ int main(int argc, char **argv)
 	int op, ret;
 
 	opts = INIT_OPTS;
-	opts.options = FT_OPT_SIZE | FT_OPT_RX_CNTR | FT_OPT_TX_CNTR;
+	opts.options = FT_OPT_SIZE | FT_OPT_RX_CNTR | FT_OPT_TX_CNTR |
+			FT_OPT_OOB_SYNC;
 	opts.transfer_size = strlen(welcome_text1) + strlen(welcome_text2);
 
 	hints = fi_allocinfo();
@@ -155,6 +156,7 @@ int main(int argc, char **argv)
 	hints->caps = FI_MSG | FI_RMA | FI_RMA_EVENT | FI_TRIGGER;
 	hints->mode = FI_CONTEXT;
 	hints->domain_attr->mr_mode = opts.mr_mode;
+	hints->addr_format = opts.address_format;
 
 	ret = run_test();
 

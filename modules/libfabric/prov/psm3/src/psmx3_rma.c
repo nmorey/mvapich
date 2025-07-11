@@ -50,7 +50,8 @@ static inline void psmx3_iov_copy(struct iovec *iov, size_t count,
 		if (copy_len > len)
 			copy_len = len;
 
-		memcpy((uint8_t *)iov[i].iov_base + offset, src, copy_len);
+		psm3_memcpy((uint8_t *)iov[i].iov_base + offset, src,
+			    copy_len);
 
 		src = (const uint8_t *)src + copy_len;
 		len -= copy_len;
@@ -128,7 +129,7 @@ int psmx3_am_rma_handler(psm2_am_token_t token, psm2_amarg_t *args,
 			-FI_EINVAL;
 		if (!op_error) {
 			rma_addr += mr->offset;
-			memcpy(rma_addr, src, len);
+			psm3_memcpy(rma_addr, src, len);
 			if (eom) {
 				if (rx->ep->recv_cq && has_data) {
 					/* TODO: report the addr/len of the whole write */
@@ -356,7 +357,7 @@ int psmx3_am_rma_handler(psm2_am_token_t token, psm2_amarg_t *args,
 			req->error = op_error;
 		if (!op_error) {
 			if (req->op == PSMX3_AM_REQ_READ)
-				memcpy(req->read.buf + offset, src, len);
+				psm3_memcpy(req->read.buf + offset, src, len);
 			else
 				psmx3_iov_copy(req->iov, req->read.iov_count, offset, src, len);
 
@@ -364,7 +365,7 @@ int psmx3_am_rma_handler(psm2_am_token_t token, psm2_amarg_t *args,
 		}
 		if (eom || req->read.len == req->read.len_read) {
 			if (!eom)
-				FI_INFO(&psmx3_prov, FI_LOG_EP_DATA,
+				PSMX3_INFO(&psmx3_prov, FI_LOG_EP_DATA,
 					"readv: short protocol finishes after long protocol.\n");
 			if (req->ep->send_cq && (!req->no_event || req->error)) {
 				event = psmx3_cq_create_event(
@@ -457,7 +458,7 @@ static ssize_t psmx3_rma_self(int am_cmd,
 				cq = ep->recv_cq;
 			if (mr->cntr != cntr)
 				mr_cntr = mr->cntr;
-			memcpy((void *)addr, buf, len);
+			psm3_memcpy((void *)addr, buf, len);
 			break;
 
 		case PSMX3_AM_REQ_WRITEV:
@@ -469,14 +470,14 @@ static ssize_t psmx3_rma_self(int am_cmd,
 			dst = (void *)addr;
 			for (i=0; i<iov_count; i++)
 				if (iov[i].iov_len) {
-					memcpy(dst, iov[i].iov_base, iov[i].iov_len);
+					psm3_memcpy(dst, iov[i].iov_base, iov[i].iov_len);
 					dst += iov[i].iov_len;
 				}
 			break;
 
 		case PSMX3_AM_REQ_READ:
 			cntr = ep->remote_read_cntr;
-			memcpy(buf, (void *)addr, len);
+			psm3_memcpy(buf, (void *)addr, len);
 			break;
 
 		case PSMX3_AM_REQ_READV:
@@ -484,7 +485,7 @@ static ssize_t psmx3_rma_self(int am_cmd,
 			src = (void *)addr;
 			for (i=0; i<iov_count; i++)
 				if (iov[i].iov_len) {
-					memcpy(iov[i].iov_base, src, iov[i].iov_len);
+					psm3_memcpy(iov[i].iov_base, src, iov[i].iov_len);
 					src += iov[i].iov_len;
 				}
 			break;
@@ -570,7 +571,7 @@ void psmx3_am_ack_rma(struct psmx3_am_request *req)
 				    PSMX3_AM_RMA_HANDLER, args, 2, NULL, 0,
 				    PSM2_AM_FLAG_NOREPLY, NULL, NULL);
 	if (err)
-		FI_INFO(&psmx3_prov, FI_LOG_EP_DATA,
+		PSMX3_INFO(&psmx3_prov, FI_LOG_EP_DATA,
 			"failed to send am_ack: err %d.\n", err);
 }
 
@@ -606,7 +607,7 @@ ssize_t psmx3_read_generic(struct fid_ep *ep, void *buf, size_t len,
 	psm2_epaddr = psmx3_av_translate_addr(av, ep_priv->tx, src_addr, av->type);
 	psm3_epaddr_to_epid(psm2_epaddr, &psm2_epid);
 
-	if (!psm2_epid_cmp(psm2_epid, ep_priv->tx->psm2_epid))
+	if (!psm3_epid_cmp(psm2_epid, ep_priv->tx->psm2_epid))
 		return psmx3_rma_self(PSMX3_AM_REQ_READ, ep_priv,
 				      buf, len, desc, addr, key,
 				      context, flags, 0);
@@ -731,7 +732,7 @@ ssize_t psmx3_readv_generic(struct fid_ep *ep, const struct iovec *iov,
 	psm2_epaddr = psmx3_av_translate_addr(av, ep_priv->tx, src_addr, av->type);
 	psm3_epaddr_to_epid(psm2_epaddr, &psm2_epid);
 
-	if (!psm2_epid_cmp(psm2_epid, ep_priv->tx->psm2_epid))
+	if (!psm3_epid_cmp(psm2_epid, ep_priv->tx->psm2_epid))
 		return psmx3_rma_self(PSMX3_AM_REQ_READV, ep_priv,
 				      (void *)iov, count, desc, addr,
 				      key, context, flags, 0);
@@ -960,7 +961,7 @@ ssize_t psmx3_write_generic(struct fid_ep *ep, const void *buf, size_t len,
 	psm2_epaddr = psmx3_av_translate_addr(av, ep_priv->tx, dest_addr, av->type);
 	psm3_epaddr_to_epid(psm2_epaddr, &psm2_epid);
 
-	if (!psm2_epid_cmp(psm2_epid, ep_priv->tx->psm2_epid))
+	if (!psm3_epid_cmp(psm2_epid, ep_priv->tx->psm2_epid))
 		return psmx3_rma_self(PSMX3_AM_REQ_WRITE, ep_priv,
 				      (void *)buf, len, desc, addr,
 				      key, context, flags, data);
@@ -984,7 +985,7 @@ ssize_t psmx3_write_generic(struct fid_ep *ep, const void *buf, size_t len,
 			return -FI_ENOMEM;
 		}
 
-		memcpy(req->tmpbuf, (void *)buf, len);
+		psm3_memcpy(req->tmpbuf, (void *)buf, len);
 		buf = req->tmpbuf;
 	} else {
 		PSMX3_CTXT_TYPE(&req->fi_context) = no_event ?
@@ -1134,7 +1135,7 @@ ssize_t psmx3_writev_generic(struct fid_ep *ep, const struct iovec *iov,
 	psm2_epaddr = psmx3_av_translate_addr(av, ep_priv->tx, dest_addr, av->type);
 	psm3_epaddr_to_epid(psm2_epaddr, &psm2_epid);
 
-	if (!psm2_epid_cmp(psm2_epid, ep_priv->tx->psm2_epid))
+	if (!psm3_epid_cmp(psm2_epid, ep_priv->tx->psm2_epid))
 		return psmx3_rma_self(PSMX3_AM_REQ_WRITEV, ep_priv,
 				      (void *)iov, count, desc, addr,
 				      key, context, flags, data);
@@ -1163,7 +1164,8 @@ ssize_t psmx3_writev_generic(struct fid_ep *ep, const struct iovec *iov,
 		p = req->tmpbuf;
 		for (i=0; i<count; i++) {
 			if (iov[i].iov_len) {
-				memcpy(p, iov[i].iov_base, iov[i].iov_len);
+				psm3_memcpy(p, iov[i].iov_base,
+					    iov[i].iov_len);
 				p += iov[i].iov_len;
 			}
 		}
@@ -1435,7 +1437,7 @@ STATIC ssize_t psmx3_inject_writedata(struct fid_ep *ep, const void *buf, size_t
 	ep_priv = container_of(ep, struct psmx3_fid_ep, ep);
 
 	return psmx3_write_generic(ep, buf, len, NULL, dest_addr, addr, key, NULL,
-				   ep_priv->tx_flags | FI_INJECT | PSMX3_NO_COMPLETION,
+				   ep_priv->tx_flags | FI_INJECT | PSMX3_NO_COMPLETION | FI_REMOTE_CQ_DATA,
 				   data);
 }
 

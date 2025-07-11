@@ -1,0 +1,25 @@
+/*D
+   MPI_Error_class - Converts an error code into an error class
+
+Synopsis:
+.vb
+int MPI_Error_class(int errorcode, int *errorclass)
+.ve
+
+Input Parameters:
+. errorcode - Error code returned by an MPI routine (integer)
+
+Output Parameters:
+. errorclass - Error class associated with errorcode (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_OTHER
+
+D*/
+

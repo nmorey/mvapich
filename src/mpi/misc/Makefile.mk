@@ -3,12 +3,8 @@
 ##     See COPYRIGHT in top-level directory
 ##
 
-mpi_sources +=              \
-    src/mpi/misc/getpname.c \
-    src/mpi/misc/pcontrol.c \
-    src/mpi/misc/version.c  \
-    src/mpi/misc/library_version.c \
-    src/mpi/misc/aint_add.c \
-    src/mpi/misc/aint_diff.c \
+mpi_core_sources += \
     src/mpi/misc/utils.c \
-    src/mpi/misc/gpu.c
+    src/mpi/misc/f2c_impl.c \
+    src/mpi/misc/memory_alloc_kinds.c \
+    src/mpi/misc/gpu_query.c

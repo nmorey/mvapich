@@ -1,0 +1,30 @@
+/*D
+   MPI_Abort - Terminates MPI execution environment
+
+Synopsis:
+.vb
+int MPI_Abort(MPI_Comm comm, int errorcode)
+.ve
+
+Input Parameters:
++ comm - communicator of tasks to abort (handle)
+- errorcode - error code to return to invoking environment (integer)
+
+Notes:
+Terminates all MPI processes associated with the communicator 'comm'; in
+most systems (all to date), terminates `all` processes.
+
+.N NotThreadSafe
+Because the 'MPI_Abort' routine is intended to ensure that an MPI
+process (and possibly an entire job), it cannot wait for a thread to
+release a lock or other mechanism for atomic access.
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+D*/
+

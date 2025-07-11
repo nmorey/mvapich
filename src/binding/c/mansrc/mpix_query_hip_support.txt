@@ -1,0 +1,14 @@
+/*D
+   MPIX_Query_hip_support - Returns whether HIP (AMD GPU) is supported
+
+Synopsis:
+.vb
+int MPIX_Query_hip_support(void)
+.ve
+
+.N ThreadSafe
+
+.N Fortran
+
+D*/
+

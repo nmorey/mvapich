@@ -4,15 +4,9 @@
  */
 
 #include "mpitest.h"
-#if defined(HAVE_STDIO_H) || defined(STDC_HEADERS)
 #include <stdio.h>
-#endif
-#if defined(HAVE_STDLIB_H) || defined(STDC_HEADERS)
 #include <stdlib.h>
-#endif
-#if defined(HAVE_STRING_H) || defined(STDC_HEADERS)
 #include <string.h>
-#endif
 #ifdef HAVE_STDARG_H
 #include <stdarg.h>
 #endif
@@ -45,12 +39,17 @@ static void MTestResourceSummary(FILE *);
    memory testing */
 
 static int dbgflag = 0;         /* Flag used for debugging */
-static int wrank = -1;          /* World rank */
+static int stress = 0;          /* Stress level */
 static int verbose = 0;         /* Message level (0 is none) */
 static int returnWithVal = 1;   /* Allow programs to return with a non-zero
                                  * if there was an error (may cause problems
                                  * with some runtime systems) */
 static int usageOutput = 0;     /* */
+
+int MTestGetStressLevel(void)
+{
+    return stress;
+}
 
 /* Provide backward portability to MPI 1 */
 #ifndef MPI_VERSION
@@ -69,6 +68,8 @@ static int usageOutput = 0;     /* */
 
  Environment Variables:
 + MPITEST_DEBUG - If set (to any value), turns on debugging output
+. MPITEST_STRESS - If set, run tests with increased stress (e.g. more
+                   iterations, larger datatype counts, more processes).
 . MPITEST_THREADLEVEL_DEFAULT - If set, use as the default "provided"
                                 level of thread support.  Applies to
                                 MTest_Init but not MTest_Init_thread.
@@ -97,7 +98,11 @@ void MTest_Init_thread(int *argc, char ***argv, int required, int *provided)
     /* Check for debugging control */
     if (getenv("MPITEST_DEBUG")) {
         dbgflag = 1;
-        MPI_Comm_rank(MPI_COMM_WORLD, &wrank);
+    }
+
+    /* Check for stress level */
+    if (getenv("MPITEST_STRESS")) {
+        stress = 1;
     }
 
     /* Check for verbose control */
@@ -148,6 +153,9 @@ void MTest_Init_thread(int *argc, char ***argv, int required, int *provided)
 void MTest_Init(int *argc, char ***argv)
 {
     int provided;
+
+    MTest_init_visibility_gpu();
+
 #if MPI_VERSION >= 2 || defined(HAVE_MPI_INIT_THREAD)
     const char *str = 0;
     int threadLevel;
@@ -560,7 +568,7 @@ int MTestGetIntercomm(MPI_Comm * comm, int *isLeftGroup, int min_size)
                     } else if (rank == size / 2) {
                         rleader = 0;
                     } else {
-                        /* Remote leader is signficant only for the processes
+                        /* Remote leader is significant only for the processes
                          * designated local leaders */
                         rleader = -1;
                     }
@@ -589,7 +597,7 @@ int MTestGetIntercomm(MPI_Comm * comm, int *isLeftGroup, int min_size)
                     } else if (rank == 1) {
                         rleader = 0;
                     } else {
-                        /* Remote leader is signficant only for the processes
+                        /* Remote leader is significant only for the processes
                          * designated local leaders */
                         rleader = -1;
                     }
@@ -619,7 +627,7 @@ int MTestGetIntercomm(MPI_Comm * comm, int *isLeftGroup, int min_size)
                     } else if (rank == 2) {
                         rleader = 0;
                     } else {
-                        /* Remote leader is signficant only for the processes
+                        /* Remote leader is significant only for the processes
                          * designated local leaders */
                         rleader = -1;
                     }
@@ -649,7 +657,7 @@ int MTestGetIntercomm(MPI_Comm * comm, int *isLeftGroup, int min_size)
                     } else if (rank == size / 2) {
                         rleader = 0;
                     } else {
-                        /* Remote leader is signficant only for the processes
+                        /* Remote leader is significant only for the processes
                          * designated local leaders */
                         rleader = -1;
                     }
@@ -689,7 +697,7 @@ int MTestGetIntercomm(MPI_Comm * comm, int *isLeftGroup, int min_size)
                     } else if (rank == size / 2) {
                         rleader = 0;
                     } else {
-                        /* Remote leader is signficant only for the processes
+                        /* Remote leader is significant only for the processes
                          * designated local leaders */
                         rleader = -1;
                     }
@@ -740,7 +748,7 @@ int MTestGetIntercomm(MPI_Comm * comm, int *isLeftGroup, int min_size)
                     } else if (rank == (size / 2)) {
                         rleader = 1;
                     } else {
-                        /* Remote leader is signficant only for the processes
+                        /* Remote leader is significant only for the processes
                          * designated local leaders */
                         rleader = -1;
                     }
@@ -781,7 +789,7 @@ int MTestGetIntercomm(MPI_Comm * comm, int *isLeftGroup, int min_size)
                     } else if (rank == (size / 2)) {
                         rleader = 0;
                     } else {
-                        /* Remote leader is signficant only for the processes
+                        /* Remote leader is significant only for the processes
                          * designated local leaders */
                         rleader = -1;
                     }
@@ -1084,11 +1092,10 @@ void MTestPrintErrorMsg(const char msg[], int errcode)
 void MTestPrintfMsg(int level, const char format[], ...)
 {
     va_list list;
-    int n;
 
     if (verbose && level <= verbose) {
         va_start(list, format);
-        n = vprintf(format, list);
+        vprintf(format, list);
         va_end(list);
         fflush(stdout);
     }

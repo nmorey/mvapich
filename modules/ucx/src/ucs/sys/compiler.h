@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2001-2014.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2014. ALL RIGHTS RESERVED.
 *
 * See file LICENSE for terms.
 */
@@ -55,8 +55,6 @@
             *((_dst_type*)(_dst) + _i) = *((_src_type*)(_src) + _i); \
         } \
     }
-
-#define UCS_ALLOCA_MAX_SIZE  1200
 
 /**
  * alloca which makes sure the size is small enough.

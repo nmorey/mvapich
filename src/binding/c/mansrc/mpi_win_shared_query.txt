@@ -1,0 +1,40 @@
+/*D
+   MPI_Win_shared_query - Query the size and base pointer for a patch of a shared memory window
+
+Synopsis:
+.vb
+int MPI_Win_shared_query(MPI_Win win, int rank, MPI_Aint *size, int *disp_unit,
+                         void *baseptr)
+.ve
+.vb
+int MPI_Win_shared_query_c(MPI_Win win, int rank, MPI_Aint *size,
+                           MPI_Aint *disp_unit, void *baseptr)
+.ve
+
+Input Parameters:
++ win - shared memory window object (handle)
+- rank - rank in the group of window win or MPI_PROC_NULL (non-negative integer)
+
+Output Parameters:
++ size - size of the window segment (non-negative integer)
+. disp_unit - local unit size for displacements, in bytes (positive integer)
+- baseptr - address for load/store access to window segment (choice)
+
+Notes:
+The returned baseptr points to the calling process' address space of the
+shared segment belonging to the target rank.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_RANK
+.N MPI_ERR_WIN
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Win_allocate_shared
+D*/
+

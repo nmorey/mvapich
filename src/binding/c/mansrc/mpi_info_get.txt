@@ -1,0 +1,33 @@
+/*D
+   MPI_Info_get - Retrieves the value associated with a key
+
+Synopsis:
+.vb
+int MPI_Info_get(MPI_Info info, const char *key, int valuelen, char *value,
+                 int *flag)
+.ve
+
+Input Parameters:
++ info - info object (handle)
+. key - key (string)
+- valuelen - length of value arg (integer)
+
+Output Parameters:
++ value - value (string)
+- flag - true if key defined, false if not (boolean)
+
+.N Deprecated
+   'MPI_Info_get_string' should be used instead of this routine.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_INFO
+.N MPI_ERR_OTHER
+
+D*/
+

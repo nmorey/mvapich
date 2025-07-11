@@ -1,0 +1,27 @@
+/*D
+   MPI_Parrived - Test partial completion of partitioned receive operations
+
+Synopsis:
+.vb
+int MPI_Parrived(MPI_Request request, int partition, int *flag)
+.ve
+
+Input Parameters:
++ request - partitioned communication request (handle)
+- partition - partition to be tested (non-negative integer)
+
+Output Parameters:
+. flag - true if operation completed on the specified partition, false if not (boolean)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_REQUEST
+.N MPI_ERR_OTHER
+
+D*/
+

@@ -3,18 +3,6 @@
  *     See COPYRIGHT in top-level directory
  */
 
-/* Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- *
- */
-
 #ifndef MPIDI_CH3_PRE_H_INCLUDED
 #define MPIDI_CH3_PRE_H_INCLUDED
 #include "mpid_nem_pre.h"
@@ -27,39 +15,12 @@
     #include <windows.h>
 #endif
 
-#ifdef _OSU_MVAPICH_
-typedef struct MPIDI_CH3I_Process_group_s {
-    int local_process_id;
-    int num_local_processes;
-} MPIDI_CH3I_Process_group_t;
-
-#define MPIDI_CH3_PG_DECL MPIDI_CH3I_Process_group_t ch;
-#endif /* _OSU_MVAPICH_ */
-
 /*#define MPID_USE_SEQUENCE_NUMBERS*/
 /*#define HAVE_CH3_PRE_INIT*/
 /* #define MPIDI_CH3_HAS_NO_DYNAMIC_PROCESS */
 #define MPIDI_DEV_IMPLEMENTS_KVS
 
 /* Nemesis packets */
-#if defined(ENABLE_CHECKPOINTING) && defined(CHANNEL_NEMESIS_IB)
-#define MPIDI_CH3_PKT_ENUM                  \
-    MPIDI_NEM_PKT_LMT_RTS,                  \
-    MPIDI_NEM_PKT_LMT_CTS,                  \
-    MPIDI_NEM_PKT_LMT_DONE,                 \
-    MPIDI_NEM_PKT_LMT_COOKIE,               \
-    MPIDI_NEM_PKT_CKPT_MARKER,              \
-    MPIDI_NEM_PKT_NETMOD,                   \
-    MPIDI_NEM_IB_PKT_UNPAUSE
-#define MPIDI_CH3_PKT_ENUM_TYPE_TO_STRING                       \
-    [MPIDI_NEM_PKT_LMT_RTS] = "MPIDI_NEM_PKT_LMT_RTS",          \
-    [MPIDI_NEM_PKT_LMT_CTS] = "MPIDI_NEM_PKT_LMT_CTS",          \
-    [MPIDI_NEM_PKT_LMT_DONE] = "MPIDI_NEM_PKT_LMT_DONE",        \
-    [MPIDI_NEM_PKT_LMT_COOKIE] = "MPIDI_NEM_PKT_LMT_COOKIE",    \
-    [MPIDI_NEM_PKT_CKPT_MARKER] = "MPIDI_NEM_PKT_CKPT_MARKER",  \
-    [MPIDI_NEM_PKT_NETMOD] = "MPIDI_NEM_PKT_NETMOD",            \
-    [MPIDI_NEM_IB_PKT_UNPAUSE] = "MPIDI_NEM_IB_PKT_UNPAUSE",
-#else
 #define MPIDI_CH3_PKT_ENUM                  \
     MPIDI_NEM_PKT_LMT_RTS,                  \
     MPIDI_NEM_PKT_LMT_CTS,                  \
@@ -67,61 +28,9 @@ typedef struct MPIDI_CH3I_Process_group_s {
     MPIDI_NEM_PKT_LMT_COOKIE,               \
     MPIDI_NEM_PKT_CKPT_MARKER,              \
     MPIDI_NEM_PKT_NETMOD
-#define MPIDI_CH3_PKT_ENUM_TYPE_TO_STRING                       \
-    [MPIDI_NEM_PKT_LMT_RTS] = "MPIDI_NEM_PKT_LMT_RTS",          \
-    [MPIDI_NEM_PKT_LMT_CTS] = "MPIDI_NEM_PKT_LMT_CTS",          \
-    [MPIDI_NEM_PKT_LMT_DONE] = "MPIDI_NEM_PKT_LMT_DONE",        \
-    [MPIDI_NEM_PKT_LMT_COOKIE] = "MPIDI_NEM_PKT_LMT_COOKIE",    \
-    [MPIDI_NEM_PKT_CKPT_MARKER] = "MPIDI_NEM_PKT_CKPT_MARKER",  \
-    [MPIDI_NEM_PKT_NETMOD] = "MPIDI_NEM_PKT_NETMOD",
-#endif
 
 typedef struct {
     void *netmod_priv;      /* netmod communicator private data */
-#ifdef _OSU_MVAPICH_
-    MPI_Comm     leader_comm;
-    MPI_Comm     shmem_comm;
-    MPI_Comm     allgather_comm;
-    MPI_Comm     *topo_comm;
-    MPI_Comm     *topo_leader_comm;
-    int*    leader_map;
-    int*    leader_rank;
-    int*    node_sizes;
-    int*    allgather_new_ranks;
-    void*   coll_tmp_buf;
-    int     is_uniform;
-    int     is_blocked;
-    int     shmem_comm_rank;
-    int     shmem_coll_ok;
-    int     topo_coll_ok;
-    int     allgather_comm_ok;
-    int     leader_group_size;
-    int     is_global_block;
-    int     is_pof2; /* Boolean to know if comm size is equal to pof2  */
-    int     gpof2; /* Greater pof2 < size of comm */
-    int     intra_node_done; /* Used to check if intra node communication has been done
-                                with mcast and bcast */
-    int     shmem_coll_count;
-    int     allgather_coll_count;
-    int     allreduce_coll_count;
-    int     barrier_coll_count;
-    int     reduce_coll_count;
-    int     bcast_coll_count;
-    int     scatter_coll_count;
-    void    *shmem_info; /* intra node shmem info */
-    MPI_Comm     intra_sock_comm;
-    MPI_Comm     intra_sock_leader_comm;
-    MPI_Comm     global_sock_leader_comm;
-    int*         socket_size;
-    int          is_socket_uniform;
-    int          use_intra_sock_comm;
-    int          my_sock_id;
-    int          tried_to_create_leader_shmem;
-#if defined(_MCST_SUPPORT_)
-    int     is_mcast_ok;
-    void    *bcast_info;
-#endif /* _MCST_SUPPORT_ */
-#endif /* _OSU_MVAPICH_ */
 } MPIDI_CH3I_CH_comm_t;
     
 typedef enum MPIDI_CH3I_VC_state
@@ -134,11 +43,7 @@ typedef enum MPIDI_CH3I_VC_state
 MPIDI_CH3I_VC_state_t;
 
 /* size of private data area in vc and req for network modules */
-#ifdef ENABLE_CHECKPOINTING
-#define MPIDI_NEM_VC_NETMOD_AREA_LEN 144
-#else
 #define MPIDI_NEM_VC_NETMOD_AREA_LEN 128
-#endif
 #define MPIDI_NEM_REQ_NETMOD_AREA_LEN 192
 
 /* define functions for access MPID_nem_lmt_rts_queue_t */
@@ -149,17 +54,17 @@ typedef GENERIC_Q_DECL(struct MPIR_Request) MPID_nem_lmt_rts_queue_t;
         MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_CHANNEL, VERBOSE, (MPL_DBG_FDEST,                         \
                           "MPID_nem_lmt_rtsq_enqueue req=%p (handle=%#x), queue=%p",    \
                           ep, (ep)->handle, qp));                                       \
-        GENERIC_Q_ENQUEUE (qp, ep, dev.next);                                           \
+        GENERIC_Q_ENQUEUE (qp, ep, next);                                           \
     } while (0)
 #define MPID_nem_lmt_rtsq_dequeue(qp, epp)  do {                                        \
-        GENERIC_Q_DEQUEUE (qp, epp, dev.next);                                          \
+        GENERIC_Q_DEQUEUE (qp, epp, next);                                          \
         MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_CHANNEL, VERBOSE, (MPL_DBG_FDEST,                         \
                           "MPID_nem_lmt_rtsq_dequeue req=%p (handle=%#x), queue=%p",    \
                           *(epp), *(epp) ? (*(epp))->handle : -1, qp));                 \
     } while (0)
 #define MPID_nem_lmt_rtsq_search_remove(qp, req_id, epp) do {                           \
         GENERIC_Q_SEARCH_REMOVE(qp, _e->handle == (req_id), epp,                        \
-                struct MPIR_Request, dev.next);                                         \
+                struct MPIR_Request, next);                                         \
         MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_CHANNEL, VERBOSE, (MPL_DBG_FDEST,                         \
                     "MPID_nem_lmt_rtsq_search_remove req=%p (handle=%#x), queue=%p",    \
                     *(epp), req_id, qp));                                               \

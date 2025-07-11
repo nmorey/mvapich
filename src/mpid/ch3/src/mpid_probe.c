@@ -2,29 +2,18 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- *
- */
 
 #include "mpidimpl.h"
 
-int MPID_Probe(int source, int tag, MPIR_Comm * comm, int context_offset,
+int MPID_Probe(int source, int tag, MPIR_Comm * comm, int attr,
 	       MPI_Status * status)
 {
     MPID_Progress_state progress_state;
+    int context_offset = MPIR_PT2PT_ATTR_CONTEXT_OFFSET(attr);
     const int context = comm->recvcontext_id + context_offset;
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_PROBE);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_PROBE);
+    MPIR_FUNC_ENTER;
 
     /* Check to make sure the communicator hasn't already been revoked */
     if (comm->revoked &&
@@ -42,9 +31,7 @@ int MPID_Probe(int source, int tag, MPIR_Comm * comm, int context_offset,
             do {
                 int found;
                 
-                MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_POBJ_MSGQ_MUTEX);
                 found = MPIDI_CH3U_Recvq_FU(source, tag, context, status);
-                MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_POBJ_MSGQ_MUTEX);
                 if (found) goto fn_exit;
 
                 mpi_errno = MPIDI_Anysource_iprobe_fn(tag, comm, context_offset, &found, status);
@@ -86,9 +73,7 @@ int MPID_Probe(int source, int tag, MPIR_Comm * comm, int context_offset,
     {
         int found;
 
-        MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_POBJ_MSGQ_MUTEX);
         found = MPIDI_CH3U_Recvq_FU(source, tag, context, status);
-        MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_POBJ_MSGQ_MUTEX);
         if (found) break;
 
 	mpi_errno = MPIDI_CH3_Progress_wait(&progress_state);
@@ -97,8 +82,7 @@ int MPID_Probe(int source, int tag, MPIR_Comm * comm, int context_offset,
     MPIDI_CH3_Progress_end(&progress_state);
 
  fn_exit:
-    MVP_DEC_NUM_UNEXP_RECV();
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_PROBE);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
  fn_fail:
     goto fn_exit;

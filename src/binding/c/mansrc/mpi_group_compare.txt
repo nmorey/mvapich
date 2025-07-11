@@ -1,0 +1,27 @@
+/*D
+   MPI_Group_compare - Compares two groups
+
+Synopsis:
+.vb
+int MPI_Group_compare(MPI_Group group1, MPI_Group group2, int *result)
+.ve
+
+Input Parameters:
++ group1 - first group (handle)
+- group2 - second group (handle)
+
+Output Parameters:
+. result - result (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_GROUP
+.N MPI_ERR_OTHER
+
+D*/
+

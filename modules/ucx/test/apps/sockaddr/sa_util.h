@@ -1,5 +1,5 @@
 /**
- * Copyright (C) Mellanox Technologies Ltd. 2018.  ALL RIGHTS RESERVED.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2018. ALL RIGHTS RESERVED.
  *
  * See file LICENSE for terms.
  */
@@ -7,6 +7,7 @@
 #ifndef SA_UTIL_H_
 #define SA_UTIL_H_
 
+#include <cstdint>
 #include <iostream>
 #include <sstream>
 #include <string>

@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2001-2015.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2015. ALL RIGHTS RESERVED.
 *
 * See file LICENSE for terms.
 */
@@ -10,6 +10,15 @@
 #include <ucs/sys/compiler_def.h>
 #include <stdint.h>
 
+
+static UCS_F_ALWAYS_INLINE unsigned ucs_ffs32(uint32_t n)
+{
+    uint32_t result;
+    asm("bsfl %1,%0"
+        : "=r" (result)
+        : "r" (n));
+    return result;
+}
 
 static UCS_F_ALWAYS_INLINE unsigned ucs_ffs64(uint64_t n)
 {

@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2001-2019.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2019. ALL RIGHTS RESERVED.
 * Copyright (c) UT-Battelle, LLC. 2015. ALL RIGHTS RESERVED.
 *
 * See file LICENSE for terms.
@@ -8,10 +8,11 @@
 #ifndef UCS_TEST_HELPERS_H
 #define UCS_TEST_HELPERS_H
 
-#include "gtest.h"
+#include "googletest/gtest.h"
 
 #include <common/mem_buffer.h>
 
+#include <ucs/async/async_fwd.h>
 #include <ucs/config/types.h>
 #include <ucs/sys/preprocessor.h>
 #include <ucs/sys/checker.h>
@@ -21,6 +22,7 @@
 
 #include <errno.h>
 #include <iostream>
+#include <fstream>
 #include <stdexcept>
 #include <sstream>
 #include <vector>
@@ -29,6 +31,7 @@
 #include <sys/socket.h>
 #include <dirent.h>
 #include <stdint.h>
+#include <ifaddrs.h>
 
 
 #ifndef UINT16_MAX
@@ -57,11 +60,12 @@
 /* Abort test */
 #define UCS_TEST_ABORT(_message) \
     do { \
-        std::stringstream ss; \
-        ss << _message; \
-        GTEST_MESSAGE_(ss.str().c_str(), ::testing::TestPartResult::kFatalFailure); \
+        std::stringstream _ss; \
+        _ss << _message; \
+        GTEST_MESSAGE_(_ss.str().c_str(), \
+                       ::testing::TestPartResult::kFatalFailure); \
         throw ucs::test_abort_exception(); \
-    } while(0)
+    } while (0)
 
 
 /* UCS error check */
@@ -72,31 +76,59 @@
     } while (0)
 
 
+/**
+ * Checks whether a condition check with ucs_status_t is true or not.
+ *
+ * @param _condition Condition that should be checked.
+ * @param _expr      Expression which returns UCS status which needs to be
+ *                   checked.
+ */
+#define _ASSERT_UCS_STATUS(_condition, _expr, ...) \
+    do { \
+        ucs_status_t __status = (_expr); \
+        if (!(_condition)) { \
+            UCS_TEST_ABORT("Error: " \
+                    << ucs_status_string(__status)  __VA_ARGS__); \
+        } \
+    } while (0)
+
+
+/**
+ * Check equality of the status returned from the expression and the expected
+ * status.
+ *
+ * @param _exp_status Expected UCS status.
+ * @param _expr       Expression which returns UCS status which needs to be
+ *                    checked.
+ */
+#define ASSERT_UCS_STATUS_EQ(_exp_status, _expr, ...) \
+    _ASSERT_UCS_STATUS(((__status) == (_exp_status)), _expr, ## __VA_ARGS__)
+
+
+/**
+ * Check equality of the status returned from the expression to the one of the
+ * expected statuses.
+ *
+ * @param _exp_status1 First expected UCS status.
+ * @param _exp_status2 Second expected UCS status.
+ * @param _expr        Expression which returns UCS status which needs to be
+ *                     checked.
+ */
+#define ASSERT_UCS_STATUS_EQ2(_exp_status1, _exp_status2, _expr, ...) \
+    _ASSERT_UCS_STATUS((((__status) == (_exp_status1)) || \
+                       ((__status) == (_exp_status2))), _expr, ## __VA_ARGS__)
+
+
 #define ASSERT_UCS_OK(_expr, ...) \
-    do { \
-        ucs_status_t _status = (_expr); \
-        if ((_status) != UCS_OK) { \
-            UCS_TEST_ABORT("Error: " << ucs_status_string(_status)  __VA_ARGS__); \
-        } \
-    } while (0)
+    ASSERT_UCS_STATUS_EQ(UCS_OK, _expr, ## __VA_ARGS__)
 
 
-#define ASSERT_UCS_OK_OR_INPROGRESS(_expr) \
-    do { \
-        ucs_status_t _status = (_expr); \
-        if (((_status) != UCS_OK) && ((_status) != UCS_INPROGRESS)) { \
-            UCS_TEST_ABORT("Error: " << ucs_status_string(_status)); \
-        } \
-    } while (0)
+#define ASSERT_UCS_OK_OR_INPROGRESS(_expr, ...) \
+    ASSERT_UCS_STATUS_EQ2(UCS_OK, UCS_INPROGRESS, _expr, ## __VA_ARGS__)
 
 
-#define ASSERT_UCS_OK_OR_BUSY(_expr) \
-    do { \
-        ucs_status_t _status = (_expr); \
-        if (((_status) != UCS_OK) && ((_status) != UCS_ERR_BUSY)) { \
-            UCS_TEST_ABORT("Error: " << ucs_status_string(_status)); \
-        } \
-    } while (0)
+#define ASSERT_UCS_OK_OR_BUSY(_expr, ...) \
+    ASSERT_UCS_STATUS_EQ2(UCS_OK, UCS_ERR_BUSY, _expr, ## __VA_ARGS__)
 
 
 #define ASSERT_UCS_PTR_OK(_expr) \
@@ -176,8 +208,7 @@
 namespace ucs {
 
 extern const double test_timeout_in_sec;
-extern const double watchdog_timeout_default;
-
+extern double watchdog_timeout;
 extern std::set< const ::testing::TestInfo*> skipped_tests;
 
 typedef enum {
@@ -266,7 +297,7 @@ ucs_time_t get_deadline(double timeout_in_sec = test_timeout_in_sec);
  */
 int max_tcp_connections();
 
- 
+
 /**
  * Signal-safe sleep.
  */
@@ -275,9 +306,30 @@ void safe_usleep(double usec);
 
 
 /**
- * Check if the given interface has an IPv4 or an IPv6 address.
+ * Check if the given network interface has an IPv4 or an IPv6 address.
  */
 bool is_inet_addr(const struct sockaddr* ifa_addr);
+
+
+/**
+ * Check if the given network interface should be used for testing.
+ */
+bool is_interface_usable(struct ifaddrs *ifa);
+
+/**
+ * Return the value of the requested /proc/self/status parameter
+ */
+ssize_t get_proc_self_status_field(const std::string &parameter);
+
+/**
+ * Read directory contents and return a vector of file names.
+ */
+std::vector<std::string> read_dir(const std::string &path);
+
+/**
+ * Return the name of the given network device if it is supported by rdmacm.
+ */
+std::string get_rdmacm_netdev(const char *ifa_name);
 
 
 /**
@@ -295,13 +347,25 @@ uint16_t get_port();
 /**
  * Address to use for mmap(FIXED)
  */
-void *mmap_fixed_address();
+void *mmap_fixed_address(size_t length);
 
 
 /*
  * Returns a compacted string with just head and tail, e.g "xxx...yyy"
  */
 std::string compact_string(const std::string &str, size_t length);
+
+
+/*
+ * Converts exit status from waitpid()/system() to a status string
+ */
+std::string exit_status_info(int exit_status);
+
+
+/*
+ * Limit test buffer size according to available memory
+ */
+size_t limit_buffer_size(size_t size = std::numeric_limits<size_t>::max());
 
 
 /**
@@ -321,9 +385,14 @@ class sock_addr_storage {
 public:
     sock_addr_storage();
 
-    sock_addr_storage(const ucs_sock_addr_t &ucs_sock_addr);
+    sock_addr_storage(const ucs_sock_addr_t &ucs_sock_addr,
+                      bool is_rdmacm_netdev = false,
+                      std::string netdev_name = "",
+                      std::string rdmacm_netdev_name = "");
 
-    void set_sock_addr(const struct sockaddr &addr, const size_t size);
+    void set_sock_addr(const struct sockaddr &addr, const size_t size,
+                       bool is_rdmacm_netdev = false,
+                       std::string netdev_name = "");
 
     void reset_to_any();
 
@@ -333,6 +402,10 @@ public:
 
     uint16_t get_port() const;
 
+    bool is_rdmacm_netdev() const;
+
+    std::string netdev_name() const;
+
     size_t get_addr_size() const;
 
     ucs_sock_addr_t to_ucs_sock_addr() const;
@@ -341,10 +414,14 @@ public:
 
     const struct sockaddr* get_sock_addr_ptr() const;
 
+    const void* get_sock_addr_in_buf() const;
+
 private:
     struct sockaddr_storage m_storage;
     size_t                  m_size;
     bool                    m_is_valid;
+    bool                    m_is_rdmacm_netdev;
+    std::string             m_netdev_name;
 };
 
 
@@ -375,6 +452,10 @@ std::ostream& operator<<(std::ostream& os, const std::vector<char>& vec);
 static inline int rand() {
     /* coverity[dont_call] */
     return ::rand();
+}
+
+static inline int rand_range(int max) {
+    return rand() % max;
 }
 
 static inline void srand(unsigned seed) {
@@ -476,6 +557,11 @@ public:
 
     virtual ~ptr_vector_base() {
         clear();
+    }
+
+    operator const std::vector<T*>&() const
+    {
+        return m_vec;
     }
 
     /** Add and take ownership */
@@ -794,6 +880,16 @@ static void deleter(T *ptr) {
 }
 
 
+class scoped_log_level {
+public:
+    scoped_log_level(ucs_log_level_t level);
+    ~scoped_log_level();
+
+private:
+    const ucs_log_level_t m_prev_level;
+};
+
+
 extern int    perf_retry_count;
 extern double perf_retry_interval;
 
@@ -841,6 +937,29 @@ private:
 };
 
 } // detail
+
+
+class scoped_async_lock {
+public:
+    scoped_async_lock(ucs_async_context_t &async);
+
+    ~scoped_async_lock();
+
+private:
+    ucs_async_context_t &m_async;
+};
+
+
+class scoped_mutex_lock {
+public:
+    scoped_mutex_lock(pthread_mutex_t &mutex);
+
+    ~scoped_mutex_lock();
+
+private:
+    pthread_mutex_t &m_mutex;
+};
+
 
 /**
  * N-ary Cartesian product over the N vectors provided in the input vector
@@ -893,7 +1012,7 @@ std::vector<std::vector<T> > make_pairs(const std::vector<T> &input_vec) {
     return result;
 }
 
-std::vector<std::vector<ucs_memory_type_t> > supported_mem_type_pairs();
+const std::vector<std::vector<ucs_memory_type_t> >& supported_mem_type_pairs();
 
 
 /**

@@ -1,0 +1,23 @@
+/*D
+   MPI_Session_call_errhandler - Call the error handler installed on a MPI session
+
+Synopsis:
+.vb
+int MPI_Session_call_errhandler(MPI_Session session, int errorcode)
+.ve
+
+Input Parameters:
++ session - session with error handler (handle)
+- errorcode - error code (integer)
+
+.N ThreadSafeNoUpdate
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_SESSION
+.N MPI_ERR_OTHER
+
+D*/
+

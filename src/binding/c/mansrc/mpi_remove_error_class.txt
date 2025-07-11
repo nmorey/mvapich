@@ -1,0 +1,21 @@
+/*D
+   MPI_Remove_error_class - Remove an MPI error class from the known classes
+
+Synopsis:
+.vb
+int MPI_Remove_error_class(int errorclass)
+.ve
+
+Input Parameters:
+. errorclass - value of the error class to be removed (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_OTHER
+
+D*/
+

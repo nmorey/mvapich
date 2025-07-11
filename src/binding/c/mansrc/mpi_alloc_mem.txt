@@ -1,0 +1,38 @@
+/*D
+   MPI_Alloc_mem - Allocate memory for message passing and RMA
+
+Synopsis:
+.vb
+int MPI_Alloc_mem(MPI_Aint size, MPI_Info info, void *baseptr)
+.ve
+
+Input Parameters:
++ size - size of memory segment in bytes (non-negative integer)
+- info - info argument (handle)
+
+Output Parameters:
+. baseptr - pointer to beginning of memory segment allocated (choice)
+
+Notes:
+Using this routine from Fortran requires that the Fortran compiler accept
+a common pointer extension.  See Section 4.11 (Memory Allocation) in the
+MPI-2 standard for more information and examples.
+
+Also note that while 'baseptr' is a 'void *' type, this is
+simply to allow easy use of any pointer object for this parameter.
+In fact, this argument is really a 'void **' type, that is, a
+pointer to a pointer.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_INFO
+.N MPI_ERR_NO_MEM
+.N MPI_ERR_OTHER
+
+D*/
+

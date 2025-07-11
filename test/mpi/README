@@ -1,11 +1,15 @@
 MPICH Test Suite
 
-This test suite is a *supplement* to other test suites, including the
-original MPICH testsuite, the Intel testsuite, and the IBM MPI test suite
-(or test suites derived from that test, including the MPI C++ tests).
+This test suite is the main test suite used by MPICH. However, it is designed
+to be usable to test any MPI implementations.
 
-Building the Test Suite
+Using the Test Suite
 =======================
+The simple version:
+
+./configure
+make testing
+
 In many cases, configure will find the MPI implementation
 automatically.  In some cases, it will need some help.  For example:
 
@@ -213,7 +217,7 @@ generated, he/she can use the "DTP_RUNTIME_TYPES" environment variable to limit 
 number of basic types tested by the "runtest" script. If the user further wishes
 to reduce the length of the tests, he/she can also use the "DTP_MAX_OBJ_ID" environment
 variable to limit the number of datatypes tested from each pool (please refer to
-the DTPools README and wiki for more information: https://wiki.mpich.org/mpich/index.php/DTPools).
+the DTPools README and wiki for more information: https://github.com/pmodels/mpich/blob/main/doc/wiki/design/DTPools.md).
 
 DTPools also allows the user to define his/her own struct type pools. For this case
 the configuration file to be used to create the executables is "structtypetest.txt".

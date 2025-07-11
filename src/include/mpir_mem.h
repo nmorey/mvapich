@@ -7,6 +7,7 @@
 #define MPIR_MEM_H_INCLUDED
 
 #include "mpichconf.h"
+#include "mpir_mvp_lmem.h"
 
 /* Make sure that we have the definitions for the malloc routines and size_t */
 #include <stdio.h>
@@ -50,7 +51,7 @@ extern "C" {
 
   Rules for memory management:
 
-  MPICH explicity prohibits the appearence of 'malloc', 'free',
+  MPICH explicitly prohibits the appearance of 'malloc', 'free',
   'calloc', 'realloc', or 'strdup' in any code implementing a device or
   MPI call (of course, users may use any of these calls in their code).
   Instead, you must use 'MPL_malloc' etc.; if these are defined
@@ -84,6 +85,12 @@ extern "C" {
         memcpy((dst), (src), (len));            \
     } while (0)
 
+#define MPIR_Memcpy_stream(dst, src, len)       \
+    do {                                        \
+        CHECK_MEMCPY((dst),(src),(len));        \
+        MPL_Memcpy_stream((dst), (src), (len)); \
+    } while (0)
+
 /* Memory allocation macros. See document. */
 
 /* Standard macro for generating error codes.  We set the error to be
@@ -99,34 +106,16 @@ extern "C" {
 
     /* CHKPMEM_REGISTER is used for memory allocated within another routine */
 
-/* Memory used and freed within the current scope (alloca if feasible) */
-/* Configure with --enable-alloca to set USE_ALLOCA */
-#if defined(HAVE_ALLOCA) && defined(USE_ALLOCA)
-#ifdef HAVE_ALLOCA_H
-#include <alloca.h>
-#endif                          /* HAVE_ALLOCA_H */
-/* Define decl with a dummy definition to allow us to put a semi-colon
-   after the macro without causing the declaration block to end (restriction
-   imposed by C) */
-#define MPIR_CHKLMEM_DECL(n_) int dummy_ ATTRIBUTE((unused))
-#define MPIR_CHKLMEM_FREEALL()
-#define MPIR_CHKLMEM_MALLOC_ORSTMT(pointer_,type_,nbytes_,rc_,name_,class_,stmt_) \
-    {                                                                   \
-        pointer_ = (type_)alloca(nbytes_);                              \
-        if (!(pointer_) && (nbytes_ > 0)) {                             \
-            MPIR_CHKMEM_SETERR(rc_,nbytes_,name_);                      \
-            stmt_;                                                      \
-        }                                                               \
-    }
-#else                           /* defined(HAVE_ALLOCA) && defined(USE_ALLOCA) */
 #define MPIR_CHKLMEM_DECL(n_)                                   \
     void *(mpiu_chklmem_stk_[n_]) = { NULL };                   \
     int mpiu_chklmem_stk_sp_=0;                                 \
-    MPIR_AssertDeclValue(const int mpiu_chklmem_stk_sz_,n_)
+    size_t mvp_my_lmem_size = 0;                                \
+    MPIR_AssertDeclValue(const int mpiu_chklmem_stk_sz_,n_);    \
+    MPIR_MVP_INIT_LMEMPOOL()
 
 #define MPIR_CHKLMEM_MALLOC_ORSTMT(pointer_,type_,nbytes_,rc_,name_,class_,stmt_) \
     {                                                                   \
-        pointer_ = (type_)MPL_malloc(nbytes_,class_);                   \
+        MPIR_MVP_LALLOC(pointer_, type_, nbytes_, class_);              \
         if (pointer_) {                                                 \
             MPIR_Assert(mpiu_chklmem_stk_sp_<mpiu_chklmem_stk_sz_);     \
             mpiu_chklmem_stk_[mpiu_chklmem_stk_sp_++] = (void *) pointer_; \
@@ -138,10 +127,12 @@ extern "C" {
 #define MPIR_CHKLMEM_FREEALL()                                          \
     do {                                                                \
         while (mpiu_chklmem_stk_sp_ > 0) {                              \
-            MPL_free(mpiu_chklmem_stk_[--mpiu_chklmem_stk_sp_]);        \
+            MPIR_MVP_LFREE(mpiu_chklmem_stk_[--mpiu_chklmem_stk_sp_]);  \
         }                                                               \
+        mvp_lmem_free_head -= mvp_my_lmem_size;                         \
+        mvp_my_lmem_size = 0;                                           \
     } while (0)
-#endif                          /* defined(HAVE_ALLOCA) && defined(USE_ALLOCA) */
+
 #define MPIR_CHKLMEM_MALLOC(pointer_,type_,nbytes_,rc_,name_,class_)    \
     MPIR_CHKLMEM_MALLOC_ORJUMP(pointer_,type_,nbytes_,rc_,name_,class_)
 #define MPIR_CHKLMEM_MALLOC_ORJUMP(pointer_,type_,nbytes_,rc_,name_,class_) \

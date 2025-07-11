@@ -1,0 +1,34 @@
+/*D
+   MPI_Pack_external_size - Returns the upper bound on the amount of space needed to pack a message using MPI_Pack_external.
+
+Synopsis:
+.vb
+int MPI_Pack_external_size(const char *datarep, int incount,
+                           MPI_Datatype datatype, MPI_Aint *size)
+.ve
+.vb
+int MPI_Pack_external_size_c(const char *datarep, MPI_Count incount,
+                             MPI_Datatype datatype, MPI_Count *size)
+.ve
+
+Input Parameters:
++ datarep - data representation (string)
+. incount - number of input data items (integer)
+- datatype - datatype of each input data item (handle)
+
+Output Parameters:
+. size - output buffer size, in bytes (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

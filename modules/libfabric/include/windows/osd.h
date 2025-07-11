@@ -2,6 +2,7 @@
  * Copyright (c) 2016 Intel Corporation.  All rights reserved.
  * Copyright (c) 2016 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2018 Amazon.com, Inc. or its affiliates. All rights reserved.
+ * Copyright (c) 2022 DataDirect Networks, Inc. All rights reserved.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
@@ -277,6 +278,7 @@ do						\
 
 #define htonll _byteswap_uint64
 #define ntohll _byteswap_uint64
+#define be64toh ntohll
 #define strncasecmp _strnicmp
 
 typedef int pid_t;
@@ -682,6 +684,12 @@ static inline char* strsep(char **stringp, const char *delim)
 
 #define __attribute__(x)
 
+static inline int pthread_atfork(void (*prepare)(void), void (*parent)(void),
+				 void (*child)(void))
+{
+	return FI_ENOSYS;
+}
+
 static inline int ofi_mmap_anon_pages(void **memptr, size_t size, int flags)
 {
 	return -FI_ENOSYS;
@@ -747,6 +755,26 @@ ofi_send_socket(SOCKET fd, const void *buf, size_t count, int flags)
 	return (ssize_t) send(fd, (const char*) buf, len, flags);
 }
 
+static inline ssize_t ofi_process_vm_readv(pid_t pid,
+			const struct iovec *local_iov,
+			unsigned long liovcnt,
+			const struct iovec *remote_iov,
+			unsigned long riovcnt,
+			unsigned long flags)
+{
+	return -FI_ENOSYS;
+}
+
+static inline size_t ofi_process_vm_writev(pid_t pid,
+			 const struct iovec *local_iov,
+			 unsigned long liovcnt,
+			 const struct iovec *remote_iov,
+			 unsigned long riovcnt,
+			 unsigned long flags)
+{
+	return -FI_ENOSYS;
+}
+
 static inline ssize_t ofi_read_socket(SOCKET fd, void *buf, size_t count)
 {
 	return ofi_recv_socket(fd, buf, count, 0);
@@ -773,6 +801,10 @@ ofi_sendto_socket(SOCKET fd, const void *buf, size_t count, int flags,
 	return sendto(fd, (const char*) buf, len, flags, to, (int) tolen);
 }
 
+ssize_t ofi_sendv_socket(SOCKET fd, const struct iovec *iovec, size_t iov_cnt,
+			 int flags);
+ssize_t ofi_recvv_socket(SOCKET fd, const struct iovec *iovec, size_t iov_cnt,
+			 int flags);
 ssize_t ofi_writev_socket(SOCKET fd, const struct iovec *iovec, size_t iov_cnt);
 ssize_t ofi_readv_socket(SOCKET fd, const struct iovec *iovec, size_t iov_cnt);
 ssize_t ofi_sendmsg_tcp(SOCKET fd, const struct msghdr *msg, int flags);
@@ -863,7 +895,39 @@ static inline char * strndup(char const *src, size_t n)
 	return dst;
 }
 
-char *strcasestr(const char *haystack, const char *needle);
+static inline char *strcasestr(const char *haystack, const char *needle)
+{
+	char *uneedle, *uhaystack, *pos = NULL;
+	int i;
+
+	uneedle = malloc(strlen(needle) + 1);
+	uhaystack = malloc(strlen(haystack) + 1);
+	if (!uneedle || !uhaystack) {
+		free(uneedle);
+		free(uhaystack);
+		return pos;
+	}
+
+	for (i = 0; i < strlen(needle); i++)
+		uneedle[i] = (char) toupper(needle[i]);
+	uneedle[i] = '\0';
+	for (i = 0; i < strlen(haystack); i++)
+		uhaystack[i] = (char) toupper(haystack[i]);
+	uhaystack[i] = '\0';
+	pos = strstr(uhaystack, uneedle);
+	if (pos)
+		pos = (char *) ((uintptr_t) haystack + (uintptr_t) pos -
+						(uintptr_t) uhaystack);
+	free(uneedle);
+	free(uhaystack);
+
+	return pos;
+}
+
+static inline char *strtok_r(char *str, const char *delimiters, char **saveptr)
+{
+	return strtok_s(str, delimiters, saveptr);
+}
 
 #ifndef _SC_PAGESIZE
 #define _SC_PAGESIZE	0
@@ -899,6 +963,11 @@ static inline long ofi_sysconf(int name)
 }
 
 int ofi_shm_unmap(struct util_shm *shm);
+
+static inline ssize_t ofi_get_addr_page_size(const void *addr)
+{
+	return ofi_sysconf(_SC_PAGESIZE);
+}
 
 static inline ssize_t ofi_get_hugepage_size(void)
 {
@@ -1025,6 +1094,13 @@ typedef LONGLONG ofi_atomic_int_64_t;
 #define ofi_atomic_cas_bool(radix, ptr, expected, desired)					\
 	(InterlockedCompareExchange##radix((ofi_atomic_int_##radix##_t volatile *)ptr, desired, expected) == expected)
 
+#define ofi_atomic_compare_exchange_weak(radix, ptr, expected, desired, \
+					 succ_memmodel, fail_memmodel) \
+	InterlockedCompareExchange((ofi_atomic_int_##radix##_t volatile *)ptr, desired, expected)
+#define ofi_atomic_store_explicit(radix, ptr, value, memmodel) \
+	InterlockedExchange((ofi_atomic_int_##radix##_t volatile *)ptr, value)
+#define ofi_atomic_load_explicit(radix, ptr, memmodel) \
+	InterlockedAdd((ofi_atomic_int_##radix##_t volatile *)ptr, 0)
 #endif /* HAVE_BUILTIN_ATOMICS */
 
 static inline int ofi_set_thread_affinity(const char *s)

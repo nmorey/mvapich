@@ -1,0 +1,23 @@
+/*D
+   MPI_File_set_errhandler - Set the error handler for an MPI file
+
+Synopsis:
+.vb
+int MPI_File_set_errhandler(MPI_File file, MPI_Errhandler errhandler)
+.ve
+
+Input Parameters:
++ file - file (handle)
+- errhandler - new error handler for file (handle)
+
+.N ThreadSafeNoUpdate
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ERRHANDLER
+.N MPI_ERR_OTHER
+
+D*/
+

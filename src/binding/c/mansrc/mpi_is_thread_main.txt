@@ -1,0 +1,22 @@
+/*D
+   MPI_Is_thread_main - Returns a flag indicating whether this thread called 'MPI_Init' or 'MPI_Init_thread'
+
+Synopsis:
+.vb
+int MPI_Is_thread_main(int *flag)
+.ve
+
+Output Parameters:
+. flag - true if calling thread is main thread, false otherwise (logical)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_OTHER
+
+D*/
+

@@ -1,0 +1,28 @@
+/*D
+   MPI_Type_get_value_index - returns a handle to a predefined datatype suitable for the use with MPI_MINLOC and MPI_MAXLOC if such a predefined type exists
+
+Synopsis:
+.vb
+int MPI_Type_get_value_index(MPI_Datatype value_type, MPI_Datatype index_type,
+                             MPI_Datatype *pair_type)
+.ve
+
+Input Parameters:
++ value_type - datatype of the value in pair (handle)
+- index_type - datatype of the index in pair (handle)
+
+Output Parameters:
+. pair_type - datatype of the value-index pair (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

@@ -12,10 +12,11 @@
  * neighbor.
  */
 
-int MPIR_Ineighbor_alltoallw_allcomm_sched_linear(const void *sendbuf, const int sendcounts[],
+int MPIR_Ineighbor_alltoallw_allcomm_sched_linear(const void *sendbuf, const MPI_Aint sendcounts[],
                                                   const MPI_Aint sdispls[],
                                                   const MPI_Datatype sendtypes[], void *recvbuf,
-                                                  const int recvcounts[], const MPI_Aint rdispls[],
+                                                  const MPI_Aint recvcounts[],
+                                                  const MPI_Aint rdispls[],
                                                   const MPI_Datatype recvtypes[],
                                                   MPIR_Comm * comm_ptr, MPIR_Sched_t s)
 {
@@ -42,7 +43,10 @@ int MPIR_Ineighbor_alltoallw_allcomm_sched_linear(const void *sendbuf, const int
         MPIR_ERR_CHECK(mpi_errno);
     }
 
-    for (l = 0; l < indegree; ++l) {
+    /* need reverse the order to ensure matching when the graph is from MPI_Cart_create and
+     * the n-th dimension is periodic and the size is 1 or 2.
+     * ref. ineighbor_alltoall_allcomm_sched_linear.c */
+    for (l = indegree - 1; l >= 0; l--) {
         char *rb;
 
         rb = ((char *) recvbuf) + rdispls[l];

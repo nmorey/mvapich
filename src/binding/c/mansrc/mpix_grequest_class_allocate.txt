@@ -1,0 +1,27 @@
+/*D
+   MPIX_Grequest_class_allocate - Create and return a user-defined extended request based on a generalized request class
+
+Synopsis:
+.vb
+int MPIX_Grequest_class_allocate(MPIX_Grequest_class greq_class,
+                                 void *extra_state, MPI_Request *request)
+.ve
+
+Input Parameters:
++ greq_class - generalized request class (None)
+- extra_state - extra state (None)
+
+Output Parameters:
+. request - generalized request (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_OTHER
+
+D*/
+

@@ -1,0 +1,19 @@
+test/flatten/flatten -datatype int -count 17 -seed 667 -iters 32768 -num-threads 4
+test/flatten/flatten -datatype short_int -count 17 -seed 668 -iters 32768 -num-threads 4
+test/flatten/flatten -datatype int:3+float:2 -count 17 -seed 669 -iters 32768 -num-threads 4
+test/flatten/flatten -datatype int:3+double:2 -count 17 -seed 670 -iters 32768 -num-threads 4
+test/flatten/flatten -datatype c_complex -count 17 -seed 671 -iters 32768 -num-threads 4
+test/flatten/flatten -datatype c_double_complex -count 17 -seed 672 -iters 32768 -num-threads 4
+test/flatten/flatten -datatype int -count 1075 -seed 673 -iters 128 -num-threads 4
+test/flatten/flatten -datatype short_int -count 1075 -seed 674 -iters 128 -num-threads 4
+test/flatten/flatten -datatype int:3+float:2 -count 1075 -seed 675 -iters 128 -num-threads 4
+test/flatten/flatten -datatype int:3+double:2 -count 1075 -seed 676 -iters 128 -num-threads 4
+test/flatten/flatten -datatype c_complex -count 1075 -seed 677 -iters 128 -num-threads 4
+test/flatten/flatten -datatype c_double_complex -count 1075 -seed 678 -iters 128 -num-threads 4
+test/flatten/flatten -datatype int -count 65536 -seed 679 -iters 32 -num-threads 4
+test/flatten/flatten -datatype short_int -count 65536 -seed 680 -iters 32 -num-threads 4
+test/flatten/flatten -datatype int:3+float:2 -count 65536 -seed 681 -iters 32 -num-threads 4
+test/flatten/flatten -datatype int:3+double:2 -count 65536 -seed 682 -iters 32 -num-threads 4
+test/flatten/flatten -datatype c_complex -count 65536 -seed 683 -iters 32 -num-threads 4
+test/flatten/flatten -datatype c_double_complex -count 65536 -seed 684 -iters 32 -num-threads 4
+

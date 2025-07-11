@@ -72,13 +72,14 @@ print OUTFD <<EOT;
  */
 
 #include "mpiimpl.h"
+#include "mpir_ext.h"
 
 #include <stdio.h>
 
 void MPIR_All_romio_symbols(void);
 void MPIR_All_romio_symbols(void)
 {
-#ifdef MPI_MODE_RDONLY
+#ifdef HAVE_ROMIO
 EOT
 
 while (<FD>) {
@@ -156,7 +157,7 @@ while (<FD>) {
 	elsif ($arglist[$x] =~ /MPI_Errhandler/) {
 	    print OUTFD " = MPI_ERRHANDLER_NULL;\n";
 	}
-	elsif ($arglist[$x] =~ /MPI_Offset/) {
+	elsif ($arglist[$x] =~ /MPI_Offset|MPI_Count/) {
 	    print OUTFD " = 0;\n";
 	}
 	elsif ($arglist[$x] =~ /int/) {
@@ -198,7 +199,7 @@ print OUTFD <<EOT;
     }
 
     MPIR_Comm_split_filesystem(MPI_COMM_NULL, 0, NULL, NULL);
-#endif /* MPI_MODE_RDONLY */
+#endif /* HAVE_ROMIO */
 }
 EOT
 

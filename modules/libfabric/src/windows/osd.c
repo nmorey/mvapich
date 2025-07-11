@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2013-2017 Intel Corporation. All rights reserved.
+ * Copyright (c) 2022 DataDirect Networks, Inc. All rights reserved.
  *
  * This software is available to you under a choice of one of two
  * licenses.  You may choose to be licensed under the terms of the GNU
@@ -30,6 +31,8 @@
  * SOFTWARE.
  */
 
+#include "config.h"
+
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -54,11 +57,12 @@ void fi_fini(void);
 
 int socketpair(int af, int type, int protocol, int socks[2])
 {
-	OFI_UNUSED(protocol);
-
 	struct sockaddr_in in_addr;
 	SOCKET lsock;
 	int len = sizeof(in_addr);
+	int err;
+
+	OFI_UNUSED(protocol);
 
 	if(!socks) {
 		WSASetLastError(WSAEINVAL);
@@ -103,7 +107,6 @@ int socketpair(int af, int type, int protocol, int socks[2])
 	closesocket(lsock);
 	return 0;
 
-	int err;
 err:
 	err = WSAGetLastError();
 	closesocket(lsock);
@@ -481,11 +484,11 @@ int getifaddrs(struct ifaddrs **ifap)
 	ret = 0;
 out:
 	free(adapter_addresses);
-	if (ret && head)
+	if (ret && head) {
 		free(head);
-	else if (ifap)
-		*ifap = head;
-
+		head = NULL;
+	}
+	*ifap = head;
 	return ret;
 }
 
@@ -503,7 +506,7 @@ void freeifaddrs(struct ifaddrs *ifa)
 	}
 }
 
-static ssize_t
+ssize_t
 ofi_sendv_socket(SOCKET fd, const struct iovec *iovec, size_t iov_cnt, int flags)
 {
 	ssize_t size = 0, ret;
@@ -528,7 +531,7 @@ ofi_sendv_socket(SOCKET fd, const struct iovec *iovec, size_t iov_cnt, int flags
 	return size;
 }
 
-static ssize_t
+ssize_t
 ofi_recvv_socket(SOCKET fd, const struct iovec *iovec, size_t iov_cnt, int flags)
 {
 	ssize_t size = 0, ret;
@@ -607,6 +610,8 @@ struct ofi_pollfds_ctx *ofi_pollfds_get_ctx(struct ofi_pollfds *pfds, int fd)
 	struct ofi_pollfds_ctx *ctx = NULL;
 	int i;
 
+	assert(ofi_genlock_held(&pfds->lock));
+
 	/* 0 is signaling fd */
 	for (i = 1; i < pfds->size; i++) {
 		ctx = &pfds->ctx[i];
@@ -623,6 +628,7 @@ struct ofi_pollfds_ctx *ofi_pollfds_alloc_ctx(struct ofi_pollfds *pfds, int fd)
 	struct ofi_pollfds_ctx *ctx;
 	int i;
 
+	assert(ofi_genlock_held(&pfds->lock));
 	assert(!ofi_pollfds_get_ctx(pfds, fd));
 	/* 0 is signaling fd */
 	for (i = 1; i < pfds->size; i++) {

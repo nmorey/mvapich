@@ -1,0 +1,20 @@
+/*D
+   MPI_Session_finalize - Finalize an MPI Session
+
+Synopsis:
+.vb
+int MPI_Session_finalize(MPI_Session *session)
+.ve
+
+Input/Output Parameters:
+. session - session to be finalized (handle)
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_SESSION
+.N MPI_ERR_OTHER
+
+D*/
+

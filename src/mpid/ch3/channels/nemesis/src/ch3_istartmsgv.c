@@ -29,12 +29,10 @@ int MPIDI_CH3_iStartMsgv (MPIDI_VC_t *vc, struct iovec *iov, int n_iov, MPIR_Req
 {
     MPIR_Request * sreq = *sreq_ptr = NULL;
     int mpi_errno = MPI_SUCCESS;
-    int in_cs = FALSE;
     int again = 0;
     int j;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3_ISTARTMSGV);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3_ISTARTMSGV);
+    MPIR_FUNC_ENTER;
 
     MPIR_ERR_CHKANDJUMP1(vc->state == MPIDI_VC_STATE_MORIBUND, mpi_errno, MPIX_ERR_PROC_FAILED, "**comm_fail", "**comm_fail %d", vc->pg_rank);
 
@@ -65,9 +63,6 @@ int MPIDI_CH3_iStartMsgv (MPIDI_VC_t *vc, struct iovec *iov, int n_iov, MPIR_Req
      * the maximum of all possible packet headers */
     iov[0].iov_len = sizeof(MPIDI_CH3_Pkt_t);
     MPIDI_DBG_Print_packet((MPIDI_CH3_Pkt_t*)iov[0].iov_base);
-
-    MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    in_cs = TRUE;
 
     if (MPIDI_CH3I_Sendq_empty(MPIDI_CH3I_shm_sendq))
         /* MT */
@@ -177,10 +172,7 @@ int MPIDI_CH3_iStartMsgv (MPIDI_VC_t *vc, struct iovec *iov, int n_iov, MPIR_Req
     *sreq_ptr = sreq;
 
  fn_exit:
-    if (in_cs) {
-        MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    }
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3_ISTARTMSGV);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
  fn_fail:
     goto fn_exit;

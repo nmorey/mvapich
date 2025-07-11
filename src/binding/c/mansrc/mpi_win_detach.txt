@@ -1,0 +1,28 @@
+/*D
+   MPI_Win_detach - Detach memory from a dynamic window
+
+Synopsis:
+.vb
+int MPI_Win_detach(MPI_Win win, const void *base)
+.ve
+
+Input Parameters:
++ win - window object (handle)
+- base - initial address of memory to be detached (choice)
+
+Notes:
+Memory also becomes detached when the associated dynamic memory window is freed.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_WIN
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Win_create_dynamic MPI_Win_attach
+D*/
+

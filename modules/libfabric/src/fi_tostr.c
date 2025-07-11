@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2014-2017 Intel Corp., Inc.  All rights reserved.
  * Copyright (c) 2016 Cisco Systems, Inc.  All rights reserved.
+ * Copyright (c) 2022 DataDirect Networks, Inc. All rights reserved.
  *
  * This software is available to you under a choice of one of two
  * licenses.  You may choose to be licensed under the terms of the GNU
@@ -43,6 +44,8 @@
 #include <arpa/inet.h>
 
 #include "ofi.h"
+#include "ofi_str.h"
+#include "ofi_iov.h"
 #include <rdma/fabric.h>
 #include <rdma/fi_domain.h>
 #include <rdma/fi_endpoint.h>
@@ -113,16 +116,17 @@ static void ofi_tostr_addr_format(char *buf, size_t len, uint32_t addr_format)
 	CASEENUMSTRN(FI_SOCKADDR_IN, len);
 	CASEENUMSTRN(FI_SOCKADDR_IN6, len);
 	CASEENUMSTRN(FI_SOCKADDR_IB, len);
-	CASEENUMSTRN(FI_ADDR_PSMX, len);
 	CASEENUMSTRN(FI_ADDR_PSMX2, len);
 	CASEENUMSTRN(FI_ADDR_GNI, len);
 	CASEENUMSTRN(FI_ADDR_BGQ, len);
 	CASEENUMSTRN(FI_ADDR_MLX, len);
+	CASEENUMSTRN(FI_ADDR_UCX, len);
 	CASEENUMSTRN(FI_ADDR_STR, len);
 	CASEENUMSTRN(FI_ADDR_IB_UD, len);
 	CASEENUMSTRN(FI_ADDR_EFA, len);
 	CASEENUMSTRN(FI_ADDR_PSMX3, len);
 	CASEENUMSTRN(FI_ADDR_OPX, len);
+	CASEENUMSTRN(FI_ADDR_CXI, len);
 	default:
 		if (addr_format & FI_PROV_SPECIFIC)
 			ofi_strncatf(buf, len, "Provider specific");
@@ -254,7 +258,6 @@ static void ofi_tostr_protocol(char *buf, size_t len, uint32_t protocol)
 	CASEENUMSTRN(FI_PROTO_RDMA_CM_IB_RC, len);
 	CASEENUMSTRN(FI_PROTO_IWARP, len);
 	CASEENUMSTRN(FI_PROTO_IB_UD, len);
-	CASEENUMSTRN(FI_PROTO_PSMX, len);
 	CASEENUMSTRN(FI_PROTO_PSMX2, len);
 	CASEENUMSTRN(FI_PROTO_UDP, len);
 	CASEENUMSTRN(FI_PROTO_SOCK_TCP, len);
@@ -264,6 +267,7 @@ static void ofi_tostr_protocol(char *buf, size_t len, uint32_t protocol)
 	CASEENUMSTRN(FI_PROTO_RXM, len);
 	CASEENUMSTRN(FI_PROTO_RXD, len);
 	CASEENUMSTRN(FI_PROTO_MLX, len);
+	CASEENUMSTRN(FI_PROTO_UCX, len);
 	CASEENUMSTRN(FI_PROTO_NETWORKDIRECT, len);
 	CASEENUMSTRN(FI_PROTO_SHM, len);
 	CASEENUMSTRN(FI_PROTO_RSTREAM, len);
@@ -272,6 +276,9 @@ static void ofi_tostr_protocol(char *buf, size_t len, uint32_t protocol)
 	CASEENUMSTRN(FI_PROTO_PSMX3, len);
 	CASEENUMSTRN(FI_PROTO_RXM_TCP, len);
 	CASEENUMSTRN(FI_PROTO_OPX, len);
+	CASEENUMSTRN(FI_PROTO_CXI, len);
+	CASEENUMSTRN(FI_PROTO_XNET, len);
+	CASEENUMSTRN(FI_PROTO_SM2, len);
 	default:
 		if (protocol & FI_PROV_SPECIFIC)
 			ofi_strncatf(buf, len, "Provider specific");
@@ -748,6 +755,7 @@ ofi_tostr_hmem_iface(char *buf, size_t len, enum fi_hmem_iface iface)
 	CASEENUMSTRN(FI_HMEM_ROCR, len);
 	CASEENUMSTRN(FI_HMEM_ZE, len);
 	CASEENUMSTRN(FI_HMEM_NEURON, len);
+	CASEENUMSTRN(FI_HMEM_SYNAPSEAI, len);
 	default:
 		ofi_strncatf(buf, len, "Unknown");
 		break;
@@ -767,6 +775,183 @@ ofi_tostr_cq_format(char *buf, size_t len, enum fi_cq_format cq_format)
 		ofi_strncatf(buf, len, "Unknown");
 		break;
 	}
+}
+
+static void
+ofi_tostr_av_flags(char *buf, size_t len, uint64_t flags)
+{
+	IFFLAGSTRN(flags, FI_EVENT, len);
+	IFFLAGSTRN(flags, FI_READ, len);
+	IFFLAGSTRN(flags, FI_SYMMETRIC, len);
+	ofi_remove_comma(buf);
+}
+
+static void
+ofi_tostr_av_attr(char *buf, size_t len, const struct fi_av_attr *attr)
+{
+	if (!attr) {
+		ofi_strncatf(buf, len, "fi_av_attr: (null)\n");
+		return;
+	}
+
+	ofi_strncatf(buf, len, "fi_av_attr:\n");
+	ofi_strncatf(buf, len, "%stype: ", TAB);
+	ofi_tostr_av_type(buf, len, attr->type);
+	ofi_strncatf(buf, len, "\n");
+	ofi_strncatf(buf, len, "%scount: %zu\n", TAB, attr->count);
+	ofi_strncatf(buf, len, "%sep_per_node: %zu\n", TAB,
+	             attr->ep_per_node);
+	ofi_strncatf(buf, len, "%sname: %s\n", TAB, attr->name);
+	ofi_strncatf(buf, len, "%sflags: [ ", TAB);
+	ofi_tostr_av_flags(buf, len, attr->flags);
+	ofi_strncatf(buf, len, " ]\n");
+}
+
+static void
+ofi_tostr_wait_obj(char *buf, size_t len, enum fi_wait_obj obj)
+{
+	switch (obj) {
+	CASEENUMSTRN(FI_WAIT_NONE, len);
+	CASEENUMSTRN(FI_WAIT_UNSPEC, len);
+	CASEENUMSTRN(FI_WAIT_SET, len);
+	CASEENUMSTRN(FI_WAIT_FD, len);
+	CASEENUMSTRN(FI_WAIT_MUTEX_COND, len);
+	CASEENUMSTRN(FI_WAIT_YIELD, len);
+	CASEENUMSTRN(FI_WAIT_POLLFD, len);
+	default:
+		ofi_strncatf(buf, len, "Unknown");
+		break;
+	}
+}
+
+static void
+ofi_tostr_cq_wait_cond(char *buf, size_t len, enum fi_cq_wait_cond cond)
+{
+	switch (cond) {
+	CASEENUMSTRN(FI_CQ_COND_NONE, len);
+	CASEENUMSTRN(FI_CQ_COND_THRESHOLD, len);
+	default:
+		ofi_strncatf(buf, len, "Unknown");
+		break;
+	}
+}
+
+static void
+ofi_tostr_cq_flags(char *buf, size_t len, uint64_t flags)
+{
+	IFFLAGSTRN(flags, FI_AFFINITY, len);
+	ofi_remove_comma(buf);
+}
+
+static void
+ofi_tostr_cq_attr(char *buf, size_t len, const struct fi_cq_attr *attr)
+{
+	if (!attr) {
+		ofi_strncatf(buf, len, "fi_cq_attr: (null)\n");
+		return;
+	}
+	ofi_strncatf(buf, len, "fi_cq_attr:\n");
+	ofi_strncatf(buf, len, "%ssize: %zu\n", TAB, attr->size);
+	ofi_strncatf(buf, len, "%sflags: [ ", TAB);
+	ofi_tostr_cq_flags(buf, len, attr->flags);
+	ofi_strncatf(buf, len, " ]\n");
+	ofi_strncatf(buf, len, "%sformat: ", TAB);
+	ofi_tostr_cq_format(buf, len, attr->format);
+	ofi_strncatf(buf, len, "\n");
+	ofi_strncatf(buf, len, "%swait_obj: ", TAB);
+	ofi_tostr_wait_obj(buf, len, attr->wait_obj);
+	ofi_strncatf(buf, len, "\n");
+	ofi_strncatf(buf, len, "%ssignaling_vector: %d\n", TAB,
+	             attr->signaling_vector);
+	ofi_strncatf(buf, len, "%swait_cond: ", TAB);
+	ofi_tostr_cq_wait_cond(buf, len, attr->wait_cond);
+	ofi_strncatf(buf, len, "\n");
+}
+
+static void ofi_tostr_mr_access(char *buf, size_t len, uint64_t access)
+{
+	IFFLAGSTRN(access, FI_RECV, len);
+	IFFLAGSTRN(access, FI_SEND, len);
+	IFFLAGSTRN(access, FI_READ, len);
+	IFFLAGSTRN(access, FI_WRITE, len);
+	IFFLAGSTRN(access, FI_REMOTE_READ, len);
+	IFFLAGSTRN(access, FI_REMOTE_WRITE, len);
+	IFFLAGSTRN(access, FI_COLLECTIVE, len);
+	ofi_remove_comma(buf);
+}
+
+static void
+ofi_tostr_mr_attr(char *buf, size_t len, const struct fi_mr_attr *attr)
+{
+	if (!attr) {
+		ofi_strncatf(buf, len, "fi_mr_attr: (null)\n");
+		return;
+	}
+	ofi_strncatf(buf, len, "fi_mr_attr:\n");
+	ofi_strncatf(buf, len, "%smr_iov: %p\n", TAB, attr->mr_iov);
+	ofi_strncatf(buf, len, "%siov_count: %zu\n", TAB, attr->iov_count);
+	ofi_strncatf(buf, len, "%saccess: [ ", TAB);
+	ofi_tostr_mr_access(buf, len, attr->access);
+	ofi_strncatf(buf, len, " ]\n");
+	ofi_strncatf(buf, len, "%soffset: 0x%lx\n", TAB, attr->offset);
+	ofi_strncatf(buf, len, "%srequested_key: 0x%lx\n",
+	             TAB, attr->requested_key);
+	ofi_strncatf(buf, len, "%scontext: %p\n", TAB, attr->context);
+	ofi_strncatf(buf, len, "%sauth_key_size: %zu\n", TAB,
+	             attr->auth_key_size);
+	ofi_strncatf(buf, len, "%siface: ", TAB);
+	ofi_tostr_hmem_iface(buf, len, attr->iface);
+	ofi_strncatf(buf, len, "\n");
+}
+
+static void
+ofi_tostr_cntr_events(char *buf, size_t len, enum fi_cntr_events events)
+{
+	switch (events) {
+	CASEENUMSTRN(FI_CNTR_EVENTS_COMP, len);
+	default:
+		ofi_strncatf(buf, len, "Unknown");
+		break;
+	}
+}
+
+static void
+ofi_tostr_cntr_attr(char *buf, size_t len, const struct fi_cntr_attr *attr)
+{
+	if (!attr) {
+		ofi_strncatf(buf, len, "fi_cntr_attr: (null)\n");
+		return;
+	}
+	ofi_strncatf(buf, len, "fi_cntr_attr:\n");
+	ofi_strncatf(buf, len, "%sevents: ", TAB);
+	ofi_tostr_cntr_events(buf, len, attr->events);
+	ofi_strncatf(buf, len, "\n");
+	ofi_strncatf(buf, len, "%swait_obj: ", TAB);
+	ofi_tostr_wait_obj(buf, len, attr->wait_obj);
+	ofi_strncatf(buf, len, "\n");
+	ofi_strncatf(buf, len, "%sflags: 0x%lx\n", TAB, attr->flags);
+}
+
+static void
+ofi_tostr_cq_err_entry(char *buf, size_t len,
+                       const struct fi_cq_err_entry *entry)
+{
+	if (!entry) {
+		ofi_strncatf(buf, len, "fi_cq_err_entry: (null)\n");
+		return;
+	}
+	ofi_strncatf(buf, len, "fi_cq_err_entry:\n");
+	ofi_strncatf(buf, len, "%sop_context: %p\n", TAB, entry->op_context);
+	ofi_strncatf(buf, len, "%sflags: 0x%lx\n", TAB, entry->flags);
+	ofi_strncatf(buf, len, "%slen: %zu\n", TAB, entry->len);
+	ofi_strncatf(buf, len, "%sbuf: %p\n", TAB, entry->buf);
+	ofi_strncatf(buf, len, "%sdata: %lu\n", TAB, entry->data);
+	ofi_strncatf(buf, len, "%stag: 0x%lx\n", TAB, entry->tag);
+	ofi_strncatf(buf, len, "%solen: %zu\n", TAB, entry->olen);
+	ofi_strncatf(buf, len, "%serr: %d\n", TAB, entry->err);
+	ofi_strncatf(buf, len, "%sprov_errno: %d\n", TAB, entry->err);
+	ofi_strncatf(buf, len, "%serr_data: %p\n", TAB, entry->err_data);
+	ofi_strncatf(buf, len, "%serr_data_size: %zu\n", TAB, entry->err_data_size);
 }
 
 __attribute__((visibility ("default"),EXTERNALLY_VISIBLE))
@@ -868,6 +1053,27 @@ char *DEFAULT_SYMVER_PRE(fi_tostr_r)(char *buf, size_t len,
 		break;
 	case FI_TYPE_CQ_FORMAT:
 		ofi_tostr_cq_format(buf, len, *enumval);
+		break;
+	case FI_TYPE_LOG_LEVEL:
+		ofi_tostr_log_level(buf, len, *enumval);
+		break;
+	case FI_TYPE_LOG_SUBSYS:
+		ofi_tostr_log_subsys(buf, len, *enumval);
+		break;
+	case FI_TYPE_AV_ATTR:
+		ofi_tostr_av_attr(buf, len, data);
+		break;
+	case FI_TYPE_CQ_ATTR:
+		ofi_tostr_cq_attr(buf, len, data);
+		break;
+	case FI_TYPE_MR_ATTR:
+		ofi_tostr_mr_attr(buf, len, data);
+		break;
+	case FI_TYPE_CNTR_ATTR:
+		ofi_tostr_cntr_attr(buf, len, data);
+		break;
+	case FI_TYPE_CQ_ERR_ENTRY:
+		ofi_tostr_cq_err_entry(buf, len, data);
 		break;
 	default:
 		ofi_strncatf(buf, len, "Unknown type");

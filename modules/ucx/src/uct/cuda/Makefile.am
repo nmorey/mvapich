@@ -1,5 +1,5 @@
 #
-# Copyright (C) Mellanox Technologies Ltd. 2001-2018.  ALL RIGHTS RESERVED.
+# Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2018. ALL RIGHTS RESERVED.
 # See file LICENSE for terms.
 #
 
@@ -10,9 +10,10 @@ SUBDIRS = . gdr_copy
 module_LTLIBRARIES      = libuct_cuda.la
 libuct_cuda_la_CPPFLAGS = $(BASE_CPPFLAGS) $(CUDA_CPPFLAGS)
 libuct_cuda_la_CFLAGS   = $(BASE_CFLAGS) $(CUDA_CFLAGS)
-libuct_cuda_la_LIBADD   = $(top_builddir)/src/ucs/libucs.la \
-                          $(top_builddir)/src/uct/libuct.la
 libuct_cuda_la_LDFLAGS  = $(CUDA_LDFLAGS) -version-info $(SOVERSION)
+libuct_cuda_la_LIBADD   = $(top_builddir)/src/ucs/libucs.la \
+                          $(top_builddir)/src/uct/libuct.la \
+                          $(CUDA_LIBS)
 
 noinst_HEADERS = \
 	base/cuda_md.h \
@@ -36,6 +37,10 @@ libuct_cuda_la_SOURCES = \
 	cuda_ipc/cuda_ipc_ep.c \
 	cuda_ipc/cuda_ipc_cache.c
 
+PKG_CONFIG_NAME=cuda
+
 include $(top_srcdir)/config/module.am
+# TODO: enable pkg-config processing when module static build is enabled
+# include $(top_srcdir)/config/module-pkg-config.am
 
 endif

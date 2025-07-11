@@ -1,0 +1,24 @@
+/*D
+   MPI_Status_set_source - Set MPI_SOURCE field in the status
+
+Synopsis:
+.vb
+int MPI_Status_set_source(MPI_Status *status, int source)
+.ve
+
+Input Parameters:
+. source - rank to set in the MPI_SOURCE field (integer)
+
+Input/Output Parameters:
+. status - status with which to associate tag (Status)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_OTHER
+
+D*/
+

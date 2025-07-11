@@ -1,0 +1,26 @@
+/*D
+   MPI_Session_get_info - Get the info hints associated to the session
+
+Synopsis:
+.vb
+int MPI_Session_get_info(MPI_Session session, MPI_Info *info_used)
+.ve
+
+Input Parameters:
+. session - session (handle)
+
+Output Parameters:
+. info_used - see explanation below (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_SESSION
+.N MPI_ERR_OTHER
+
+D*/
+

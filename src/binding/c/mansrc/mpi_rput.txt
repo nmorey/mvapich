@@ -1,0 +1,48 @@
+/*D
+   MPI_Rput - Put data into a memory window on a remote process and return a request
+
+Synopsis:
+.vb
+int MPI_Rput(const void *origin_addr, int origin_count,
+             MPI_Datatype origin_datatype, int target_rank,
+             MPI_Aint target_disp, int target_count,
+             MPI_Datatype target_datatype, MPI_Win win, MPI_Request *request)
+.ve
+.vb
+int MPI_Rput_c(const void *origin_addr, MPI_Count origin_count,
+               MPI_Datatype origin_datatype, int target_rank,
+               MPI_Aint target_disp, MPI_Count target_count,
+               MPI_Datatype target_datatype, MPI_Win win, MPI_Request *request)
+.ve
+
+Input Parameters:
++ origin_addr - initial address of origin buffer (choice)
+. origin_count - number of entries in origin buffer (non-negative integer)
+. origin_datatype - datatype of each entry in origin buffer (handle)
+. target_rank - rank of target (non-negative integer)
+. target_disp - displacement from start of window to target buffer (non-negative integer)
+. target_count - number of entries in target buffer (non-negative integer)
+. target_datatype - datatype of each entry in target buffer (handle)
+- win - window object used for communication (handle)
+
+Output Parameters:
+. request - RMA request (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_BUFFER
+.N MPI_ERR_COUNT
+.N MPI_ERR_DISP
+.N MPI_ERR_RANK
+.N MPI_ERR_TYPE
+.N MPI_ERR_WIN
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Put
+D*/
+

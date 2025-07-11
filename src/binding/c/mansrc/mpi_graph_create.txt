@@ -1,0 +1,38 @@
+/*D
+   MPI_Graph_create - Makes a new communicator to which topology information
+
+Synopsis:
+.vb
+int MPI_Graph_create(MPI_Comm comm_old, int nnodes, const int indx[],
+                     const int edges[], int reorder, MPI_Comm *comm_graph)
+.ve
+
+Input Parameters:
++ comm_old - input communicator (handle)
+. nnodes - number of nodes in graph (integer)
+. indx - array of integers describing node degrees (see below)
+. edges - array of integers describing graph edges (see below)
+- reorder - ranking may be reordered (true) or not (false)
+
+Output Parameters:
+. comm_graph - communicator with graph topology added (handle)
+
+Notes:
+Each process must provide a description of the entire graph, not just the
+neighbors of the calling process.
+
+Algorithm:
+We ignore the 'reorder' info currently.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+D*/
+

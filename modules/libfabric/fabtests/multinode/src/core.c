@@ -45,19 +45,21 @@
 #include <rdma/fi_cm.h>
 #include <rdma/fi_trigger.h>
 
-#include <core.h>
-#include <pattern.h>
-#include <shared.h>
+#include "shared.h"
+#include "core.h"
+#include "pattern.h"
+#include "timing.h"
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <assert.h>
 #include <hmem.h>
 
-char *tx_barrier;
-char *rx_barrier;
+#define BARRIER_TAG	0x5CA1AB1E
+
 struct fid_mr *mr_barrier;
-struct fi_context2 *barrier_tx_ctx, *barrier_rx_ctx;
+
+struct multi_timer *timers;
 
 struct pattern_ops *pattern;
 struct multinode_xfer_state state;
@@ -97,6 +99,9 @@ static int multi_setup_fabric(int argc, char **argv)
 		return -FI_ENODATA;
 	}
 
+	hints->caps |= FI_TAGGED;
+	ft_tag = BARRIER_TAG;
+
 	method = multi_xfer_methods[pm_job.transfer_method];
 
 	tx_seq = 0;
@@ -124,7 +129,11 @@ static int multi_setup_fabric(int argc, char **argv)
 	if (ret)
 		return ret;
 
-	ret = ft_enable_ep(ep, eq, av, txcq, rxcq, txcntr, rxcntr);
+	ret = ft_enable_ep(ep, eq, av, txcq, rxcq, txcntr, rxcntr, rma_cntr);
+	if (ret)
+		return ret;
+
+	ret = ft_alloc_msgs();
 	if (ret)
 		return ret;
 
@@ -160,8 +169,8 @@ static int multi_setup_fabric(int argc, char **argv)
 	}
 
 	for (i = 0; i < pm_job.num_ranks; i++) {
-		ret = fi_av_insert(av, (char*)pm_job.names + i * pm_job.name_len, 1,
-			   &pm_job.fi_addrs[i], 0, NULL);
+		ret = fi_av_insert(av, (char *)pm_job.names + i * pm_job.name_len,
+				   1, &pm_job.fi_addrs[i], 0, NULL);
 		if (ret != 1) {
 			FT_ERR("unable to insert all addresses into AV table\n");
 			ret = -1;
@@ -188,9 +197,8 @@ static int multi_setup_fabric(int argc, char **argv)
 		FT_ERR("error exchanging rma_iovs\n");
 		goto err;
 	}
-	for (i = 0; i < pm_job.num_ranks; i++) {
+	for (i = 0; i < pm_job.num_ranks; i++)
 		pm_job.multi_iovs[i].addr += (tx_size * pm_job.my_rank);
-	}
 
 	return 0;
 err:
@@ -198,28 +206,28 @@ err:
 	return ft_exit_code(ret);
 }
 
-int multi_msg_recv()
+int multi_msg_recv(void)
 {
 	int ret, offset;
 
 	/* post receives */
 	while (!state.all_recvs_posted && state.rx_window) {
-
 		ret = pattern->next_source(&state.cur_source);
 		if (ret == -FI_ENODATA) {
 			state.all_recvs_posted = true;
 			break;
-		} else if (ret < 0) {
-			return ret;
 		}
+		if (ret < 0)
+			return ret;
 
-		offset = state.recvs_posted % opts.window_size ;
+		offset = state.recvs_posted % opts.window_size;
 		assert(rx_ctx_arr[offset].state == OP_DONE);
 
+		remote_fi_addr = pm_job.fi_addrs[state.cur_source];
 		ret = ft_post_rx_buf(ep, opts.transfer_size,
 				     &rx_ctx_arr[offset].context,
 				     rx_ctx_arr[offset].buf,
-				     rx_ctx_arr[offset].desc, 0);
+				     rx_ctx_arr[offset].desc, 1);
 		if (ret)
 			return ret;
 
@@ -230,30 +238,32 @@ int multi_msg_recv()
 	return 0;
 }
 
-int multi_msg_send()
+int multi_msg_send(void)
 {
 	int ret, offset;
 	fi_addr_t dest;
 
 	while (!state.all_sends_posted && state.tx_window) {
-
 		ret = pattern->next_target(&state.cur_target);
 		if (ret == -FI_ENODATA) {
 			state.all_sends_posted = true;
 			break;
-		} else if (ret < 0) {
-			return ret;
 		}
+		if (ret < 0)
+			return ret;
 
 		offset = state.sends_posted % opts.window_size;
 		assert(tx_ctx_arr[offset].state == OP_DONE);
+		if (ft_check_opts(FT_OPT_PERF))
+			multi_timer_start(&timers[timer_index(state.iter,
+							    state.cur_target)]);
 
 		dest = pm_job.fi_addrs[state.cur_target];
 		ret = ft_post_tx_buf(ep, dest, opts.transfer_size,
 				     NO_CQ_DATA,
 				     &tx_ctx_arr[offset].context,
 				     tx_ctx_arr[offset].buf,
-				     tx_ctx_arr[offset].desc, 0);
+				     tx_ctx_arr[offset].desc, 1);
 		if (ret)
 			return ret;
 
@@ -264,7 +274,7 @@ int multi_msg_send()
 	return 0;
 }
 
-int multi_msg_wait()
+int multi_msg_wait(void)
 {
 	int ret, i;
 
@@ -290,24 +300,22 @@ int multi_msg_wait()
 	return 0;
 }
 
-int multi_rma_write()
+int multi_rma_write(void)
 {
 	int ret, rc;
 
 	while (!state.all_sends_posted && state.tx_window) {
-
 		ret = pattern->next_target(&state.cur_target);
 		if (ret == -FI_ENODATA) {
 			state.all_sends_posted = true;
 			break;
-		} else if (ret < 0) {
-			return ret;
 		}
+		if (ret < 0)
+			return ret;
 
-		snprintf((char*) tx_buf + tx_size * state.cur_target, tx_size,
-		        "Hello World! from %zu to %i on the %zuth iteration, %s test",
-		        pm_job.my_rank, state.cur_target,
-		        (size_t) tx_seq, pattern->name);
+		if (ft_check_opts(FT_OPT_PERF))
+			multi_timer_start(&timers[timer_index(state.iter,
+							    state.cur_target)]);
 
 		while (1) {
 			ret = fi_write(ep,
@@ -339,13 +347,13 @@ int multi_rma_write()
 	return 0;
 }
 
-int multi_rma_recv()
+int multi_rma_recv(void)
 {
 	state.all_recvs_posted = true;
 	return 0;
 }
 
-int multi_rma_wait()
+int multi_rma_wait(void)
 {
 	int ret;
 
@@ -362,37 +370,64 @@ int multi_rma_wait()
 	return 0;
 }
 
-int send_recv_barrier(int sync)
+static int multi_barrier(void)
 {
+	struct fi_msg msg = {0};
+	uint64_t count = 0;
 	int ret, i;
 
-	for(i = 0; i < pm_job.num_ranks; i++) {
+	if (pm_job.my_rank == 0) {
+		for (i = 1; i < pm_job.num_ranks; i++) {
+			ret = fi_recvmsg(ep, &msg, 0);
+			if (ret)
+				return ret;
+		}
 
-		ret = ft_post_rx_buf(ep, opts.transfer_size,
-			     &barrier_rx_ctx[i],
-			     rx_buf, mr_desc, 0);
+		ret = ft_get_cq_comp(rxcq, &count, pm_job.num_ranks - 1, 10000);
+		if (ret)
+			return ret;
+	} else {
+		msg.addr = pm_job.fi_addrs[0];
+		ret = fi_sendmsg(ep, &msg, FI_DELIVERY_COMPLETE);
+		if (ret)
+			return ret;
+
+		ret = ft_get_cq_comp(txcq, &count, 1, 10000);
 		if (ret)
 			return ret;
 	}
 
-	for (i = 0; i < pm_job.num_ranks; i++) {
-		ret = ft_post_tx_buf(ep, pm_job.fi_addrs[i], 0,
-				     NO_CQ_DATA, &barrier_tx_ctx[i],
-		                     tx_buf, mr_desc, 0);
+	/* all ranks now in barrier */
+	count = 0;
+
+	if (pm_job.my_rank == 0) {
+		for (i = 1; i < pm_job.num_ranks; i++) {
+			do {
+				fi_cq_read(txcq, NULL, 0);
+				msg.addr = pm_job.fi_addrs[i];
+				ret = fi_sendmsg(ep, &msg, FI_DELIVERY_COMPLETE);
+			} while (ret == -FI_EAGAIN);
+			if (ret)
+				return ret;
+		}
+
+		ret = ft_get_cq_comp(txcq, &count, pm_job.num_ranks - 1, 10000);
+		if (ret)
+			return ret;
+	} else {
+		ret = fi_recvmsg(ep, &msg, 0);
+		if (ret)
+			return ret;
+
+		ret = ft_get_cq_comp(rxcq, &count, 1, 10000);
 		if (ret)
 			return ret;
 	}
 
-	ret = ft_get_tx_comp(tx_seq);
-	if (ret)
-		return ret;
-
-	ret = ft_get_rx_comp(rx_seq);
-
-	return ret;
+	return 0;
 }
 
-static inline void multi_init_state()
+static inline void multi_init_state(void)
 {
 	state.cur_source = PATTERN_NO_CURRENT;
 	state.cur_target = PATTERN_NO_CURRENT;
@@ -405,17 +440,19 @@ static inline void multi_init_state()
 	state.tx_window = opts.window_size;
 }
 
-static int multi_run_test()
+static int multi_run_test(void)
 {
-	int ret;
-	int iter;
+	int ret, i;
 
-	for (iter = 0; iter < opts.iterations; iter++) {
-
+	for (state.iter = 0; state.iter < opts.iterations; state.iter++) {
 		multi_init_state();
+		for (i = 0; i < pm_job.num_ranks && ft_check_opts(FT_OPT_PERF); i++)
+			multi_timer_init(&timers[timer_index(state.iter, i)],
+					 pm_job.my_rank);
+
 		while (!state.all_completions_done ||
-				!state.all_recvs_posted ||
-				!state.all_sends_posted) {
+			!state.all_recvs_posted ||
+			!state.all_sends_posted) {
 			ret = method.recv();
 			if (ret)
 				return ret;
@@ -429,21 +466,23 @@ static int multi_run_test()
 				return ret;
 		}
 
-		ret = send_recv_barrier(iter);
+		for (i = 0; i < pm_job.num_ranks && ft_check_opts(FT_OPT_PERF); i++)
+			multi_timer_stop(&timers[state.iter * pm_job.num_ranks + i]);
+
+		ret = multi_barrier();
 		if (ret)
 			return ret;
+
 	}
 	return 0;
 }
 
-static void pm_job_free_res()
+static void pm_job_free_res(void)
 {
+	free(timers);
 	free(pm_job.names);
 	free(pm_job.fi_addrs);
 	free(pm_job.multi_iovs);
-
-	free(barrier_tx_ctx);
-	free(barrier_rx_ctx);
 
 	FT_CLOSE_FID(mr_barrier);
 }
@@ -453,34 +492,53 @@ int multinode_run_tests(int argc, char **argv)
 	int ret = FI_SUCCESS;
 	int i;
 
-
-	barrier_tx_ctx = malloc(sizeof(*barrier_tx_ctx) * pm_job.num_ranks);
-	if (!barrier_tx_ctx)
-		return -FI_ENOMEM;
-
-	barrier_rx_ctx = malloc(sizeof(*barrier_rx_ctx) * pm_job.num_ranks);
-	if (!barrier_rx_ctx)
-		return -FI_ENOMEM;
-
 	ret = multi_setup_fabric(argc, argv);
 	if (ret)
 		return ret;
 
+	if (ft_check_opts(FT_OPT_PERF))
+		timers = calloc(opts.iterations * pm_job.num_ranks, sizeof(*timers));
 
-	for (i = 0; i < NUM_TESTS && !ret; i++) {
-		printf("starting %s... ", patterns[i].name);
-		pattern = &patterns[i];
+	if (pm_job.pattern != -1) {
+		printf("starting %s... ", patterns[pm_job.pattern].name);
+		pattern = &patterns[pm_job.pattern];
 		ret = multi_run_test();
-		if (ret)
+		if (ret) {
 			printf("failed\n");
-		else
+			goto out;
+		}
+		printf("passed\n");
+
+		if (ft_check_opts(FT_OPT_PERF)) {
+			ret = multi_timer_analyze(timers, opts.iterations *
+							  pm_job.num_ranks);
+			if (ret)
+				goto out;
+		}
+		fflush(stdout);
+
+	} else {
+		for (i = 0; i < NUM_TESTS && !ret; i++) {
+			printf("starting %s... ", patterns[i].name);
+			pattern = &patterns[i];
+			ret = multi_run_test();
+			if (ret) {
+				printf("failed\n");
+				goto out;
+			}
 			printf("passed\n");
 
-		fflush(stdout);
+			if (ft_check_opts(FT_OPT_PERF)) {
+				ret = multi_timer_analyze(timers, opts.iterations
+							* pm_job.num_ranks);
+				if (ret)
+					goto out;
+			}
+			fflush(stdout);
+		}
 	}
-
+out:
 	pm_job_free_res();
 	ft_free_res();
 	return ft_exit_code(ret);
 }
-

@@ -38,14 +38,14 @@ typedef struct MPIDI_RMA_Op {
     struct MPIDI_RMA_Op *prev;  /* pointer to prev element in list */
 
     void *origin_addr;
-    int origin_count;
+    MPI_Aint origin_count;
     MPI_Datatype origin_datatype;
 
     void *compare_addr;
     MPI_Datatype compare_datatype;
 
     void *result_addr;
-    int result_count;
+    MPI_Aint result_count;
     MPI_Datatype result_datatype;
 
     struct MPIR_Request *single_req;    /* used for unstreamed RMA ops */
@@ -64,9 +64,6 @@ typedef struct MPIDI_RMA_Op {
                                  * when < 0, it means all stream units of this operation haven been issued. */
 
     MPIR_Request *ureq;
-#if defined (CHANNEL_PSM)
-    MPIR_Comm *comm_ptr; 
-#endif
 
 } MPIDI_RMA_Op_t;
 
@@ -105,9 +102,6 @@ typedef struct MPIDI_RMA_Target {
     int num_ops_flush_not_issued;
 
     MPIDI_RMA_Pool_type_t pool_type;
-#if defined(CHANNEL_MRAIL)
-    int issue_2s_sync;
-#endif
 } MPIDI_RMA_Target_t;
 
 typedef struct MPIDI_RMA_Slot {

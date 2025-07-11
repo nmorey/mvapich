@@ -1,6 +1,5 @@
 /**
- * Copyright (C) Mellanox Technologies Ltd. 2017-2019.  ALL RIGHTS RESERVED.
- * Copyright (c) 2019, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2017-2019. ALL RIGHTS RESERVED.
  * See file LICENSE for terms.
  */
 
@@ -13,7 +12,7 @@
 #include "gdr_copy_iface.h"
 
 #include <uct/base/uct_log.h>
-#include <ucs/debug/memtrack.h>
+#include <ucs/debug/memtrack_int.h>
 #include <ucs/sys/math.h>
 #include <ucs/profile/profile.h>
 #include <ucs/type/class.h>

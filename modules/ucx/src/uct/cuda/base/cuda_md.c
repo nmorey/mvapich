@@ -1,6 +1,5 @@
 /**
- * Copyright (C) Mellanox Technologies Ltd. 2018.  ALL RIGHTS RESERVED.
- * Copyright (c) 2019, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2018-2019. ALL RIGHTS RESERVED.
  * See file LICENSE for terms.
  */
 
@@ -9,50 +8,48 @@
 #endif
 
 #include "cuda_md.h"
+#include "cuda_iface.h"
 
 #include <ucs/sys/module.h>
-#include <ucs/profile/profile.h>
-#include <ucs/debug/log.h>
-#include <cuda_runtime.h>
+#include <ucs/sys/string.h>
 #include <cuda.h>
 
 
-UCS_PROFILE_FUNC(ucs_status_t, uct_cuda_base_detect_memory_type,
-                 (md, addr, length, mem_type_p),
-                 uct_md_h md, const void *addr, size_t length,
-                 ucs_memory_type_t *mem_type_p)
+ucs_status_t uct_cuda_base_get_sys_dev(CUdevice cuda_device,
+                                       ucs_sys_device_t *sys_dev_p)
 {
-    CUmemorytype memType = (CUmemorytype)0;
-    uint32_t isManaged   = 0;
-    unsigned value       = 1;
-    void *attrdata[] = {(void *)&memType, (void *)&isManaged};
-    CUpointer_attribute attributes[2] = {CU_POINTER_ATTRIBUTE_MEMORY_TYPE,
-                                         CU_POINTER_ATTRIBUTE_IS_MANAGED};
+    ucs_sys_bus_id_t bus_id;
     CUresult cu_err;
-    const char *cu_err_str;
+    int attrib;
 
-    if (addr == NULL) {
-        *mem_type_p = UCS_MEMORY_TYPE_HOST;
-        return UCS_OK;
+    /* PCI domain id */
+    cu_err = cuDeviceGetAttribute(&attrib, CU_DEVICE_ATTRIBUTE_PCI_DOMAIN_ID,
+                                  cuda_device);
+    if (cu_err != CUDA_SUCCESS) {
+         return UCS_ERR_IO_ERROR;
     }
+    bus_id.domain = (uint16_t)attrib;
 
-    cu_err = cuPointerGetAttributes(2, attributes, attrdata, (CUdeviceptr)addr);
-    if ((cu_err == CUDA_SUCCESS) && (memType == CU_MEMORYTYPE_DEVICE)) {
-        if (isManaged) {
-            *mem_type_p = UCS_MEMORY_TYPE_CUDA_MANAGED;
-        } else {
-            *mem_type_p = UCS_MEMORY_TYPE_CUDA;
-            cu_err = cuPointerSetAttribute(&value, CU_POINTER_ATTRIBUTE_SYNC_MEMOPS,
-                                           (CUdeviceptr)addr);
-            if (cu_err != CUDA_SUCCESS) {
-                cuGetErrorString(cu_err, &cu_err_str);
-                ucs_warn("cuPointerSetAttribute(%p) error: %s", (void*) addr, cu_err_str);
-            }
-        }
-        return UCS_OK;
+    /* PCI bus id */
+    cu_err = cuDeviceGetAttribute(&attrib, CU_DEVICE_ATTRIBUTE_PCI_BUS_ID,
+                                  cuda_device);
+    if (cu_err != CUDA_SUCCESS) {
+         return UCS_ERR_IO_ERROR;
     }
+    bus_id.bus = (uint8_t)attrib;
 
-    return UCS_ERR_INVALID_ADDR;
+    /* PCI slot id */
+    cu_err = cuDeviceGetAttribute(&attrib, CU_DEVICE_ATTRIBUTE_PCI_DEVICE_ID,
+                                  cuda_device);
+    if (cu_err != CUDA_SUCCESS) {
+         return UCS_ERR_IO_ERROR;
+    }
+    bus_id.slot = (uint8_t)attrib;
+
+    /* Function - always 0 */
+    bus_id.function = 0;
+
+    return ucs_topo_find_device_by_bus_id(&bus_id, sys_dev_p);
 }
 
 ucs_status_t
@@ -60,12 +57,28 @@ uct_cuda_base_query_md_resources(uct_component_t *component,
                                  uct_md_resource_desc_t **resources_p,
                                  unsigned *num_resources_p)
 {
+    const unsigned sys_device_priority = 10;
+    ucs_sys_device_t sys_dev;
+    CUdevice cuda_device;
     cudaError_t cudaErr;
+    ucs_status_t status;
+    char device_name[10];
     int num_gpus;
 
     cudaErr = cudaGetDeviceCount(&num_gpus);
     if ((cudaErr != cudaSuccess) || (num_gpus == 0)) {
         return uct_md_query_empty_md_resource(resources_p, num_resources_p);
+    }
+
+    for (cuda_device = 0; cuda_device < num_gpus; ++cuda_device) {
+        status = uct_cuda_base_get_sys_dev(cuda_device, &sys_dev);
+        if (status == UCS_OK) {
+            ucs_snprintf_safe(device_name, sizeof(device_name), "GPU%d",
+                              cuda_device);
+            status = ucs_topo_sys_device_set_name(sys_dev, device_name,
+                                                  sys_device_priority);
+            ucs_assert_always(status == UCS_OK);
+        }
     }
 
     return uct_md_query_single_md_resource(component, resources_p,

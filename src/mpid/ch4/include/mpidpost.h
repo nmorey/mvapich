@@ -9,53 +9,43 @@
 #include "mpir_datatype.h"
 #include "mpidch4.h"
 
+MPL_STATIC_INLINE_PREFIX MPIR_Request *MPID_Request_create_from_comm(MPIR_Request_kind_t kind,
+                                                                     MPIR_Comm * comm)
+{
+    MPIR_Request *req;
+    int vci = MPIDI_get_comm_vci(comm);
+    MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(vci).lock);
+    req = MPIR_Request_create_from_pool(kind, vci, 1);
+    MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(vci).lock);
+    return req;
+}
+
 MPL_STATIC_INLINE_PREFIX void MPID_Request_create_hook(MPIR_Request * req)
 {
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_REQUEST_CREATE_HOOK);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_REQUEST_CREATE_HOOK);
+    MPIR_FUNC_ENTER;
 
-    MPIDIG_REQUEST(req, req) = NULL;
+    req->dev.completion_notification = NULL;
+    req->dev.type = MPIDI_REQ_TYPE_NONE;
 #ifndef MPIDI_CH4_DIRECT_NETMOD
-    MPIDI_REQUEST_ANYSOURCE_PARTNER(req) = NULL;
+    req->dev.anysrc_partner = NULL;
 #endif
-#ifdef _MVP_CH4_OVERRIDE_ /* MVAPICH addition to the netmod layer */
-    MPIDI_MVP_REQUEST_FROM_MPICH(req) = NULL;
-#if defined(_SHARP_SUPPORT_)
-    MPIDI_MVP_SHARP_REQUEST_FROM_MPICH(req) = NULL;
-#endif
-#endif /* _MVP_CH4_OVERRIDE_ */
 
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_REQUEST_CREATE_HOOK);
+    MPIR_FUNC_EXIT;
 }
 
 MPL_STATIC_INLINE_PREFIX void MPID_Request_free_hook(MPIR_Request * req)
 {
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_REQUEST_FREE_HOOK);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_REQUEST_FREE_HOOK);
+    MPIR_FUNC_ENTER;
 
-    int vci = MPIDI_Request_get_vci(req);
-    MPIDI_global.progress_counts[vci]++;
-
-    /* This is tricky. I think the only solution is to expose partner
-     * to the upper layer */
-    if (req->kind == MPIR_REQUEST_KIND__PREQUEST_RECV &&
-        NULL != MPIDI_REQUEST_ANYSOURCE_PARTNER(req))
-        MPIR_Request_free(MPIDI_REQUEST_ANYSOURCE_PARTNER(req));
-
-#ifdef _MVP_CH4_OVERRIDE_
-    MPIDI_MVP_smp_request_free(req);
-#endif /* _MVP_CH4_OVERRIDE_ */
-
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_REQUEST_FREE_HOOK);
+    MPIR_FUNC_EXIT;
     return;
 }
 
 MPL_STATIC_INLINE_PREFIX void MPID_Request_destroy_hook(MPIR_Request * req)
 {
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_REQUEST_DESTROY_HOOK);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_REQUEST_DESTROY_HOOK);
+    MPIR_FUNC_ENTER;
 
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_REQUEST_DESTROY_HOOK);
+    MPIR_FUNC_EXIT;
     return;
 }
 
@@ -64,12 +54,12 @@ MPL_STATIC_INLINE_PREFIX void MPID_Request_destroy_hook(MPIR_Request * req)
 */
 MPL_STATIC_INLINE_PREFIX int MPID_Init_async_thread(void)
 {
-    return MPIR_Init_async_thread();
+    return MPIR_Start_progress_thread_impl(NULL);
 }
 
 MPL_STATIC_INLINE_PREFIX int MPID_Finalize_async_thread(void)
 {
-    return MPIR_Finalize_async_thread();
+    return MPIR_Stop_progress_thread_impl(NULL);
 }
 
 #endif /* MPIDPOST_H_INCLUDED */

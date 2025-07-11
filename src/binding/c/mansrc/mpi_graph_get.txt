@@ -1,0 +1,30 @@
+/*D
+   MPI_Graph_get - Retrieves graph topology information associated with a communicator
+
+Synopsis:
+.vb
+int MPI_Graph_get(MPI_Comm comm, int maxindex, int maxedges, int indx[],
+                  int edges[])
+.ve
+
+Input Parameters:
++ comm - communicator with graph structure (handle)
+. maxindex - length of vector index in the calling program (integer)
+- maxedges - length of vector edges in the calling program (integer)
+
+Output Parameters:
++ indx - array of integers containing the graph structure (for details see the definition of MPI_GRAPH_CREATE)
+- edges - array of integers containing the graph structure (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+D*/
+

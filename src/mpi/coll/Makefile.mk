@@ -2,16 +2,6 @@
 ## Copyright (C) by Argonne National Laboratory
 ##     See COPYRIGHT in top-level directory
 ##
-## Copyright (c) 2001-2023, The Ohio State University. All rights
-## reserved.
-##
-## This file is part of the MVAPICH software package developed by the
-## team members of The Ohio State University's Network-Based Computing
-## Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
-##
-## For detailed copyright and licensing information, please refer to the
-## copyright file COPYRIGHT in the top level MVAPICH directory.
-##
 
 include $(top_srcdir)/src/mpi/coll/allgather/Makefile.mk
 include $(top_srcdir)/src/mpi/coll/allgatherv/Makefile.mk
@@ -63,7 +53,6 @@ include $(top_srcdir)/src/mpi/coll/op/Makefile.mk
 include $(top_srcdir)/src/mpi/coll/reduce_local/Makefile.mk
 include $(top_srcdir)/src/mpi/coll/allreduce_group/Makefile.mk
 include $(top_srcdir)/src/mpi/coll/src/Makefile.mk
-include $(top_srcdir)/src/mpi/coll/offload/Makefile.mk
 
 # build collectives transport
 include $(top_srcdir)/src/mpi/coll/transports/Makefile.mk
@@ -71,15 +60,15 @@ include $(top_srcdir)/src/mpi/coll/transports/Makefile.mk
 # build collectives algorithms
 include $(top_srcdir)/src/mpi/coll/algorithms/Makefile.mk
 
+# build MVAPICH collectives
+include $(top_srcdir)/src/mpi/coll/mvapich/Makefile.mk
+
 AM_CPPFLAGS += -I$(top_srcdir)/src/mpi/coll/include/
 
-if BUILD_OSU_MVAPICH
-include $(top_srcdir)/src/mpi/coll/shmem/Makefile.mk
-AM_CPPFLAGS += -I$(top_srcdir)/src/mpi/coll/tuning
-endif
-
 mpi_core_sources += \
-    src/mpi/coll/helper_fns.c 	\
+    src/mpi/coll/mpir_coll_sched_auto.c \
+    src/mpi/coll/mpir_coll.c      \
+    src/mpi/coll/helper_fns.c     \
     src/mpi/coll/nbcutil.c
 
 noinst_HEADERS +=                    \

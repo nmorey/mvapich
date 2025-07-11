@@ -1,0 +1,34 @@
+/*D
+   MPI_T_category_get_info - Get the information about a category
+
+Synopsis:
+.vb
+int MPI_T_category_get_info(int cat_index, char *name, int *name_len,
+                            char *desc, int *desc_len, int *num_cvars,
+                            int *num_pvars, int *num_categories)
+.ve
+
+Input Parameters:
+. cat_index - index of the category to be queried (integer)
+
+Input/Output Parameters:
++ name_len - length of the string and/or buffer for name (integer)
+- desc_len - length of the string and/or buffer for desc (integer)
+
+Output Parameters:
++ name - buffer to return the string containing the name of the category (string)
+. desc - buffer to return the string containing the description of the category (string)
+. num_cvars - number of control variables in the category (integer)
+. num_pvars - number of performance variables in the category (integer)
+- num_categories - number of categories contained in the category (integer)
+
+.N ThreadSafe
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_T_ERR_INVALID_INDEX
+.N MPI_T_ERR_NOT_INITIALIZED
+.N MPI_ERR_OTHER
+
+D*/
+

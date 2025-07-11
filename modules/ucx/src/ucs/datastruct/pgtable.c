@@ -1,5 +1,5 @@
 /**
- * Copyright (C) Mellanox Technologies Ltd. 2001-2015.  ALL RIGHTS RESERVED.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2015. ALL RIGHTS RESERVED.
  *
  * See file LICENSE for terms.
  */
@@ -13,7 +13,7 @@
 #include <ucs/arch/bitops.h>
 #include <ucs/debug/assert.h>
 #include <ucs/debug/log.h>
-#include <ucs/debug/memtrack.h>
+#include <ucs/debug/memtrack_int.h>
 #include <ucs/sys/math.h>
 #include <string.h>
 
@@ -140,7 +140,7 @@ void ucs_pgtable_dump(const ucs_pgtable_t *pgtable, ucs_log_level_t log_level)
 
 static void ucs_pgtable_trace(ucs_pgtable_t *pgtable, const char *message)
 {
-    ucs_pgtable_log(pgtable, UCS_LOG_LEVEL_TRACE_DATA, message);
+    ucs_pgtable_log(pgtable, UCS_LOG_LEVEL_TRACE_FUNC, message);
 }
 
 static void ucs_pgtable_reset(ucs_pgtable_t *pgtable)
@@ -274,7 +274,7 @@ ucs_pgtable_insert_page(ucs_pgtable_t *pgtable, ucs_pgt_addr_t address,
 
     ucs_pgtable_check_page(address, order);
 
-    ucs_trace_data("insert page 0x%lx order %u, for region " UCS_PGT_REGION_FMT,
+    ucs_trace_func("insert page 0x%lx order %u, for region " UCS_PGT_REGION_FMT,
                    address, order, UCS_PGT_REGION_ARG(region));
 
     /* Make root map addresses which include our interval */
@@ -406,7 +406,7 @@ ucs_status_t ucs_pgtable_insert(ucs_pgtable_t *pgtable, ucs_pgt_region_t *region
     ucs_status_t status;
     unsigned order;
 
-    ucs_trace_data("add region " UCS_PGT_REGION_FMT, UCS_PGT_REGION_ARG(region));
+    ucs_trace_func("add region " UCS_PGT_REGION_FMT, UCS_PGT_REGION_ARG(region));
 
     if ((address >= end) || !ucs_pgt_is_addr_aligned(address) ||
         !ucs_pgt_is_addr_aligned(end))
@@ -448,7 +448,7 @@ ucs_status_t ucs_pgtable_remove(ucs_pgtable_t *pgtable, ucs_pgt_region_t *region
     ucs_status_t status;
     unsigned order;
 
-    ucs_trace_data("remove region " UCS_PGT_REGION_FMT, UCS_PGT_REGION_ARG(region));
+    ucs_trace_func("remove region " UCS_PGT_REGION_FMT, UCS_PGT_REGION_ARG(region));
 
     if ((address >= end) || !ucs_pgt_is_addr_aligned(address) ||
         !ucs_pgt_is_addr_aligned(end))
@@ -614,6 +614,11 @@ void ucs_pgtable_purge(ucs_pgtable_t *pgtable, ucs_pgt_search_callback_t cb,
     ucs_status_t status;
     unsigned i;
 
+    if (num_regions == 0) {
+        ucs_debug("purge empty page table");
+        goto out;
+    }
+
     all_regions = ucs_calloc(num_regions, sizeof(*all_regions),
                              "pgt_purge_regions");
     if (all_regions == NULL) {
@@ -642,6 +647,7 @@ void ucs_pgtable_purge(ucs_pgtable_t *pgtable, ucs_pgt_search_callback_t cb,
 
     ucs_free(all_regions);
 
+out:
     /* Page table should be totally empty */
     ucs_assert(!ucs_pgt_entry_present(&pgtable->root));
     ucs_assertv(pgtable->shift       == UCS_PGT_ADDR_SHIFT, "shift=%u", pgtable->shift);

@@ -12,12 +12,11 @@
  * Cost: p.alpha + n.beta
  */
 
-int MPIR_Scatter_inter_linear(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
-                              void *recvbuf, int recvcount, MPI_Datatype recvtype, int root,
-                              MPIR_Comm * comm_ptr, MPIR_Errflag_t * errflag)
+int MPIR_Scatter_inter_linear(const void *sendbuf, MPI_Aint sendcount, MPI_Datatype sendtype,
+                              void *recvbuf, MPI_Aint recvcount, MPI_Datatype recvtype, int root,
+                              MPIR_Comm * comm_ptr, MPIR_Errflag_t errflag)
 {
     int remote_size, mpi_errno = MPI_SUCCESS;
-    int mpi_errno_ret = MPI_SUCCESS;
     int i;
     MPI_Status status;
     MPI_Aint extent;
@@ -35,32 +34,16 @@ int MPIR_Scatter_inter_linear(const void *sendbuf, int sendcount, MPI_Datatype s
             mpi_errno =
                 MPIC_Send(((char *) sendbuf + sendcount * i * extent), sendcount, sendtype, i,
                           MPIR_SCATTER_TAG, comm_ptr, errflag);
-            if (mpi_errno) {
-                /* for communication errors, just record the error but continue */
-                *errflag =
-                    MPIX_ERR_PROC_FAILED ==
-                    MPIR_ERR_GET_CLASS(mpi_errno) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER;
-                MPIR_ERR_SET(mpi_errno, *errflag, "**fail");
-                MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-            }
+            MPIR_ERR_CHECK(mpi_errno);
         }
     } else {
         mpi_errno =
-            MPIC_Recv(recvbuf, recvcount, recvtype, root, MPIR_SCATTER_TAG, comm_ptr, &status,
-                      errflag);
-        if (mpi_errno) {
-            /* for communication errors, just record the error but continue */
-            *errflag =
-                MPIX_ERR_PROC_FAILED ==
-                MPIR_ERR_GET_CLASS(mpi_errno) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER;
-            MPIR_ERR_SET(mpi_errno, *errflag, "**fail");
-            MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-        }
+            MPIC_Recv(recvbuf, recvcount, recvtype, root, MPIR_SCATTER_TAG, comm_ptr, &status);
+        MPIR_ERR_CHECK(mpi_errno);
     }
 
-    if (mpi_errno_ret)
-        mpi_errno = mpi_errno_ret;
-    else if (*errflag != MPIR_ERR_NONE)
-        MPIR_ERR_SET(mpi_errno, *errflag, "**coll_fail");
+  fn_exit:
     return mpi_errno;
+  fn_fail:
+    goto fn_exit;
 }

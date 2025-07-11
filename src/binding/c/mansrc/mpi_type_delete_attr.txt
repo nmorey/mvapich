@@ -1,0 +1,24 @@
+/*D
+   MPI_Type_delete_attr - Deletes an attribute value associated with a key on a datatype
+
+Synopsis:
+.vb
+int MPI_Type_delete_attr(MPI_Datatype datatype, int type_keyval)
+.ve
+
+Input Parameters:
++ datatype - datatype from which the attribute is deleted (handle)
+- type_keyval - key value (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_KEYVAL
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

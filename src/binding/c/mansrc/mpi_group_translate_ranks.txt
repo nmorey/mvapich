@@ -1,0 +1,33 @@
+/*D
+   MPI_Group_translate_ranks - Translates the ranks of processes in one group to those in another group
+
+Synopsis:
+.vb
+int MPI_Group_translate_ranks(MPI_Group group1, int n, const int ranks1[],
+                              MPI_Group group2, int ranks2[])
+.ve
+
+Input Parameters:
++ group1 - group1 (handle)
+. n - number of ranks in ranks1 and ranks2 arrays (integer)
+. ranks1 - array of zero or more valid ranks in group1 (integer)
+- group2 - group2 (handle)
+
+Output Parameters:
+. ranks2 - array of corresponding ranks in group2, MPI_UNDEFINED when no correspondence exists. (integer)
+
+As a special case (see the MPI-2 errata), if the input rank is
+'MPI_PROC_NULL', 'MPI_PROC_NULL' is given as the output rank.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_GROUP
+.N MPI_ERR_OTHER
+
+D*/
+

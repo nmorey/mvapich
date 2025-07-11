@@ -1,0 +1,25 @@
+/*D
+   MPI_Status_c2f - Convert MPI_Status object to MPI_Fint array
+
+Synopsis:
+.vb
+int MPI_Status_c2f(const MPI_Status *c_status, MPI_Fint *f_status)
+.ve
+
+Input Parameters:
+. c_status - status object (Status)
+
+Output Parameters:
+. f_status - f_status (None)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_OTHER
+
+D*/
+

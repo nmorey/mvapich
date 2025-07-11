@@ -1,0 +1,24 @@
+/*D
+   MPI_Win_set_errhandler - Set window error handler
+
+Synopsis:
+.vb
+int MPI_Win_set_errhandler(MPI_Win win, MPI_Errhandler errhandler)
+.ve
+
+Input Parameters:
++ win - window object (handle)
+- errhandler - new error handler for window (handle)
+
+.N ThreadSafeNoUpdate
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ERRHANDLER
+.N MPI_ERR_WIN
+.N MPI_ERR_OTHER
+
+D*/
+

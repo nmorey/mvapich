@@ -22,9 +22,9 @@
  * where n is the total amount of data a process needs to send to all
  * other processes.
  */
-int MPIR_Ialltoall_intra_sched_pairwise(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
-                                        void *recvbuf, int recvcount, MPI_Datatype recvtype,
-                                        MPIR_Comm * comm_ptr, MPIR_Sched_t s)
+int MPIR_Ialltoall_intra_sched_pairwise(const void *sendbuf, MPI_Aint sendcount,
+                                        MPI_Datatype sendtype, void *recvbuf, MPI_Aint recvcount,
+                                        MPI_Datatype recvtype, MPIR_Comm * comm_ptr, MPIR_Sched_t s)
 {
     int mpi_errno = MPI_SUCCESS;
     int i;
@@ -49,7 +49,7 @@ int MPIR_Ialltoall_intra_sched_pairwise(const void *sendbuf, int sendcount, MPI_
                                 recvcount, recvtype, s);
     MPIR_ERR_CHECK(mpi_errno);
 
-    is_pof2 = MPL_is_pof2(comm_size, NULL);
+    is_pof2 = MPL_is_pof2(comm_size);
 
     /* Do the pairwise exchanges */
     for (i = 1; i < comm_size; i++) {

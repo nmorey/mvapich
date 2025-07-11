@@ -1,0 +1,38 @@
+/*D
+   MPI_Type_get_envelope - get type envelope
+
+Synopsis:
+.vb
+int MPI_Type_get_envelope(MPI_Datatype datatype, int *num_integers,
+                          int *num_addresses, int *num_large_counts,
+                          int *num_datatypes, int *combiner)
+.ve
+.vb
+int MPI_Type_get_envelope_c(MPI_Datatype datatype, MPI_Count *num_integers,
+                            MPI_Count *num_addresses,
+                            MPI_Count *num_large_counts,
+                            MPI_Count *num_datatypes, int *combiner)
+.ve
+
+Input Parameters:
+. datatype - datatype to access (handle)
+
+Output Parameters:
++ num_integers - number of input integers used in call constructing combiner (non-negative integer)
+. num_addresses - number of input addresses used in call constructing combiner (non-negative integer)
+. num_large_counts - number of input large counts used in call constructing combiner (non-negative integer)
+. num_datatypes - number of input datatypes used in call constructing combiner (non-negative integer)
+- combiner - combiner (state)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

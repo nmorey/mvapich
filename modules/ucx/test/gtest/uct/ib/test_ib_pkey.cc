@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2019. ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2019. ALL RIGHTS RESERVED.
 * See file LICENSE for terms.
 */
 
@@ -122,7 +122,7 @@ protected:
 
         uct_ib_iface_address_pack(iface, ib_addr);
         uct_ib_address_unpack(ib_addr, &params);
-        EXPECT_TRUE((params.flags & UCT_IB_ADDRESS_PACK_FLAG_PKEY) != 0);
+        EXPECT_TRUE(params.flags & UCT_IB_ADDRESS_PACK_FLAG_PKEY);
         EXPECT_EQ(m_pkey[0], params.pkey);
 
         return params.pkey;

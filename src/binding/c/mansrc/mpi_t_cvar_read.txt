@@ -1,0 +1,25 @@
+/*D
+   MPI_T_cvar_read - Read the value of a control variable
+
+Synopsis:
+.vb
+int MPI_T_cvar_read(MPI_T_cvar_handle handle, void *buf)
+.ve
+
+Input Parameters:
+. handle - handle to the control variable to be read (handle)
+
+Output Parameters:
+. buf - initial address of storage location for variable value (choice)
+
+.N ThreadSafe
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_T_ERR_INVALID
+.N MPI_T_ERR_INVALID_HANDLE
+.N MPI_T_ERR_NOT_INITIALIZED
+.N MPI_ERR_OTHER
+
+D*/
+

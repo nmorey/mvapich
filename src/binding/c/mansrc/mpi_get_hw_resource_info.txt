@@ -1,0 +1,22 @@
+/*D
+   MPI_Get_hw_resource_info - returns an info object containing information pertaining to the hardware platform on which the calling MPI process is executing at the moment of the call.
+
+Synopsis:
+.vb
+int MPI_Get_hw_resource_info(MPI_Info *hw_info)
+.ve
+
+Output Parameters:
+. hw_info - info object created (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_OTHER
+
+D*/
+

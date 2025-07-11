@@ -1,0 +1,23 @@
+/*D
+   MPI_Pready - Indicates that a given portion of the send buffer in a partitioned
+
+Synopsis:
+.vb
+int MPI_Pready(int partition, MPI_Request request)
+.ve
+
+Input Parameters:
++ partition - partition to mark ready for transfer (non-negative integer)
+- request - partitioned communication request (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_REQUEST
+.N MPI_ERR_OTHER
+
+D*/
+

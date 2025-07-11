@@ -1,0 +1,49 @@
+/*D
+   MPI_Pack - Packs a datatype into contiguous memory
+
+Synopsis:
+.vb
+int MPI_Pack(const void *inbuf, int incount, MPI_Datatype datatype,
+             void *outbuf, int outsize, int *position, MPI_Comm comm)
+.ve
+.vb
+int MPI_Pack_c(const void *inbuf, MPI_Count incount, MPI_Datatype datatype,
+               void *outbuf, MPI_Count outsize, MPI_Count *position,
+               MPI_Comm comm)
+.ve
+
+Input Parameters:
++ inbuf - input buffer start (choice)
+. incount - number of input data items (non-negative integer)
+. datatype - datatype of each input data item (handle)
+. outsize - output buffer size, in bytes (non-negative integer)
+- comm - communicator for packed message (handle)
+
+Input/Output Parameters:
+. position - current position in buffer, in bytes (integer)
+
+Output Parameters:
+. outbuf - output buffer start (choice)
+
+Notes (from the specifications):
+The input value of position is the first location in the output buffer to be
+used for packing.  position is incremented by the size of the packed message,
+and the output value of position is the first location in the output buffer
+following the locations occupied by the packed message.  The comm argument is
+the communicator that will be subsequently used for sending the packed
+message.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

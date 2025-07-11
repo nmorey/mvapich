@@ -10,6 +10,7 @@
 #include "mpidi_nem_statistics.h"
 #include "mpit.h"
 #include "mpidu_init_shm.h"
+#include "mpidi_ch3_impl.h"
 
 /*
 === BEGIN_MPI_T_CVAR_INFO_BLOCK ===
@@ -93,10 +94,7 @@ static int MPID_nem_init_stats(int n_local_ranks)
         "NEMESIS", /* category */
         "Array counting how many times nemesis had to fall back to the regular queue when sending messages between pairs of local processes");
 
-fn_exit:
     return mpi_errno;
-fn_fail:
-    goto fn_exit;
 }
 
 int
@@ -120,7 +118,9 @@ MPID_nem_init(int pg_rank, MPIDI_PG_t *pg_p, int has_parent ATTRIBUTE((unused)))
     void *cells_p = NULL;
     MPID_nem_queue_t *recv_queues_p = NULL;
     MPID_nem_queue_t *free_queues_p = NULL;
+#ifdef HAVE_ERROR_CHECKING
     char strerrbuf[MPIR_STRERROR_BUF_SIZE];
+#endif
 
     MPIR_CHKPMEM_DECL(8);
 
@@ -407,6 +407,11 @@ MPID_nem_init(int pg_rank, MPIDI_PG_t *pg_p, int has_parent ATTRIBUTE((unused)))
     MPIR_ERR_CHECK(mpi_errno);
 #endif
 
+    mpi_errno = MPIDI_CH3_SHM_Init();
+    MPIR_ERR_CHECK(mpi_errno);
+    mpi_errno = MPIDU_Init_shm_barrier();
+    MPIR_ERR_CHECK(mpi_errno);
+
 #ifdef PAPI_MONITOR
     my_papi_start( pg_rank );
 #endif /*PAPI_MONITOR   */
@@ -434,9 +439,8 @@ MPID_nem_vc_init (MPIDI_VC_t *vc)
     int mpi_errno = MPI_SUCCESS;
     MPIDI_CH3I_VC *vc_ch = &vc->ch;
     MPIR_CHKPMEM_DECL(1);
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_NEM_VC_INIT);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_NEM_VC_INIT);
+    MPIR_FUNC_ENTER;
     
     vc_ch->pkt_handler = NULL;
     vc_ch->num_pkt_handlers = 0;
@@ -467,11 +471,6 @@ MPID_nem_vc_init (MPIDI_VC_t *vc)
 	vc_ch->is_local = 0;
 	vc_ch->free_queue = NULL;
     }
-
-    /* MT we acquire the LMT CS here, b/c there is at least a theoretical race
-     * on some fields, such as lmt_copy_buf.  In practice it's not an issue, but
-     * this will keep DRD happy. */
-    MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
 
     /* override rendezvous functions */
     vc->rndvSend_fn = MPID_nem_lmt_RndvSend;
@@ -593,8 +592,6 @@ MPID_nem_vc_init (MPIDI_VC_t *vc)
 
     }
 
-    MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-
     /* FIXME: ch3 assumes there is a field called sendq_head in the ch
        portion of the vc.  This is unused in nemesis and should be set
        to NULL */
@@ -602,7 +599,7 @@ MPID_nem_vc_init (MPIDI_VC_t *vc)
 
     MPIR_CHKPMEM_COMMIT();
  fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_NEM_VC_INIT);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
  fn_fail:
     MPIR_CHKPMEM_REAP();
@@ -614,9 +611,8 @@ MPID_nem_vc_destroy(MPIDI_VC_t *vc)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIDI_CH3I_VC *vc_ch = &vc->ch;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_NEM_VC_DESTROY);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_NEM_VC_DESTROY);
+    MPIR_FUNC_ENTER;
 
     MPL_free(vc_ch->pending_pkt);
 
@@ -624,7 +620,7 @@ MPID_nem_vc_destroy(MPIDI_VC_t *vc)
     MPIR_ERR_CHECK(mpi_errno);
 
     fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_NEM_VC_DESTROY);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
  fn_fail:
     goto fn_exit;

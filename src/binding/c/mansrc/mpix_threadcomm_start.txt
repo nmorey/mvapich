@@ -1,0 +1,23 @@
+/*D
+   MPIX_Threadcomm_start - start/activiate a thread communicator (inside thread parallel regions)
+
+Synopsis:
+.vb
+int MPIX_Threadcomm_start(MPI_Comm threadcomm)
+.ve
+
+Input Parameters:
+. threadcomm - thread communicator (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+.seealso: MPIX_Threadcomm_init, MPIX_Threadcomm_finish, MPIX_Threadcomm_free
+D*/
+

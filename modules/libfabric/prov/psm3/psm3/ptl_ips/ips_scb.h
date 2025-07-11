@@ -185,16 +185,16 @@ struct ips_scb {
 		psm2_am_completion_fn_t completion_am;
 	};
 	void *cb_param;
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 	psm2_mq_req_t mq_req;		/* back pointer to original request */
-#endif
+#endif /* PSM_CUDA || PSM_ONEAPI */
 	struct {
 		struct ips_message_header ips_lrh;
 	} PSMI_CACHEALIGN;
 };
 
 
-#ifdef PSM_CUDA
+#if defined(PSM_CUDA) || defined(PSM_ONEAPI)
 #define IS_TRANSFER_BUF_GPU_MEM(scb) (ips_scb_flags(scb) & IPS_SEND_FLAG_PAYLOAD_BUF_GPU)
 #endif
 

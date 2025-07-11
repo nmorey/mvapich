@@ -19,17 +19,16 @@
  * FIXME: change algorithm to match intracommunicator alltoallv
  */
 
-int MPIR_Alltoallw_inter_pairwise_exchange(const void *sendbuf, const int sendcounts[],
-                                           const int sdispls[], const MPI_Datatype sendtypes[],
-                                           void *recvbuf, const int recvcounts[],
-                                           const int rdispls[], const MPI_Datatype recvtypes[],
-                                           MPIR_Comm * comm_ptr, MPIR_Errflag_t * errflag)
+int MPIR_Alltoallw_inter_pairwise_exchange(const void *sendbuf, const MPI_Aint sendcounts[],
+                                           const MPI_Aint sdispls[], const MPI_Datatype sendtypes[],
+                                           void *recvbuf, const MPI_Aint recvcounts[],
+                                           const MPI_Aint rdispls[], const MPI_Datatype recvtypes[],
+                                           MPIR_Comm * comm_ptr, MPIR_Errflag_t errflag)
 {
     int local_size, remote_size, max_size, i;
     int mpi_errno = MPI_SUCCESS;
-    int mpi_errno_ret = MPI_SUCCESS;
     MPI_Status status;
-    int src, dst, rank, sendcount, recvcount;
+    int src, dst, rank;
     char *sendaddr, *recvaddr;
     MPI_Datatype sendtype, recvtype;
 
@@ -40,6 +39,7 @@ int MPIR_Alltoallw_inter_pairwise_exchange(const void *sendbuf, const int sendco
     /* Use pairwise exchange algorithm. */
     max_size = MPL_MAX(local_size, remote_size);
     for (i = 0; i < max_size; i++) {
+        MPI_Aint sendcount, recvcount;
         src = (rank - i + max_size) % max_size;
         dst = (rank + i) % max_size;
         if (src >= remote_size) {
@@ -67,18 +67,10 @@ int MPIR_Alltoallw_inter_pairwise_exchange(const void *sendbuf, const int sendco
                                   dst, MPIR_ALLTOALLW_TAG, recvaddr,
                                   recvcount, recvtype, src,
                                   MPIR_ALLTOALLW_TAG, comm_ptr, &status, errflag);
-        if (mpi_errno) {
-            /* for communication errors, just record the error but continue */
-            *errflag =
-                MPIX_ERR_PROC_FAILED ==
-                MPIR_ERR_GET_CLASS(mpi_errno) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER;
-            MPIR_ERR_SET(mpi_errno, *errflag, "**fail");
-            MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-        }
+        MPIR_ERR_CHECK(mpi_errno);
     }
-    if (mpi_errno_ret)
-        mpi_errno = mpi_errno_ret;
-    else if (*errflag != MPIR_ERR_NONE)
-        MPIR_ERR_SET(mpi_errno, *errflag, "**coll_fail");
+  fn_exit:
     return mpi_errno;
+  fn_fail:
+    goto fn_exit;
 }

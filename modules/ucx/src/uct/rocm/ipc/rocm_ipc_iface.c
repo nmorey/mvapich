@@ -1,6 +1,6 @@
 /*
- * Copyright (C) Advanced Micro Devices, Inc. 2019. ALL RIGHTS RESERVED.
- * Copyright (C) Mellanox Technologies Ltd. 2020.  ALL RIGHTS RESERVED.
+ * Copyright (C) Advanced Micro Devices, Inc. 2019-2023. ALL RIGHTS RESERVED.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2020. ALL RIGHTS RESERVED.
  * See file LICENSE for terms.
  */
 
@@ -13,10 +13,7 @@
 #include "rocm_ipc_ep.h"
 
 #include <uct/rocm/base/rocm_base.h>
-#include <ucs/arch/cpu.h>
-#include <ucs/type/class.h>
-#include <ucs/sys/string.h>
-
+#include <uct/rocm/base/rocm_signal.h>
 
 static ucs_config_field_t uct_rocm_ipc_iface_config_table[] = {
 
@@ -27,18 +24,32 @@ static ucs_config_field_t uct_rocm_ipc_iface_config_table[] = {
     {NULL}
 };
 
-static uint64_t uct_rocm_ipc_iface_node_guid(uct_base_iface_t *iface)
+static double uct_rocm_ipc_iface_get_bw()
 {
-    return ucs_machine_guid() *
-           ucs_string_to_id(iface->md->component->name);
+    static double bw = -1.0;
+    hsa_amd_link_info_type_t type;
+
+    if (bw < 0.0) {
+        uct_rocm_base_get_link_type(&type);
+        switch (type) {
+        case HSA_AMD_LINK_INFO_TYPE_PCIE:
+            bw = 200.0 * UCS_GBYTE;
+            break;
+        case HSA_AMD_LINK_INFO_TYPE_XGMI:
+            bw = 400.0 * UCS_GBYTE;
+            break;
+        default:
+            bw = 100.0 * UCS_GBYTE;
+            break;
+        }
+    }
+    return bw;
 }
 
 ucs_status_t uct_rocm_ipc_iface_get_device_address(uct_iface_t *tl_iface,
                                                    uct_device_addr_t *addr)
 {
-    uct_base_iface_t *iface = ucs_derived_of(tl_iface, uct_base_iface_t);
-
-    *(uint64_t*)addr = uct_rocm_ipc_iface_node_guid(iface);
+    *(uint64_t*)addr = ucs_get_system_id();
     return UCS_OK;
 }
 
@@ -53,10 +64,8 @@ static int uct_rocm_ipc_iface_is_reachable(const uct_iface_h tl_iface,
                                            const uct_device_addr_t *dev_addr,
                                            const uct_iface_addr_t *iface_addr)
 {
-    uct_rocm_ipc_iface_t  *iface = ucs_derived_of(tl_iface, uct_rocm_ipc_iface_t);
-
-    return ((uct_rocm_ipc_iface_node_guid(&iface->super) ==
-            *((const uint64_t *)dev_addr)) && ((getpid() != *(pid_t *)iface_addr)));
+    return (ucs_get_system_id() == *((const uint64_t*)dev_addr)) &&
+           (getpid() != *(pid_t*)iface_addr);
 }
 
 static ucs_status_t uct_rocm_ipc_iface_query(uct_iface_h tl_iface,
@@ -87,11 +96,11 @@ static ucs_status_t uct_rocm_ipc_iface_query(uct_iface_h tl_iface,
                                           UCT_IFACE_FLAG_PENDING   |
                                           UCT_IFACE_FLAG_CONNECT_TO_IFACE;
 
-    /* TODO: get accurate info */
-    iface_attr->latency                 = ucs_linear_func_make(80e-9, 0);
-    iface_attr->bandwidth.dedicated     = 10.0 * UCS_GBYTE; /* 10 GB */
-    iface_attr->bandwidth.shared        = 0;
-    iface_attr->overhead                = 0.4e-6; /* 0.4 us */
+    iface_attr->latency                 = ucs_linear_func_make(1e-9, 0);
+    iface_attr->bandwidth.dedicated     = 0;
+    iface_attr->bandwidth.shared        = uct_rocm_ipc_iface_get_bw();
+    iface_attr->overhead                = 0;
+    iface_attr->priority                = 0;
 
     return UCS_OK;
 }
@@ -120,31 +129,8 @@ uct_rocm_ipc_iface_flush(uct_iface_h tl_iface, unsigned flags,
 static unsigned uct_rocm_ipc_iface_progress(uct_iface_h tl_iface)
 {
     uct_rocm_ipc_iface_t *iface = ucs_derived_of(tl_iface, uct_rocm_ipc_iface_t);
-    static const unsigned max_signals = 16;
-    unsigned count = 0;
-    uct_rocm_ipc_signal_desc_t *rocm_ipc_signal;
-    ucs_queue_iter_t iter;
 
-    ucs_queue_for_each_safe(rocm_ipc_signal, iter, &iface->signal_queue, queue) {
-        if (hsa_signal_load_scacquire(rocm_ipc_signal->signal) != 0) {
-            continue;
-        }
-
-        ucs_queue_del_iter(&iface->signal_queue, iter);
-        if (rocm_ipc_signal->comp != NULL) {
-            uct_invoke_completion(rocm_ipc_signal->comp, UCS_OK);
-        }
-
-        ucs_trace_poll("ROCM_IPC Signal Done :%p", rocm_ipc_signal);
-        ucs_mpool_put(rocm_ipc_signal);
-        count++;
-
-        if (count >= max_signals) {
-            break;
-        }
-    }
-
-    return count;
+    return uct_rocm_base_progress(&iface->signal_queue);
 }
 
 static uct_iface_ops_t uct_rocm_ipc_iface_ops = {
@@ -168,55 +154,27 @@ static uct_iface_ops_t uct_rocm_ipc_iface_ops = {
     .iface_is_reachable       = uct_rocm_ipc_iface_is_reachable
 };
 
-static void uct_rocm_ipc_signal_desc_init(ucs_mpool_t *mp, void *obj, void *chunk)
-{
-    uct_rocm_ipc_signal_desc_t *base = (uct_rocm_ipc_signal_desc_t *)obj;
-    hsa_status_t status;
-
-    memset(base, 0, sizeof(*base));
-    status = hsa_signal_create(1, 0, NULL, &base->signal);
-    if (status != HSA_STATUS_SUCCESS) {
-        ucs_fatal("fail to create signal");
-    }
-}
-
-static void uct_rocm_ipc_signal_desc_cleanup(ucs_mpool_t *mp, void *obj)
-{
-    uct_rocm_ipc_signal_desc_t *base = (uct_rocm_ipc_signal_desc_t *)obj;
-    hsa_status_t status;
-
-    status = hsa_signal_destroy(base->signal);
-    if (status != HSA_STATUS_SUCCESS) {
-        ucs_fatal("fail to destroy signal");
-    }
-}
-
-static ucs_mpool_ops_t uct_rocm_ipc_signal_desc_mpool_ops = {
-    .chunk_alloc   = ucs_mpool_chunk_malloc,
-    .chunk_release = ucs_mpool_chunk_free,
-    .obj_init      = uct_rocm_ipc_signal_desc_init,
-    .obj_cleanup   = uct_rocm_ipc_signal_desc_cleanup,
-};
 
 static UCS_CLASS_INIT_FUNC(uct_rocm_ipc_iface_t, uct_md_h md, uct_worker_h worker,
                            const uct_iface_params_t *params,
                            const uct_iface_config_t *tl_config)
 {
     ucs_status_t status;
+    ucs_mpool_params_t mp_params;
 
-    UCS_CLASS_CALL_SUPER_INIT(uct_base_iface_t, &uct_rocm_ipc_iface_ops, md, worker,
-                              params, tl_config UCS_STATS_ARG(params->stats_root)
+    UCS_CLASS_CALL_SUPER_INIT(uct_base_iface_t, &uct_rocm_ipc_iface_ops, 
+                              &uct_base_iface_internal_ops,
+                              md, worker, params,
+                              tl_config UCS_STATS_ARG(params->stats_root)
                               UCS_STATS_ARG(UCT_ROCM_IPC_TL_NAME));
 
-    status = ucs_mpool_init(&self->signal_pool,
-                            0,
-                            sizeof(uct_rocm_ipc_signal_desc_t),
-                            0,
-                            UCS_SYS_CACHE_LINE_SIZE,
-                            128,
-                            1024,
-                            &uct_rocm_ipc_signal_desc_mpool_ops,
-                            "ROCM_IPC signal objects");
+    ucs_mpool_params_reset(&mp_params);
+    mp_params.elem_size       = sizeof(uct_rocm_base_signal_desc_t);
+    mp_params.elems_per_chunk = 128;
+    mp_params.max_elems       = 1024;
+    mp_params.ops             = &uct_rocm_base_signal_desc_mpool_ops;
+    mp_params.name            = "ROCM_IPC signal objects";
+    status = ucs_mpool_init(&mp_params, &self->signal_pool);
     if (status != UCS_OK) {
         ucs_error("rocm/ipc signal mpool creation failed");
         return status;

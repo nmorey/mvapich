@@ -15,16 +15,13 @@ dist_noinst_SCRIPTS +=                \
     maint/decode_handle               \
     maint/extracterrmsgs              \
     maint/extractfixme.in             \
-    maint/extractstates.in            \
     maint/extractstrings.in           \
     maint/findunusederrtxt            \
     maint/gcovmerge.in                \
     maint/getcoverage.in              \
     maint/gen_subcfg_m4               \
-    maint/extractcvars                \
-    maint/extractmvpcvars             \
+    maint/extractcvars                   \
     maint/extractmvppvars             \
-    maint/genstates.in                \
     maint/getcoverage.in              \
     maint/local_perl/lib/YAML/Tiny.pm \
     maint/parse.sub                   \
@@ -39,7 +36,6 @@ dist_noinst_DATA +=                        \
     maint/Version.base.m4                  \
     maint/docnotes                         \
     maint/errmsgdirs                       \
-    maint/cvardirs                         \
     maint/gccimpgen.cpp                    \
     maint/local_perl/README                \
     maint/local_perl/YAML-Tiny-1.41.tar.gz \

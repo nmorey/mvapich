@@ -12,6 +12,12 @@ EXTRA_DIST = testlist
 ## correctly
 noinst_PROGRAMS =     \
     mpi_t_str   \
+    mpit_isendirecv \
     mpit_vars   \
     cvarwrite   \
     getindex
+
+if NOT_STRICTMPI
+noinst_PROGRAMS += \
+    qmpi_test
+endif

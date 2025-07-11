@@ -27,6 +27,26 @@ cvars:
       description : >-
         Defines the location of tuning file.
 
+    - name        : MPIR_CVAR_CH4_POSIX_COLL_SELECTION_TUNING_JSON_FILE_GPU
+      category    : COLLECTIVE
+      type        : string
+      default     : ""
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Defines the location of tuning file for GPU.
+
+    - name        : MPIR_CVAR_CH4_SHM_POSIX_TOPO_ENABLE
+      category    : CH4
+      type        : boolean
+      default     : false
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Controls topology-aware communication in POSIX.
+
 === END_MPI_T_CVAR_INFO_BLOCK ===
 */
 
@@ -39,11 +59,17 @@ cvars:
 #include "posix_csel_container.h"
 #include "mpidu_genq.h"
 
+#include "utarray.h"
+#include <strings.h>    /* for strncasecmp */
+
+#include "mpir_hwtopo.h"
+
 extern MPL_atomic_uint64_t *MPIDI_POSIX_shm_limit_counter;
 
 static int choose_posix_eager(void);
 static void *host_alloc(uintptr_t size);
 static void host_free(void *ptr);
+static void init_topo_info(void);
 
 static void *host_alloc(uintptr_t size)
 {
@@ -61,8 +87,7 @@ static int choose_posix_eager(void)
     int mpi_errno = MPI_SUCCESS;
     int i;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_CHOOSE_POSIX_EAGER);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_CHOOSE_POSIX_EAGER);
+    MPIR_FUNC_ENTER;
 
     MPIR_Assert(MPIR_CVAR_CH4_SHM_POSIX_EAGER != NULL);
 
@@ -85,7 +110,7 @@ static int choose_posix_eager(void)
     MPIR_ERR_SETANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**ch4|invalid_shm_posix_eager",
                          "**ch4|invalid_shm_posix_eager %s", MPIR_CVAR_CH4_SHM_POSIX_EAGER);
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_CHOOSE_POSIX_EAGER);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
   fn_fail:
     goto fn_exit;
@@ -102,6 +127,8 @@ static void *create_container(struct json_object *obj)
         if (!strcmp(ckey, "algorithm=MPIDI_POSIX_mpi_bcast_release_gather"))
             cnt->id =
                 MPIDI_POSIX_CSEL_CONTAINER_TYPE__ALGORITHM__MPIDI_POSIX_mpi_bcast_release_gather;
+        else if (!strcmp(ckey, "algorithm=MPIDI_POSIX_mpi_bcast_ipc_read"))
+            cnt->id = MPIDI_POSIX_CSEL_CONTAINER_TYPE__ALGORITHM__MPIDI_POSIX_mpi_bcast_ipc_read;
         else if (!strcmp(ckey, "algorithm=MPIDI_POSIX_mpi_barrier_release_gather"))
             cnt->id =
                 MPIDI_POSIX_CSEL_CONTAINER_TYPE__ALGORITHM__MPIDI_POSIX_mpi_barrier_release_gather;
@@ -122,98 +149,228 @@ static void *create_container(struct json_object *obj)
     return cnt;
 }
 
-int MPIDI_POSIX_mpi_init_hook(int rank, int size, int *tag_bits)
+static int init_vci(int vci)
+{
+    int mpi_errno = MPI_SUCCESS;
+
+    mpi_errno = MPIDU_genq_private_pool_create(MPIDI_POSIX_AM_HDR_POOL_CELL_SIZE,
+                                               MPIDI_POSIX_AM_HDR_POOL_NUM_CELLS_PER_CHUNK,
+                                               0 /* unlimited */ ,
+                                               host_alloc, host_free,
+                                               &MPIDI_POSIX_global.per_vci[vci].am_hdr_buf_pool);
+    MPIR_ERR_CHECK(mpi_errno);
+
+    MPIDI_POSIX_global.per_vci[vci].postponed_queue = NULL;
+
+    MPIDI_POSIX_global.per_vci[vci].active_rreq =
+        MPL_calloc(MPIR_Process.local_size, sizeof(MPIR_Request *), MPL_MEM_SHM);
+    MPIR_ERR_CHKANDJUMP(!MPIDI_POSIX_global.per_vci[vci].active_rreq,
+                        mpi_errno, MPI_ERR_OTHER, "**nomem");
+
+  fn_exit:
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}
+
+static void init_topo_info(void)
+{
+    MPIDI_POSIX_topo_info_t *topo = &MPIDI_POSIX_global.topo;
+    MPIR_hwtopo_gid_t core_id = MPIR_hwtopo_get_obj_by_type(MPIR_HWTOPO_TYPE__CORE);
+    MPIR_hwtopo_gid_t l3_cache_id = MPIR_hwtopo_get_obj_by_type(MPIR_HWTOPO_TYPE__L3CACHE);
+    MPIR_hwtopo_gid_t numa_id = MPIR_hwtopo_get_obj_by_type(MPIR_HWTOPO_TYPE__DDR);
+
+    topo->core_id = MPIR_hwtopo_get_lid(core_id);
+    topo->l3_cache_id = MPIR_hwtopo_get_lid(l3_cache_id);
+    topo->numa_id = MPIR_hwtopo_get_lid(numa_id);
+}
+
+int MPIDI_POSIX_init_local(int *tag_bits /* unused */)
 {
     int mpi_errno = MPI_SUCCESS;
     int i, local_rank_0 = -1;
 
-    MPIR_CHKPMEM_DECL(1);
-
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_MPI_INIT_HOOK);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_MPI_INIT_HOOK);
-
     MPL_COMPILE_TIME_ASSERT(sizeof(MPIDI_POSIX_am_request_header_t)
                             < MPIDI_POSIX_AM_HDR_POOL_CELL_SIZE);
-    mpi_errno = MPIDU_genq_private_pool_create_unsafe(MPIDI_POSIX_AM_HDR_POOL_CELL_SIZE,
-                                                      MPIDI_POSIX_AM_HDR_POOL_NUM_CELLS_PER_CHUNK,
-                                                      MPIDI_POSIX_AM_HDR_POOL_MAX_NUM_CELLS,
-                                                      host_alloc, host_free,
-                                                      &MPIDI_POSIX_global.am_hdr_buf_pool);
-    MPIR_ERR_CHECK(mpi_errno);
 
     /* Populate these values with transformation information about each rank and its original
      * information in MPI_COMM_WORLD. */
 
-    MPIDI_POSIX_global.local_procs = MPIR_Process.node_local_map;
     MPIDI_POSIX_global.local_ranks = (int *) MPL_malloc(MPIR_Process.size * sizeof(int),
                                                         MPL_MEM_SHM);
     for (i = 0; i < MPIR_Process.size; ++i) {
         MPIDI_POSIX_global.local_ranks[i] = -1;
     }
     for (i = 0; i < MPIR_Process.local_size; i++) {
-        MPIDI_POSIX_global.local_ranks[MPIDI_POSIX_global.local_procs[i]] = i;
+        MPIDI_POSIX_global.local_ranks[MPIR_Process.node_local_map[i]] = i;
     }
     local_rank_0 = MPIR_Process.node_local_map[0];
-    MPIDI_POSIX_global.num_local = MPIR_Process.local_size;
-    MPIDI_POSIX_global.my_local_rank = MPIR_Process.local_rank;
 
     MPIDI_POSIX_global.local_rank_0 = local_rank_0;
 
-    /* This is used to track messages that the eager submodule was not ready to send. */
-    MPIDI_POSIX_global.postponed_queue = NULL;
-
-    MPIR_CHKPMEM_MALLOC(MPIDI_POSIX_global.active_rreq, MPIR_Request **,
-                        MPIR_Process.local_size * sizeof(MPIR_Request *), mpi_errno,
-                        "active recv req", MPL_MEM_SHM);
-
+    /* hwloc getting topo info */
+    MPIDI_POSIX_global.topo.core_id = -1;
+    MPIDI_POSIX_global.topo.l3_cache_id = -1;
+    MPIDI_POSIX_global.topo.numa_id = -1;
+    MPIDI_POSIX_global.local_rank_dist = (int *) MPL_malloc(MPIR_Process.local_size * sizeof(int),
+                                                            MPL_MEM_SHM);
     for (i = 0; i < MPIR_Process.local_size; i++) {
-        MPIDI_POSIX_global.active_rreq[i] = NULL;
+        MPIDI_POSIX_global.local_rank_dist[i] = MPIDI_POSIX_DIST__LOCAL;
+    }
+    if (MPIR_CVAR_CH4_SHM_POSIX_TOPO_ENABLE) {
+        init_topo_info();
     }
 
     choose_posix_eager();
 
-    mpi_errno = MPIDI_POSIX_eager_init(rank, size);
+    return mpi_errno;
+}
+
+static int posix_world_initialized;
+
+/* FreeBSD work around: only destroy inter-process mutex at finalize */
+struct shm_mutex_entry {
+    int rank;
+    MPL_proc_mutex_t *shm_mutex_ptr;
+};
+
+static UT_icd shm_mutex_icd = { sizeof(struct shm_mutex_entry), NULL, NULL, NULL };
+
+static UT_array *shm_mutex_free_list;
+
+void MPIDI_POSIX_delay_shm_mutex_destroy(int rank, MPL_proc_mutex_t * shm_mutex_ptr)
+{
+    struct shm_mutex_entry entry;
+    entry.rank = rank;
+    entry.shm_mutex_ptr = shm_mutex_ptr;
+    utarray_push_back(shm_mutex_free_list, &entry, MPL_MEM_OTHER);
+}
+
+int MPIDI_POSIX_init_world(void)
+{
+    int mpi_errno = MPI_SUCCESS;
+
+    int rank = MPIR_Process.rank;
+    int size = MPIR_Process.size;
+
+    MPIDI_POSIX_global.num_vcis = 1;
+
+    mpi_errno = init_vci(0);
     MPIR_ERR_CHECK(mpi_errno);
 
-    /* There is no restriction on the tag_bits from the posix shmod side */
-    *tag_bits = MPIR_TAG_BITS_DEFAULT;
+    mpi_errno = MPIDI_POSIX_eager_init(rank, size);
+    MPIR_ERR_CHECK(mpi_errno);
 
     mpi_errno = MPIDI_POSIX_coll_init(rank, size);
     MPIR_ERR_CHECK(mpi_errno);
 
-    MPIR_CHKPMEM_COMMIT();
+    utarray_new(shm_mutex_free_list, &shm_mutex_icd, MPL_MEM_OTHER);
+
+    posix_world_initialized = 1;
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_MPI_INIT_HOOK);
     return mpi_errno;
   fn_fail:
-    /* --BEGIN ERROR HANDLING-- */
-    MPIR_CHKPMEM_REAP();
     goto fn_exit;
-    /* --END ERROR HANDLING-- */
+}
+
+int MPIDI_POSIX_post_init(void)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIDI_POSIX_topo_info_t *local_rank_topo = NULL;
+
+    MPIDI_POSIX_global.num_vcis = MPIDI_global.n_total_vcis;
+    for (int i = 1; i < MPIDI_POSIX_global.num_vcis; i++) {
+        mpi_errno = init_vci(i);
+        MPIR_ERR_CHECK(mpi_errno);
+    }
+
+    mpi_errno = MPIDI_POSIX_eager_post_init();
+    MPIR_ERR_CHECK(mpi_errno);
+
+    /* gather topo info from local procs and calculate distance */
+    if (MPIR_CVAR_CH4_SHM_POSIX_TOPO_ENABLE && MPIR_Process.local_size > 1) {
+        int topo_info_size = sizeof(MPIDI_POSIX_topo_info_t);
+        local_rank_topo = MPL_calloc(MPIR_Process.local_size, topo_info_size, MPL_MEM_SHM);
+        mpi_errno = MPIR_Allgather_fallback(&MPIDI_POSIX_global.topo, topo_info_size, MPI_BYTE,
+                                            local_rank_topo, topo_info_size, MPI_BYTE,
+                                            MPIR_Process.comm_world->node_comm, MPIR_ERR_NONE);
+        MPIR_ERR_CHECK(mpi_errno);
+        for (int i = 0; i < MPIR_Process.local_size; i++) {
+            if (local_rank_topo[i].l3_cache_id == -1 || local_rank_topo[i].numa_id == -1) {
+                /* if topo info is incomplete, treat the node as local as fallback */
+                MPIDI_POSIX_global.local_rank_dist[i] = MPIDI_POSIX_DIST__LOCAL;
+                continue;
+            }
+            if (local_rank_topo[i].l3_cache_id != MPIDI_POSIX_global.topo.l3_cache_id) {
+                MPIDI_POSIX_global.local_rank_dist[i] = MPIDI_POSIX_DIST__NO_SHARED_CACHE;
+                continue;
+            }
+            if (local_rank_topo[i].numa_id != MPIDI_POSIX_global.topo.numa_id) {
+                MPIDI_POSIX_global.local_rank_dist[i] = MPIDI_POSIX_DIST__INTER_NUMA;
+                continue;
+            }
+        }
+
+        if (MPIR_CVAR_DEBUG_SUMMARY >= 2) {
+            if (MPIR_Process.rank == 0) {
+                fprintf(stdout, "====== POSIX Topo Dist ======\n");
+            }
+            fprintf(stdout, "Rank: %d, Local_rank: %d [ %d", MPIR_Process.rank,
+                    MPIR_Process.local_rank, MPIDI_POSIX_global.local_rank_dist[0]);
+            for (int i = 1; i < MPIR_Process.local_size; i++) {
+                fprintf(stdout, ", %d", MPIDI_POSIX_global.local_rank_dist[i]);
+            }
+            fprintf(stdout, " ]\n");
+            if (MPIR_Process.rank == 0) {
+                fprintf(stdout, "=============================\n");
+            }
+        }
+    }
+
+  fn_exit:
+    MPL_free(local_rank_topo);
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
 }
 
 int MPIDI_POSIX_mpi_finalize_hook(void)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_MPI_FINALIZE_HOOK);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_MPI_FINALIZE_HOOK);
+    MPIR_FUNC_ENTER;
 
-    mpi_errno = MPIDI_POSIX_eager_finalize();
-    MPIR_ERR_CHECK(mpi_errno);
+    if (posix_world_initialized) {
+        mpi_errno = MPIDI_POSIX_eager_finalize();
+        MPIR_ERR_CHECK(mpi_errno);
 
-    MPIDU_genq_private_pool_destroy_unsafe(MPIDI_POSIX_global.am_hdr_buf_pool);
+        mpi_errno = MPIDI_POSIX_coll_finalize();
+        MPIR_ERR_CHECK(mpi_errno);
 
-    MPL_free(MPIDI_POSIX_global.active_rreq);
+        struct shm_mutex_entry *p;
+        for (p = (struct shm_mutex_entry *) utarray_front(shm_mutex_free_list); p != NULL;
+             p = (struct shm_mutex_entry *) utarray_next(shm_mutex_free_list, p)) {
+            if (p->rank == 0) {
+                MPIDI_POSIX_RMA_MUTEX_DESTROY(p->shm_mutex_ptr);
+            }
+            mpi_errno = MPIDU_shm_free(p->shm_mutex_ptr);
+            MPIR_ERR_CHECK(mpi_errno);
+        }
+        utarray_free(shm_mutex_free_list);
+    }
 
-    mpi_errno = MPIDI_POSIX_coll_finalize();
-    MPIR_ERR_CHECK(mpi_errno);
+    for (int vci = 0; vci < MPIDI_POSIX_global.num_vcis; vci++) {
+        MPIDU_genq_private_pool_destroy(MPIDI_POSIX_global.per_vci[vci].am_hdr_buf_pool);
+        MPL_free(MPIDI_POSIX_global.per_vci[vci].active_rreq);
+    }
 
     MPL_free(MPIDI_POSIX_global.local_ranks);
-    /* MPL_free(MPIDI_POSIX_global.local_procs); */
+    MPL_free(MPIDI_POSIX_global.local_rank_dist);
+
+    posix_world_initialized = 0;
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_MPI_FINALIZE_HOOK);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
   fn_fail:
     goto fn_exit;
@@ -222,16 +379,27 @@ int MPIDI_POSIX_mpi_finalize_hook(void)
 int MPIDI_POSIX_coll_init(int rank, int size)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_COLL_INIT);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_COLL_INIT);
+    MPIR_FUNC_ENTER;
 
     /* Initialize collective selection */
     if (!strcmp(MPIR_CVAR_CH4_POSIX_COLL_SELECTION_TUNING_JSON_FILE, "")) {
         mpi_errno = MPIR_Csel_create_from_buf(MPIDI_POSIX_coll_generic_json,
                                               create_container, &MPIDI_global.shm.posix.csel_root);
     } else {
-        mpi_errno = MPIR_Csel_create_from_file(MPIR_CVAR_CH4_COLL_SELECTION_TUNING_JSON_FILE,
+        mpi_errno = MPIR_Csel_create_from_file(MPIR_CVAR_CH4_POSIX_COLL_SELECTION_TUNING_JSON_FILE,
                                                create_container, &MPIDI_global.shm.posix.csel_root);
+    }
+    MPIR_ERR_CHECK(mpi_errno);
+
+    /* Initialize collective selection for gpu */
+    if (!strcmp(MPIR_CVAR_CH4_POSIX_COLL_SELECTION_TUNING_JSON_FILE_GPU, "")) {
+        mpi_errno = MPIR_Csel_create_from_buf(MPIDI_POSIX_coll_generic_json,
+                                              create_container,
+                                              &MPIDI_global.shm.posix.csel_root_gpu);
+    } else {
+        mpi_errno =
+            MPIR_Csel_create_from_file(MPIR_CVAR_CH4_POSIX_COLL_SELECTION_TUNING_JSON_FILE_GPU,
+                                       create_container, &MPIDI_global.shm.posix.csel_root_gpu);
     }
     MPIR_ERR_CHECK(mpi_errno);
 
@@ -248,7 +416,7 @@ int MPIDI_POSIX_coll_init(int rank, int size)
     MPL_atomic_relaxed_store_uint64(MPIDI_POSIX_shm_limit_counter, 0);
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_COLL_INIT);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
   fn_fail:
     goto fn_exit;
@@ -259,8 +427,7 @@ int MPIDI_POSIX_coll_finalize(void)
     int mpi_errno = MPI_SUCCESS;
     static MPL_atomic_uint64_t MPIDI_POSIX_dummy_shm_limit_counter;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_COLL_FINALIZE);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_COLL_FINALIZE);
+    MPIR_FUNC_ENTER;
 
     /* Destroy the shared counter which was used to track the amount of shared memory created
      * per node for intra-node collectives */
@@ -276,46 +443,24 @@ int MPIDI_POSIX_coll_finalize(void)
         MPIR_ERR_CHECK(mpi_errno);
     }
 
+    if (MPIDI_global.shm.posix.csel_root_gpu) {
+        mpi_errno = MPIR_Csel_free(MPIDI_global.shm.posix.csel_root_gpu);
+        MPIR_ERR_CHECK(mpi_errno);
+    }
+
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_COLL_FINALIZE);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
   fn_fail:
     goto fn_exit;
 }
 
-int MPIDI_POSIX_get_vci_attr(int vci)
+void *MPIDI_POSIX_mpi_alloc_mem(MPI_Aint size, MPIR_Info * info_ptr)
 {
-    MPIR_Assert(0 <= vci && vci < 1);
-    return MPIDI_VCI_TX | MPIDI_VCI_RX;
-}
-
-void *MPIDI_POSIX_mpi_alloc_mem(size_t size, MPIR_Info * info_ptr)
-{
-    MPIR_Assert(0);
-    return NULL;
+    return MPIDIG_mpi_alloc_mem(size, info_ptr);
 }
 
 int MPIDI_POSIX_mpi_free_mem(void *ptr)
 {
-    MPIR_Assert(0);
-    return MPI_SUCCESS;
-}
-
-int MPIDI_POSIX_get_local_upids(MPIR_Comm * comm, size_t ** local_upid_size, char **local_upids)
-{
-    MPIR_Assert(0);
-    return MPI_SUCCESS;
-}
-
-int MPIDI_POSIX_upids_to_lupids(int size, size_t * remote_upid_size, char *remote_upids,
-                                int **remote_lupids)
-{
-    MPIR_Assert(0);
-    return MPI_SUCCESS;
-}
-
-int MPIDI_POSIX_create_intercomm_from_lpids(MPIR_Comm * newcomm_ptr, int size, const int lpids[])
-{
-    MPIR_Assert(0);
-    return MPI_SUCCESS;
+    return MPIDIG_mpi_free_mem(ptr);
 }

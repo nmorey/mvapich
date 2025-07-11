@@ -1,0 +1,27 @@
+/*D
+   MPI_T_category_get_events - Query which event types are contained in a particular category.
+
+Synopsis:
+.vb
+int MPI_T_category_get_events(int cat_index, int len, int indices[])
+.ve
+
+Input Parameters:
++ cat_index - index of the category to be queried, in the range $0$ and $num_cat-1$ (integer)
+- len - the length of the indices array (integer)
+
+Output Parameters:
+. indices - an integer array of size len, indicating event type indices (integer)
+
+.N ThreadSafe
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_T_ERR_INVALID
+.N MPI_T_ERR_INVALID_INDEX
+.N MPI_T_ERR_NOT_INITIALIZED
+.N MPI_ERR_OTHER
+
+D*/
+

@@ -3,18 +3,6 @@
  *     See COPYRIGHT in top-level directory
  */
 
-/* Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- *
- */
-
 #include "mpidimpl.h"
 
 /* FIXME: Explain the contents of this file */
@@ -51,10 +39,8 @@ void MPIDI_CH3U_Buffer_copy(
     intptr_t rdata_sz;
     MPIR_Datatype* sdt_ptr;
     MPIR_Datatype* rdt_ptr;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3U_BUFFER_COPY);
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MEMCPY);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3U_BUFFER_COPY);
+    MPIR_FUNC_ENTER;
     *smpi_errno = MPI_SUCCESS;
     *rmpi_errno = MPI_SUCCESS;
 
@@ -80,15 +66,14 @@ void MPIDI_CH3U_Buffer_copy(
     
     if (sdt_contig && rdt_contig)
     {
-	MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MEMCPY);
-	MPIR_Memcpy((char *)rbuf + rdt_true_lb, (const char *)sbuf + sdt_true_lb, sdata_sz);
-	MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MEMCPY);
+	MPIR_Memcpy(MPIR_get_contig_ptr(rbuf, rdt_true_lb), MPIR_get_contig_ptr(sbuf, sdt_true_lb), sdata_sz);
 	*rsz = sdata_sz;
     }
     else if (sdt_contig)
     {
         MPI_Aint actual_unpack_bytes;
-        MPIR_Typerep_unpack((char*) sbuf + sdt_true_lb, sdata_sz, rbuf, rcount, rdt, 0, &actual_unpack_bytes);
+        MPIR_Typerep_unpack(MPIR_get_contig_ptr(sbuf, sdt_true_lb), sdata_sz, rbuf, rcount, rdt, 0,
+                            &actual_unpack_bytes, MPIR_TYPEREP_FLAG_NONE);
         /* --BEGIN ERROR HANDLING-- */
         if (actual_unpack_bytes != sdata_sz)
         {
@@ -100,7 +85,8 @@ void MPIDI_CH3U_Buffer_copy(
     else if (rdt_contig)
     {
 	MPI_Aint actual_pack_bytes;
-	MPIR_Typerep_pack(sbuf, scount, sdt, 0, (char*)rbuf + rdt_true_lb, sdata_sz, &actual_pack_bytes);
+    MPIR_Typerep_pack(sbuf, scount, sdt, 0, MPIR_get_contig_ptr(rbuf, rdt_true_lb), sdata_sz,
+                      &actual_pack_bytes, MPIR_TYPEREP_FLAG_NONE);
 	/* --BEGIN ERROR HANDLING-- */
 	if (actual_pack_bytes != sdata_sz)
 	{
@@ -150,8 +136,10 @@ void MPIDI_CH3U_Buffer_copy(
 	    if (max_pack_bytes == 0)
 		break;
 
-	    MPIR_Typerep_pack(sbuf, scount, sdt, sfirst, buf, max_pack_bytes, &actual_pack_bytes);
-	    MPIR_Typerep_unpack(buf, actual_pack_bytes, rbuf, rcount, rdt, rfirst, &actual_unpack_bytes);
+        MPIR_Typerep_pack(sbuf, scount, sdt, sfirst, buf, max_pack_bytes, &actual_pack_bytes,
+                          MPIR_TYPEREP_FLAG_NONE);
+        MPIR_Typerep_unpack(buf, actual_pack_bytes, rbuf, rcount, rdt, rfirst, &actual_unpack_bytes,
+                            MPIR_TYPEREP_FLAG_NONE);
 	    MPIR_Assert(actual_pack_bytes == actual_unpack_bytes);
 
 	    sfirst += actual_pack_bytes;
@@ -171,160 +159,9 @@ void MPIDI_CH3U_Buffer_copy(
     }
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3U_BUFFER_COPY);
+    MPIR_FUNC_EXIT;
 }
 
-
-#ifdef _ENABLE_CUDA_
-#undef FUNCNAME
-#define FUNCNAME MPIDI_CH3U_Buffer_copy_device
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-void MPIDI_CH3U_Buffer_copy_device(
-        const void * const sbuf, int scount, MPI_Datatype sdt, int * smpi_errno,
-        void * const rbuf, int rcount, MPI_Datatype rdt, intptr_t * rsz,
-        int * rmpi_errno)
-{
-    int sdt_contig;
-    int rdt_contig;
-    MPI_Aint sdt_true_lb, rdt_true_lb;
-    intptr_t sdata_sz;
-    intptr_t rdata_sz;
-    MPIR_Datatype * sdt_ptr;
-    MPIR_Datatype * rdt_ptr;
-    MPIDI_STATE_DECL(MPID_STATE_MPIDI_CH3U_BUFFER_COPY_CUDA);
-    MPIDI_STATE_DECL(MPID_STATE_MEMCPY);
-
-    MPIDI_FUNC_ENTER(MPID_STATE_MPIDI_CH3U_BUFFER_COPY_CUDA);
-    *smpi_errno = MPI_SUCCESS;
-    *rmpi_errno = MPI_SUCCESS;
-
-    MPIDI_Datatype_get_info(scount, sdt, sdt_contig, sdata_sz, sdt_ptr, sdt_true_lb);
-    MPIDI_Datatype_get_info(rcount, rdt, rdt_contig, rdata_sz, rdt_ptr, rdt_true_lb);
-
-    /* --BEGIN ERROR HANDLING-- */
-    if (sdata_sz > rdata_sz)
-    {
-        MPL_DBG_MSG_FMT(CH3_OTHER,TYPICAL,(MPL_DBG_FDEST,
-                    "message truncated, sdata_sz=" MPIDI_MSG_SZ_FMT " rdata_sz=" MPIDI_MSG_SZ_FMT,
-                    sdata_sz, rdata_sz));
-        sdata_sz = rdata_sz;
-        *rmpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPI_ERR_TRUNCATE, "**truncate", "**truncate %d %d", sdata_sz, rdata_sz );
-    }
-    /* --END ERROR HANDLING-- */
-
-    if (sdata_sz == 0)
-    {
-        *rsz = 0;
-        goto fn_exit;
-    }
-
-    if (sdt_contig && rdt_contig)
-    {
-        MPIDI_FUNC_ENTER(MPID_STATE_MEMCPY);
-        MVP_MPIDI_Memcpy_Device((char *)rbuf + rdt_true_lb,
-                (const char *)sbuf + sdt_true_lb, sdata_sz, deviceMemcpyDefault);
-        MPIDI_FUNC_EXIT(MPID_STATE_MEMCPY);
-        *rsz = sdata_sz;
-    }
-    else if (sdt_contig)
-    {
-        MPID_Segment seg;
-        MPI_Aint last;
-
-        MPID_Segment_init(rbuf, rcount, rdt, &seg, 0);
-        last = sdata_sz;
-        MPL_DBG_MSG_FMT(CH3_OTHER,VERBOSE,(MPL_DBG_FDEST, 
-                    "pre-unpack last=" MPIDI_MSG_SZ_FMT, last ));
-        MPID_Segment_unpack_device(&seg, 0, &last, rdt_ptr, (char*)sbuf + sdt_true_lb);
-        MPL_DBG_MSG_FMT(CH3_OTHER,VERBOSE,(MPL_DBG_FDEST,
-                    "pre-unpack last=" MPIDI_MSG_SZ_FMT, last ));
-        /* --BEGIN ERROR HANDLING-- */
-        if (last != sdata_sz)
-        {
-            *rmpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPI_ERR_TYPE, "**dtypemismatch", 0);
-        }
-        /* --END ERROR HANDLING-- */
-
-        *rsz = last;
-    }
-    else if (rdt_contig)
-    {
-        MPID_Segment seg;
-        MPI_Aint last;
-
-        MPID_Segment_init(sbuf, scount, sdt, &seg, 0);
-        last = sdata_sz;
-        MPL_DBG_MSG_FMT(CH3_OTHER,VERBOSE,(MPL_DBG_FDEST,
-                    "pre-pack last=" MPIDI_MSG_SZ_FMT, last ));
-        MPID_Segment_pack_device(&seg, 0, &last, sdt_ptr, (char*)rbuf + rdt_true_lb);
-        MPL_DBG_MSG_FMT(CH3_OTHER,VERBOSE,(MPL_DBG_FDEST,
-                    "post-pack last=" MPIDI_MSG_SZ_FMT, last ));
-        /* --BEGIN ERROR HANDLING-- */
-        if (last != sdata_sz)
-        {
-            *rmpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPI_ERR_TYPE, "**dtypemismatch", 0);
-        }
-        /* --END ERROR HANDLING-- */
-
-        *rsz = last;
-    }
-    else
-    {
-        char * buf;
-        MPID_Segment sseg;
-        intptr_t sfirst;
-        MPID_Segment rseg;
-        intptr_t rfirst;
-
-        MVP_MPIDI_Malloc_Device(buf, sdata_sz);
-        if (buf == NULL)
-        {
-            MPL_DBG_MSG(CH3_OTHER,TYPICAL,"SRBuf allocation failure");
-            *smpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_FATAL, FCNAME, __LINE__, MPI_ERR_OTHER, "**nomem", 0);
-            *rmpi_errno = *smpi_errno;
-            *rsz = 0;
-            goto fn_exit;
-        }
-
-        MPID_Segment_init(sbuf, scount, sdt, &sseg, 0);
-        MPID_Segment_init(rbuf, rcount, rdt, &rseg, 0);
-
-        sfirst = 0;
-        rfirst = 0;
-        MPI_Aint last = sdata_sz;
-
-        MPL_DBG_MSG_FMT(CH3_OTHER,VERBOSE,(MPL_DBG_FDEST,
-                    "pre-pack first=" MPIDI_MSG_SZ_FMT ", last=" MPIDI_MSG_SZ_FMT, 
-                    sfirst, last ));
-        MPID_Segment_pack_device(&sseg, sfirst, &last, sdt_ptr, buf);
-        MPL_DBG_MSG_FMT(CH3_OTHER,VERBOSE,(MPL_DBG_FDEST,
-                    "post-pack first=" MPIDI_MSG_SZ_FMT ", last=" MPIDI_MSG_SZ_FMT, 
-                    sfirst, last ));
-
-        MPIR_Assert(last > sfirst);
-
-        sfirst = last;
-
-        MPL_DBG_MSG_FMT(CH3_OTHER,VERBOSE,(MPL_DBG_FDEST,
-                    "pre-unpack first=" MPIDI_MSG_SZ_FMT ", last=" MPIDI_MSG_SZ_FMT, 
-                    rfirst, last ));
-        MPID_Segment_unpack_device(&rseg, rfirst, &last, rdt_ptr, buf);
-        MPL_DBG_MSG_FMT(CH3_OTHER,VERBOSE,(MPL_DBG_FDEST,
-                    "post-unpack first=" MPIDI_MSG_SZ_FMT ", last=" MPIDI_MSG_SZ_FMT, 
-                    rfirst, last ));
-        MPIR_Assert(last > rfirst);
-
-        rfirst = last;
-
-        *rsz = rfirst;
-        MVP_MPIDI_Free_Device(buf);
-    }
-
-fn_exit:
-    MPIDI_FUNC_EXIT(MPID_STATE_MPIDI_CH3U_BUFFER_COPY_CUDA);
-}
-#endif
 
 /*
  * This routine is called by mpid_recv and mpid_irecv when a request
@@ -340,37 +177,10 @@ int MPIDI_CH3_RecvFromSelf( MPIR_Request *rreq, void *buf, MPI_Aint count,
     {
 	intptr_t data_sz;
 	
-#ifdef _ENABLE_CUDA_
-    if (mvp_enable_device && is_device_buffer(sreq->dev.user_buf)) {
-        sreq->mrail.device_transfer_mode = DEVICE_TO_DEVICE;
-    } else {
-        sreq->mrail.device_transfer_mode = NONE;
-    }
-
-    if (mvp_enable_device && is_device_buffer(rreq->dev.user_buf)) {
-        rreq->mrail.device_transfer_mode = DEVICE_TO_DEVICE;
-    } else {
-        rreq->mrail.device_transfer_mode = NONE;
-    }
-
-    if (mvp_enable_device &&
-            (DEVICE_TO_DEVICE == sreq->mrail.device_transfer_mode ||
-             DEVICE_TO_DEVICE == rreq->mrail.device_transfer_mode))
-    {
-        MPIDI_CH3U_Buffer_copy_device(
-                sreq->dev.user_buf, sreq->dev.user_count,
-                sreq->dev.datatype, &sreq->status.MPI_ERROR,
-                buf, count, datatype, &data_sz,
-                &rreq->status.MPI_ERROR);
-    } else
-#endif
-    {
-        MPIDI_CH3U_Buffer_copy(
-                sreq->dev.user_buf, sreq->dev.user_count,
-                sreq->dev.datatype, &sreq->status.MPI_ERROR,
-                buf, count, datatype, &data_sz,
-                &rreq->status.MPI_ERROR);
-    }
+	MPIDI_CH3U_Buffer_copy(sreq->dev.user_buf, sreq->dev.user_count,
+			       sreq->dev.datatype, &sreq->status.MPI_ERROR,
+			       buf, count, datatype, &data_sz, 
+			       &rreq->status.MPI_ERROR);
 	MPIR_STATUS_SET_COUNT(rreq->status, data_sz);
 	mpi_errno = MPID_Request_complete(sreq);
         MPIR_ERR_CHECK(mpi_errno);

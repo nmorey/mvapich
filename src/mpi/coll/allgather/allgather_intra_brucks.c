@@ -15,28 +15,25 @@
  * where n is total size of data gathered on each process.
  */
 int MPIR_Allgather_intra_brucks(const void *sendbuf,
-                                int sendcount,
+                                MPI_Aint sendcount,
                                 MPI_Datatype sendtype,
                                 void *recvbuf,
-                                int recvcount,
-                                MPI_Datatype recvtype,
-                                MPIR_Comm * comm_ptr, MPIR_Errflag_t * errflag)
+                                MPI_Aint recvcount,
+                                MPI_Datatype recvtype, MPIR_Comm * comm_ptr, MPIR_Errflag_t errflag)
 {
     int comm_size, rank;
     int mpi_errno = MPI_SUCCESS;
-    int mpi_errno_ret = MPI_SUCCESS;
     MPI_Aint recvtype_extent, recvtype_sz;
     int pof2, src, rem;
     void *tmp_buf = NULL;
-    int curr_cnt, dst;
+    int dst;
 
     MPIR_CHKLMEM_DECL(1);
 
     if (((sendcount == 0) && (sendbuf != MPI_IN_PLACE)) || (recvcount == 0))
         goto fn_exit;
 
-    comm_size = comm_ptr->local_size;
-    rank = comm_ptr->rank;
+    MPIR_THREADCOMM_RANK_SIZE(comm_ptr, rank, comm_size);
 
     MPIR_Datatype_get_extent_macro(recvtype, recvtype_extent);
     MPIR_Datatype_get_size_macro(recvtype, recvtype_sz);
@@ -58,6 +55,7 @@ int MPIR_Allgather_intra_brucks(const void *sendbuf,
 
     /* do the first \floor(\lg p) steps */
 
+    MPI_Aint curr_cnt;
     curr_cnt = recvcount;
     pof2 = 1;
     while (pof2 <= comm_size / 2) {
@@ -69,14 +67,7 @@ int MPIR_Allgather_intra_brucks(const void *sendbuf,
                                   ((char *) tmp_buf + curr_cnt * recvtype_sz),
                                   curr_cnt * recvtype_sz, MPI_BYTE,
                                   src, MPIR_ALLGATHER_TAG, comm_ptr, MPI_STATUS_IGNORE, errflag);
-        if (mpi_errno) {
-            /* for communication errors, just record the error but continue */
-            *errflag =
-                MPIX_ERR_PROC_FAILED ==
-                MPIR_ERR_GET_CLASS(mpi_errno) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER;
-            MPIR_ERR_SET(mpi_errno, *errflag, "**fail");
-            MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-        }
+        MPIR_ERR_CHECK(mpi_errno);
         curr_cnt *= 2;
         pof2 *= 2;
     }
@@ -93,14 +84,7 @@ int MPIR_Allgather_intra_brucks(const void *sendbuf,
                                   ((char *) tmp_buf + curr_cnt * recvtype_sz),
                                   rem * recvcount * recvtype_sz, MPI_BYTE,
                                   src, MPIR_ALLGATHER_TAG, comm_ptr, MPI_STATUS_IGNORE, errflag);
-        if (mpi_errno) {
-            /* for communication errors, just record the error but continue */
-            *errflag =
-                MPIX_ERR_PROC_FAILED ==
-                MPIR_ERR_GET_CLASS(mpi_errno) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER;
-            MPIR_ERR_SET(mpi_errno, *errflag, "**fail");
-            MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-        }
+        MPIR_ERR_CHECK(mpi_errno);
     }
 
     /* Rotate blocks in tmp_buf down by (rank) blocks and store
@@ -121,13 +105,7 @@ int MPIR_Allgather_intra_brucks(const void *sendbuf,
 
   fn_exit:
     MPIR_CHKLMEM_FREEALL();
-    if (mpi_errno_ret)
-        mpi_errno = mpi_errno_ret;
-    else if (*errflag != MPIR_ERR_NONE)
-        MPIR_ERR_SET(mpi_errno, *errflag, "**coll_fail");
-
     return mpi_errno;
-
   fn_fail:
     goto fn_exit;
 }

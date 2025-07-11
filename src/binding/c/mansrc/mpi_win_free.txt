@@ -1,0 +1,25 @@
+/*D
+   MPI_Win_free - Free an MPI RMA window
+
+Synopsis:
+.vb
+int MPI_Win_free(MPI_Win *win)
+.ve
+
+Input/Output Parameters:
+. win - window object (handle)
+
+Notes:
+If successfully freed, 'win' is set to 'MPI_WIN_NULL'.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_WIN
+.N MPI_ERR_OTHER
+
+D*/
+

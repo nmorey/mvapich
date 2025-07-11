@@ -1,0 +1,25 @@
+/*D
+   MPI_Pready_range - Indicates that a given range of the send buffer in a partitioned
+
+Synopsis:
+.vb
+int MPI_Pready_range(int partition_low, int partition_high,
+                     MPI_Request request)
+.ve
+
+Input Parameters:
++ partition_low - partition to mark lowest partition ready for transfer (non-negative integer)
+. partition_high - partition to mark highest partition ready for transfer (non-negative integer)
+- request - partitioned communication request (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_REQUEST
+.N MPI_ERR_OTHER
+
+D*/
+

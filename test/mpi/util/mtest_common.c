@@ -4,17 +4,20 @@
  */
 
 #include "mpitest.h"
+#include "mtest_common.h"
+#include <assert.h>
+#include <string.h>
 
 /* ------------------------------------------------------------------------ */
 /* Utilities related to test environment */
 
-/* Some tests would like to test with large buffer, but an arbitary size may fail
+/* Some tests would like to test with large buffer, but an arbitrary size may fail
    on machines that does not have sufficient memory or the OS may not support it.
    This routine provides a portable interface to get that max size.
-   It is taking the simpliest solution here: default to 2GB, unless user set via
+   It is taking the simplest solution here: default to 2GB, unless user set via
    environment variable -- MPITEST_MAXBUFFER
 */
-MPI_Aint MTestDefaultMaxBufferSize()
+MPI_Aint MTestDefaultMaxBufferSize(void)
 {
     MPI_Aint max_size = 1073741824;
     if (sizeof(void *) == 4) {
@@ -65,8 +68,9 @@ static void MTestArgListInsert(MTestArgListEntry ** head, char *arg, char *val)
     tmp->next->next = NULL;
 }
 
-static char *MTestArgListSearch(MTestArgListEntry * head, const char *arg)
+char *MTestArgListSearch(MTestArgList * dummy_head, const char *arg)
 {
+    MTestArgListEntry *head = dummy_head;
     char *val = NULL;
 
     while (head && strcmp(head->arg, arg))
@@ -112,10 +116,12 @@ MTestArgList *MTestArgListCreate(int argc, char *argv[])
 
     for (i = 1; i < argc; i++) {
         /* extract arg and val */
+        assert(argv[i][0] == '-' && argv[i][1] != '-');
         string = strdup(argv[i]);
         tmp = strtok(string, "=");
         arg = strdup(tmp + 1);  /* skip prepending '-' */
         tmp = strtok(NULL, "=");
+        assert(tmp != NULL);
         val = strdup(tmp);
 
         MTestArgListInsert(&head, arg, val);
@@ -178,16 +184,47 @@ long MTestArgListGetLong_with_default(MTestArgList * head, const char *arg, long
 mtest_mem_type_e MTestArgListGetMemType(MTestArgList * head, const char *arg)
 {
     const char *memtype = MTestArgListGetString_with_default(head, arg, NULL);
-    if (!memtype || strcmp(memtype, "host") == 0)
+    if (!memtype || strcmp(memtype, "host") == 0) {
         return MTEST_MEM_TYPE__UNREGISTERED_HOST;
-    else if (strcmp(memtype, "reg_host") == 0)
+    } else if (strcmp(memtype, "reg_host") == 0) {
         return MTEST_MEM_TYPE__REGISTERED_HOST;
-    else if (strcmp(memtype, "device") == 0)
+    } else if (strcmp(memtype, "device") == 0) {
         return MTEST_MEM_TYPE__DEVICE;
-    else if (strcmp(memtype, "shared") == 0) {
+    } else if (strcmp(memtype, "shared") == 0) {
         return MTEST_MEM_TYPE__SHARED;
-    } else
+    } else if (strcmp(memtype, "random") == 0) {
+        return MTEST_MEM_TYPE__RANDOM;
+    } else if (strcmp(memtype, "all") == 0) {
+        return MTEST_MEM_TYPE__ALL;
+    } else {
         return MTEST_MEM_TYPE__UNSET;
+    }
+}
+
+mtest_mem_type_e MTest_memtype_random(void)
+{
+    /* roll our own rand() since we need prevent interfering with dtpools random pool.
+     * Using the code from libc man page */
+    static unsigned long number = 1;
+    number = number * 1103515245 + 12345;
+    return number / 65536 % 4 + MTEST_MEM_TYPE__UNREGISTERED_HOST;
+}
+
+const char *MTest_memtype_name(mtest_mem_type_e memtype)
+{
+    if (memtype == MTEST_MEM_TYPE__UNREGISTERED_HOST) {
+        return "host";
+    } else if (memtype == MTEST_MEM_TYPE__REGISTERED_HOST) {
+        return "reg_host";
+    } else if (memtype == MTEST_MEM_TYPE__DEVICE) {
+        return "device";
+    } else if (memtype == MTEST_MEM_TYPE__SHARED) {
+        return "shared";
+    } else if (memtype == MTEST_MEM_TYPE__RANDOM) {
+        return "random";
+    } else {
+        return "INVALID";
+    }
 }
 
 int MTestIsBasicDtype(MPI_Datatype type)
@@ -200,15 +237,99 @@ int MTestIsBasicDtype(MPI_Datatype type)
     return is_basic;
 }
 
+/* parse comma-separated integer string, return the integer array and
+ * set num in output. User is responsible freeing the memory.
+ */
+int *MTestParseIntList(const char *str, int *num)
+{
+    int i = 0;
+    for (const char *s = str; *s; s++) {
+        if (*s == ',') {
+            i++;
+        }
+    }
+    *num = i + 1;
+
+    int *ints = malloc((*num) * sizeof(int));
+
+    i = 0;
+    ints[i] = atoi(str);
+    for (const char *s = str; *s; s++) {
+        if (*s == ',') {
+            i++;
+            ints[i] = atoi(s + 1);
+        }
+    }
+    return ints;
+}
+
+/* parse comma-separated string list, return the string array and
+ * set num in output. Call MTestFreeStringList to free the returned
+ * string list.
+ */
+char **MTestParseStringList(const char *str, int *num)
+{
+    int i, j;
+
+    i = 0;
+    for (const char *s = str; *s; s++) {
+        if (*s == ',') {
+            i++;
+        }
+    }
+    *num = i + 1;
+
+    char **strlist = malloc((*num) * sizeof(char *));
+
+    i = 0;      /* index to strlist */
+    j = 0;      /* index within the str */
+    const char *s = str;
+    while (true) {
+        if (*s == '\0' || *s == ',') {
+            /* previous str has j chars */
+            strlist[i] = malloc(j + 1);
+            strncpy(strlist[i], s - j, j);
+            strlist[i][j] = '\0';
+            i++;
+            j = 0;
+        } else {
+            j++;
+        }
+
+        if (!*s) {
+            break;
+        } else {
+            s++;
+        }
+    }
+
+    return strlist;
+}
+
+void MTestFreeStringList(char **strlist, int num)
+{
+    for (int i = 0; i < num; i++) {
+        free(strlist[i]);
+    }
+    free(strlist);
+}
+
 /* ------------------------------------------------------------------------ */
 /* Utilities to support device memory allocation */
-#if defined(HAVE_CUDA) || defined(HAVE_ZE)
+#if defined(HAVE_CUDA) || defined(HAVE_ZE) || defined(HAVE_HIP)
 #include <assert.h>
 #ifdef HAVE_CUDA
 #include <cuda_runtime_api.h>
+#define CHECK_CUDAMALLOC(err)                                   \
+    if ((err) == cudaErrorMemoryAllocation) {                   \
+        fprintf(stderr, "CUDA memory allocation failed\n");     \
+        MPI_Abort(MPI_COMM_SELF, 1);                            \
+    }
+#endif
+#ifdef HAVE_HIP
+#include <hip/hip_runtime_api.h>
 #endif
 int ndevices = -1;
-int device_id = -1;
 #ifdef HAVE_ZE
 #include "level_zero/ze_api.h"
 ze_driver_handle_t driver = NULL;
@@ -222,28 +343,26 @@ ze_event_pool_handle_t *event_pools = NULL;
 
 /* allocates memory of specified type */
 void MTestAlloc(size_t size, mtest_mem_type_e type, void **hostbuf, void **devicebuf,
-                bool is_calloc)
+                bool is_calloc, int device_id)
 {
+
 #ifdef HAVE_CUDA
-    if (device_id == -1) {
+    if (ndevices == -1) {
         cudaGetDeviceCount(&ndevices);
         assert(ndevices != -1);
-        if (ndevices > 1)
-            /*
-             * set initial device id to 1 to simulate the case where
-             * the user is trying to move data from a device that is
-             * not the "current" device
-             */
-            device_id = 1;
-        else
-            device_id = 0;
+    }
+#endif
+
+#ifdef HAVE_HIP
+    if (ndevices == -1) {
+        hipGetDeviceCount(&ndevices);
+        assert(ndevices != -1);
     }
 #endif
 
 #ifdef HAVE_ZE
-    if (device_id == -1) {
-        /* Initilize ZE driver and device only at first call. */
-        device_id = 0;
+    if (ndevices == -1) {
+        /* Initialize ZE driver and device only at first call. */
         zerr = zeInit(0);
         assert(zerr == ZE_RESULT_SUCCESS);
 
@@ -272,6 +391,8 @@ void MTestAlloc(size_t size, mtest_mem_type_e type, void **hostbuf, void **devic
 
             for (int j = 0; j < num_devices; j++) {
                 ze_device_properties_t device_properties;
+                device_properties.stype = ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES;
+                device_properties.pNext = NULL;
                 zerr = zeDeviceGetProperties(all_devices[j], &device_properties);
                 assert(zerr == ZE_RESULT_SUCCESS);
 
@@ -310,14 +431,16 @@ void MTestAlloc(size_t size, mtest_mem_type_e type, void **hostbuf, void **devic
         descriptor.priority = ZE_COMMAND_QUEUE_PRIORITY_NORMAL;
 
         uint32_t numQueueGroups = 0;
-        zerr = zeDeviceGetCommandQueueGroupProperties(device[device_id], &numQueueGroups, NULL);
+        zerr = zeDeviceGetCommandQueueGroupProperties(device[0], &numQueueGroups, NULL);
         assert(zerr == ZE_RESULT_SUCCESS && numQueueGroups);
         ze_command_queue_group_properties_t *queueProperties =
             (ze_command_queue_group_properties_t *)
             malloc(sizeof(ze_command_queue_group_properties_t) * numQueueGroups);
-        zerr =
-            zeDeviceGetCommandQueueGroupProperties(device[device_id], &numQueueGroups,
-                                                   queueProperties);
+        for (int i = 0; i < numQueueGroups; i++) {
+            queueProperties[i].stype = ZE_STRUCTURE_TYPE_COMMAND_QUEUE_GROUP_PROPERTIES;
+            queueProperties[i].pNext = NULL;
+        }
+        zerr = zeDeviceGetCommandQueueGroupProperties(device[0], &numQueueGroups, queueProperties);
         descriptor.ordinal = -1;
         for (int i = 0; i < numQueueGroups; i++) {
             if (queueProperties[i].flags & ZE_COMMAND_QUEUE_GROUP_PROPERTY_FLAG_COMPUTE) {
@@ -358,24 +481,44 @@ void MTestAlloc(size_t size, mtest_mem_type_e type, void **hostbuf, void **devic
             *hostbuf = *devicebuf;
 #ifdef HAVE_CUDA
     } else if (type == MTEST_MEM_TYPE__REGISTERED_HOST) {
-        cudaMallocHost(devicebuf, size);
+        CHECK_CUDAMALLOC(cudaMallocHost(devicebuf, size));
         if (is_calloc)
             memset(*devicebuf, 0, size);
         if (hostbuf)
             *hostbuf = *devicebuf;
     } else if (type == MTEST_MEM_TYPE__DEVICE) {
-        cudaSetDevice(device_id);
-        cudaMalloc(devicebuf, size);
+        cudaSetDevice(device_id % ndevices);
+        CHECK_CUDAMALLOC(cudaMalloc(devicebuf, size));
         if (hostbuf) {
-            cudaMallocHost(hostbuf, size);
+            CHECK_CUDAMALLOC(cudaMallocHost(hostbuf, size));
             if (is_calloc)
                 memset(*hostbuf, 0, size);
         }
-        device_id++;
-        device_id %= ndevices;
     } else if (type == MTEST_MEM_TYPE__SHARED) {
-        cudaSetDevice(device_id);
-        cudaMallocManaged(devicebuf, size, cudaMemAttachGlobal);
+        cudaSetDevice(device_id % ndevices);
+        CHECK_CUDAMALLOC(cudaMallocManaged(devicebuf, size, cudaMemAttachGlobal));
+        if (hostbuf)
+            *hostbuf = *devicebuf;
+#endif
+
+#ifdef HAVE_HIP
+    } else if (type == MTEST_MEM_TYPE__REGISTERED_HOST) {
+        hipHostMalloc(devicebuf, size, hipHostMallocDefault);
+        if (is_calloc)
+            memset(*devicebuf, 0, size);
+        if (hostbuf)
+            *hostbuf = *devicebuf;
+    } else if (type == MTEST_MEM_TYPE__DEVICE) {
+        hipSetDevice(device_id % ndevices);
+        hipMalloc(devicebuf, size);
+        if (hostbuf) {
+            hipHostMalloc(hostbuf, size, hipHostMallocDefault);
+            if (is_calloc)
+                memset(*hostbuf, 0, size);
+        }
+    } else if (type == MTEST_MEM_TYPE__SHARED) {
+        hipSetDevice(device_id % ndevices);
+        hipMallocManaged(devicebuf, size, hipMemAttachGlobal);
         if (hostbuf)
             *hostbuf = *devicebuf;
 #endif
@@ -388,7 +531,7 @@ void MTestAlloc(size_t size, mtest_mem_type_e type, void **hostbuf, void **devic
         host_desc.pNext = NULL;
         host_desc.flags = 0;
 
-        /* Currently ZE ignores this augument and uses an internal alignment
+        /* Currently ZE ignores this argument and uses an internal alignment
          * value. However, this behavior can change in the future. */
         mem_alignment = 1;
         zerr = zeMemAllocHost(context, &host_desc, size, mem_alignment, devicebuf);
@@ -405,12 +548,11 @@ void MTestAlloc(size_t size, mtest_mem_type_e type, void **hostbuf, void **devic
         device_desc.pNext = NULL;
         device_desc.flags = 0;
         device_desc.ordinal = 0;        /* We currently support a single memory type */
-        /* Currently ZE ignores this augument and uses an internal alignment
+        /* Currently ZE ignores this argument and uses an internal alignment
          * value. However, this behavior can change in the future. */
         mem_alignment = 1;
-        zerr =
-            zeMemAllocDevice(context, &device_desc, size, mem_alignment, device[device_id],
-                             devicebuf);
+        zerr = zeMemAllocDevice(context, &device_desc, size, mem_alignment,
+                                device[device_id % ndevices], devicebuf);
         assert(zerr == ZE_RESULT_SUCCESS);
 
         if (hostbuf) {
@@ -423,8 +565,6 @@ void MTestAlloc(size_t size, mtest_mem_type_e type, void **hostbuf, void **devic
             if (is_calloc)
                 memset(*hostbuf, 0, size);
         }
-        device_id++;
-        device_id %= ndevices;
     } else if (type == MTEST_MEM_TYPE__SHARED) {
         size_t mem_alignment;
         ze_device_mem_alloc_desc_t device_desc;
@@ -436,12 +576,12 @@ void MTestAlloc(size_t size, mtest_mem_type_e type, void **hostbuf, void **devic
         host_desc.stype = ZE_STRUCTURE_TYPE_HOST_MEM_ALLOC_DESC;
         host_desc.pNext = NULL;
         host_desc.flags = 0;
-        /* Currently ZE ignores this augument and uses an internal alignment
+        /* Currently ZE ignores this argument and uses an internal alignment
          * value. However, this behavior can change in the future. */
         mem_alignment = 1;
         zerr =
             zeMemAllocShared(context, &device_desc, &host_desc, size, mem_alignment,
-                             device[device_id], devicebuf);
+                             device[device_id % ndevices], devicebuf);
         assert(zerr == ZE_RESULT_SUCCESS);
         if (hostbuf)
             *hostbuf = *devicebuf;
@@ -467,6 +607,17 @@ void MTestFree(mtest_mem_type_e type, void *hostbuf, void *devicebuf)
     } else if (type == MTEST_MEM_TYPE__SHARED) {
         cudaFree(devicebuf);
 #endif
+#ifdef HAVE_HIP
+    } else if (type == MTEST_MEM_TYPE__REGISTERED_HOST) {
+        hipHostFree(devicebuf);
+    } else if (type == MTEST_MEM_TYPE__DEVICE) {
+        hipFree(devicebuf);
+        if (hostbuf) {
+            hipHostFree(hostbuf);
+        }
+    } else if (type == MTEST_MEM_TYPE__SHARED) {
+        hipFree(devicebuf);
+#endif
 #ifdef HAVE_ZE
     } else if (type == MTEST_MEM_TYPE__REGISTERED_HOST) {
         zerr = zeMemFree(context, devicebuf);
@@ -491,14 +642,19 @@ void MTestCopyContent(const void *sbuf, void *dbuf, size_t size, mtest_mem_type_
 #ifdef HAVE_CUDA
         cudaMemcpy(dbuf, sbuf, size, cudaMemcpyDefault);
 #endif
+#ifdef HAVE_HIP
+        hipMemcpy(dbuf, sbuf, size, hipMemcpyDefault);
+#endif
 #ifdef HAVE_ZE
         int dev_id = -1, s_dev_id = -1, d_dev_id = -1;
         struct {
             ze_memory_allocation_properties_t prop;
             ze_device_handle_t device;
         } s_attr, d_attr;
-        memset(&s_attr.prop, 0, sizeof(ze_memory_allocation_properties_t));
-        memset(&d_attr.prop, 0, sizeof(ze_memory_allocation_properties_t));
+        s_attr.prop.stype = ZE_STRUCTURE_TYPE_MEMORY_ALLOCATION_PROPERTIES;
+        s_attr.prop.pNext = NULL;
+        d_attr.prop.stype = ZE_STRUCTURE_TYPE_MEMORY_ALLOCATION_PROPERTIES;
+        d_attr.prop.pNext = NULL;
         zerr = zeMemGetAllocProperties(context, sbuf, &s_attr.prop, &s_attr.device);
         assert(zerr == ZE_RESULT_SUCCESS);
         if (s_attr.device) {
@@ -556,10 +712,10 @@ void MTestCopyContent(const void *sbuf, void *dbuf, size_t size, mtest_mem_type_
     }
 }
 
-void MTest_finalize_gpu()
+void MTest_finalize_gpu(void)
 {
 #ifdef HAVE_ZE
-    if (device_id != -1) {
+    if (ndevices != -1) {
         /* Free GPU resource */
         free(device);
         assert(event_pools && command_lists);
@@ -572,6 +728,141 @@ void MTest_finalize_gpu()
         free(event_pools);
         free(command_lists);
         zerr = zeContextDestroy(context);
+    }
+#endif
+}
+
+void MTest_init_visibility_gpu()
+{
+    int err = 0;
+#ifdef HAVE_ZE
+    const char *dev_str = 0;
+    const char *subdev_str = 0;
+    const char *affinity_str = 0;
+    char *mask = 0;
+    int device_count = -1;
+    int subdevice_count = -1;
+
+    /* Only set a mask if MTEST_GPU_VISIBILITY_AFFINITY is set. Possible options:
+     * - CONTIGUOUS_DEVICE: processes are given a single device in monotonically increasing order
+     *   - Example (3 devices, 4 ranks):
+     *     rank 0: ZE_AFFINITY_MASK=0
+     *     rank 1: ZE_AFFINITY_MASK=1
+     *     rank 2: ZE_AFFINITY_MASK=2
+     *     rank 3: ZE_AFFINITY_MASK=0
+     * - CONTIGUOUS_SUBDEVICE: processes are given a single subdevice in monotonically increasing
+     *                         order
+     *   - Example (2 device, 2 subdevices each, 4 ranks):
+     *     rank 0: ZE_AFFINITY_MASK=0.0
+     *     rank 1: ZE_AFFINITY_MASK=0.1
+     *     rank 2: ZE_AFFINITY_MASK=1.0
+     *     rank 3: ZE_AFFINITY_MASK=1.1
+     * - CONTIGUOUS_SINGLE_SUBDEVICE: Only a single subdevice of each device is used, given in
+     *                                monotonically increasing order
+     *   - Example (3 devices, 2 subdevices each, 4 ranks):
+     *     rank 0: ZE_AFFINITY_MASK=0.0
+     *     rank 1: ZE_AFFINITY_MASK=1.0
+     *     rank 2: ZE_AFFINITY_MASK=2.0
+     *     rank 3: ZE_AFFINITY_MASK=0.0
+     * - CONTIGUOUS_MULTI_SUBDEVICE: processes are each given all subdevices for a single device
+     *                               in monotonically increasing order
+     *   - Example (3 devices, 2 subdevices each, 4 ranks):
+     *     rank 0: ZE_AFFINITY_MASK=0.0,0.1
+     *     rank 1: ZE_AFFINITY_MASK=1.0,1.1
+     *     rank 2: ZE_AFFINITY_MASK=2.0,2.1
+     *     rank 3: ZE_AFFINITY_MASK=0.0,0.1
+     */
+    affinity_str = getenv("MTEST_GPU_VISIBILITY_AFFINITY");
+    if (affinity_str && *affinity_str) {
+        /* Get max device ID */
+        dev_str = getenv("MTEST_GPU_VISIBILITY_DEVICE_COUNT");
+        if (dev_str && *dev_str) {
+            device_count = atoi(dev_str);
+        }
+
+        /* Get max subdevice ID */
+        subdev_str = getenv("MTEST_GPU_VISIBILITY_SUBDEVICE_COUNT");
+        if (subdev_str && *subdev_str) {
+            subdevice_count = atoi(dev_str);
+        }
+
+        if (device_count > 0) {
+            int local_rank_id = -1;
+            const char *local_rank_id_str = 0;
+
+            /* Get the MPI local rank ID */
+            local_rank_id_str = getenv("MPI_LOCALRANKID");
+            if (local_rank_id_str && *local_rank_id_str) {
+                local_rank_id = atoi(local_rank_id_str);
+            }
+
+            /* Set the affinity mask based on affinity type */
+            if (strcmp(affinity_str, "CONTIGUOUS_DEVICE") == 0 ||
+                strcmp(affinity_str, "contiguous_device") == 0) {
+                int buf_sz = 1;
+                int device_affinity = local_rank_id % device_count;
+
+                buf_sz += snprintf(NULL, 0, "%d", device_affinity);
+                mask = malloc(buf_sz * sizeof(char));
+                snprintf(mask, sizeof(mask), "%d", device_affinity);
+            } else if (subdevice_count > 0 && (strcmp(affinity_str, "CONTIGUOUS_SUBDEVICE") == 0 ||
+                                               strcmp(affinity_str, "contiguous_subdevice") == 0)) {
+                /* This assumes every device has the same number of subdevices */
+                int buf_sz = 1;
+                int total_subdev = device_count * subdevice_count;
+                int device_affinity =
+                    ((local_rank_id % (total_subdev)) / subdevice_count) % device_count;
+                int subdevice_affinity = local_rank_id % subdevice_count;
+
+                buf_sz += snprintf(NULL, 0, "%d.%d", device_affinity, subdevice_affinity);
+                mask = malloc(buf_sz * sizeof(char));
+                snprintf(mask, sizeof(mask), "%d.%d", device_affinity, subdevice_affinity);
+            } else if (subdevice_count > 0 &&
+                       (strcmp(affinity_str, "CONTIGUOUS_SINGLE_SUBDEVICE") == 0 ||
+                        strcmp(affinity_str, "contiguous_single_subdevice") == 0)) {
+                int buf_sz = 1;
+                int device_affinity = local_rank_id % device_count;
+                int subdevice_affinity = 0;
+
+                buf_sz += snprintf(NULL, 0, "%d.%d", device_affinity, subdevice_affinity);
+                mask = malloc(buf_sz * sizeof(char));
+                snprintf(mask, sizeof(mask), "%d.%d", device_affinity, subdevice_affinity);
+            } else if (subdevice_count > 0 &&
+                       (strcmp(affinity_str, "CONTIGUOUS_MULTI_SUBDEVICE") == 0 ||
+                        strcmp(affinity_str, "contiguous_multi_subdevice") == 0)) {
+                int offset = 0;
+                int buf_sz = 1;
+                int device_affinity = local_rank_id % device_count;
+
+                /* Calculate the size of the mask */
+                for (int i = 0; i < subdevice_count; ++i) {
+                    if (i > 0) {
+                        buf_sz += 1;    // For a comma
+                    }
+                    buf_sz += snprintf(NULL, 0, "%d.%d", device_affinity, i);
+                }
+
+                mask = malloc(buf_sz * sizeof(char));
+
+                /* Calculate the size of the mask */
+                for (int i = 0; i < subdevice_count; ++i) {
+                    if (i > 0) {
+                        offset += snprintf(mask + offset, buf_sz - offset, ",");
+                    }
+                    offset += snprintf(mask + offset, buf_sz - offset, "%d.%d", device_affinity, i);
+                }
+            } else {
+                fprintf(stderr, "Unrecognized device affinity %s\n", affinity_str);
+                /* Use exit since MPI_Init/Init_thread has not been called. */
+                exit(1);
+            }
+
+            err = setenv("ZE_AFFINITY_MASK", mask, 1);
+
+            if (mask) {
+                free(mask);
+            }
+        }
     }
 #endif
 }

@@ -1,0 +1,15 @@
+/*D
+   MPI_Session_f2c - converts Fortran INTEGER to MPI_Session
+
+Synopsis:
+.vb
+MPI_Session MPI_Session_f2c(MPI_Fint session)
+.ve
+
+Input Parameters:
+. session - session (None)
+
+.N ThreadSafe
+
+D*/
+

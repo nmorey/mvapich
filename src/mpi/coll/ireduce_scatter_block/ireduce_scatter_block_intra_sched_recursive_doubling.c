@@ -8,21 +8,19 @@
 /* A recursive doubling algorithm for MPI_Ireduce_scatter_block, suitable for
  * noncommutative and (non-pof2 or block irregular). */
 int MPIR_Ireduce_scatter_block_intra_sched_recursive_doubling(const void *sendbuf, void *recvbuf,
-                                                              int recvcount, MPI_Datatype datatype,
-                                                              MPI_Op op, MPIR_Comm * comm_ptr,
-                                                              MPIR_Sched_t s)
+                                                              MPI_Aint recvcount,
+                                                              MPI_Datatype datatype, MPI_Op op,
+                                                              MPIR_Comm * comm_ptr, MPIR_Sched_t s)
 {
     int mpi_errno = MPI_SUCCESS;
     int rank, comm_size, i;
     MPI_Aint extent, true_extent, true_lb;
-    int *disps;
     void *tmp_recvbuf, *tmp_results;
-    int type_size ATTRIBUTE((unused)), dis[2], blklens[2], total_count, dst;
+    int dst;
     int mask, dst_tree_root, my_tree_root, j, k;
     int received;
     MPI_Datatype sendtype, recvtype;
     int nprocs_completed, tmp_mask, tree_root, is_commutative;
-    MPIR_SCHED_CHKPMEM_DECL(5);
 
     comm_size = comm_ptr->local_size;
     rank = comm_ptr->rank;
@@ -31,31 +29,27 @@ int MPIR_Ireduce_scatter_block_intra_sched_recursive_doubling(const void *sendbu
     MPIR_Type_get_true_extent_impl(datatype, &true_lb, &true_extent);
     is_commutative = MPIR_Op_is_commutative(op);
 
-    MPIR_SCHED_CHKPMEM_MALLOC(disps, int *, comm_size * sizeof(int), mpi_errno, "disps",
-                              MPL_MEM_BUFFER);
+    MPI_Aint *disps;
+    disps = MPIR_Sched_alloc_state(s, comm_size * sizeof(MPI_Aint));
+    MPIR_ERR_CHKANDJUMP(!disps, mpi_errno, MPI_ERR_OTHER, "**nomem");
 
+    MPI_Aint total_count;
     total_count = 0;
     for (i = 0; i < comm_size; i++) {
         disps[i] = total_count;
         total_count += recvcount;
     }
 
-    if (total_count == 0) {
-        goto fn_exit;
-    }
-
-    MPIR_Datatype_get_size_macro(datatype, type_size);
-
     /* need to allocate temporary buffer to receive incoming data */
-    MPIR_SCHED_CHKPMEM_MALLOC(tmp_recvbuf, void *, total_count * (MPL_MAX(true_extent, extent)),
-                              mpi_errno, "tmp_recvbuf", MPL_MEM_BUFFER);
+    tmp_recvbuf = MPIR_Sched_alloc_state(s, total_count * (MPL_MAX(extent, true_extent)));
+    MPIR_ERR_CHKANDJUMP(!tmp_recvbuf, mpi_errno, MPI_ERR_OTHER, "**nomem");
     /* adjust for potential negative lower bound in datatype */
     tmp_recvbuf = (void *) ((char *) tmp_recvbuf - true_lb);
 
     /* need to allocate another temporary buffer to accumulate
      * results */
-    MPIR_SCHED_CHKPMEM_MALLOC(tmp_results, void *, total_count * (MPL_MAX(true_extent, extent)),
-                              mpi_errno, "tmp_results", MPL_MEM_BUFFER);
+    tmp_results = MPIR_Sched_alloc_state(s, total_count * (MPL_MAX(extent, true_extent)));
+    MPIR_ERR_CHKANDJUMP(!tmp_recvbuf, mpi_errno, MPI_ERR_OTHER, "**nomem");
     /* adjust for potential negative lower bound in datatype */
     tmp_results = (void *) ((char *) tmp_results - true_lb);
 
@@ -91,6 +85,8 @@ int MPIR_Ireduce_scatter_block_intra_sched_recursive_doubling(const void *sendbu
          * data indexed from dst_tree_root to dst_tree_root+mask-1. */
 
         /* calculate sendtype */
+        MPI_Aint blklens[2];
+        MPI_Aint dis[2];
         blklens[0] = my_tree_root * recvcount;
         blklens[1] = (comm_size - (my_tree_root + mask)) * recvcount;
         if (blklens[1] < 0)
@@ -100,7 +96,7 @@ int MPIR_Ireduce_scatter_block_intra_sched_recursive_doubling(const void *sendbu
         dis[1] =
             blklens[0] + recvcount * (MPL_MIN((my_tree_root + mask), comm_size) - my_tree_root);
 
-        mpi_errno = MPIR_Type_indexed_impl(2, blklens, dis, datatype, &sendtype);
+        mpi_errno = MPIR_Type_indexed_large_impl(2, blklens, dis, datatype, &sendtype);
         MPIR_ERR_CHECK(mpi_errno);
 
         mpi_errno = MPIR_Type_commit_impl(&sendtype);
@@ -116,7 +112,7 @@ int MPIR_Ireduce_scatter_block_intra_sched_recursive_doubling(const void *sendbu
         dis[1] =
             blklens[0] + recvcount * (MPL_MIN((dst_tree_root + mask), comm_size) - dst_tree_root);
 
-        mpi_errno = MPIR_Type_indexed_impl(2, blklens, dis, datatype, &recvtype);
+        mpi_errno = MPIR_Type_indexed_large_impl(2, blklens, dis, datatype, &recvtype);
         MPIR_ERR_CHECK(mpi_errno);
 
         mpi_errno = MPIR_Type_commit_impl(&recvtype);
@@ -241,10 +237,8 @@ int MPIR_Ireduce_scatter_block_intra_sched_recursive_doubling(const void *sendbu
     MPIR_ERR_CHECK(mpi_errno);
     MPIR_SCHED_BARRIER(s);
 
-    MPIR_SCHED_CHKPMEM_COMMIT(s);
   fn_exit:
     return mpi_errno;
   fn_fail:
-    MPIR_SCHED_CHKPMEM_REAP(s);
     goto fn_exit;
 }

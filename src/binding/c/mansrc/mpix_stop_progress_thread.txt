@@ -1,0 +1,22 @@
+/*D
+   MPIX_Stop_progress_thread - Stop the progress thread that polls progress on the given stream
+
+Synopsis:
+.vb
+int MPIX_Stop_progress_thread(MPIX_Stream stream)
+.ve
+
+Input Parameters:
+. stream - stream object (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPIX_ERR_STREAM
+.N MPI_ERR_OTHER
+
+D*/
+

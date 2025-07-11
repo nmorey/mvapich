@@ -1,0 +1,25 @@
+/*D
+   MPI_Comm_set_errhandler - Set the error handler for a communicator
+
+Synopsis:
+.vb
+int MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler errhandler)
+.ve
+
+Input Parameters:
++ comm - communicator (handle)
+- errhandler - new error handler for communicator (handle)
+
+.N ThreadSafeNoUpdate
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_ERRHANDLER
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Comm_get_errhandler, MPI_Comm_call_errhandler
+D*/
+

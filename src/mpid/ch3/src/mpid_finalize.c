@@ -2,30 +2,8 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- *
- */
 
 #include "mpidimpl.h"
-#ifdef CHANNEL_MRAIL
-#include "upmi.h"
-#endif
-
-#if defined(CHANNEL_MRAIL)
-#include "hwloc_bind.h"
-#endif
-
-#ifdef ENABLE_SCR
-#include "scr.h"
-#endif
 
 /* FIXME: This routine needs to be factored into finalize actions per module,
    In addition, we should consider registering callbacks for those actions
@@ -35,9 +13,8 @@
 int MPID_Finalize(void)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_FINALIZE);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_FINALIZE);
+    MPIR_FUNC_ENTER;
 
     /*
      * Wait for all posted receives to complete.  For now we are not doing 
@@ -79,7 +56,7 @@ int MPID_Finalize(void)
       * can both close the connection.
       * 
       * Processes with no pending receives and no connections can exit, 
-      * calling UPMI_FINALIZE to let the process manager know that they
+      * calling PMI_Finalize to let the process manager know that they
       * are in a controlled exit.  
       *
       * Processes that still have open connections must then try to contact
@@ -109,7 +86,7 @@ int MPID_Finalize(void)
       *    request, we need to to search the pending send queue and
       *    cancel it, in which case an error shouldn't be generated.
       */
-
+    
     /* Re-enabling the close step because many tests are failing
      * without it, particularly under gforker */
 
@@ -128,24 +105,13 @@ int MPID_Finalize(void)
     if (mpi_errno) { MPIR_ERR_POP(mpi_errno); }
 #endif
 
-#ifdef MPID_NEEDS_ICOMM_WORLD
-    mpi_errno = MPIR_Comm_release_always(MPIR_Process.icomm_world);
-    MPIR_ERR_CHECK(mpi_errno);
-#endif
-
-    mpi_errno = MPIR_Comm_release_always(MPIR_Process.comm_self);
-    MPIR_ERR_CHECK(mpi_errno);
-
-    mpi_errno = MPIR_Comm_release_always(MPIR_Process.comm_world);
-    MPIR_ERR_CHECK(mpi_errno);
-
     /* Note that the CH3I_Progress_finalize call has been removed; the
        CH3_Finalize routine should call it */
     mpi_errno = MPIDI_CH3_Finalize();
     if (mpi_errno) { MPIR_ERR_POP(mpi_errno); }
 
     /* Tell the process group code that we're done with the process groups.
-       This will notify PMI (with UPMI_FINALIZE) if necessary.  It
+       This will notify PMI (with PMI_Finalize) if necessary.  It
        also frees all PG structures, including the PG for COMM_WORLD, whose 
        pointer is also saved in MPIDI_Process.my_pg */
     mpi_errno = MPIDI_PG_Finalize();
@@ -157,13 +123,13 @@ int MPID_Finalize(void)
 
     /* Release any SRbuf pool storage */
     if (MPIDI_CH3U_SRBuf_pool) {
-        MPIDI_CH3U_SRBuf_element_t *p, *pNext;
-        p = MPIDI_CH3U_SRBuf_pool;
-        while (p) {
-            pNext = p->next;
-            MPL_free(p);
-            p = pNext;
-        }
+	MPIDI_CH3U_SRBuf_element_t *p, *pNext;
+	p = MPIDI_CH3U_SRBuf_pool;
+	while (p) {
+	    pNext = p->next;
+	    MPL_free(p);
+	    p = pNext;
+	}
     }
 
     MPIDI_RMA_finalize();
@@ -171,7 +137,7 @@ int MPID_Finalize(void)
     MPL_free(MPIDI_failed_procs_string);
 
  fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_FINALIZE);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
  fn_fail:
     goto fn_exit;

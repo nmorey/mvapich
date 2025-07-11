@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2001-2016.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2016. ALL RIGHTS RESERVED.
 * See file LICENSE for terms.
 */
 
@@ -10,6 +10,7 @@
 #include "sm_ep.h"
 
 #include <ucs/arch/atomic.h>
+#include <ucs/time/time.h>
 
 
 #define uct_sm_ep_trace_data(_remote_addr, _rkey, _fmt, ...) \

@@ -1,0 +1,22 @@
+/*D
+   MPI_Op_free - Frees a user-defined combination function handle
+
+Synopsis:
+.vb
+int MPI_Op_free(MPI_Op *op)
+.ve
+
+Input/Output Parameters:
+. op - operation (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_OP
+.N MPI_ERR_OTHER
+
+D*/
+

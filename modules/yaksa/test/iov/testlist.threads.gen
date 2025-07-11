@@ -1,0 +1,120 @@
+# iov (segments 1, pack order normal, overlap none)
+test/iov/iov -datatype int -count 17 -seed 541 -iters 32768 -segments 1 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype short_int -count 17 -seed 542 -iters 32768 -segments 1 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype int:3+float:2 -count 17 -seed 543 -iters 32768 -segments 1 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype int:3+double:2 -count 17 -seed 544 -iters 32768 -segments 1 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype c_complex -count 17 -seed 545 -iters 32768 -segments 1 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype c_double_complex -count 17 -seed 546 -iters 32768 -segments 1 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype int -count 1075 -seed 547 -iters 128 -segments 1 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype short_int -count 1075 -seed 548 -iters 128 -segments 1 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype int:3+float:2 -count 1075 -seed 549 -iters 128 -segments 1 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype int:3+double:2 -count 1075 -seed 550 -iters 128 -segments 1 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype c_complex -count 1075 -seed 551 -iters 128 -segments 1 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype c_double_complex -count 1075 -seed 552 -iters 128 -segments 1 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype int -count 65536 -seed 553 -iters 32 -segments 1 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype short_int -count 65536 -seed 554 -iters 32 -segments 1 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype int:3+float:2 -count 65536 -seed 555 -iters 32 -segments 1 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype int:3+double:2 -count 65536 -seed 556 -iters 32 -segments 1 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype c_complex -count 65536 -seed 557 -iters 32 -segments 1 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype c_double_complex -count 65536 -seed 558 -iters 32 -segments 1 -ordering normal -overlap none -num-threads 4
+
+# iov (segments 64, pack order normal, overlap none)
+test/iov/iov -datatype int -count 17 -seed 559 -iters 32768 -segments 64 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype short_int -count 17 -seed 560 -iters 32768 -segments 64 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype int:3+float:2 -count 17 -seed 561 -iters 32768 -segments 64 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype int:3+double:2 -count 17 -seed 562 -iters 32768 -segments 64 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype c_complex -count 17 -seed 563 -iters 32768 -segments 64 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype c_double_complex -count 17 -seed 564 -iters 32768 -segments 64 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype int -count 1075 -seed 565 -iters 128 -segments 64 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype short_int -count 1075 -seed 566 -iters 128 -segments 64 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype int:3+float:2 -count 1075 -seed 567 -iters 128 -segments 64 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype int:3+double:2 -count 1075 -seed 568 -iters 128 -segments 64 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype c_complex -count 1075 -seed 569 -iters 128 -segments 64 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype c_double_complex -count 1075 -seed 570 -iters 128 -segments 64 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype int -count 65536 -seed 571 -iters 32 -segments 64 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype short_int -count 65536 -seed 572 -iters 32 -segments 64 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype int:3+float:2 -count 65536 -seed 573 -iters 32 -segments 64 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype int:3+double:2 -count 65536 -seed 574 -iters 32 -segments 64 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype c_complex -count 65536 -seed 575 -iters 32 -segments 64 -ordering normal -overlap none -num-threads 4
+test/iov/iov -datatype c_double_complex -count 65536 -seed 576 -iters 32 -segments 64 -ordering normal -overlap none -num-threads 4
+
+# iov (segments 64, pack order reverse, overlap none)
+test/iov/iov -datatype int -count 17 -seed 577 -iters 32768 -segments 64 -ordering reverse -overlap none -num-threads 4
+test/iov/iov -datatype short_int -count 17 -seed 578 -iters 32768 -segments 64 -ordering reverse -overlap none -num-threads 4
+test/iov/iov -datatype int:3+float:2 -count 17 -seed 579 -iters 32768 -segments 64 -ordering reverse -overlap none -num-threads 4
+test/iov/iov -datatype int:3+double:2 -count 17 -seed 580 -iters 32768 -segments 64 -ordering reverse -overlap none -num-threads 4
+test/iov/iov -datatype c_complex -count 17 -seed 581 -iters 32768 -segments 64 -ordering reverse -overlap none -num-threads 4
+test/iov/iov -datatype c_double_complex -count 17 -seed 582 -iters 32768 -segments 64 -ordering reverse -overlap none -num-threads 4
+test/iov/iov -datatype int -count 1075 -seed 583 -iters 128 -segments 64 -ordering reverse -overlap none -num-threads 4
+test/iov/iov -datatype short_int -count 1075 -seed 584 -iters 128 -segments 64 -ordering reverse -overlap none -num-threads 4
+test/iov/iov -datatype int:3+float:2 -count 1075 -seed 585 -iters 128 -segments 64 -ordering reverse -overlap none -num-threads 4
+test/iov/iov -datatype int:3+double:2 -count 1075 -seed 586 -iters 128 -segments 64 -ordering reverse -overlap none -num-threads 4
+test/iov/iov -datatype c_complex -count 1075 -seed 587 -iters 128 -segments 64 -ordering reverse -overlap none -num-threads 4
+test/iov/iov -datatype c_double_complex -count 1075 -seed 588 -iters 128 -segments 64 -ordering reverse -overlap none -num-threads 4
+test/iov/iov -datatype int -count 65536 -seed 589 -iters 32 -segments 64 -ordering reverse -overlap none -num-threads 4
+test/iov/iov -datatype short_int -count 65536 -seed 590 -iters 32 -segments 64 -ordering reverse -overlap none -num-threads 4
+test/iov/iov -datatype int:3+float:2 -count 65536 -seed 591 -iters 32 -segments 64 -ordering reverse -overlap none -num-threads 4
+test/iov/iov -datatype int:3+double:2 -count 65536 -seed 592 -iters 32 -segments 64 -ordering reverse -overlap none -num-threads 4
+test/iov/iov -datatype c_complex -count 65536 -seed 593 -iters 32 -segments 64 -ordering reverse -overlap none -num-threads 4
+test/iov/iov -datatype c_double_complex -count 65536 -seed 594 -iters 32 -segments 64 -ordering reverse -overlap none -num-threads 4
+
+# iov (segments 64, pack order random, overlap none)
+test/iov/iov -datatype int -count 17 -seed 595 -iters 32768 -segments 64 -ordering random -overlap none -num-threads 4
+test/iov/iov -datatype short_int -count 17 -seed 596 -iters 32768 -segments 64 -ordering random -overlap none -num-threads 4
+test/iov/iov -datatype int:3+float:2 -count 17 -seed 597 -iters 32768 -segments 64 -ordering random -overlap none -num-threads 4
+test/iov/iov -datatype int:3+double:2 -count 17 -seed 598 -iters 32768 -segments 64 -ordering random -overlap none -num-threads 4
+test/iov/iov -datatype c_complex -count 17 -seed 599 -iters 32768 -segments 64 -ordering random -overlap none -num-threads 4
+test/iov/iov -datatype c_double_complex -count 17 -seed 600 -iters 32768 -segments 64 -ordering random -overlap none -num-threads 4
+test/iov/iov -datatype int -count 1075 -seed 601 -iters 128 -segments 64 -ordering random -overlap none -num-threads 4
+test/iov/iov -datatype short_int -count 1075 -seed 602 -iters 128 -segments 64 -ordering random -overlap none -num-threads 4
+test/iov/iov -datatype int:3+float:2 -count 1075 -seed 603 -iters 128 -segments 64 -ordering random -overlap none -num-threads 4
+test/iov/iov -datatype int:3+double:2 -count 1075 -seed 604 -iters 128 -segments 64 -ordering random -overlap none -num-threads 4
+test/iov/iov -datatype c_complex -count 1075 -seed 605 -iters 128 -segments 64 -ordering random -overlap none -num-threads 4
+test/iov/iov -datatype c_double_complex -count 1075 -seed 606 -iters 128 -segments 64 -ordering random -overlap none -num-threads 4
+test/iov/iov -datatype int -count 65536 -seed 607 -iters 32 -segments 64 -ordering random -overlap none -num-threads 4
+test/iov/iov -datatype short_int -count 65536 -seed 608 -iters 32 -segments 64 -ordering random -overlap none -num-threads 4
+test/iov/iov -datatype int:3+float:2 -count 65536 -seed 609 -iters 32 -segments 64 -ordering random -overlap none -num-threads 4
+test/iov/iov -datatype int:3+double:2 -count 65536 -seed 610 -iters 32 -segments 64 -ordering random -overlap none -num-threads 4
+test/iov/iov -datatype c_complex -count 65536 -seed 611 -iters 32 -segments 64 -ordering random -overlap none -num-threads 4
+test/iov/iov -datatype c_double_complex -count 65536 -seed 612 -iters 32 -segments 64 -ordering random -overlap none -num-threads 4
+
+# iov (segments 64, pack order normal, overlap regular)
+test/iov/iov -datatype int -count 17 -seed 613 -iters 32768 -segments 64 -ordering normal -overlap regular -num-threads 4
+test/iov/iov -datatype short_int -count 17 -seed 614 -iters 32768 -segments 64 -ordering normal -overlap regular -num-threads 4
+test/iov/iov -datatype int:3+float:2 -count 17 -seed 615 -iters 32768 -segments 64 -ordering normal -overlap regular -num-threads 4
+test/iov/iov -datatype int:3+double:2 -count 17 -seed 616 -iters 32768 -segments 64 -ordering normal -overlap regular -num-threads 4
+test/iov/iov -datatype c_complex -count 17 -seed 617 -iters 32768 -segments 64 -ordering normal -overlap regular -num-threads 4
+test/iov/iov -datatype c_double_complex -count 17 -seed 618 -iters 32768 -segments 64 -ordering normal -overlap regular -num-threads 4
+test/iov/iov -datatype int -count 1075 -seed 619 -iters 128 -segments 64 -ordering normal -overlap regular -num-threads 4
+test/iov/iov -datatype short_int -count 1075 -seed 620 -iters 128 -segments 64 -ordering normal -overlap regular -num-threads 4
+test/iov/iov -datatype int:3+float:2 -count 1075 -seed 621 -iters 128 -segments 64 -ordering normal -overlap regular -num-threads 4
+test/iov/iov -datatype int:3+double:2 -count 1075 -seed 622 -iters 128 -segments 64 -ordering normal -overlap regular -num-threads 4
+test/iov/iov -datatype c_complex -count 1075 -seed 623 -iters 128 -segments 64 -ordering normal -overlap regular -num-threads 4
+test/iov/iov -datatype c_double_complex -count 1075 -seed 624 -iters 128 -segments 64 -ordering normal -overlap regular -num-threads 4
+test/iov/iov -datatype int -count 65536 -seed 625 -iters 32 -segments 64 -ordering normal -overlap regular -num-threads 4
+test/iov/iov -datatype short_int -count 65536 -seed 626 -iters 32 -segments 64 -ordering normal -overlap regular -num-threads 4
+test/iov/iov -datatype int:3+float:2 -count 65536 -seed 627 -iters 32 -segments 64 -ordering normal -overlap regular -num-threads 4
+test/iov/iov -datatype int:3+double:2 -count 65536 -seed 628 -iters 32 -segments 64 -ordering normal -overlap regular -num-threads 4
+test/iov/iov -datatype c_complex -count 65536 -seed 629 -iters 32 -segments 64 -ordering normal -overlap regular -num-threads 4
+test/iov/iov -datatype c_double_complex -count 65536 -seed 630 -iters 32 -segments 64 -ordering normal -overlap regular -num-threads 4
+
+# iov (segments 64, pack order normal, overlap irregular)
+test/iov/iov -datatype int -count 17 -seed 631 -iters 32768 -segments 64 -ordering normal -overlap irregular -num-threads 4
+test/iov/iov -datatype short_int -count 17 -seed 632 -iters 32768 -segments 64 -ordering normal -overlap irregular -num-threads 4
+test/iov/iov -datatype int:3+float:2 -count 17 -seed 633 -iters 32768 -segments 64 -ordering normal -overlap irregular -num-threads 4
+test/iov/iov -datatype int:3+double:2 -count 17 -seed 634 -iters 32768 -segments 64 -ordering normal -overlap irregular -num-threads 4
+test/iov/iov -datatype c_complex -count 17 -seed 635 -iters 32768 -segments 64 -ordering normal -overlap irregular -num-threads 4
+test/iov/iov -datatype c_double_complex -count 17 -seed 636 -iters 32768 -segments 64 -ordering normal -overlap irregular -num-threads 4
+test/iov/iov -datatype int -count 1075 -seed 637 -iters 128 -segments 64 -ordering normal -overlap irregular -num-threads 4
+test/iov/iov -datatype short_int -count 1075 -seed 638 -iters 128 -segments 64 -ordering normal -overlap irregular -num-threads 4
+test/iov/iov -datatype int:3+float:2 -count 1075 -seed 639 -iters 128 -segments 64 -ordering normal -overlap irregular -num-threads 4
+test/iov/iov -datatype int:3+double:2 -count 1075 -seed 640 -iters 128 -segments 64 -ordering normal -overlap irregular -num-threads 4
+test/iov/iov -datatype c_complex -count 1075 -seed 641 -iters 128 -segments 64 -ordering normal -overlap irregular -num-threads 4
+test/iov/iov -datatype c_double_complex -count 1075 -seed 642 -iters 128 -segments 64 -ordering normal -overlap irregular -num-threads 4
+test/iov/iov -datatype int -count 65536 -seed 643 -iters 32 -segments 64 -ordering normal -overlap irregular -num-threads 4
+test/iov/iov -datatype short_int -count 65536 -seed 644 -iters 32 -segments 64 -ordering normal -overlap irregular -num-threads 4
+test/iov/iov -datatype int:3+float:2 -count 65536 -seed 645 -iters 32 -segments 64 -ordering normal -overlap irregular -num-threads 4
+test/iov/iov -datatype int:3+double:2 -count 65536 -seed 646 -iters 32 -segments 64 -ordering normal -overlap irregular -num-threads 4
+test/iov/iov -datatype c_complex -count 65536 -seed 647 -iters 32 -segments 64 -ordering normal -overlap irregular -num-threads 4
+test/iov/iov -datatype c_double_complex -count 65536 -seed 648 -iters 32 -segments 64 -ordering normal -overlap irregular -num-threads 4
+

@@ -1,0 +1,37 @@
+/*D
+   MPI_Dist_graph_create - MPI_DIST_GRAPH_CREATE returns a handle to a new communicator to which the distributed graph topology information is attached
+
+Synopsis:
+.vb
+int MPI_Dist_graph_create(MPI_Comm comm_old, int n, const int sources[],
+                          const int degrees[], const int destinations[],
+                          const int weights[], MPI_Info info, int reorder,
+                          MPI_Comm *comm_dist_graph)
+.ve
+
+Input Parameters:
++ comm_old - input communicator (handle)
+. n - number of source nodes for which this process specifies edges (non-negative integer)
+. sources - array containing the n source nodes for + which this process specifies edges (non-negative integer)
+. degrees - array specifying the number of destinations for each source node in the source node array (non-negative integer)
+. destinations - destination nodes for the source nodes in the source node array (non-negative integer)
+. weights - weights for source to destination edges (non-negative integer)
+. info - hints on optimization and interpretation of weights (handle)
+- reorder - the ranks may be reordered (true) or not~(false)
+
+Output Parameters:
+. comm_dist_graph - communicator with distributed graph topology added (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_INFO
+.N MPI_ERR_OTHER
+
+D*/
+

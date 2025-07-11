@@ -1,0 +1,25 @@
+/*D
+   MPIX_Comm_failure_ack - Acknowledge the current group of failed processes
+
+Synopsis:
+.vb
+int MPIX_Comm_failure_ack(MPI_Comm comm)
+.ve
+
+Input Parameters:
+. comm - communicator (handle)
+
+Notes:
+This local operation gives the users a way to acknowledge all locally notified failures on comm. After the call, unmatched MPI_ANY_SOURCE receive operations that would haveraised an error of class MPI_ERR_PROC_FAILED_PENDING due to MPI process failure proceed without further raising errors due to those acknowledged failures. Also after this call, MPIX_Comm_agree will not raise an error of class MPI_ERR_PROC_FAILED due to those acknowledged failures.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+D*/
+

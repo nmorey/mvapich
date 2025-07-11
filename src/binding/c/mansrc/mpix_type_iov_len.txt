@@ -1,0 +1,29 @@
+/*D
+   MPIX_Type_iov_len - Return the number of contiguous segments within max_iov_bytes
+
+Synopsis:
+.vb
+int MPIX_Type_iov_len(MPI_Datatype datatype, MPI_Count max_iov_bytes,
+                      MPI_Count *iov_len, MPI_Count *actual_iov_bytes)
+.ve
+
+Input Parameters:
++ datatype - datatype (handle)
+- max_iov_bytes - maximum number bytes in the iovs (integer)
+
+Output Parameters:
++ iov_len - number of iovs within max_iov_bytes (integer)
+- actual_iov_bytes - actual number of bytes in the iovs (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

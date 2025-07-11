@@ -126,6 +126,14 @@ static int init_fabric(void)
 {
 	int ret;
 
+	ret = ft_init();
+	if (ret)
+		return ret;
+
+	ret = ft_init_oob();
+	if (ret)
+		return ret;
+
 	ret = ft_getinfo(hints, &fi);
 	if (ret)
 		return ret;
@@ -272,6 +280,7 @@ int main(int argc, char **argv)
 	hints->caps = FI_MSG;
 	hints->mode = FI_CONTEXT;
 	hints->domain_attr->mr_mode = opts.mr_mode;
+	hints->addr_format = opts.address_format;
 
 	ret = run();
 

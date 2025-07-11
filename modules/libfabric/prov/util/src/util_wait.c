@@ -40,17 +40,6 @@
 #include <ofi_epoll.h>
 
 
-static uint32_t ofi_poll_to_epoll(uint32_t events)
-{
-	uint32_t epoll_events = 0;
-
-	if (events & POLLIN)
-		epoll_events |= OFI_EPOLL_IN;
-	if (events & POLLOUT)
-		epoll_events |= OFI_EPOLL_OUT;
-	return epoll_events;
-}
-
 int ofi_trywait(struct fid_fabric *fabric, struct fid **fids, int count)
 {
 	struct util_cq *cq;
@@ -604,10 +593,24 @@ static int util_wait_yield_run(struct fid_wait *wait_fid, int timeout)
 {
 	struct util_wait_yield *wait;
 	struct ofi_wait_fid_entry *fid_entry;
+	uint64_t endtime;
 	int ret = 0;
 
 	wait = container_of(wait_fid, struct util_wait_yield, util_wait.wait_fid);
-	while (!wait->signal) {
+	endtime = ofi_timeout_time(timeout);
+
+	while (1) {
+		int signaled;
+
+		ofi_mutex_lock(&wait->signal_lock);
+		signaled = wait->signal;
+		ofi_mutex_unlock(&wait->signal_lock);
+
+		if (signaled)
+			break;
+
+		if (ofi_adjust_timeout(endtime, &timeout))
+			return -FI_ETIMEDOUT;
 		ofi_mutex_lock(&wait->util_wait.lock);
 		dlist_foreach_container(&wait->util_wait.fid_list,
 					struct ofi_wait_fid_entry,

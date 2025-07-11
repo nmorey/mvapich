@@ -1,0 +1,26 @@
+/*D
+   MPI_T_source_get_timestamp - Returns a current timestamp from the source identified by the source_index argument
+
+Synopsis:
+.vb
+int MPI_T_source_get_timestamp(int source_index, MPI_Count *timestamp)
+.ve
+
+Input Parameters:
+. source_index - index of the source (integer)
+
+Output Parameters:
+. timestamp - current timestamp from specified source (integer)
+
+.N ThreadSafe
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_T_ERR_INVALID
+.N MPI_T_ERR_INVALID_INDEX
+.N MPI_T_ERR_NOT_INITIALIZED
+.N MPI_T_ERR_NOT_SUPPORTED
+.N MPI_ERR_OTHER
+
+D*/
+

@@ -22,20 +22,16 @@
 
 int MPIR_Reduce_scatter_block_intra_noncommutative(const void *sendbuf,
                                                    void *recvbuf,
-                                                   int recvcount,
+                                                   MPI_Aint recvcount,
                                                    MPI_Datatype datatype,
                                                    MPI_Op op,
-                                                   MPIR_Comm * comm_ptr, MPIR_Errflag_t * errflag)
+                                                   MPIR_Comm * comm_ptr, MPIR_Errflag_t errflag)
 {
     int mpi_errno = MPI_SUCCESS;
-    int mpi_errno_ret = MPI_SUCCESS;
     int comm_size = comm_ptr->local_size;
     int rank = comm_ptr->rank;
-    int pof2;
     int log2_comm_size;
     int i, k;
-    int recv_offset, send_offset;
-    int block_size, total_count, size;
     MPI_Aint true_extent, true_lb;
     int buf0_was_inout;
     void *tmp_buf0;
@@ -45,20 +41,16 @@ int MPIR_Reduce_scatter_block_intra_noncommutative(const void *sendbuf,
 
     MPIR_Type_get_true_extent_impl(datatype, &true_lb, &true_extent);
 
-    pof2 = 1;
-    log2_comm_size = 0;
-    while (pof2 < comm_size) {
-        pof2 <<= 1;
-        ++log2_comm_size;
-    }
-
 #ifdef HAVE_ERROR_CHECKING
     /* begin error checking */
-    MPIR_Assert(pof2 == comm_size);     /* FIXME this version only works for power of 2 procs */
+    MPIR_Assert(MPL_is_pof2(comm_size));        /* FIXME this version only works for power of 2 procs */
     /* end error checking */
 #endif
 
+    log2_comm_size = MPL_log2(comm_size);
+
     /* size of a block (count of datatype per block, NOT bytes per block) */
+    MPI_Aint block_size, total_count;
     block_size = recvcount;
     total_count = block_size * comm_size;
 
@@ -84,6 +76,7 @@ int MPIR_Reduce_scatter_block_intra_noncommutative(const void *sendbuf,
     }
     buf0_was_inout = 1;
 
+    MPI_Aint recv_offset, send_offset, size;
     send_offset = 0;
     recv_offset = 0;
     size = total_count;
@@ -107,14 +100,7 @@ int MPIR_Reduce_scatter_block_intra_noncommutative(const void *sendbuf,
                                   incoming_data + recv_offset * true_extent,
                                   size, datatype, peer, MPIR_REDUCE_SCATTER_BLOCK_TAG,
                                   comm_ptr, MPI_STATUS_IGNORE, errflag);
-        if (mpi_errno) {
-            /* for communication errors, just record the error but continue */
-            *errflag =
-                MPIX_ERR_PROC_FAILED ==
-                MPIR_ERR_GET_CLASS(mpi_errno) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER;
-            MPIR_ERR_SET(mpi_errno, *errflag, "**fail");
-            MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-        }
+        MPIR_ERR_CHECK(mpi_errno);
         /* always perform the reduction at recv_offset, the data at send_offset
          * is now our peer's responsibility */
         if (rank > peer) {
@@ -146,12 +132,6 @@ int MPIR_Reduce_scatter_block_intra_noncommutative(const void *sendbuf,
 
   fn_exit:
     MPIR_CHKLMEM_FREEALL();
-    /* --BEGIN ERROR HANDLING-- */
-    if (mpi_errno_ret)
-        mpi_errno = mpi_errno_ret;
-    else if (*errflag != MPIR_ERR_NONE)
-        MPIR_ERR_SET(mpi_errno, *errflag, "**coll_fail");
-    /* --END ERROR HANDLING-- */
     return mpi_errno;
   fn_fail:
     goto fn_exit;

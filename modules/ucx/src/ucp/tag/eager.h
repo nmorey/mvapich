@@ -1,5 +1,5 @@
 /**
- * Copyright (C) Mellanox Technologies Ltd. 2001-2015.  ALL RIGHTS RESERVED.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2015. ALL RIGHTS RESERVED.
  *
  * See file LICENSE for terms.
  */
@@ -13,8 +13,15 @@
 #include <ucp/core/ucp_ep.h>
 #include <ucp/core/ucp_ep.inl>
 #include <ucp/core/ucp_request.h>
+#include <ucp/proto/proto_init.h>
 #include <ucp/dt/dt.inl>
 
+
+/* Convenience macros for setting eager protocols descriptions  */
+#define UCP_PROTO_EAGER_BCOPY_DESC \
+    "eager " UCP_PROTO_COPY_IN_DESC " " UCP_PROTO_COPY_OUT_DESC
+#define UCP_PROTO_EAGER_ZCOPY_DESC \
+    "eager " UCP_PROTO_ZCOPY_DESC " " UCP_PROTO_COPY_OUT_DESC
 
 /*
  * EAGER_ONLY, EAGER_MIDDLE
@@ -69,12 +76,24 @@ void ucp_tag_eager_sync_send_ack(ucp_worker_h worker, void *hdr, uint16_t recv_f
 void ucp_tag_eager_sync_completion(ucp_request_t *req, uint32_t flag,
                                    ucs_status_t status);
 
-void ucp_tag_eager_zcopy_completion(uct_completion_t *self, ucs_status_t status);
+void ucp_proto_eager_sync_ack_handler(ucp_worker_h worker,
+                                      const ucp_reply_hdr_t *rep_hdr);
+
+void ucp_tag_eager_zcopy_completion(uct_completion_t *self);
 
 void ucp_tag_eager_zcopy_req_complete(ucp_request_t *req, ucs_status_t status);
 
 void ucp_tag_eager_sync_zcopy_req_complete(ucp_request_t *req, ucs_status_t status);
 
-void ucp_tag_eager_sync_zcopy_completion(uct_completion_t *self, ucs_status_t status);
+void ucp_tag_eager_sync_zcopy_completion(uct_completion_t *self);
+
+static UCS_F_ALWAYS_INLINE int
+ucp_proto_eager_check_op_id(const ucp_proto_init_params_t *init_params,
+                            ucp_operation_id_t op_id, int offload_enabled)
+{
+    return ucp_proto_init_check_op(init_params, UCS_BIT(op_id)) &&
+           (offload_enabled ==
+            ucp_ep_config_key_has_tag_lane(init_params->ep_config_key));
+}
 
 #endif

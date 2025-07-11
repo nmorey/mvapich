@@ -83,10 +83,14 @@ static mpi_names_t mpi_names[] = {
      * compiler does not support it), the value may be MPI_DATATYPE_NULL */
     {MPI_REAL4, "MPI_REAL4"},
     {MPI_REAL8, "MPI_REAL8"},
+#ifdef HAVE_MPI_REAL16
     {MPI_REAL16, "MPI_REAL16"},
+#endif
     {MPI_COMPLEX8, "MPI_COMPLEX8"},
     {MPI_COMPLEX16, "MPI_COMPLEX16"},
+#ifdef HAVE_MPI_COMPLEX32
     {MPI_COMPLEX32, "MPI_COMPLEX32"},
+#endif
     {MPI_INTEGER1, "MPI_INTEGER1"},
     {MPI_INTEGER2, "MPI_INTEGER2"},
     {MPI_INTEGER4, "MPI_INTEGER4"},
@@ -121,7 +125,10 @@ static mpi_names_t mpi_names[] = {
     /* added in MPI 3 */
     {MPI_COUNT, "MPI_COUNT"},
 #endif
-    {0, (char *) 0},    /* Sentinal used to indicate the last element */
+#if MTEST_HAVE_MIN_MPI_VERSION(4,1)
+    {MPI_DATATYPE_NULL, "MPI_DATATYPE_NULL"},
+#endif
+    {0, (char *) 0},    /* Sentinel used to indicate the last element */
 };
 
 int main(int argc, char **argv)
@@ -152,8 +159,14 @@ int main(int argc, char **argv)
     isSynonymName = 0;
     for (i = 0; mpi_names[i].name != 0; i++) {
         /* Are we in the optional types? */
-        if (strcmp(mpi_names[i].name, "MPI_REAL4") == 0)
+        if (strcmp(mpi_names[i].name, "MPI_REAL4") == 0) {
             inOptional = 1;
+#ifdef ENABLE_STRICTMPI
+            /* strictly we can't use MPI_DATATYPE_NULL to test datatype availability,
+             * just skip the optional datatypes */
+            break;
+#endif
+        }
         /* If this optional type is not supported, skip it */
         if (inOptional && mpi_names[i].dtype == MPI_DATATYPE_NULL)
             continue;
@@ -168,11 +181,11 @@ int main(int argc, char **argv)
         name[0] = 0;
         MPI_Type_get_name(mpi_names[i].dtype, name, &namelen);
 
-        /* LONG_LONG is a synonym of LONG_LONG_INT, thus LONG_LONG_INT is a vaild name */
+        /* LONG_LONG is a synonym of LONG_LONG_INT, thus LONG_LONG_INT is a valid name */
         isSynonymName = (mpi_names[i].dtype == MPI_LONG_LONG &&
                          !strncmp(name, "MPI_LONG_LONG_INT", MPI_MAX_OBJECT_NAME));
 #if MTEST_HAVE_MIN_MPI_VERSION(2,2)
-        /* C_FLOAT_COMPLEX is a synonym of C_COMPLEX, thus C_COMPLEX is a vaild name */
+        /* C_FLOAT_COMPLEX is a synonym of C_COMPLEX, thus C_COMPLEX is a valid name */
         isSynonymName = isSynonymName || (mpi_names[i].dtype == MPI_C_FLOAT_COMPLEX &&
                                           !strncmp(name, "MPI_C_COMPLEX", MPI_MAX_OBJECT_NAME));
 #endif

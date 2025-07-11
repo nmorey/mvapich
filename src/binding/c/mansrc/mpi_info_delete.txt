@@ -1,0 +1,23 @@
+/*D
+   MPI_Info_delete - Deletes a (key,value) pair from info
+
+Synopsis:
+.vb
+int MPI_Info_delete(MPI_Info info, const char *key)
+.ve
+
+Input Parameters:
++ info - info object (handle)
+- key - key (string)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_INFO
+.N MPI_ERR_OTHER
+
+D*/
+

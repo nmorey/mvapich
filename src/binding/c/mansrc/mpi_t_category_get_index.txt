@@ -1,0 +1,25 @@
+/*D
+   MPI_T_category_get_index - Get the index of a category
+
+Synopsis:
+.vb
+int MPI_T_category_get_index(const char *name, int *cat_index)
+.ve
+
+Input Parameters:
+. name - the name of the category (string)
+
+Output Parameters:
+. cat_index - the index of the category (integer)
+
+.N ThreadSafe
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_T_ERR_INVALID
+.N MPI_T_ERR_INVALID_NAME
+.N MPI_T_ERR_NOT_INITIALIZED
+.N MPI_ERR_OTHER
+
+D*/
+

@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2001-2015.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2015. ALL RIGHTS RESERVED.
 *
 * See file LICENSE for terms.
 */
@@ -12,16 +12,16 @@ public:
 
     ucs_status_t swap32(uct_ep_h ep, worker& worker, const mapped_buffer& recvbuf,
                         uint64_t *result, completion *comp) {
-        comp->self     = this;
-        comp->uct.func = atomic_reply_cb;
+        comp->self       = this;
+        comp->uct.func   = atomic_reply_cb;
         return uct_ep_atomic32_fetch(ep, UCT_ATOMIC_OP_SWAP, worker.value, (uint32_t*)result,
                                      recvbuf.addr(), recvbuf.rkey(), &comp->uct);
     }
 
     ucs_status_t swap64(uct_ep_h ep, worker& worker, const mapped_buffer& recvbuf,
                         uint64_t *result, completion *comp) {
-        comp->self     = this;
-        comp->uct.func = atomic_reply_cb;
+        comp->self       = this;
+        comp->uct.func   = atomic_reply_cb;
         return uct_ep_atomic64_fetch(ep, UCT_ATOMIC_OP_SWAP, worker.value, (uint64_t*)result,
                                      recvbuf.addr(), recvbuf.rkey(), &comp->uct);
     }

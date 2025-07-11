@@ -1,0 +1,26 @@
+/*D
+   MPI_T_event_handle_get_info - Returns a new info object containing the hints of the event-registration handle associated with event_registration
+
+Synopsis:
+.vb
+int MPI_T_event_handle_get_info(MPI_T_event_registration event_registration,
+                                MPI_Info *info_used)
+.ve
+
+Input Parameters:
+. event_registration - event registration (handle)
+
+Output Parameters:
+. info_used - info object (handle)
+
+.N ThreadSafe
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_T_ERR_INVALID
+.N MPI_T_ERR_INVALID_HANDLE
+.N MPI_T_ERR_NOT_INITIALIZED
+.N MPI_ERR_OTHER
+
+D*/
+

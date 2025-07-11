@@ -9,7 +9,7 @@
 #include <unistd.h>
 #endif
 
-void ADIOI_NFS_WriteContig(ADIO_File fd, const void *buf, int count,
+void ADIOI_NFS_WriteContig(ADIO_File fd, const void *buf, MPI_Aint count,
                            MPI_Datatype datatype, int file_ptr_type,
                            ADIO_Offset offset, ADIO_Status * status, int *error_code)
 {
@@ -258,7 +258,7 @@ void ADIOI_NFS_WriteContig(ADIO_File fd, const void *buf, int count,
 #endif
 
 
-void ADIOI_NFS_WriteStrided(ADIO_File fd, const void *buf, int count,
+void ADIOI_NFS_WriteStrided(ADIO_File fd, const void *buf, MPI_Aint count,
                             MPI_Datatype datatype, int file_ptr_type,
                             ADIO_Offset offset, ADIO_Status * status, int
                             *error_code)
@@ -266,22 +266,26 @@ void ADIOI_NFS_WriteStrided(ADIO_File fd, const void *buf, int count,
 /* offset is in units of etype relative to the filetype. */
 
     ADIOI_Flatlist_node *flat_buf, *flat_file;
-    int i, j, k, err = -1, bwr_size, st_index = 0;
+    int i, j, k, st_index = 0;
+    MPI_Count bwr_size;
+    ssize_t err = -1, write_sz;
     ADIO_Offset i_offset, sum, size_in_filetype;
     ADIO_Offset num, size, n_etypes_in_filetype;
     MPI_Count bufsize;
     ADIO_Offset n_filetypes, etype_in_filetype;
     ADIO_Offset abs_off_in_filetype = 0;
-    int req_len;
+    MPI_Count req_len;
     MPI_Count filetype_size, etype_size, buftype_size;
-    MPI_Aint filetype_extent, buftype_extent;
+    MPI_Aint lb, filetype_extent, buftype_extent;
     int buf_count, buftype_is_contig, filetype_is_contig;
     ADIO_Offset userbuf_off;
     ADIO_Offset off, req_off, disp, end_offset = 0, writebuf_off, start_off;
     char *writebuf = NULL, *value;
-    int st_n_filetypes, writebuf_len, write_sz;
+    int writebuf_len;
+    MPI_Count st_n_filetypes;
     ADIO_Offset fwr_size = 0, new_fwr_size, st_fwr_size;
-    int new_bwr_size, err_flag = 0, info_flag, max_bufsize;
+    int err_flag = 0, info_flag, max_bufsize;
+    MPI_Count new_bwr_size;
     static char myname[] = "ADIOI_NFS_WRITESTRIDED";
 
     ADIOI_Datatype_iscontig(datatype, &buftype_is_contig);
@@ -296,9 +300,9 @@ void ADIOI_NFS_WriteStrided(ADIO_File fd, const void *buf, int count,
         return;
     }
 
-    MPI_Type_extent(fd->filetype, &filetype_extent);
+    MPI_Type_get_extent(fd->filetype, &lb, &filetype_extent);
     MPI_Type_size_x(datatype, &buftype_size);
-    MPI_Type_extent(datatype, &buftype_extent);
+    MPI_Type_get_extent(datatype, &lb, &buftype_extent);
     etype_size = fd->etype_size;
 
     bufsize = buftype_size * count;

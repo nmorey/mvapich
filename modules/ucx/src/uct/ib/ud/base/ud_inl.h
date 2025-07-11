@@ -1,5 +1,5 @@
 /**
- * Copyright (C) Mellanox Technologies Ltd. 2001-2014.  ALL RIGHTS RESERVED.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2014. ALL RIGHTS RESERVED.
  *
  * See file LICENSE for terms.
  */
@@ -155,17 +155,16 @@ uct_ud_skb_set_zcopy_desc(uct_ud_send_skb_t *skb, const uct_iov_t *iov,
 }
 
 static UCS_F_ALWAYS_INLINE void
-uct_ud_iface_complete_tx(uct_ud_iface_t *iface, uct_ud_ep_t *ep,
-                         uct_ud_send_skb_t *skb, int has_data, void *data,
-                         const void *buffer, unsigned length)
+uct_ud_iface_complete_tx_skb(uct_ud_iface_t *iface, uct_ud_ep_t *ep,
+                             uct_ud_send_skb_t *skb)
 {
-    ucs_time_t now = uct_ud_iface_get_time(iface);
-    iface->tx.skb  = ucs_mpool_get(&iface->tx.mp);
+    ucs_time_t now = ucs_get_time();
+
+    iface->tx.skb = ucs_mpool_get(&iface->tx.mp);
     ep->tx.psn++;
 
-    if (has_data) {
-        skb->len += length;
-        memcpy(data, buffer, length);
+    if (ucs_queue_is_empty(&ep->tx.window)) {
+        ep->tx.send_time = now;
     }
 
     ucs_queue_push(&ep->tx.window, &skb->queue);
@@ -175,8 +174,6 @@ uct_ud_iface_complete_tx(uct_ud_iface_t *iface, uct_ud_ep_t *ep,
         ucs_wtimer_add(&iface->tx.timer, &ep->timer,
                        now - ucs_twheel_get_time(&iface->tx.timer) + ep->tx.tick);
     }
-
-    ep->tx.send_time = now;
 }
 
 static UCS_F_ALWAYS_INLINE void
@@ -184,14 +181,9 @@ uct_ud_iface_complete_tx_inl(uct_ud_iface_t *iface, uct_ud_ep_t *ep,
                              uct_ud_send_skb_t *skb, void *data,
                              const void *buffer, unsigned length)
 {
-    uct_ud_iface_complete_tx(iface, ep, skb, 1, data, buffer, length);
-}
-
-static UCS_F_ALWAYS_INLINE void
-uct_ud_iface_complete_tx_skb(uct_ud_iface_t *iface, uct_ud_ep_t *ep,
-                             uct_ud_send_skb_t *skb)
-{
-    uct_ud_iface_complete_tx(iface, ep, skb, 0, NULL, NULL, 0);
+    skb->len += length;
+    memcpy(data, buffer, length);
+    uct_ud_iface_complete_tx_skb(iface, ep, skb);
 }
 
 static UCS_F_ALWAYS_INLINE ucs_status_t
@@ -219,8 +211,8 @@ uct_ud_am_skb_common(uct_ud_iface_t *iface, uct_ud_ep_t *ep, uint8_t id,
                 &ep->tx.pending.elem);
 
     neth = skb->neth;
+    uct_ud_neth_set_packet_type(ep, neth, id, UCT_UD_PACKET_FLAG_AM);
     uct_ud_neth_init_data(ep, neth);
-    uct_ud_neth_set_type_am(ep, neth, id);
     uct_ud_neth_ack_req(ep, neth);
 
     *skb_p = skb;
@@ -238,23 +230,49 @@ uct_ud_skb_bcopy(uct_ud_send_skb_t *skb, uct_pack_callback_t pack_cb, void *arg)
 }
 
 static UCS_F_ALWAYS_INLINE void
-uct_ud_iface_dispatch_comp(uct_ud_iface_t *iface, uct_completion_t *comp,
-                           ucs_status_t status)
+uct_ud_iface_dispatch_comp(uct_ud_iface_t *iface, uct_completion_t *comp)
 {
     /* Avoid reordering with pending queue - if we have any pending requests,
      * prevent send operations from the completion callback
      */
     uct_ud_iface_raise_pending_async_ev(iface);
-    uct_invoke_completion(comp, status);
+    uct_invoke_completion(comp, UCS_OK);
 }
 
 static UCS_F_ALWAYS_INLINE void
-uct_ud_iface_add_async_comp(uct_ud_iface_t *iface, uct_ud_send_skb_t *skb,
-                            ucs_status_t status)
+uct_ud_iface_add_async_comp(uct_ud_iface_t *iface, uct_ud_ep_t *ep,
+                            uct_ud_send_skb_t *skb, ucs_status_t status)
 {
     uct_ud_comp_desc_t *cdesc = uct_ud_comp_desc(skb);
 
-    cdesc->status = status;
+    cdesc->ep = ep;
+    uct_completion_update_status(cdesc->comp, status);
     ucs_queue_push(&iface->tx.async_comp_q, &skb->queue);
 }
 
+static UCS_F_ALWAYS_INLINE void
+uct_ud_iov_to_skb(uct_ud_send_skb_t *skb, const uct_iov_t *iov, size_t iovcnt)
+{
+    ucs_iov_iter_t iov_iter;
+
+    ucs_iov_iter_init(&iov_iter);
+    skb->len += uct_iov_to_buffer(iov, iovcnt, &iov_iter, skb->neth + 1,
+                                  SIZE_MAX);
+}
+
+static UCS_F_ALWAYS_INLINE void
+uct_ud_iface_async_progress(uct_ud_iface_t *iface)
+{
+    uct_ud_iface_ops_t *ops =
+        ucs_derived_of(iface->super.ops, uct_ud_iface_ops_t);
+    unsigned ev_count;
+
+    if (ucs_unlikely(iface->async.disable)) {
+        return;
+    }
+
+    ev_count = ops->async_progress(iface);
+    if (ev_count > 0) {
+        uct_ud_iface_raise_pending_async_ev(iface);
+    }
+}

@@ -8,7 +8,7 @@
 # mpi.h
 #
 # Here are the steps:
-# 1) Find the prototypes in mpi.h.in (Look for *Begin Prototypes*)
+# 1) Find the prototypes in mpi_proto.h (Look for *Begin Prototypes*)
 # 2) For each function, match the name and args:
 #    int MPI_xxxx( ... )
 # 3) By groups, create a new file with the name {catname}.h containing 
@@ -39,7 +39,7 @@
 #       COVERAGE_EXIT(Name,argcount); }
 # The COVERAGE_ENTER and EXIT can be used as macros to invoke code to keep
 # track of each entry and exit.  The argcount is the number of parameters,
-# and can be used to distinquish between routines with the same name but
+# and can be used to distinguish between routines with the same name but
 # different number of arguments.
 #
 # (const applies only if the function does not modify its object (e.g., 
@@ -55,7 +55,7 @@
 #   Pass by reference to process routine
 # 
 # Notes:
-#   "NULL" isn't the rigth way to specify a NULL pointer in C++; use "0" (this 
+#   "NULL" isn't the right way to specify a NULL pointer in C++; use "0" (this 
 #   will have the correct type and some C++ compilers don't recognize NULL
 #   unless you include header files that needed it and are otherwise unneeded
 #   by the C++ interface)
@@ -161,7 +161,7 @@ foreach $_ (@ARGV) {
 if (! -d "../../mpi/romio") { $build_io = 0; }
 
 if ($initFile ne "" && -f $initFile) {
-    do "./$initFile";
+    do $initFile;
 }
 # ----------------------------------------------------------------------------
 # 
@@ -841,7 +841,7 @@ $arg_string = join( ' ', @ARGV );
 # Here begins more executable code.  Read the definitions of the 
 # routines.  The argument list for routine xxx is placed into the hash
 # mpi_routine{xxx}.
-&ReadInterface( "../../include/mpi.h.in" );
+&ReadInterface( "../../include/mpi_proto.h" );
 # Special case:  Add Pcontrol
 $mpi_routine{'Pcontrol'} = "int,...";
 
@@ -1077,7 +1077,7 @@ if ($do_DistGraphComm) {
 	'Dist_graph_neighbors_count';
 }
 
-# These routines must be defered because their implementations need 
+# These routines must be deferred because their implementations need 
 # definitions of classes that must be made later than the class that they
 # are in.  In particular, these need both datatypes and communicators.
 %defer_definition = ( 'Pack' => Datatype, 
@@ -1101,7 +1101,7 @@ if ($do_DistGraphComm) {
     $class_has_no_compare{'Distgraphcomm'} = 1;
 }
 
-# These classes do not have a default intialization
+# These classes do not have a default initialization
 # These use the Full class name
 %class_has_no_default = ( 'Status' => 1 );
 
@@ -1110,7 +1110,7 @@ if ($do_DistGraphComm) {
 # derived from the ReadInterface
 if ($doFuncspec) {
     &ReadFuncSpec( "cxxdecl3.dat" );
-    # Use the MPI C++ binding names for the defered definitions
+    # Use the MPI C++ binding names for the deferred definitions
     $defer_definition{"Create_cart"}  = "Comm";
     $defer_definition{"Create_graph"} = "Comm";
     $defer_definition{"Get_parent"}   = "Comm";
@@ -1153,11 +1153,11 @@ print $OUTFD "namespace MPI {\n";
 # Provide a way to invoke the error handler on the object
 print $OUTFD "#if \@HAVE_CXX_EXCEPTIONS\@
 #define MPIX_CALLREF( _objptr, fnc ) \\
-    { int err = fnc; if (err) { (_objptr)->Call_errhandler( err ); }}
+    do { int err = fnc; if (err) { (_objptr)->Call_errhandler( err ); }} while(0)
 #define MPIX_CALLOBJ( _obj, fnc ) \\
-    { int err = fnc; if (err) { (_obj).Call_errhandler( err ); }}
+    do { int err = fnc; if (err) { (_obj).Call_errhandler( err ); }} while(0)
 #define MPIX_CALLWORLD( fnc ) \\
-    { int err = fnc ; if (err) MPIR_Call_world_errhand( err ); }
+    do { int err = fnc ; if (err) MPIR_Call_world_errhand( err ); } while(0)
 extern void MPIR_Call_world_errhand( int );
 #else
 #define MPIX_CALLREF( _objptr, fnc ) (void)fnc
@@ -1257,7 +1257,7 @@ typedef int MPI_File;\
     # Hack to ifdef out the file routines
     if ($class eq "file") {
 	# Define the file type only if supported.
-	print $OUTFD "#ifdef MPI_MODE_RDONLY\n";
+	print $OUTFD "#if \@HAVE_CXX_IO\@\n";
     }
 
     foreach $mpilevel (@mpilevels) {
@@ -1347,7 +1347,7 @@ typedef int MPI_File;\
     # Only define these typedefs when MPI-IO is available (this is the same
     # test as used for the rest of the I/O routines );
 print $OUTFD "\
-#ifdef MPI_MODE_RDONLY
+#if \@HAVE_CXX_IO\@
 typedef int Datarep_extent_function( const Datatype&, Aint&, void *);
 typedef int Datarep_conversion_function( void *, Datatype &, int, void *,
                 Offset, void * );
@@ -1531,7 +1531,7 @@ EOT
 sub print_args { 
     my $OUTFD = $_[0];
     my @parms = split(/\s*,\s*/, $_[1] );  # the original parameter list
-    my $class_type = $_[2];                # Is this a Comm, Info, or othe 
+    my $class_type = $_[2];                # Is this a Comm, Info, or other 
                                            # class?  Use to find the position
                                            # of the "this" entry in the C 
                                            # version of the routine.
@@ -1725,7 +1725,7 @@ sub print_call_args {
 	}
 	elsif ($count == $return_parm_pos) {
 	    # We may need to pass the address of a temporary object
-	    # We'll unilateraly assume this for now
+	    # We'll unilaterally assume this for now
 	    # This must be first, so that it has a priority over the
 	    # class pos location.
 	    if ($parm =~ /MPI_/ && !($parm =~ /MPI_Offset/) &&
@@ -1837,7 +1837,7 @@ sub clean_args {
 
 # Print out the constants.
 # PrintConstants( FD, giveValue )
-# if GiveValue is true, defint the value, otherwise, make it external
+# if GiveValue is true, define the value, otherwise, make it external
 sub PrintConstants {    
     my ($OUTFD, $giveValue) = @_;
     my $extern = "extern ";
@@ -1861,11 +1861,14 @@ sub PrintConstants {
     # C counterpart; their MPI Datatype handles are determined by the
     # configure step and inserted into mpicxx.h as #define's
     foreach $dtype (@cppdtypes) {
+        my $use_dtype = $dtype;
+        if ($dtype eq "COMPLEX") {
+            $use_dtype = "FLOAT_COMPLEX"
+        }
 	print $OUTFD "${extern}Datatype $dtype";
-	if ($giveValue) { print $OUTFD "(MPIR_CXX_$dtype);\n"; }
+	if ($giveValue) { print $OUTFD "(MPI_CXX_$use_dtype);\n"; }
 	else { 
 	    print $OUTFD ";\n"; 
-	    print $OUTFD "#define MPIR_CXX_$dtype \@MPIR_CXX_${dtype}\@\n";
 	}
     }
 
@@ -2000,7 +2003,11 @@ extern Datatype TWOINTEGER;
     }
 
     print $OUTFD "// Include these only if MPI-IO is available\n";
-    print $OUTFD "#ifdef MPI_MODE_RDONLY\n";
+    if ($giveValue) {
+        print $OUTFD "#ifdef HAVE_ROMIO\n";
+    } else {
+        print $OUTFD "#if \@HAVE_CXX_IO\@\n";
+    }
 
     # Other file constants
     foreach $int (MAX_DATAREP_STRING) {
@@ -2082,9 +2089,9 @@ sub build_specials {
     open( $OUTFD, ">${filename}.new" ) || die "Cannot open ${filename}.new\n";
     $files[$#files+1] = "initcxx.cxx";
     &print_header;
+    print $OUTFD "#include \"mpichconf.h\"\n"; # Requires for HAVE_FORTRAN_BINDING
     print $OUTFD "#include \"mpi.h\"\n";
     print $OUTFD "#include <stdarg.h>\n";    # Required for pcontrol
-    print $OUTFD "#include \"mpichconf.h\"\n"; # Requires for HAVE_FORTRAN_BINDING
 
     # Add exception for coding style checker
     print $OUTFD "/* style:PMPIuse:PMPI_Type_set_name:4 sig:0 */\n";
@@ -2304,36 +2311,7 @@ void operator delete[](void *p) {
      print $OUTFD "\
     }\n";
 
-    # Init is a difficult function because we must allow C to call a 
-    # C++ function.  We do this by getting help from the MPI implementation
-    # which invokes the MPIR_Call_op_fn routine, with a pointer to the 
-    # C++ routine to invoke.
-    #
-    # Note: Some compilers complain about the cast to the 
-    # (void (*)(void)) function, expecting an `extern "C"' as well, but
-    # other compilers do not accept the extern "C".  Sigh.
-    print $OUTFD "
-    extern \"C\" {
-typedef void (*mpircallback)(void);
-}
-extern \"C\" void MPII_Op_set_cxx( MPI_Op, void (*)(void) );
-extern \"C\" 
-void MPIR_Call_op_fn( void *invec, void *outvec, int len, MPI_Datatype dtype,
-		     User_function *uop )
-{
-    MPI::Datatype cxxdtype = dtype;
-    (*uop)( invec, outvec, len, cxxdtype );
-}
-void Op::Init( User_function *f, bool commute )
-    {\n";
-&printCoverageStart( $OUTFD, "Op_create", 2 );
-     print $OUTFD "\
-	MPIX_CALLWORLD( MPI_Op_create( (MPI_User_function *)f, 
-			(int) commute, &the_real_op ) ); 
-	MPII_Op_set_cxx( the_real_op, (mpircallback) MPIR_Call_op_fn );\n";
-&printCoverageEnd( $OUTFD, "Op_create", 2 );
-print $OUTFD "\
-    }\n";
+    print $OUTFD "#include \"user_proxy.inc\"\n";
 
     # Keyval and attribute routines
     print $OUTFD <<EOT;
@@ -2635,84 +2613,6 @@ EOT
 EOT
 
 print $OUTFD <<EOT;
-// Provide a C routine that can call the C++ error handler, handling
-// any calling-sequence change.  
-extern \"C\" void MPII_Errhandler_set_cxx( MPI_Errhandler, void (*)(void) );
-extern \"C\" 
-void MPIR_Call_errhandler_function( int kind, int *handle, int *errcode, 
-			      void (*cxxfn)(void) )
-{
-    // Use horrible casts to get the correct routine signature
-    switch (kind) {
-    case 0: // comm
-	    {
-		MPI_Comm *ch = (MPI_Comm *)handle;
-		int flag;
-		MPI::Comm::Errhandler_function *f = (MPI::Comm::Errhandler_function *)cxxfn;
-		// Make an actual Comm (inter or intra-comm)
-		MPI_Comm_test_inter( *ch, &flag );
-		if (flag) {
-		    MPI::Intercomm ic(*ch);
-		    (*f)( ic, errcode );
-		}
-		else {
-		    MPI::Intracomm ic(*ch);
-		    (*f)( ic, errcode );
-		}
-	    }
-	    break;
-#ifdef MPI_MODE_RDONLY
-    case 1: // file
-	    {
-		MPI::File fh = (MPI_File)*(MPI_File*)handle;
-		MPI::File::Errhandler_function *f = (MPI::File::Errhandler_function *)cxxfn;
-		(*f)( fh, errcode );
-	    }
-	    break;
-#endif // IO
-    case 2: // win
-	    {
-		MPI::Win fh = (MPI_Win)*(MPI_Win*)handle;
-		MPI::Win::Errhandler_function *f = (MPI::Win::Errhandler_function *)cxxfn;
-		(*f)( fh, errcode );
-	    }
-	    break;
-    }
-}
-#ifdef MPI_MODE_RDONLY
-Errhandler File::Create_errhandler( Errhandler_function *f )
-{
-    MPI_Errhandler eh;
-    MPI::Errhandler e1;
-    MPI_File_create_errhandler( (MPI_File_errhandler_function *)f, &eh );
-    MPII_Errhandler_set_cxx( eh,
-			     (mpircallback)MPIR_Call_errhandler_function );
-    e1.the_real_errhandler = eh;
-    return e1;
-}
-#endif // IO
-Errhandler Comm::Create_errhandler( Errhandler_function *f )
-{
-    MPI_Errhandler eh;
-    MPI::Errhandler e1;
-    MPI_Comm_create_errhandler( (MPI_Comm_errhandler_function *)f, &eh );
-    MPII_Errhandler_set_cxx( eh,
-			     (mpircallback)MPIR_Call_errhandler_function );
-    e1.the_real_errhandler = eh;
-    return e1;
-}
-Errhandler Win::Create_errhandler( Errhandler_function *f )
-{
-    MPI_Errhandler eh;
-    MPI::Errhandler e1;
-    MPI_Win_create_errhandler( (MPI_Win_errhandler_function *)f, &eh );
-    MPII_Errhandler_set_cxx( eh,
-			     (mpircallback)MPIR_Call_errhandler_function );
-    e1.the_real_errhandler = eh;
-    return e1;
-}
-
-
 // Call_errhandler implementations.  These sadly must contain a bit of logic to
 // cover the ERRORS_THROW_EXCEPTIONS case.
 void Comm::Call_errhandler( int errorcode ) const
@@ -2761,7 +2661,7 @@ void Win::Call_errhandler( int errorcode ) const
     MPI_Win_call_errhandler( (MPI_Win) the_real_win, errorcode );
 }
 
-#ifdef MPI_MODE_RDONLY
+#ifdef HAVE_ROMIO
 void File::Call_errhandler( int errorcode ) const
 {
     // we must free the Errhandler object returned from Get_errhandler because
@@ -2792,7 +2692,7 @@ EOT
     # The data rep conversion functions need to be wrapped in C code
     # Only define this routine when MPI-IO is available (this is the same
     # test as used for the rest of the I/O routines );
-print $OUTFD "#ifdef MPI_MODE_RDONLY\n";
+print $OUTFD "#ifdef HAVE_ROMIO\n";
     print $OUTFD "
 extern \"C\" {
 //
@@ -3866,7 +3766,7 @@ sub EndClass {
 #   f) return result value, if any
 #   
 # The handling of the temporary variables is done by calling a named routine
-# for each parameter that identifies itself as requring special processing
+# for each parameter that identifies itself as requiring special processing
 # ----------------------------------------------------------------------------
 #
 # PrintRoutineDef( outfd, class, routine, arginfo, defonly )
@@ -4453,7 +4353,7 @@ sub bool_out_ctocxx {
     
     print $OUTFD "$indent    $cxxoutvar = $cinvar ? true : false;\n";
 }
-# conver to C int
+# convert to C int
 sub bool_in_cxxtoc {
 #    my $cxxinvar = $_[0];
 #    my $coutvar  = $_[1];
@@ -4980,7 +4880,7 @@ sub printCoverageInitialize {
 # ----------------------------------------------------------------------------
 # Read a specification file for a binding.  This helps provide information on
 # exceptions and enhancements to the binding automatically derived from the
-# prototype file (the C header file).  The format of this specificaiton
+# prototype file (the C header file).  The format of this specification
 # file is:
 # class-name: [static] return (args) [const]
 #
@@ -5146,7 +5046,7 @@ sub ReadFuncSpec {
 }
 # ----------------------------------------------------------------------------
 # Special debugging:
-# Somethimes it is valuable to debug just a single routine.  This interface
+# Sometimes it is valuable to debug just a single routine.  This interface
 # makes that relatively easy
 sub debugPrint {
     my ($routine, $str) = @_;

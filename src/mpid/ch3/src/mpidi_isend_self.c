@@ -34,14 +34,7 @@ int MPIDI_Isend_self(const void * buf, MPI_Aint count, MPI_Datatype datatype, in
     match.parts.tag = tag;
     match.parts.context_id = comm->context_id + context_offset;
 
-    MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_POBJ_MSGQ_MUTEX);
-
     rreq = MPIDI_CH3U_Recvq_FDP_or_AEU(&match, &found);
-#if defined(CHANNEL_MRAIL)
-    if (!found) {
-        MVP_INC_NUM_POSTED_RECV();
-    }
-#endif
     /* --BEGIN ERROR HANDLING-- */
     if (rreq == NULL)
     {
@@ -84,41 +77,11 @@ int MPIDI_Isend_self(const void * buf, MPI_Aint count, MPI_Datatype datatype, in
     {
 	intptr_t data_sz;
 	
-        /* we found a posted req, which we now own, so we can release the CS */
-        MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_POBJ_MSGQ_MUTEX);
-
 	MPL_DBG_MSG(MPIDI_CH3_DBG_OTHER,VERBOSE,
 		     "found posted receive request; copying data");
-#ifdef _ENABLE_CUDA_
-    if (mvp_enable_device && is_device_buffer(buf)) {
-        /* buf is in the GPU device memory */
-        sreq->mrail.device_transfer_mode = DEVICE_TO_DEVICE;
-    } else { 
-        /* buf is in the host memory*/
-        sreq->mrail.device_transfer_mode = NONE;
-    }
-
-    if (mvp_enable_device && is_device_buffer(rreq->dev.user_buf)) {
-        /* buf is in the GPU device memory */
-        rreq->mrail.device_transfer_mode = DEVICE_TO_DEVICE;
-    } else { 
-        /* buf is in the host memory*/
-        rreq->mrail.device_transfer_mode = NONE;
-    }
-
-    if (mvp_enable_device
-            && ((DEVICE_TO_DEVICE == sreq->mrail.device_transfer_mode)
-                || (DEVICE_TO_DEVICE == rreq->mrail.device_transfer_mode))) {
-        MPIDI_CH3U_Buffer_copy_device(buf, count, datatype, &sreq->status.MPI_ERROR,
-                rreq->dev.user_buf, rreq->dev.user_count, rreq->dev.datatype, &data_sz, &rreq->status.MPI_ERROR);    
-    } else {
-#endif	    
 	    
 	MPIDI_CH3U_Buffer_copy(buf, count, datatype, &sreq->status.MPI_ERROR,
 			       rreq->dev.user_buf, rreq->dev.user_count, rreq->dev.datatype, &data_sz, &rreq->status.MPI_ERROR);
-#ifdef _ENABLE_CUDA_
-    }
-#endif
 	MPIR_STATUS_SET_COUNT(rreq->status, data_sz);
         mpi_errno = MPID_Request_complete(rreq);
         MPIR_ERR_CHECK(mpi_errno);
@@ -166,9 +129,6 @@ int MPIDI_Isend_self(const void * buf, MPI_Aint count, MPI_Datatype datatype, in
 	}
 	    
 	MPIDI_Request_set_msg_type(rreq, MPIDI_REQUEST_SELF_MSG);
-
-        /* can release now that we've set fields in the unexpected request */
-        MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_POBJ_MSGQ_MUTEX);
 
         /* kick the progress engine in case another thread that is performing a
            blocking recv or probe is waiting in the progress engine */

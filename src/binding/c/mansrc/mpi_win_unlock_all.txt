@@ -1,0 +1,26 @@
+/*D
+   MPI_Win_unlock_all - Completes an RMA access epoch at all processes on the given window
+
+Synopsis:
+.vb
+int MPI_Win_unlock_all(MPI_Win win)
+.ve
+
+Input Parameters:
+. win - window object (handle)
+
+Notes:
+This call is not collective.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_WIN
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Win_lock_all
+D*/
+

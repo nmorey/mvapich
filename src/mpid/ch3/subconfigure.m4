@@ -15,7 +15,7 @@ MPID_MAX_PROCESSOR_NAME=128
 
 # code that formerly lived in setup_device.args
 if test -z "${device_args}" ; then
-    device_args="mrail"
+    device_args="nemesis"
 fi
 channel_name=`echo ${device_args} | sed -e 's/:.*$//'`
 # observe the [] quoting below
@@ -62,7 +62,7 @@ AC_DEFUN([PAC_SUBCFG_BODY_]PAC_SUBCFG_AUTO_SUFFIX,[
 AM_COND_IF([BUILD_CH3],[
 AC_MSG_NOTICE([RUNNING CONFIGURE FOR CH3 DEVICE])
 
-AC_ARG_WITH(ch3-rank-bits, [--with-ch3-rank-bits=16/32     Number of bits allocated to the rank field (16 or 32)],
+AC_ARG_WITH(ch3-rank-bits, [  --with-ch3-rank-bits=16/32     Number of bits allocated to the rank field (16 or 32)],
 			   [ rankbits=$withval ],
 			   [ rankbits=16 ])
 if test "$rankbits" != "16" -a "$rankbits" != "32" ; then
@@ -78,14 +78,8 @@ AC_CHECK_HEADERS(assert.h limits.h string.h sys/types.h sys/uio.h uuid/uuid.h \
 # is a prerequisite.
 AC_CHECK_HEADERS([net/if.h], [], [],
 [#include <stdio.h>
-#ifdef STDC_HEADERS
-# include <stdlib.h>
-# include <stddef.h>
-#else
-# ifdef HAVE_STDLIB_H
-#  include <stdlib.h>
-# endif
-#endif
+#include <stdlib.h>
+#include <stddef.h>
 #ifdef HAVE_SYS_SOCKET_H
 # include <sys/socket.h>
 #endif
@@ -103,9 +97,6 @@ if test "$ac_cv_func_gethostname" = "yes" ; then
 fi
 
 AC_CHECK_FUNCS(CFUUIDCreate uuid_generate time)
-
-# ensure that atomic primitives are available
-AC_MSG_CHECKING([for OpenPA atomic primitive availability])
 
 AC_C_BIGENDIAN
 

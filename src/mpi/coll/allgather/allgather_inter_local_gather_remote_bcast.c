@@ -12,13 +12,12 @@
  * broadcast.
  */
 
-int MPIR_Allgather_inter_local_gather_remote_bcast(const void *sendbuf, int sendcount,
+int MPIR_Allgather_inter_local_gather_remote_bcast(const void *sendbuf, MPI_Aint sendcount,
                                                    MPI_Datatype sendtype, void *recvbuf,
-                                                   int recvcount, MPI_Datatype recvtype,
-                                                   MPIR_Comm * comm_ptr, MPIR_Errflag_t * errflag)
+                                                   MPI_Aint recvcount, MPI_Datatype recvtype,
+                                                   MPIR_Comm * comm_ptr, MPIR_Errflag_t errflag)
 {
     int rank, local_size, remote_size, mpi_errno = MPI_SUCCESS, root;
-    int mpi_errno_ret = MPI_SUCCESS;
     MPI_Aint sendtype_sz;
     void *tmp_buf = NULL;
     MPIR_Comm *newcomm_ptr = NULL;
@@ -49,14 +48,7 @@ int MPIR_Allgather_inter_local_gather_remote_bcast(const void *sendbuf, int send
     if (sendcount != 0) {
         mpi_errno = MPIR_Gather(sendbuf, sendcount, sendtype, tmp_buf, sendcount * sendtype_sz,
                                 MPI_BYTE, 0, newcomm_ptr, errflag);
-        if (mpi_errno) {
-            /* for communication errors, just record the error but continue */
-            *errflag =
-                MPIX_ERR_PROC_FAILED ==
-                MPIR_ERR_GET_CLASS(mpi_errno) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER;
-            MPIR_ERR_SET(mpi_errno, *errflag, "**fail");
-            MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-        }
+        MPIR_ERR_CHECK(mpi_errno);
     }
 
     /* first broadcast from left to right group, then from right to
@@ -67,14 +59,7 @@ int MPIR_Allgather_inter_local_gather_remote_bcast(const void *sendbuf, int send
             root = (rank == 0) ? MPI_ROOT : MPI_PROC_NULL;
             mpi_errno = MPIR_Bcast(tmp_buf, sendcount * sendtype_sz * local_size,
                                    MPI_BYTE, root, comm_ptr, errflag);
-            if (mpi_errno) {
-                /* for communication errors, just record the error but continue */
-                *errflag =
-                    MPIX_ERR_PROC_FAILED ==
-                    MPIR_ERR_GET_CLASS(mpi_errno) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER;
-                MPIR_ERR_SET(mpi_errno, *errflag, "**fail");
-                MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-            }
+            MPIR_ERR_CHECK(mpi_errno);
         }
 
         /* receive bcast from right */
@@ -82,14 +67,7 @@ int MPIR_Allgather_inter_local_gather_remote_bcast(const void *sendbuf, int send
             root = 0;
             mpi_errno = MPIR_Bcast(recvbuf, recvcount * remote_size,
                                    recvtype, root, comm_ptr, errflag);
-            if (mpi_errno) {
-                /* for communication errors, just record the error but continue */
-                *errflag =
-                    MPIX_ERR_PROC_FAILED ==
-                    MPIR_ERR_GET_CLASS(mpi_errno) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER;
-                MPIR_ERR_SET(mpi_errno, *errflag, "**fail");
-                MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-            }
+            MPIR_ERR_CHECK(mpi_errno);
         }
     } else {
         /* receive bcast from left */
@@ -97,14 +75,7 @@ int MPIR_Allgather_inter_local_gather_remote_bcast(const void *sendbuf, int send
             root = 0;
             mpi_errno = MPIR_Bcast(recvbuf, recvcount * remote_size,
                                    recvtype, root, comm_ptr, errflag);
-            if (mpi_errno) {
-                /* for communication errors, just record the error but continue */
-                *errflag =
-                    MPIX_ERR_PROC_FAILED ==
-                    MPIR_ERR_GET_CLASS(mpi_errno) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER;
-                MPIR_ERR_SET(mpi_errno, *errflag, "**fail");
-                MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-            }
+            MPIR_ERR_CHECK(mpi_errno);
         }
 
         /* bcast to left */
@@ -112,26 +83,13 @@ int MPIR_Allgather_inter_local_gather_remote_bcast(const void *sendbuf, int send
             root = (rank == 0) ? MPI_ROOT : MPI_PROC_NULL;
             mpi_errno = MPIR_Bcast(tmp_buf, sendcount * sendtype_sz * local_size,
                                    MPI_BYTE, root, comm_ptr, errflag);
-            if (mpi_errno) {
-                /* for communication errors, just record the error but continue */
-                *errflag =
-                    MPIX_ERR_PROC_FAILED ==
-                    MPIR_ERR_GET_CLASS(mpi_errno) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER;
-                MPIR_ERR_SET(mpi_errno, *errflag, "**fail");
-                MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-            }
+            MPIR_ERR_CHECK(mpi_errno);
         }
     }
 
   fn_exit:
     MPIR_CHKLMEM_FREEALL();
-    if (mpi_errno_ret)
-        mpi_errno = mpi_errno_ret;
-    else if (*errflag != MPIR_ERR_NONE)
-        MPIR_ERR_SET(mpi_errno, *errflag, "**coll_fail");
-
     return mpi_errno;
-
   fn_fail:
     goto fn_exit;
 }

@@ -12,15 +12,9 @@
  */
 #define MPIR_LSUM(a,b) ((a)+(b))
 
-#ifdef __ibmxl__
-void real16_sum(void *invec, void *inoutvec, int *Len);
-#else
-void real16_sum_(void *invec, void *inoutvec, int *Len);
-#endif
-
-void MPIR_SUM(void *invec, void *inoutvec, int *Len, MPI_Datatype * type)
+void MPIR_SUM(void *invec, void *inoutvec, MPI_Aint * Len, MPI_Datatype * type)
 {
-    int i, len = *Len;
+    MPI_Aint i, len = *Len;
 
     switch (*type) {
 #undef MPIR_OP_TYPE_MACRO
@@ -55,18 +49,6 @@ void MPIR_SUM(void *invec, void *inoutvec, int *Len, MPI_Datatype * type)
 #undef MPIR_OP_TYPE_MACRO
 #undef MPIR_OP_C_COMPLEX_TYPE_MACRO
 #define MPIR_OP_C_COMPLEX_TYPE_MACRO(mpi_type_,c_type_,type_name_) MPIR_OP_TYPE_MACRO(mpi_type_,c_type_,type_name_)
-#ifdef HAVE_FORTRAN_BINDING
-#ifndef __PGI
-        /* As of v20.1, PGI compilers only support real8 */
-        case MPI_REAL16:
-#ifdef __ibmxl__
-            real16_sum(invec, inoutvec, Len);
-#else
-            real16_sum_(invec, inoutvec, Len);
-#endif
-            break;
-#endif /*ifndef __PGI*/
-#endif /*#ifdef HAVE_FORTRAN_BINDING*/
         default:
             MPIR_Assert(0);
             break;
@@ -90,13 +72,7 @@ int MPIR_SUM_check_dtype(MPI_Datatype type)
                 MPIR_OP_TYPE_GROUP(COMPLEX)
                 MPIR_OP_TYPE_GROUP(COMPLEX_EXTRA)
 #undef MPIR_OP_TYPE_MACRO
-#ifdef HAVE_FORTRAN_BINDING
-#ifndef __PGI
-        /* As of v20.1, PGI compilers only support real8 */
-        case (MPI_REAL16):
-#endif /*ifndef __PGI*/
-#endif /*#ifdef HAVE_FORTRAN_BINDING*/
-            return MPI_SUCCESS;
+                return MPI_SUCCESS;
             /* --BEGIN ERROR HANDLING-- */
         default:
             return MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, __func__, __LINE__,

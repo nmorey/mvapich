@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2001-2014.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2014. ALL RIGHTS RESERVED.
 *
 * See file LICENSE for terms.
 */
@@ -47,6 +47,11 @@ void ucs_async_pipe_destroy(ucs_async_pipe_t *p)
 {
     close(p->read_fd);
     close(p->write_fd);
+}
+
+void ucs_async_pipe_invalidate(ucs_async_pipe_t *p)
+{
+    p->read_fd = p->write_fd = UCS_ASYNC_PIPE_INVALID_FD;
 }
 
 void ucs_async_pipe_push(ucs_async_pipe_t *p)

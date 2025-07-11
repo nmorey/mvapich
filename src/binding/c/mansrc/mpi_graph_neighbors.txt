@@ -1,0 +1,30 @@
+/*D
+   MPI_Graph_neighbors - Returns the neighbors of a node associated
+
+Synopsis:
+.vb
+int MPI_Graph_neighbors(MPI_Comm comm, int rank, int maxneighbors,
+                        int neighbors[])
+.ve
+
+Input Parameters:
++ comm - communicator with graph topology (handle)
+. rank - rank of process in group of comm (integer)
+- maxneighbors - size of array neighbors (integer)
+
+Output Parameters:
+. neighbors - ranks of processes that are neighbors to specified process (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_RANK
+.N MPI_ERR_OTHER
+
+D*/
+

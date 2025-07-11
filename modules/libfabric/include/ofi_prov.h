@@ -59,15 +59,39 @@ GNI_INI ;
 #  define GNI_INIT NULL
 #endif
 
-#if (HAVE_VERBS) && (HAVE_VERBS_DL)
-#  define VERBS_INI FI_EXT_INI
+/* If HAVE_EFA is defined on Windows, then the VisualStudio project configures
+ * MSBuild to include the efa related files and exclude the verbs related files.
+ * With the verbs related files excluded from the build, we need only ensure
+ * that VERBS_INIT is NULL so that ofi_register_provider will skip it.
+ */
+#if defined(_WIN32) && (HAVE_EFA)
 #  define VERBS_INIT NULL
-#elif (HAVE_VERBS)
-#  define VERBS_INI INI_SIG(fi_verbs_ini)
-#  define VERBS_INIT fi_verbs_ini()
-VERBS_INI ;
 #else
-#  define VERBS_INIT NULL
+#  if (HAVE_VERBS) && (HAVE_VERBS_DL)
+#    define VERBS_INI FI_EXT_INI
+#    define VERBS_INIT NULL
+#  elif (HAVE_VERBS)
+#    define VERBS_INI INI_SIG(fi_verbs_ini)
+#    define VERBS_INIT fi_verbs_ini()
+VERBS_INI ;
+#  else
+#    define VERBS_INIT NULL
+#  endif
+#endif
+
+#if defined(_WIN32) && (HAVE_EFA)
+#  define MVERBS_INIT NULL
+#else
+#  if (HAVE_MVERBS) && (HAVE_MVERBS_DL)
+#    define MVERBS_INI FI_EXT_INI
+#    define MVERBS_INIT NULL
+#  elif (HAVE_MVERBS)
+#    define MVERBS_INI INI_SIG(fi_mverbs_ini)
+#    define MVERBS_INIT fi_mverbs_ini()
+MVERBS_INI ;
+#  else
+#    define MVERBS_INIT NULL
+#  endif
 #endif
 
 #if (HAVE_EFA) && (HAVE_EFA_DL)
@@ -79,17 +103,6 @@ VERBS_INI ;
 EFA_INI ;
 #else
 #  define EFA_INIT NULL
-#endif
-
-#if (HAVE_PSM) && (HAVE_PSM_DL)
-#  define PSM_INI FI_EXT_INI
-#  define PSM_INIT NULL
-#elif (HAVE_PSM)
-#  define PSM_INI INI_SIG(fi_psm_ini)
-#  define PSM_INIT fi_psm_ini()
-PSM_INI ;
-#else
-#  define PSM_INIT NULL
 #endif
 
 #if (HAVE_PSM2) && (HAVE_PSM2_DL)
@@ -169,6 +182,17 @@ RXM_INI ;
 #  define RXM_INIT NULL
 #endif
 
+#if (HAVE_UCR) && (HAVE_UCR_DL)
+#  define UCR_INI FI_EXT_INI
+#  define UCR_INIT NULL
+#elif (HAVE_UCR)
+#  define UCR_INI INI_SIG(fi_ucr_ini)
+#  define UCR_INIT fi_ucr_ini()
+UCR_INI ;
+#else
+#  define UCR_INIT NULL
+#endif
+
 #if (HAVE_RXD) && (HAVE_RXD_DL)
 #  define RXD_INI FI_EXT_INI
 #  define RXD_INIT NULL
@@ -217,6 +241,17 @@ SHM_INI ;
 #  define SHM_INIT NULL
 #endif
 
+#if (HAVE_SM2) && (HAVE_SM2_DL)
+#  define SM2_INI FI_EXT_INI
+#  define SM2_INIT NULL
+#elif (HAVE_SM2)
+#  define SM2_INI INI_SIG(fi_sm2_ini)
+#  define SM2_INIT fi_sm2_ini()
+SM2_INI ;
+#else
+#  define SM2_INIT NULL
+#endif
+
 #if (HAVE_MRAIL) && (HAVE_MRAIL_DL)
 #  define MRAIL_INI FI_EXT_INI
 #  define MRAIL_INIT NULL
@@ -249,6 +284,29 @@ HOOK_PERF_INI ;
 #else
 #  define HOOK_PERF_INIT NULL
 #endif
+
+#if (HAVE_TRACE) && (HAVE_TRACE_DL)
+#  define HOOK_TRACE_INI FI_EXT_INI
+#  define HOOK_TRACE_INIT NULL
+#elif (HAVE_TRACE)
+#  define HOOK_TRACE_INI INI_SIG(fi_hook_trace_ini)
+#  define HOOK_TRACE_INIT fi_hook_trace_ini()
+HOOK_TRACE_INI ;
+#else
+#  define HOOK_TRACE_INIT NULL
+#endif
+
+#if (HAVE_PROFILE) && (HAVE_PROFILE_DL)
+#  define HOOK_PROFILE_INI FI_EXT_INI
+#  define HOOK_PROFILE_INIT NULL
+#elif (HAVE_PROFILE)
+#  define HOOK_PROFILE_INI INI_SIG(fi_hook_profile_ini)
+#  define HOOK_PROFILE_INIT fi_hook_profile_ini()
+HOOK_PROFILE_INI ;
+#else
+#  define HOOK_PROFILE_INIT NULL
+#endif
+
 
 #if (HAVE_HOOK_DEBUG) && (HAVE_HOOK_DEBUG_DL)
 #  define HOOK_DEBUG_INI FI_EXT_INI
@@ -297,5 +355,21 @@ OPX_INI ;
 #else
 #  define OPX_INIT NULL
 #endif
+
+#if (HAVE_UCX) && (HAVE_UCX_DL)
+#  define UCX_INI FI_EXT_INI
+#  define UCX_INIT NULL
+#elif (HAVE_UCX)
+#  define UCX_INI INI_SIG(fi_ucx_ini)
+#  define UCX_INIT fi_ucx_ini()
+UCX_INI ;
+#else
+#  define UCX_INIT NULL
+#endif
+
+/* the utility collective provider is always enabled and built-in */
+#define COLL_INI INI_SIG(fi_coll_ini)
+#define COLL_INIT fi_coll_ini()
+COLL_INI ;
 
 #endif /* _OFI_PROV_H_ */

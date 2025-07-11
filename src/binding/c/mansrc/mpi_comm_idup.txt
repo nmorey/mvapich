@@ -1,0 +1,27 @@
+/*D
+   MPI_Comm_idup - nonblocking communicator duplication
+
+Synopsis:
+.vb
+int MPI_Comm_idup(MPI_Comm comm, MPI_Comm *newcomm, MPI_Request *request)
+.ve
+
+Input Parameters:
+. comm - communicator (handle)
+
+Output Parameters:
++ newcomm - copy of comm (handle)
+- request - communication request (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+D*/
+

@@ -1,0 +1,27 @@
+/*D
+   MPI_Comm_attach_buffer - Attaches a user-provided buffer for buffered send in the communicator
+
+Synopsis:
+.vb
+int MPI_Comm_attach_buffer(MPI_Comm comm, void *buffer, int size)
+.ve
+.vb
+int MPI_Comm_attach_buffer_c(MPI_Comm comm, void *buffer, MPI_Count size)
+.ve
+
+Input Parameters:
++ comm - communicator (handle)
+. buffer - initial buffer address (choice)
+- size - buffer size, in bytes (non-negative integer)
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Buffer_attach, MPI_Bsend
+D*/
+

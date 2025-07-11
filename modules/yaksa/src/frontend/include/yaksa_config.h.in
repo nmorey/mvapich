@@ -1,0 +1,270 @@
+/* src/frontend/include/yaksa_config.h.in.  Generated from configure.ac by autoheader.  */
+
+
+/*
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
+ */
+
+#ifndef YAKSA_CONFIG_H_INCLUDED
+#define YAKSA_CONFIG_H_INCLUDED
+
+
+/* The normal alignment of `byte', in bytes. */
+#undef ALIGNOF_BYTE
+
+/* The normal alignment of `char', in bytes. */
+#undef ALIGNOF_CHAR
+
+/* The normal alignment of `double', in bytes. */
+#undef ALIGNOF_DOUBLE
+
+/* The normal alignment of `float', in bytes. */
+#undef ALIGNOF_FLOAT
+
+/* The normal alignment of `int', in bytes. */
+#undef ALIGNOF_INT
+
+/* The normal alignment of `int16_t', in bytes. */
+#undef ALIGNOF_INT16_T
+
+/* The normal alignment of `int32_t', in bytes. */
+#undef ALIGNOF_INT32_T
+
+/* The normal alignment of `int64_t', in bytes. */
+#undef ALIGNOF_INT64_T
+
+/* The normal alignment of `int8_t', in bytes. */
+#undef ALIGNOF_INT8_T
+
+/* The normal alignment of `intmax_t', in bytes. */
+#undef ALIGNOF_INTMAX_T
+
+/* The normal alignment of `intptr_t', in bytes. */
+#undef ALIGNOF_INTPTR_T
+
+/* The normal alignment of `int_fast16_t', in bytes. */
+#undef ALIGNOF_INT_FAST16_T
+
+/* The normal alignment of `int_fast32_t', in bytes. */
+#undef ALIGNOF_INT_FAST32_T
+
+/* The normal alignment of `int_fast64_t', in bytes. */
+#undef ALIGNOF_INT_FAST64_T
+
+/* The normal alignment of `int_fast8_t', in bytes. */
+#undef ALIGNOF_INT_FAST8_T
+
+/* The normal alignment of `int_least16_t', in bytes. */
+#undef ALIGNOF_INT_LEAST16_T
+
+/* The normal alignment of `int_least32_t', in bytes. */
+#undef ALIGNOF_INT_LEAST32_T
+
+/* The normal alignment of `int_least64_t', in bytes. */
+#undef ALIGNOF_INT_LEAST64_T
+
+/* The normal alignment of `int_least8_t', in bytes. */
+#undef ALIGNOF_INT_LEAST8_T
+
+/* The normal alignment of `long', in bytes. */
+#undef ALIGNOF_LONG
+
+/* The normal alignment of `long double', in bytes. */
+#undef ALIGNOF_LONG_DOUBLE
+
+/* The normal alignment of `long long', in bytes. */
+#undef ALIGNOF_LONG_LONG
+
+/* The normal alignment of `ptrdiff_t', in bytes. */
+#undef ALIGNOF_PTRDIFF_T
+
+/* The normal alignment of `short', in bytes. */
+#undef ALIGNOF_SHORT
+
+/* The normal alignment of `signed char', in bytes. */
+#undef ALIGNOF_SIGNED_CHAR
+
+/* The normal alignment of `size_t', in bytes. */
+#undef ALIGNOF_SIZE_T
+
+/* The normal alignment of `uint16_t', in bytes. */
+#undef ALIGNOF_UINT16_T
+
+/* The normal alignment of `uint32_t', in bytes. */
+#undef ALIGNOF_UINT32_T
+
+/* The normal alignment of `uint64_t', in bytes. */
+#undef ALIGNOF_UINT64_T
+
+/* The normal alignment of `uint8_t', in bytes. */
+#undef ALIGNOF_UINT8_T
+
+/* The normal alignment of `uintmax_t', in bytes. */
+#undef ALIGNOF_UINTMAX_T
+
+/* The normal alignment of `uintptr_t', in bytes. */
+#undef ALIGNOF_UINTPTR_T
+
+/* The normal alignment of `uint_fast16_t', in bytes. */
+#undef ALIGNOF_UINT_FAST16_T
+
+/* The normal alignment of `uint_fast32_t', in bytes. */
+#undef ALIGNOF_UINT_FAST32_T
+
+/* The normal alignment of `uint_fast64_t', in bytes. */
+#undef ALIGNOF_UINT_FAST64_T
+
+/* The normal alignment of `uint_fast8_t', in bytes. */
+#undef ALIGNOF_UINT_FAST8_T
+
+/* The normal alignment of `uint_least16_t', in bytes. */
+#undef ALIGNOF_UINT_LEAST16_T
+
+/* The normal alignment of `uint_least32_t', in bytes. */
+#undef ALIGNOF_UINT_LEAST32_T
+
+/* The normal alignment of `uint_least64_t', in bytes. */
+#undef ALIGNOF_UINT_LEAST64_T
+
+/* The normal alignment of `uint_least8_t', in bytes. */
+#undef ALIGNOF_UINT_LEAST8_T
+
+/* The normal alignment of `unsigned', in bytes. */
+#undef ALIGNOF_UNSIGNED
+
+/* The normal alignment of `unsigned char', in bytes. */
+#undef ALIGNOF_UNSIGNED_CHAR
+
+/* The normal alignment of `unsigned long', in bytes. */
+#undef ALIGNOF_UNSIGNED_LONG
+
+/* The normal alignment of `unsigned long long', in bytes. */
+#undef ALIGNOF_UNSIGNED_LONG_LONG
+
+/* The normal alignment of `unsigned short', in bytes. */
+#undef ALIGNOF_UNSIGNED_SHORT
+
+/* The normal alignment of `wchar_t', in bytes. */
+#undef ALIGNOF_WCHAR_T
+
+/* The normal alignment of `_Bool', in bytes. */
+#undef ALIGNOF__BOOL
+
+/* Define if CUDA P2P is disabled */
+#undef CUDA_P2P
+
+/* Define if C11 atomics are available */
+#undef HAVE_C11_ATOMICS
+
+/* Define is CUDA is available */
+#undef HAVE_CUDA
+
+/* Define to 1 if you have the <dlfcn.h> header file. */
+#undef HAVE_DLFCN_H
+
+/* Define if GNU __attribute__ is supported */
+#undef HAVE_GCC_ATTRIBUTE
+
+/* Define is HIP is available */
+#undef HAVE_HIP
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#undef HAVE_INTTYPES_H
+
+/* Define to 1 if you have the `amdhip64' library (-lamdhip64). */
+#undef HAVE_LIBAMDHIP64
+
+/* Define to 1 if you have the `cudart' library (-lcudart). */
+#undef HAVE_LIBCUDART
+
+/* Define to 1 if you have the `ze_loader' library (-lze_loader). */
+#undef HAVE_LIBZE_LOADER
+
+/* Define to 1 if you have the <memory.h> header file. */
+#undef HAVE_MEMORY_H
+
+/* Define to 1 if you have the <pthread.h> header file. */
+#undef HAVE_PTHREAD_H
+
+/* Define to 1 if you have the <stdatomic.h> header file. */
+#undef HAVE_STDATOMIC_H
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#undef HAVE_STDLIB_H
+
+/* Define to 1 if you have the <strings.h> header file. */
+#undef HAVE_STRINGS_H
+
+/* Define to 1 if you have the <string.h> header file. */
+#undef HAVE_STRING_H
+
+/* Define to 1 if you have the <sys/stat.h> header file. */
+#undef HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#undef HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#undef HAVE_UNISTD_H
+
+/* Define is ZE is available */
+#undef HAVE_ZE
+
+/* Define if HIP P2P is disabled */
+#undef HIP_P2P
+
+/* Define if struct hipPointerAttribute_t use memoryType (pre-v6.0) */
+#undef HIP_USE_MEMORYTYPE
+
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
+#undef LT_OBJDIR
+
+/* Name of package */
+#undef PACKAGE
+
+/* Define to the address where bug reports for this package should be sent. */
+#undef PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#undef PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#undef PACKAGE_STRING
+
+/* Define to the one symbol short name of this package. */
+#undef PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
+/* Define to the version of this package. */
+#undef PACKAGE_VERSION
+
+/* Define to 1 if you have the ANSI C header files. */
+#undef STDC_HEADERS
+
+/* Version number of package */
+#undef VERSION
+
+/* Whether C compiler supports symbol visibility or not */
+#undef YAKSA_C_HAVE_VISIBILITY
+
+/* Define if debugging is enabled */
+#undef YAKSA_DEBUG
+
+/* Define if yaksa is embedded */
+#undef YAKSA_EMBEDDED_BUILD
+
+/* No native format */
+#undef ZE_NATIVE
+
+/* Define if ZE P2P is disabled */
+#undef ZE_P2P
+
+
+#endif /* YAKSA_CONFIG_H_INCLUDED */
+

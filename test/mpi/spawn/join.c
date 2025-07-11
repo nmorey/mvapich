@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
     MPI_Comm intercomm;
     int listenfd, connfd, port, namelen;
     struct sockaddr_in cliaddr, servaddr;
-    struct addrinfo *info = NULL;
+    struct hostent *h;
     char hostname[MPI_MAX_PROCESSOR_NAME];
     socklen_t len, clilen;
 
@@ -105,18 +105,15 @@ int main(int argc, char *argv[])
 
         MPI_Barrier(MPI_COMM_WORLD);
 
-        struct addrinfo hints = { .ai_family = AF_INET };
-        err = getaddrinfo(hostname, NULL, &hints, &info);
-        if (err != 0) {
-            fprintf(stderr, "getaddrinfo failed with return code %d\n", err);
-            MPI_Abort(MPI_COMM_WORLD, err);
+        h = gethostbyname(hostname);
+        if (h == NULL) {
+            printf("gethostbyname failed\n");
+            MPI_Abort(MPI_COMM_WORLD, 1);
         }
 
-        struct sockaddr_in* ai_addr = (struct sockaddr_in*)info->ai_addr;
-        servaddr.sin_family = ai_addr->sin_family;
-        memcpy(&servaddr.sin_addr.s_addr, &ai_addr->sin_addr, sizeof(ai_addr->sin_addr));
+        servaddr.sin_family = h->h_addrtype;
+        memcpy((char *) &servaddr.sin_addr.s_addr, h->h_addr_list[0], h->h_length);
         servaddr.sin_port = htons(port);
-        freeaddrinfo(info);
 
         /* create socket */
         connfd = socket(AF_INET, SOCK_STREAM, 0);

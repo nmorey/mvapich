@@ -1,0 +1,29 @@
+/*D
+   MPI_Dist_graph_neighbors_count - Provides adjacency information for a distributed graph topology
+
+Synopsis:
+.vb
+int MPI_Dist_graph_neighbors_count(MPI_Comm comm, int *indegree, int *outdegree,
+                                   int *weighted)
+.ve
+
+Input Parameters:
+. comm - communicator with distributed graph topology (handle)
+
+Output Parameters:
++ indegree - number of edges into this process (non-negative integer)
+. outdegree - number of edges out of this process (non-negative integer)
+- weighted - false if MPI_UNWEIGHTED was supplied during creation, true otherwise (logical)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+D*/
+

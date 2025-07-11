@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2001-2015.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2015. ALL RIGHTS RESERVED.
 *
 * See file LICENSE for terms.
 */
@@ -35,6 +35,10 @@ void __uct_ib_mlx5_log_rx(const char *file, int line, const char *function,
 
 void uct_ib_mlx5_cqe_dump(const char *file, int line, const char *function,
                           struct mlx5_cqe64 *cqe);
+
+void uct_ib_mlx5_av_dump(char *buf, size_t max,
+                         const uct_ib_mlx5_base_av_t *base_av,
+                         const struct mlx5_grh_av *grh_av, int is_eth);
 
 #define uct_ib_mlx5_log_tx(_iface, _wqe, _qstart, _qend, _max_sge, _log_sge, _dump_cb) \
     if (ucs_log_is_enabled(UCS_LOG_LEVEL_TRACE_DATA)) { \

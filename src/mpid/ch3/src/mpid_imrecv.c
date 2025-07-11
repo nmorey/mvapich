@@ -5,7 +5,7 @@
 
 #include "mpidimpl.h"
 
-int MPID_Imrecv(void *buf, int count, MPI_Datatype datatype,
+int MPID_Imrecv(void *buf, MPI_Aint count, MPI_Datatype datatype,
                 MPIR_Request *message, MPIR_Request **rreqp)
 {
     int mpi_errno = MPI_SUCCESS;
@@ -13,22 +13,11 @@ int MPID_Imrecv(void *buf, int count, MPI_Datatype datatype,
     MPIR_Comm *comm;
     MPIDI_VC_t *vc = NULL;
 
-    /* message==NULL is equivalent to MPI_MESSAGE_NO_PROC being passed at the
-     * upper level */
-    if (message == NULL)
-    {
-        *rreqp = MPIR_Request_create_null_recv();
-        MVP_INC_NUM_POSTED_RECV();
-        goto fn_exit;
-    }
-
     MPIR_Assert(message != NULL);
     MPIR_Assert(message->kind == MPIR_REQUEST_KIND__MPROBE);
 
     /* promote the request object to be a "real" recv request */
     message->kind = MPIR_REQUEST_KIND__RECV;
-
-    MVP_INC_NUM_POSTED_RECV();
 
     *rreqp = rreq = message;
 
@@ -39,13 +28,12 @@ int MPID_Imrecv(void *buf, int count, MPI_Datatype datatype,
     rreq->dev.user_buf = buf;
     rreq->dev.user_count = count;
     rreq->dev.datatype = datatype;
+    MPII_RECVQ_REMEMBER(rreq, rreq->status.MPI_SOURCE, rreq->status.MPI_TAG, rreq->comm->recvcontext_id, buf, count);
 
 #ifdef ENABLE_COMM_OVERRIDES
     MPIDI_Comm_get_vc(comm, rreq->status.MPI_SOURCE, &vc);
     if (vc->comm_ops && vc->comm_ops->imrecv) {
-        MPID_THREAD_CS_ENTER(POBJ, vc->pobj_mutex);
         vc->comm_ops->imrecv(vc, rreq);
-        MPID_THREAD_CS_EXIT(POBJ, vc->pobj_mutex);
         goto fn_exit;
     }
 #endif
@@ -92,7 +80,7 @@ int MPID_Imrecv(void *buf, int count, MPI_Datatype datatype,
             /* there should never be outstanding completion events for an unexpected
              * recv without also having a "pending recv" */
             MPIR_Assert(recv_pending);
-            /* The data is still being transfered across the net.  We'll
+            /* The data is still being transferred across the net.  We'll
                leave it to the progress engine to handle once the
                entire message has arrived. */
             if (!HANDLE_IS_BUILTIN(datatype))
@@ -106,11 +94,7 @@ int MPID_Imrecv(void *buf, int count, MPI_Datatype datatype,
     else if (MPIDI_Request_get_msg_type(rreq) == MPIDI_REQUEST_RNDV_MSG)
     {
         MPIDI_Comm_get_vc_set_active(comm, rreq->dev.match.parts.rank, &vc);
-#if defined (CHANNEL_MRAIL)
-        if (IS_VC_SMP(vc)) {
-            rreq->mrail.protocol = MRAILI_PROTOCOL_R3;
-        }
-#endif
+
         mpi_errno = vc->rndvRecv_fn(vc, rreq);
         MPIR_ERR_CHECK(mpi_errno);
         if (!HANDLE_IS_BUILTIN(datatype))

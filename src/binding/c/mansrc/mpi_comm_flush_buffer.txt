@@ -1,0 +1,23 @@
+/*D
+   MPI_Comm_flush_buffer - block until all messages currently in the communicator-specific buffer of the calling process have been transmitted
+
+Synopsis:
+.vb
+int MPI_Comm_flush_buffer(MPI_Comm comm)
+.ve
+
+Input Parameters:
+. comm - communicator (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Buffer_flush, MPI_Session_flush_buffer
+D*/
+

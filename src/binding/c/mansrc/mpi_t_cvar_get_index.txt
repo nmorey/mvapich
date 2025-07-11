@@ -1,0 +1,25 @@
+/*D
+   MPI_T_cvar_get_index - Get the index of a control variable
+
+Synopsis:
+.vb
+int MPI_T_cvar_get_index(const char *name, int *cvar_index)
+.ve
+
+Input Parameters:
+. name - name of the control variable (string)
+
+Output Parameters:
+. cvar_index - index of the control variable (integer)
+
+.N ThreadSafe
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_T_ERR_INVALID
+.N MPI_T_ERR_INVALID_NAME
+.N MPI_T_ERR_NOT_INITIALIZED
+.N MPI_ERR_OTHER
+
+D*/
+

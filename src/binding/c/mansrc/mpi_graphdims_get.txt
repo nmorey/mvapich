@@ -1,0 +1,27 @@
+/*D
+   MPI_Graphdims_get - Retrieves graph topology information associated with a communicator
+
+Synopsis:
+.vb
+int MPI_Graphdims_get(MPI_Comm comm, int *nnodes, int *nedges)
+.ve
+
+Input Parameters:
+. comm - communicator for group with graph structure (handle)
+
+Output Parameters:
++ nnodes - number of nodes in graph (same as number of processes in the group)
+- nedges - number of edges in graph (integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+D*/
+

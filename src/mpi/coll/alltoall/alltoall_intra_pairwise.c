@@ -23,21 +23,17 @@
  * other processes.
  */
 int MPIR_Alltoall_intra_pairwise(const void *sendbuf,
-                                 int sendcount,
+                                 MPI_Aint sendcount,
                                  MPI_Datatype sendtype,
                                  void *recvbuf,
-                                 int recvcount,
+                                 MPI_Aint recvcount,
                                  MPI_Datatype recvtype,
-                                 MPIR_Comm * comm_ptr, MPIR_Errflag_t * errflag)
+                                 MPIR_Comm * comm_ptr, MPIR_Errflag_t errflag)
 {
-    int comm_size, i, pof2;
+    int comm_size, i;
     MPI_Aint sendtype_extent, recvtype_extent;
     int mpi_errno = MPI_SUCCESS, src, dst, rank;
-    int mpi_errno_ret = MPI_SUCCESS;
     MPI_Status status;
-
-    if (recvcount == 0)
-        return MPI_SUCCESS;
 
     comm_size = comm_ptr->local_size;
     rank = comm_ptr->rank;
@@ -59,17 +55,12 @@ int MPIR_Alltoall_intra_pairwise(const void *sendbuf,
     MPIR_ERR_CHECK(mpi_errno);
 
     /* Is comm_size a power-of-two? */
-    i = 1;
-    while (i < comm_size)
-        i *= 2;
-    if (i == comm_size)
-        pof2 = 1;
-    else
-        pof2 = 0;
+    int is_pof2;
+    is_pof2 = MPL_is_pof2(comm_size);
 
     /* Do the pairwise exchanges */
     for (i = 1; i < comm_size; i++) {
-        if (pof2 == 1) {
+        if (is_pof2) {
             /* use exclusive-or algorithm */
             src = dst = rank ^ i;
         } else {
@@ -85,22 +76,10 @@ int MPIR_Alltoall_intra_pairwise(const void *sendbuf,
                                    src * recvcount * recvtype_extent),
                                   recvcount, recvtype, src,
                                   MPIR_ALLTOALL_TAG, comm_ptr, &status, errflag);
-        if (mpi_errno) {
-            /* for communication errors, just record the error but continue */
-            *errflag =
-                MPIX_ERR_PROC_FAILED ==
-                MPIR_ERR_GET_CLASS(mpi_errno) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER;
-            MPIR_ERR_SET(mpi_errno, *errflag, "**fail");
-            MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-        }
+        MPIR_ERR_CHECK(mpi_errno);
     }
 
   fn_exit:
-    if (mpi_errno_ret)
-        mpi_errno = mpi_errno_ret;
-    else if (*errflag != MPIR_ERR_NONE)
-        MPIR_ERR_SET(mpi_errno, *errflag, "**coll_fail");
-
     return mpi_errno;
   fn_fail:
     goto fn_exit;

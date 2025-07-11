@@ -1,0 +1,27 @@
+/*D
+   MPI_Info_get_nthkey - Returns the nth defined key in info
+
+Synopsis:
+.vb
+int MPI_Info_get_nthkey(MPI_Info info, int n, char *key)
+.ve
+
+Input Parameters:
++ info - info object (handle)
+- n - key number (integer)
+
+Output Parameters:
+. key - key (string)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_INFO
+.N MPI_ERR_OTHER
+
+D*/
+

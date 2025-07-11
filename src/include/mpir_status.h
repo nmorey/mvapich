@@ -11,7 +11,7 @@
  * "count_hi_and_cancelled" field represents the 'cancelled' object.
  * The 'count' object is split between the "count_lo" and
  * "count_hi_and_cancelled" fields, with the lower order bits going
- * into the "count_lo" field, and the higher order bits goin into the
+ * into the "count_lo" field, and the higher order bits going into the
  * "count_hi_and_cancelled" field.  This gives us 2N-1 bits for the
  * 'count' object, where N is the size of int.  However, the value
  * returned to the user is bounded by the definition on MPI_Count. */
@@ -36,6 +36,14 @@
 
 #define MPIR_STATUS_GET_CANCEL_BIT(status_) ((status_).count_hi_and_cancelled & 1)
 
+#define MPIR_STATUS_COPY_COUNT(status_to, status_from) \
+    do { \
+        bool was_cancelled = ((status_to).count_hi_and_cancelled & 1); \
+        (status_to).count_lo = (status_from).count_lo; \
+        (status_to).count_hi_and_cancelled = ((status_from).count_hi_and_cancelled & ~1); \
+        (status_to).count_hi_and_cancelled |= was_cancelled; \
+    } while (0)
+
 /* Same as MPIR_STATUS_SET_CANCEL_BIT, but check MPI_STATUS_IGNORE as its family. */
 #define MPIR_Status_set_cancel_bit(status_, cancelled_)         \
     {                                                           \
@@ -43,13 +51,13 @@
             MPIR_STATUS_SET_CANCEL_BIT(*(status_), cancelled_)  \
     }
 
-/* Do not set MPI_ERROR (only set if ERR_IN_STATUS is returned */
 #define MPIR_Status_set_empty(status_)                          \
     {                                                           \
         if ((status_) != MPI_STATUS_IGNORE)                     \
         {                                                       \
             (status_)->MPI_SOURCE = MPI_ANY_SOURCE;             \
             (status_)->MPI_TAG = MPI_ANY_TAG;                   \
+            (status_)->MPI_ERROR = MPI_SUCCESS;                 \
             MPIR_STATUS_SET_COUNT(*(status_), 0);               \
             MPIR_STATUS_SET_CANCEL_BIT(*(status_), FALSE);      \
         }                                                       \

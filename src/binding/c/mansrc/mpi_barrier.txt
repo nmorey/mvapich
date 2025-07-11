@@ -1,0 +1,27 @@
+/*D
+   MPI_Barrier - Blocks until all processes in the communicator have reached this routine.
+
+Synopsis:
+.vb
+int MPI_Barrier(MPI_Comm comm)
+.ve
+
+Input Parameters:
+. comm - communicator (handle)
+
+Notes:
+Blocks the caller until all processes in the communicator have called it;
+that is, the call returns at any process only after all members of the
+communicator have entered the call.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_OTHER
+
+D*/
+

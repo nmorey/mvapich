@@ -1,6 +1,6 @@
 /**
  * Copyright (C) UT-Battelle, LLC. 2015-2017. ALL RIGHTS RESERVED.
- * Copyright (C) Mellanox Technologies Ltd. 2001-2014.  ALL RIGHTS RESERVED.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2014. ALL RIGHTS RESERVED.
  * See file LICENSE for terms.
  */
 
@@ -57,7 +57,7 @@ ucs_arbiter_cb_result_t uct_ugni_ep_process_pending(ucs_arbiter_t *arbiter,
     }
 }
 
-ucs_arbiter_cb_result_t uct_ugni_ep_abriter_purge_cb(ucs_arbiter_t *arbiter,
+ucs_arbiter_cb_result_t uct_ugni_ep_arbiter_purge_cb(ucs_arbiter_t *arbiter,
                                                      ucs_arbiter_group_t *group,
                                                      ucs_arbiter_elem_t *elem,
                                                      void *arg)
@@ -83,7 +83,7 @@ void uct_ugni_ep_pending_purge(uct_ep_h tl_ep,
     uct_purge_cb_args_t args = {cb, arg};
 
     ucs_arbiter_group_purge(&iface->arbiter, &ep->arb_group,
-                            uct_ugni_ep_abriter_purge_cb, &args);
+                            uct_ugni_ep_arbiter_purge_cb, &args);
 }
 
 
@@ -97,7 +97,7 @@ static void uct_ugni_put_flush_group(uct_ugni_flush_group_t *group)
     ucs_mpool_put(group);
 }
 
-static void uct_ugni_flush_cb(uct_completion_t *self, ucs_status_t status)
+static void uct_ugni_flush_cb(uct_completion_t *self)
 {
     uct_ugni_flush_group_t *group = ucs_container_of(self, uct_ugni_flush_group_t, flush_comp);
 
@@ -232,10 +232,10 @@ static UCS_CLASS_CLEANUP_FUNC(uct_ugni_ep_t)
                                              uct_ugni_iface_t);
     gni_return_t ugni_rc;
 
-    ucs_debug("Removinig ep hash %x from iface %p", self->hash_key, iface);
+    ucs_debug("Removing ep hash %x from iface %p", self->hash_key, iface);
 
     ucs_arbiter_group_purge(&iface->arbiter, &self->arb_group,
-                            uct_ugni_ep_abriter_purge_cb, NULL);
+                            uct_ugni_ep_arbiter_purge_cb, NULL);
     uct_ugni_cdm_lock(&iface->cdm);
     ugni_rc = GNI_EpDestroy(self->ep);
     uct_ugni_cdm_unlock(&iface->cdm);

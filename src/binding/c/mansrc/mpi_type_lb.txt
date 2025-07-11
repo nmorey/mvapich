@@ -1,0 +1,29 @@
+/*D
+   MPI_Type_lb - Returns the lower-bound of a datatype
+
+Synopsis:
+.vb
+int MPI_Type_lb(MPI_Datatype datatype, MPI_Aint *displacement)
+.ve
+
+Input Parameters:
+. datatype - datatype to get information on (handle)
+
+Output Parameters:
+. displacement - displacement of lower bound from origin, in bytes (integer)
+
+.N Removed
+   The replacement for this routine is 'MPI_Type_get_extent'.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

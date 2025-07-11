@@ -1,0 +1,28 @@
+/*D
+   MPI_Op_commutative - Queries an MPI reduction operation for its commutativity
+
+Synopsis:
+.vb
+int MPI_Op_commutative(MPI_Op op, int *commute)
+.ve
+
+Input Parameters:
+. op - operation (handle)
+
+Output Parameters:
+. commute - true if op is commutative, false otherwise (logical)
+
+.N NULL
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_OP
+.N MPI_ERR_OTHER
+
+D*/
+

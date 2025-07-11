@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2001-2012.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2012. ALL RIGHTS RESERVED.
 *
 * See file LICENSE for terms.
 */
@@ -8,11 +8,18 @@
 #define UCS_PREPROCESSOR_H
 
 /* Convert token to string */
-#define UCS_PP_QUOTE(x)                 # x
+#define UCS_PP_QUOTE(x)                   # x
+
+/* Expand macro token to the macro value */
+#define UCS_PP_EXPAND(x)                  x
 
 /* Paste two expanded tokens */
-#define __UCS_TOKENPASTE_HELPER(x, y)   x ## y
-#define UCS_PP_TOKENPASTE(x, y)         __UCS_TOKENPASTE_HELPER(x, y)
+#define __UCS_TOKENPASTE_HELPER(x, y)     x ## y
+#define UCS_PP_TOKENPASTE(x, y)           __UCS_TOKENPASTE_HELPER(x, y)
+
+/* Paste three expanded tokens */
+#define __UCS_TOKENPASTE3_HELPER(x, y, z) x ## y ## z
+#define UCS_PP_TOKENPASTE3(x, y, z)       __UCS_TOKENPASTE3_HELPER(x, y, z)
 
 /* Unique value generator */
 #ifdef __COUNTER__
@@ -22,11 +29,11 @@
 #endif
 
 /* Creating unique identifiers, used for macros */
-#define UCS_PP_APPEND_UNIQUE_ID(x)      UCS_PP_TOKENPASTE(x, UCS_PP_UNIQUE_ID)
+#define UCS_PP_APPEND_UNIQUE_ID(x)        UCS_PP_TOKENPASTE(x, UCS_PP_UNIQUE_ID)
 
 /* Convert to string */
-#define _UCS_PP_MAKE_STRING(x) #x
-#define UCS_PP_MAKE_STRING(x) _UCS_PP_MAKE_STRING(x)
+#define _UCS_PP_MAKE_STRING(x)            #x
+#define UCS_PP_MAKE_STRING(x)             _UCS_PP_MAKE_STRING(x)
 
 /*
  * Count number of macro arguments

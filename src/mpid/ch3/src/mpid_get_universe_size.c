@@ -1,22 +1,9 @@
 /*
- *
- * Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- */
-/*
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
 
 #include "mpidimpl.h"
-#include "upmi.h"
 
 /*
  * MPID_Get_universe_size - Get the universe size from the process manager
@@ -29,18 +16,9 @@
 int MPID_Get_universe_size(int  * universe_size)
 {
     int mpi_errno = MPI_SUCCESS;
-    int pmi_errno = UPMI_SUCCESS;
 
-    pmi_errno = UPMI_GET_UNIVERSE_SIZE(universe_size);
-    if (pmi_errno != UPMI_SUCCESS) {
-	MPIR_ERR_SETANDJUMP1(mpi_errno, MPI_ERR_OTHER, 
-			     "**pmi_get_universe_size",
-			     "**pmi_get_universe_size %d", pmi_errno);
-    }
-    if (*universe_size < 0)
-    {
-	*universe_size = MPIR_UNIVERSE_SIZE_NOT_AVAILABLE;
-    }
+    mpi_errno = MPIR_pmi_get_universe_size(universe_size);
+    MPIR_ERR_CHECK(mpi_errno);
     
 fn_exit:
     return mpi_errno;

@@ -6,10 +6,6 @@
 #ifndef COLL_TYPES_H_INCLUDED
 #define COLL_TYPES_H_INCLUDED
 
-/* include types from transports */
-#include "tsp_stubtran_types.h"
-#include "tsp_gentran_types.h"
-
 /* Type definitions from all algorithms */
 #include "stubalgo_types.h"
 #include "treealgo_types.h"
@@ -22,12 +18,21 @@ typedef enum MPIR_Tree_type_t {
     MPIR_TREE_TYPE_KARY = 0,
     MPIR_TREE_TYPE_KNOMIAL_1,
     MPIR_TREE_TYPE_KNOMIAL_2,
+    MPIR_TREE_TYPE_TOPOLOGY_AWARE,
+    MPIR_TREE_TYPE_TOPOLOGY_AWARE_K,
+    MPIR_TREE_TYPE_TOPOLOGY_WAVE,
 } MPIR_Tree_type_t;
 
 /* enumerator for different recexch types */
 enum {
     MPIR_IALLREDUCE_RECEXCH_TYPE_SINGLE_BUFFER = 0,
     MPIR_IALLREDUCE_RECEXCH_TYPE_MULTIPLE_BUFFER
+};
+
+/* enumerator for different recexch types */
+enum {
+    MPIR_ALLGATHER_RECEXCH_TYPE_DISTANCE_DOUBLING = 0,
+    MPIR_ALLGATHER_RECEXCH_TYPE_DISTANCE_HALVING
 };
 
 /* enumerator for different recexch types */

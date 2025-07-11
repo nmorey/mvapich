@@ -9,6 +9,10 @@
 /*
 === BEGIN_MPI_T_CVAR_INFO_BLOCK ===
 
+categories :
+   - name : COLLECTIVE
+     description : A category for collective communication variables.
+
 cvars:
     - name        : MPIR_CVAR_DEVICE_COLLECTIVES
       category    : COLLECTIVE
@@ -49,57 +53,120 @@ cvars:
       description : >-
         Defines the location of tuning file.
 
+    - name        : MPIR_CVAR_HIERARCHY_DUMP
+      category    : COLLECTIVE
+      type        : boolean
+      default     : false
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        If set to true, each rank will dump the hierarchy data structure to a file named "hierarchy[rank]" in the current folder.
+        If set to false, the hierarchy data structure will not be dumped.
+
+    - name        : MPIR_CVAR_COORDINATES_FILE
+      category    : COLLECTIVE
+      type        : string
+      default     : ""
+      class       : device
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Defines the location of the input coordinates file.
+
+    - name        : MPIR_CVAR_COLL_TREE_DUMP
+      category    : COLLECTIVE
+      type        : boolean
+      default     : false
+      class       : device
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        If set to true, each rank will dump the tree to a file named "colltree[rank].json" in the current folder.
+        If set to false, the tree will not be dumped.
+
+    - name        : MPIR_CVAR_COORDINATES_DUMP
+      category    : COLLECTIVE
+      type        : boolean
+      default     : false
+      class       : device
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        If set to true, rank 0 will dump the network coordinates to a file named "coords" in the current folder.
+        If set to false, the network coordinates will not be dumped.
+
 === END_MPI_T_CVAR_INFO_BLOCK ===
 */
 
 int MPIR_Nbc_progress_hook_id = 0;
 
 MPIR_Tree_type_t MPIR_Iallreduce_tree_type = MPIR_TREE_TYPE_KARY;
+MPIR_Tree_type_t MPIR_Allreduce_tree_type = MPIR_TREE_TYPE_KARY;
 MPIR_Tree_type_t MPIR_Ibcast_tree_type = MPIR_TREE_TYPE_KARY;
+MPIR_Tree_type_t MPIR_Bcast_tree_type = MPIR_TREE_TYPE_KARY;
 MPIR_Tree_type_t MPIR_Ireduce_tree_type = MPIR_TREE_TYPE_KARY;
-
 void *MPIR_Csel_root = NULL;
+
+MPIR_Tree_type_t get_tree_type_from_string(const char *tree_str)
+{
+    MPIR_Tree_type_t tree_type = MPIR_TREE_TYPE_KARY;
+    if (0 == strcmp(tree_str, "kary"))
+        tree_type = MPIR_TREE_TYPE_KARY;
+    else if (0 == strcmp(tree_str, "knomial_1"))
+        tree_type = MPIR_TREE_TYPE_KNOMIAL_1;
+    else if (0 == strcmp(tree_str, "knomial_2"))
+        tree_type = MPIR_TREE_TYPE_KNOMIAL_2;
+    else
+        tree_type = MPIR_TREE_TYPE_KARY;
+    return tree_type;
+}
+
+static MPIR_Tree_type_t get_tree_type_from_string_with_topo(const char *tree_str)
+{
+    MPIR_Tree_type_t tree_type = MPIR_TREE_TYPE_KARY;
+    if (0 == strcmp(tree_str, "kary"))
+        tree_type = MPIR_TREE_TYPE_KARY;
+    else if (0 == strcmp(tree_str, "knomial_1"))
+        tree_type = MPIR_TREE_TYPE_KNOMIAL_1;
+    else if (0 == strcmp(tree_str, "knomial_2"))
+        tree_type = MPIR_TREE_TYPE_KNOMIAL_2;
+    else if (0 == strcmp(tree_str, "topology_aware"))
+        tree_type = MPIR_TREE_TYPE_TOPOLOGY_AWARE;
+    else if (0 == strcmp(tree_str, "topology_aware_k"))
+        tree_type = MPIR_TREE_TYPE_TOPOLOGY_AWARE_K;
+    else if (0 == strcmp(tree_str, "topology_wave"))
+        tree_type = MPIR_TREE_TYPE_TOPOLOGY_WAVE;
+    else
+        tree_type = MPIR_TREE_TYPE_KARY;
+    return tree_type;
+}
 
 int MPII_Coll_init(void)
 {
     int mpi_errno = MPI_SUCCESS;
 
     /* Iallreduce */
-    if (0 == strcmp(MPIR_CVAR_IALLREDUCE_TREE_TYPE, "kary"))
-        MPIR_Iallreduce_tree_type = MPIR_TREE_TYPE_KARY;
-    else if (0 == strcmp(MPIR_CVAR_IALLREDUCE_TREE_TYPE, "knomial_1"))
-        MPIR_Iallreduce_tree_type = MPIR_TREE_TYPE_KNOMIAL_1;
-    else if (0 == strcmp(MPIR_CVAR_IALLREDUCE_TREE_TYPE, "knomial_2"))
-        MPIR_Iallreduce_tree_type = MPIR_TREE_TYPE_KNOMIAL_2;
+    MPIR_Iallreduce_tree_type = get_tree_type_from_string(MPIR_CVAR_IALLREDUCE_TREE_TYPE);
+
+    /* Allreduce */
+    MPIR_Allreduce_tree_type = get_tree_type_from_string_with_topo(MPIR_CVAR_ALLREDUCE_TREE_TYPE);
 
     /* Ibcast */
-    if (0 == strcmp(MPIR_CVAR_IBCAST_TREE_TYPE, "kary"))
-        MPIR_Ibcast_tree_type = MPIR_TREE_TYPE_KARY;
-    else if (0 == strcmp(MPIR_CVAR_IBCAST_TREE_TYPE, "knomial_1"))
-        MPIR_Ibcast_tree_type = MPIR_TREE_TYPE_KNOMIAL_1;
-    else if (0 == strcmp(MPIR_CVAR_IBCAST_TREE_TYPE, "knomial_2"))
-        MPIR_Ibcast_tree_type = MPIR_TREE_TYPE_KNOMIAL_2;
-    else
-        MPIR_Ibcast_tree_type = MPIR_TREE_TYPE_KARY;
+    MPIR_Ibcast_tree_type = get_tree_type_from_string(MPIR_CVAR_IBCAST_TREE_TYPE);
+
+    /* Bcast */
+    MPIR_Bcast_tree_type = get_tree_type_from_string_with_topo(MPIR_CVAR_BCAST_TREE_TYPE);
 
     /* Ireduce */
-    if (0 == strcmp(MPIR_CVAR_IREDUCE_TREE_TYPE, "kary"))
-        MPIR_Ireduce_tree_type = MPIR_TREE_TYPE_KARY;
-    else if (0 == strcmp(MPIR_CVAR_IREDUCE_TREE_TYPE, "knomial_1"))
-        MPIR_Ireduce_tree_type = MPIR_TREE_TYPE_KNOMIAL_1;
-    else if (0 == strcmp(MPIR_CVAR_IREDUCE_TREE_TYPE, "knomial_2"))
-        MPIR_Ireduce_tree_type = MPIR_TREE_TYPE_KNOMIAL_2;
-    else
-        MPIR_Ireduce_tree_type = MPIR_TREE_TYPE_KARY;
+    MPIR_Ireduce_tree_type = get_tree_type_from_string_with_topo(MPIR_CVAR_IREDUCE_TREE_TYPE);
 
     /* register non blocking collectives progress hook */
-    mpi_errno = MPIR_Progress_hook_register(MPIDU_Sched_progress, &MPIR_Nbc_progress_hook_id);
+    mpi_errno = MPIR_Progress_hook_register(-1, MPIDU_Sched_progress, &MPIR_Nbc_progress_hook_id);
     MPIR_ERR_CHECK(mpi_errno);
 
     /* initialize transports */
-    mpi_errno = MPII_Stubtran_init();
-    MPIR_ERR_CHECK(mpi_errno);
-    mpi_errno = MPII_Gentran_init();
+    mpi_errno = MPII_TSP_init();
     MPIR_ERR_CHECK(mpi_errno);
 
     /* initialize algorithms */
@@ -133,9 +200,7 @@ int MPII_Coll_finalize(void)
     /* deregister non blocking collectives progress hook */
     MPIR_Progress_hook_deregister(MPIR_Nbc_progress_hook_id);
 
-    mpi_errno = MPII_Gentran_finalize();
-    MPIR_ERR_CHECK(mpi_errno);
-    mpi_errno = MPII_Stubtran_finalize();
+    mpi_errno = MPII_TSP_finalize();
     MPIR_ERR_CHECK(mpi_errno);
 
     mpi_errno = MPIR_Csel_free(MPIR_Csel_root);
@@ -151,10 +216,10 @@ int MPII_Coll_finalize(void)
  * block for a recv operation */
 int MPIR_Coll_safe_to_block(void)
 {
-    return MPII_Gentran_scheds_are_pending() == false;
+    return MPII_TSP_scheds_are_pending() == false;
 }
 
-/* Function to initialze communicators for collectives */
+/* Function to initialize communicators for collectives */
 int MPIR_Coll_comm_init(MPIR_Comm * comm)
 {
     int mpi_errno = MPI_SUCCESS;
@@ -169,10 +234,13 @@ int MPIR_Coll_comm_init(MPIR_Comm * comm)
     MPIR_ERR_CHECK(mpi_errno);
 
     /* initialize any transport data structures */
-    mpi_errno = MPII_Stubtran_comm_init(comm);
+    mpi_errno = MPII_TSP_comm_init(comm);
     MPIR_ERR_CHECK(mpi_errno);
-    mpi_errno = MPII_Gentran_comm_init(comm);
-    MPIR_ERR_CHECK(mpi_errno);
+
+    /* initialize algorithms */
+    mpi_errno = MPII_Recexchalgo_comm_init(comm);
+    if (mpi_errno)
+        MPIR_ERR_POP(mpi_errno);
 
     mpi_errno = MPIR_Csel_prune(MPIR_Csel_root, comm, &comm->csel_comm);
     MPIR_ERR_CHECK(mpi_errno);
@@ -198,10 +266,13 @@ int MPII_Coll_comm_cleanup(MPIR_Comm * comm)
     MPIR_ERR_CHECK(mpi_errno);
 
     /* cleanup transport data */
-    mpi_errno = MPII_Stubtran_comm_cleanup(comm);
+    mpi_errno = MPII_TSP_comm_cleanup(comm);
     MPIR_ERR_CHECK(mpi_errno);
-    mpi_errno = MPII_Gentran_comm_cleanup(comm);
-    MPIR_ERR_CHECK(mpi_errno);
+
+    /* initialize algorithms */
+    mpi_errno = MPII_Recexchalgo_comm_cleanup(comm);
+    if (mpi_errno)
+        MPIR_ERR_POP(mpi_errno);
 
   fn_exit:
     return mpi_errno;
@@ -209,45 +280,27 @@ int MPII_Coll_comm_cleanup(MPIR_Comm * comm)
     goto fn_exit;
 }
 
+/* For reduction-type collective, this routine swaps the (potential) device buffers
+ * with allocated host-buffer */
 void MPIR_Coll_host_buffer_alloc(const void *sendbuf, const void *recvbuf, MPI_Aint count,
                                  MPI_Datatype datatype, void **host_sendbuf, void **host_recvbuf)
 {
-    MPL_pointer_attr_t attr;
-    *host_sendbuf = NULL;
-    *host_recvbuf = NULL;
-    MPI_Aint extent = 0;
-
+    void *tmp;
     if (sendbuf != MPI_IN_PLACE) {
-        MPIR_GPU_query_pointer_attr(sendbuf, &attr);
-        if (attr.type == MPL_GPU_POINTER_DEV) {
-            MPI_Aint true_extent;
-            MPI_Aint true_lb;
-
-            MPIR_Datatype_get_extent_macro(datatype, extent);
-            MPIR_Type_get_true_extent_impl(datatype, &true_lb, &true_extent);
-            extent = MPL_MAX(extent, true_extent);
-
-            *host_sendbuf = MPL_malloc(extent * count, MPL_MEM_COLL);
-            MPIR_Assert(*host_sendbuf);
-            MPIR_Localcopy(sendbuf, count, datatype, *host_sendbuf, count, datatype);
-        }
+        tmp = MPIR_gpu_host_swap(sendbuf, count, datatype);
+        *host_sendbuf = tmp;
+    } else {
+        *host_sendbuf = NULL;
     }
 
-    MPIR_GPU_query_pointer_attr(recvbuf, &attr);
-    if (attr.type == MPL_GPU_POINTER_DEV) {
-        if (!extent) {
-            MPI_Aint true_extent;
-            MPI_Aint true_lb;
-
-            MPIR_Datatype_get_extent_macro(datatype, extent);
-            MPIR_Type_get_true_extent_impl(datatype, &true_lb, &true_extent);
-            extent = MPL_MAX(extent, true_extent);
-        }
-
-        *host_recvbuf = MPL_malloc(extent * count, MPL_MEM_COLL);
-        MPIR_Assert(*host_recvbuf);
-        if (sendbuf == MPI_IN_PLACE)
-            MPIR_Localcopy(recvbuf, count, datatype, *host_recvbuf, count, datatype);
+    if (recvbuf == NULL) {
+        *host_recvbuf = NULL;
+    } else if (sendbuf == MPI_IN_PLACE) {
+        tmp = MPIR_gpu_host_swap(recvbuf, count, datatype);
+        *host_recvbuf = tmp;
+    } else {
+        tmp = MPIR_gpu_host_alloc(recvbuf, count, datatype);
+        *host_recvbuf = tmp;
     }
 }
 
@@ -260,23 +313,49 @@ void MPIR_Coll_host_buffer_free(void *host_sendbuf, void *host_recvbuf)
 void MPIR_Coll_host_buffer_swap_back(void *host_sendbuf, void *host_recvbuf, void *in_recvbuf,
                                      MPI_Aint count, MPI_Datatype datatype, MPIR_Request * request)
 {
-    if (host_recvbuf == NULL) {
-        /* no copy at completion necessary, just return */
+    if (!host_sendbuf && !host_recvbuf) {
+        /* no copy (or free) at completion necessary, just return */
         return;
     }
 
     if (request == NULL || MPIR_Request_is_complete(request)) {
         /* operation is complete, copy the data and return */
-        MPIR_Localcopy(host_recvbuf, count, datatype, in_recvbuf, count, datatype);
-        MPIR_Coll_host_buffer_free(host_sendbuf, host_recvbuf);
+        if (host_sendbuf) {
+            MPIR_gpu_host_free(host_sendbuf, count, datatype);
+        }
+        if (host_recvbuf) {
+            MPIR_gpu_swap_back(host_recvbuf, in_recvbuf, count, datatype);
+        }
         return;
     }
 
     /* data will be copied later during request completion */
     request->u.nbc.coll.host_sendbuf = host_sendbuf;
     request->u.nbc.coll.host_recvbuf = host_recvbuf;
-    request->u.nbc.coll.user_recvbuf = in_recvbuf;
+    if (host_recvbuf) {
+        request->u.nbc.coll.user_recvbuf = in_recvbuf;
+    }
     request->u.nbc.coll.count = count;
     request->u.nbc.coll.datatype = datatype;
     MPIR_Datatype_add_ref_if_not_builtin(datatype);
+}
+
+void MPIR_Coll_host_buffer_persist_set(void *host_sendbuf, void *host_recvbuf, void *in_recvbuf,
+                                       MPI_Aint count, MPI_Datatype datatype,
+                                       MPIR_Request * request)
+{
+    if (!host_sendbuf && !host_recvbuf) {
+        /* no copy (or free) at completion necessary, just return */
+        return;
+    }
+
+    /* data will be copied later during request completion */
+    request->u.persist_coll.coll.host_sendbuf = host_sendbuf;
+    request->u.persist_coll.coll.host_recvbuf = host_recvbuf;
+    if (host_recvbuf) {
+        request->u.persist_coll.coll.user_recvbuf = in_recvbuf;
+        request->u.persist_coll.coll.count = count;
+        request->u.persist_coll.coll.datatype = datatype;
+        MPIR_Datatype_add_ref_if_not_builtin(datatype);
+    }
 }

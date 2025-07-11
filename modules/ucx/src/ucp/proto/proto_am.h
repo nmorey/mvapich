@@ -1,5 +1,5 @@
 /**
- * Copyright (C) Mellanox Technologies Ltd. 2019.  ALL RIGHTS RESERVED.
+ * Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2019. ALL RIGHTS RESERVED.
  *
  * See file LICENSE for terms.
  */
@@ -15,8 +15,8 @@
  * Header segment for a transaction
  */
 typedef struct {
-    uintptr_t                 ep_ptr;
-    uintptr_t                 reqptr;
+    uint64_t                  ep_id;
+    uint64_t                  req_id;
 } UCS_S_PACKED ucp_request_hdr_t;
 
 
@@ -24,9 +24,18 @@ typedef struct {
  * Header for transaction acknowledgment
  */
 typedef struct {
-    uint64_t                  reqptr;
+    uint64_t                  req_id;
     ucs_status_t              status;
 } UCS_S_PACKED ucp_reply_hdr_t;
+
+
+/**
+ * Header for transaction with offset
+ */
+typedef struct {
+    uint64_t req_id;
+    size_t   offset;
+} UCS_S_PACKED ucp_request_data_hdr_t;
 
 
 ucs_status_t
@@ -35,8 +44,10 @@ ucp_do_am_single(uct_pending_req_t *self, uint8_t am_id,
 
 ucs_status_t ucp_proto_progress_am_single(uct_pending_req_t *self);
 
-void ucp_proto_am_zcopy_completion(uct_completion_t *self, ucs_status_t status);
+void ucp_proto_am_zcopy_completion(uct_completion_t *self);
 
 void ucp_proto_am_zcopy_req_complete(ucp_request_t *req, ucs_status_t status);
+
+ucs_status_t ucp_proto_am_req_copy_header(ucp_request_t *req);
 
 #endif

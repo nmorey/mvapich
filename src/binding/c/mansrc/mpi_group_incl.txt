@@ -1,0 +1,30 @@
+/*D
+   MPI_Group_incl - Produces a group by reordering an existing group and taking only listed members
+
+Synopsis:
+.vb
+int MPI_Group_incl(MPI_Group group, int n, const int ranks[],
+                   MPI_Group *newgroup)
+.ve
+
+Input Parameters:
++ group - group (handle)
+. n - number of elements in array ranks (and size of newgroup)
+- ranks - ranks of processes in group to appear in newgroup (integer)
+
+Output Parameters:
+. newgroup - new group derived from above, in the order defined by ranks (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_GROUP
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Group_free
+D*/
+

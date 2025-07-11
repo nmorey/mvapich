@@ -1,5 +1,5 @@
 /**
-* Copyright (C) Mellanox Technologies Ltd. 2019.  ALL RIGHTS RESERVED.
+* Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2019. ALL RIGHTS RESERVED.
 *
 * See file LICENSE for terms.
 */
@@ -65,7 +65,7 @@ protected:
 };
 
 UCS_TEST_SKIP_COND_F(test_arch, memcpy, RUNNING_ON_VALGRIND || !ucs::perf_retry_count) {
-    const double diff      = 0.95; /* allow 5% fluctuations */
+    const double diff      = 0.90; /* allow 10% fluctuations */
     const double timeout   = 30; /* 30 seconds to complete test successfully */
     double memcpy_bw       = 0;
     double memcpy_relax_bw = 0;

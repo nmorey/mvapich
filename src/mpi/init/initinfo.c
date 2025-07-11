@@ -1,14 +1,3 @@
-/* -*- Mode: C; c-basic-offset:4 ; -*- */
-/* Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- */
 /*
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
@@ -22,13 +11,72 @@
    and configure information without requiring the user to run an MPI
    program
 */
-const char MPII_Version_string[] = MVAPICH_VERSION;
-const char MPII_Version_date[] = MVAPICH_VERSION_DATE;
-const char MPII_Version_ABI[] = MVAPICH_ABIVERSION;
-const char MPII_Version_configure[] = MVAPICH_CONFIGURE_ARGS_CLEAN;
-const char MPII_Version_device[] = MVAPICH_DEVICE;
-const char MPII_Version_CC[] = MVAPICH_COMPILER_CC;
-const char MPII_Version_CXX[] = MVAPICH_COMPILER_CXX;
-const char MPII_Version_F77[] = MVAPICH_COMPILER_F77;
-const char MPII_Version_FC[] = MVAPICH_COMPILER_FC;
-const char MPII_Version_custom[] = MVAPICH_CUSTOM_STRING;
+const char MPII_Version_string[] = MPICH_VERSION;
+const char MPII_Version_date[] = MPICH_VERSION_DATE;
+const char MPII_Version_ABI[] = MPICH_ABIVERSION;
+const char MPII_Version_configure[] = MPICH_CONFIGURE_ARGS_CLEAN;
+const char MPII_Version_device[] = MPICH_DEVICE;
+const char MPII_Version_CC[] = MPICH_COMPILER_CC;
+const char MPII_Version_CXX[] = MPICH_COMPILER_CXX;
+const char MPII_Version_F77[] = MPICH_COMPILER_F77;
+const char MPII_Version_FC[] = MPICH_COMPILER_FC;
+const char MPII_Version_custom[] = MPICH_CUSTOM_STRING;
+
+static char *get_feature_list(void);
+
+int MPIR_Get_library_version_impl(char *version, int *resultlen)
+{
+    int printed_len;
+    printed_len = snprintf(version, MPI_MAX_LIBRARY_VERSION_STRING,
+                           "MVAPICH Version:        %s\n"
+                           "MVAPICH Release date:   %s\n"
+                           "MVAPICH ABI:            %s\n"
+                           "MVAPICH Device:         %s\n"
+                           "MVAPICH configure:      %s\n"
+                           "MVAPICH CC:             %s\n"
+                           "MVAPICH CXX:            %s\n"
+                           "MVAPICH F77:            %s\n"
+                           "MVAPICH FC:             %s\n"
+                           "MVAPICH features:       %s\n",
+                           MPII_Version_string, MPII_Version_date, MPII_Version_ABI,
+                           MPII_Version_device, MPII_Version_configure, MPII_Version_CC,
+                           MPII_Version_CXX, MPII_Version_F77, MPII_Version_FC, get_feature_list());
+
+    if (strlen(MPII_Version_custom) > 0)
+        snprintf(version + printed_len, MPI_MAX_LIBRARY_VERSION_STRING - printed_len,
+                 "MPICH Custom Information:\t%s\n", MPII_Version_custom);
+
+    *resultlen = (int) strlen(version);
+
+    return MPI_SUCCESS;
+}
+
+#define STRBUF_MAX 1024
+#define ADD_FEATURE(FEATURE) \
+    do { \
+        if (count > 0) { \
+            strcpy(strbuf + count, ", "); \
+            count += 2; \
+        } \
+        int n = strlen(FEATURE); \
+        strcpy(strbuf + count, FEATURE); \
+        count += n; \
+        MPIR_Assert(count < STRBUF_MAX); \
+    } while (0)
+
+static char *get_feature_list(void)
+{
+    static char strbuf[STRBUF_MAX];
+    int count = 0;
+
+    strbuf[count] = '\0';
+
+#ifdef ENABLE_THREADCOMM
+    ADD_FEATURE("threadcomm");
+#endif
+
+    return strbuf;
+}
+
+#undef STRBUF_MAX
+#undef ADD_FEATURE

@@ -1,0 +1,21 @@
+/*D
+   MPI_T_event_get_num - Query the number of event types
+
+Synopsis:
+.vb
+int MPI_T_event_get_num(int *num_events)
+.ve
+
+Output Parameters:
+. num_events - returns number of event types (integer)
+
+.N ThreadSafe
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_T_ERR_INVALID
+.N MPI_T_ERR_NOT_INITIALIZED
+.N MPI_ERR_OTHER
+
+D*/
+

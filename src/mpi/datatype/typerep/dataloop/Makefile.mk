@@ -10,12 +10,12 @@ mpi_core_sources +=                                    \
     src/mpi/datatype/typerep/dataloop/dataloop_create_indexed.c      \
     src/mpi/datatype/typerep/dataloop/dataloop_create_struct.c       \
     src/mpi/datatype/typerep/dataloop/dataloop_create_vector.c       \
+    src/mpi/datatype/typerep/dataloop/dataloop_iov.c                 \
     src/mpi/datatype/typerep/dataloop/looputil.c                     \
     src/mpi/datatype/typerep/dataloop/segment.c                      \
     src/mpi/datatype/typerep/dataloop/segment_count.c                \
     src/mpi/datatype/typerep/dataloop/segment_flatten.c              \
-    src/mpi/datatype/typerep/dataloop/dataloop_debug.c               \
-    src/mpi/datatype/typerep/dataloop/dataloop_ext32.c
+    src/mpi/datatype/typerep/dataloop/dataloop_debug.c
 
 # several headers are included by the rest of MPICH
 AM_CPPFLAGS += -I$(top_srcdir)/src/mpi/datatype/typerep/dataloop

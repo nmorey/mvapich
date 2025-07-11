@@ -1,0 +1,26 @@
+/*D
+   MPI_Finalize - Terminates MPI execution environment
+
+Synopsis:
+.vb
+int MPI_Finalize(void)
+.ve
+
+Notes:
+All processes must call this routine before exiting.  The number of
+processes running `after` this routine is called is undefined;
+it is best not to perform much more than a 'return rc' after calling
+'MPI_Finalize'.
+
+Thread and Signal Safety:
+The MPI standard requires that 'MPI_Finalize' be called `only` by the same
+thread that initialized MPI with either 'MPI_Init' or 'MPI_Init_thread'.
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_OTHER
+
+D*/
+

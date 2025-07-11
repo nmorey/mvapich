@@ -283,7 +283,7 @@ static inline int MPIDI_CH3I_Win_create_target(MPIR_Win * win_ptr, int target_ra
     /* Enqueue target into target list. */
     DL_APPEND(slot->target_list_head, t);
 
-    MPIR_Assert(t != NULL);
+    assert(t != NULL);
 
     (*e) = t;
 
@@ -350,10 +350,6 @@ static inline int MPIDI_CH3I_Win_enqueue_op(MPIR_Win * win_ptr, MPIDI_RMA_Op_t *
             target->lock_type = MPI_LOCK_SHARED;
         }
     }
-
-#if defined(CHANNEL_MRAIL)
-    target->issue_2s_sync = 0;
-#endif
 
     /* Note that if it is a request-based RMA, do not put it in pending user list,
      * otherwise a wait call before unlock will be blocked. */

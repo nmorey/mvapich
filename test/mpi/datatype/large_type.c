@@ -16,7 +16,7 @@ static MPI_Datatype make_largexfer_type_struct(MPI_Offset nbytes)
     int remainder = 0;
     MPI_Datatype memtype, chunktype;
 
-    /* need to cook up a new datatype to accomodate large datatypes */
+    /* need to cook up a new datatype to accommodate large datatypes */
     /* first pass: chunks of 1 MiB plus an additional remainder.  Does require
      * 8 byte MPI_Aint, which should have been checked for earlier */
 
@@ -54,7 +54,7 @@ static MPI_Datatype make_largexfer_type_hindexed(MPI_Offset nbytes)
     MPI_Aint *disp;
     MPI_Datatype memtype;
 
-    /* need to cook up a new datatype to accomodate large datatypes */
+    /* need to cook up a new datatype to accommodate large datatypes */
     /* Does require 8 byte MPI_Aint, which should have been checked for earlier
      */
 
@@ -85,7 +85,7 @@ static MPI_Datatype make_largexfer_type_hindexed(MPI_Offset nbytes)
 }
 
 
-int testtype(MPI_Datatype type, MPI_Offset expected)
+static int testtype(MPI_Datatype type, MPI_Offset expected)
 {
     MPI_Count size, lb, extent;
     int errs = 0;
@@ -97,18 +97,19 @@ int testtype(MPI_Datatype type, MPI_Offset expected)
     }
 
     if (size != expected) {
-        printf("reported type size %lld does not match expected %lld\n", size, expected);
+        printf("reported type size %lld does not match expected %lld\n", (long long) size,
+               (long long) expected);
         errs++;
     }
 
     MPI_Type_get_true_extent_x(type, &lb, &extent);
     if (lb != 0) {
-        printf("ERROR: type should have lb of 0, reported %lld\n", lb);
+        printf("ERROR: type should have lb of 0, reported %lld\n", (long long) lb);
         errs++;
     }
 
     if (extent != size) {
-        printf("ERROR: extent should match size, not %lld\n", extent);
+        printf("ERROR: extent should match size, not %lld\n", (long long) extent);
         errs++;
     }
     return errs;
@@ -131,6 +132,10 @@ int main(int argc, char **argv)
     };
     MPI_Datatype types[NR_TYPES];
 
+    /* MPICH does not support datatype that can not fit in the address space */
+    if (sizeof(MPI_Aint) == sizeof(int))
+        goto epilogue;
+
     /* a contig type, itself large, but does not need 8 byte aints */
     types[0] = make_largexfer_type_struct(expected_sizes[0]);
     /* struct with addresses out past 2 GiB */
@@ -145,6 +150,7 @@ int main(int argc, char **argv)
         }
     }
 
+  epilogue:
     MTest_Finalize(errs);
 
     return MTestReturnValue(errs);

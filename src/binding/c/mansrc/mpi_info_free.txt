@@ -1,0 +1,22 @@
+/*D
+   MPI_Info_free - Frees an info object
+
+Synopsis:
+.vb
+int MPI_Info_free(MPI_Info *info)
+.ve
+
+Input/Output Parameters:
+. info - info object (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_INFO
+.N MPI_ERR_OTHER
+
+D*/
+

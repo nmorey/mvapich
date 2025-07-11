@@ -1,0 +1,32 @@
+/*D
+   MPI_T_enum_get_item - Get the information about an item in an enumeration
+
+Synopsis:
+.vb
+int MPI_T_enum_get_item(MPI_T_enum enumtype, int indx, int *value, char *name,
+                        int *name_len)
+.ve
+
+Input Parameters:
++ enumtype - enumeration to be queried (handle)
+- indx - number of the value to be queried in this enumeration (integer)
+
+Input/Output Parameters:
+. name_len - length of the string and/or buffer for name (integer)
+
+Output Parameters:
++ value - variable value (integer)
+- name - buffer to return the string containing the name of the enumeration item (string)
+
+.N ThreadSafe
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_T_ERR_INVALID
+.N MPI_T_ERR_INVALID_HANDLE
+.N MPI_T_ERR_INVALID_ITEM
+.N MPI_T_ERR_NOT_INITIALIZED
+.N MPI_ERR_OTHER
+
+D*/
+

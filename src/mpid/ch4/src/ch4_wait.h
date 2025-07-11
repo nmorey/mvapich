@@ -8,34 +8,12 @@
 
 #include "ch4_impl.h"
 
-/* a local wrapper that accounts for persistent request */
-MPL_STATIC_INLINE_PREFIX int get_vci_wrapper(MPIR_Request * req)
-{
-    int vci;
-    if (req->kind == MPIR_REQUEST_KIND__PREQUEST_RECV ||
-        req->kind == MPIR_REQUEST_KIND__PREQUEST_SEND) {
-        if (req->u.persist.real_request) {
-            vci = MPIDI_Request_get_vci(req->u.persist.real_request);
-        } else {
-            /* TODO: skip it in MPIDI_set_progress_vci_n */
-            vci = 0;
-        }
-    } else {
-        vci = MPIDI_Request_get_vci(req);
-    }
-    return vci;
-}
-
 MPL_STATIC_INLINE_PREFIX void MPIDI_set_progress_vci(MPIR_Request * req,
                                                      MPID_Progress_state * state)
 {
     state->flag = MPIDI_PROGRESS_ALL;   /* TODO: check request is_local/anysource */
-    state->progress_made = 0;
 
-    int vci = get_vci_wrapper(req);
-    MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(vci).lock);
-    state->progress_counts[0] = MPIDI_global.progress_counts[vci];
-    MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(vci).lock);
+    int vci = MPIDI_Request_get_vci(req);
 
     state->vci_count = 1;
     state->vci[0] = vci;
@@ -45,15 +23,18 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_set_progress_vci_n(int n, MPIR_Request ** re
                                                        MPID_Progress_state * state)
 {
     state->flag = MPIDI_PROGRESS_ALL;   /* TODO: check request is_local/anysource */
-    state->progress_made = 0;
 
     int idx = 0;
     for (int i = 0; i < n; i++) {
-        if (reqs[i] == NULL) {
+        if (!MPIR_Request_is_active(reqs[i])) {
             continue;
         }
 
-        int vci = get_vci_wrapper(reqs[i]);
+        if (HANDLE_IS_BUILTIN(reqs[i]->handle) || MPIR_Request_is_complete(reqs[i])) {
+            continue;
+        }
+
+        int vci = MPIDI_Request_get_vci(reqs[i]);
         int found = 0;
         for (int j = 0; j < idx; j++) {
             if (state->vci[j] == vci) {
@@ -63,16 +44,9 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_set_progress_vci_n(int n, MPIR_Request ** re
         }
         if (!found) {
             state->vci[idx++] = vci;
-            MPIR_Assert(vci < MPIDI_global.n_vcis);
         }
     }
     state->vci_count = idx;
-    for (int i = 0; i < state->vci_count; i++) {
-        int vci = state->vci[i];
-        MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(vci).lock);
-        state->progress_counts[i] = MPIDI_global.progress_counts[vci];
-        MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(vci).lock);
-    }
 }
 
 /* MPID_Test, MPID_Testall, MPID_Testany, MPID_Testsome */

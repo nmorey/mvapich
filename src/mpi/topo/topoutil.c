@@ -5,22 +5,29 @@
 
 #include "mpiimpl.h"
 
+#ifndef BUILD_MPI_ABI
 static int unweighted_dummy = 0x46618;
 static int weights_empty_dummy = 0x022284;
 /* cannot ==NULL, would be ambiguous */
 int *const MPI_UNWEIGHTED = &unweighted_dummy;
 int *const MPI_WEIGHTS_EMPTY = &weights_empty_dummy;
+#endif
 
 /* Keyval for topology information */
 static int MPIR_Topology_keyval = MPI_KEYVAL_INVALID;
 
 /* Local functions */
+#ifndef BUILD_MPI_ABI
 static int MPIR_Topology_copy_fn(MPI_Comm, int, void *, void *, void *, int *);
 static int MPIR_Topology_delete_fn(MPI_Comm, int, void *, void *);
+#else
+static int MPIR_Topology_copy_fn(ABI_Comm, int, void *, void *, void *, int *);
+static int MPIR_Topology_delete_fn(ABI_Comm, int, void *, void *);
+#endif
 static int MPIR_Topology_finalize(void *);
 
 /*
-  Return a poiner to the topology structure on a communicator.
+  Return a pointer to the topology structure on a communicator.
   Returns null if no topology structure is defined
 */
 MPIR_Topology *MPIR_Topology_get(MPIR_Comm * comm_ptr)
@@ -33,8 +40,8 @@ MPIR_Topology *MPIR_Topology_get(MPIR_Comm * comm_ptr)
         return 0;
     }
 
-    mpi_errno = MPII_Comm_get_attr(comm_ptr->handle, MPIR_Topology_keyval,
-                                   &topo_ptr, &flag, MPIR_ATTR_PTR);
+    mpi_errno = MPIR_Comm_get_attr_impl(comm_ptr, MPIR_Topology_keyval,
+                                        &topo_ptr, &flag, MPIR_ATTR_PTR);
     if (mpi_errno)
         return NULL;
 
@@ -60,7 +67,9 @@ int MPIR_Topology_put(MPIR_Comm * comm_ptr, MPIR_Topology * topo_ptr)
         MPIR_ERR_CHECK(mpi_errno);
         MPIR_Add_finalize(MPIR_Topology_finalize, (void *) 0, MPIR_FINALIZE_CALLBACK_PRIO - 1);
     }
-    mpi_errno = MPIR_Comm_set_attr_impl(comm_ptr, MPIR_Topology_keyval, topo_ptr, MPIR_ATTR_PTR);
+    MPII_Keyval *keyval_ptr;
+    MPII_Keyval_get_ptr(MPIR_Topology_keyval, keyval_ptr);
+    mpi_errno = MPIR_Comm_set_attr_impl(comm_ptr, keyval_ptr, topo_ptr, MPIR_ATTR_PTR);
     MPIR_ERR_CHECK(mpi_errno);
 
   fn_exit:
@@ -77,7 +86,9 @@ static int MPIR_Topology_finalize(void *p ATTRIBUTE((unused)))
 
     if (MPIR_Topology_keyval != MPI_KEYVAL_INVALID) {
         /* Just in case */
-        MPIR_Comm_free_keyval_impl(MPIR_Topology_keyval);
+        MPII_Keyval *keyval_ptr;
+        MPII_Keyval_get_ptr(MPIR_Topology_keyval, keyval_ptr);
+        MPIR_free_keyval(keyval_ptr);
         MPIR_Topology_keyval = MPI_KEYVAL_INVALID;
     }
     return 0;
@@ -113,27 +124,18 @@ static int *MPIR_Copy_array(int n, const int a[], int *err)
    of enough integers for all fields (including the ones in the structure)
    and freeing the single object later.
 */
-static int MPIR_Topology_copy_fn(MPI_Comm comm ATTRIBUTE((unused)),
-                                 int keyval ATTRIBUTE((unused)),
-                                 void *extra_data ATTRIBUTE((unused)),
-                                 void *attr_in, void *attr_out, int *flag)
+static int MPIR_Topology_copy_internal(void *attr_in, void *attr_out, int *flag)
 {
     MPIR_Topology *old_topology = (MPIR_Topology *) attr_in;
     MPIR_Topology *copy_topology = NULL;
     MPIR_CHKPMEM_DECL(5);
     int mpi_errno = 0;
 
-    MPL_UNREFERENCED_ARG(comm);
-    MPL_UNREFERENCED_ARG(keyval);
-    MPL_UNREFERENCED_ARG(extra_data);
-
     *flag = 0;
     *(void **) attr_out = NULL;
 
     MPIR_CHKPMEM_MALLOC(copy_topology, MPIR_Topology *, sizeof(MPIR_Topology), mpi_errno,
                         "copy_topology", MPL_MEM_OTHER);
-
-    MPL_VG_MEM_INIT(copy_topology, sizeof(MPIR_Topology));
 
     MPL_VG_MEM_INIT(copy_topology, sizeof(MPIR_Topology));
 
@@ -195,9 +197,7 @@ static int MPIR_Topology_copy_fn(MPI_Comm comm ATTRIBUTE((unused)),
     /* --END ERROR HANDLING-- */
 }
 
-static int MPIR_Topology_delete_fn(MPI_Comm comm ATTRIBUTE((unused)),
-                                   int keyval ATTRIBUTE((unused)),
-                                   void *attr_val, void *extra_data ATTRIBUTE((unused)))
+static int MPIR_Topology_delete_internal(void *attr_val)
 {
     MPIR_Topology *topology = (MPIR_Topology *) attr_val;
 
@@ -231,6 +231,49 @@ static int MPIR_Topology_delete_fn(MPI_Comm comm ATTRIBUTE((unused)),
     return MPI_SUCCESS;
 }
 
+#ifndef BUILD_MPI_ABI
+static int MPIR_Topology_copy_fn(MPI_Comm comm ATTRIBUTE((unused)),
+                                 int keyval ATTRIBUTE((unused)),
+                                 void *extra_data ATTRIBUTE((unused)),
+                                 void *attr_in, void *attr_out, int *flag)
+{
+    MPL_UNREFERENCED_ARG(comm);
+    MPL_UNREFERENCED_ARG(keyval);
+    MPL_UNREFERENCED_ARG(extra_data);
+    return MPIR_Topology_copy_internal(attr_in, attr_out, flag);
+}
+
+static int MPIR_Topology_delete_fn(MPI_Comm comm ATTRIBUTE((unused)),
+                                   int keyval ATTRIBUTE((unused)),
+                                   void *attr_val, void *extra_data ATTRIBUTE((unused)))
+{
+    MPL_UNREFERENCED_ARG(comm);
+    MPL_UNREFERENCED_ARG(keyval);
+    MPL_UNREFERENCED_ARG(extra_data);
+    return MPIR_Topology_delete_internal(attr_val);
+}
+#else
+static int MPIR_Topology_copy_fn(ABI_Comm comm ATTRIBUTE((unused)),
+                                 int keyval ATTRIBUTE((unused)),
+                                 void *extra_data ATTRIBUTE((unused)),
+                                 void *attr_in, void *attr_out, int *flag)
+{
+    MPL_UNREFERENCED_ARG(comm);
+    MPL_UNREFERENCED_ARG(keyval);
+    MPL_UNREFERENCED_ARG(extra_data);
+    return MPIR_Topology_copy_internal(attr_in, attr_out, flag);
+}
+
+static int MPIR_Topology_delete_fn(ABI_Comm comm ATTRIBUTE((unused)),
+                                   int keyval ATTRIBUTE((unused)),
+                                   void *attr_val, void *extra_data ATTRIBUTE((unused)))
+{
+    MPL_UNREFERENCED_ARG(comm);
+    MPL_UNREFERENCED_ARG(keyval);
+    MPL_UNREFERENCED_ARG(extra_data);
+    return MPIR_Topology_delete_internal(attr_val);
+}
+#endif
 
 /* the next two routines implement the following behavior (quoted from Section
  * 7.6 of the MPI-3.0 standard):
@@ -293,9 +336,8 @@ int MPIR_Topo_canon_nhb(MPIR_Comm * comm_ptr,
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Topology *topo_ptr;
-    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPIR_TOPO_CANON_NHB);
 
-    MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPIR_TOPO_CANON_NHB);
+    MPIR_FUNC_ENTER;
 
     topo_ptr = MPIR_Topology_get(comm_ptr);
     MPIR_ERR_CHKANDJUMP(!topo_ptr, mpi_errno, MPI_ERR_TOPOLOGY, "**notopology");
@@ -348,7 +390,7 @@ int MPIR_Topo_canon_nhb(MPIR_Comm * comm_ptr,
 #endif
 
   fn_exit:
-    MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPIR_TOPO_CANON_NHB);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
   fn_fail:
     goto fn_exit;

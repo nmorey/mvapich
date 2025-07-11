@@ -5,10 +5,10 @@
 
 #include "mpiimpl.h"
 
-int MPIR_Scatterv_allcomm_nb(const void *sendbuf, const int *sendcounts, const int *displs,
-                             MPI_Datatype sendtype, void *recvbuf, int recvcount,
-                             MPI_Datatype recvtype, int root, MPIR_Comm * comm_ptr,
-                             MPIR_Errflag_t * errflag)
+int MPIR_Scatterv_allcomm_nb(const void *sendbuf, const MPI_Aint * sendcounts,
+                             const MPI_Aint * displs, MPI_Datatype sendtype, void *recvbuf,
+                             MPI_Aint recvcount, MPI_Datatype recvtype, int root,
+                             MPIR_Comm * comm_ptr, MPIR_Errflag_t errflag)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *req_ptr = NULL;
@@ -19,7 +19,7 @@ int MPIR_Scatterv_allcomm_nb(const void *sendbuf, const int *sendcounts, const i
                        comm_ptr, &req_ptr);
     MPIR_ERR_CHECK(mpi_errno);
 
-    mpi_errno = MPIC_Wait(req_ptr, errflag);
+    mpi_errno = MPIC_Wait(req_ptr);
     MPIR_ERR_CHECK(mpi_errno);
     MPIR_Request_free(req_ptr);
 

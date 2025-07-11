@@ -29,16 +29,14 @@ int MPIR_Type_is_rma_atomic(MPI_Datatype type)
                 MPIR_OP_TYPE_GROUP(LOGICAL_EXTRA)
                 MPIR_OP_TYPE_GROUP(BYTE_EXTRA)
                 return TRUE;
-            break;
 #undef MPIR_OP_TYPE_MACRO
         default:
             return FALSE;
-            break;
     }
 }
 
 
-/* Returns true if (a == b) when interepreted using the given datatype.
+/* Returns true if (a == b) when interpreted using the given datatype.
  * Currently, this is only defined for RMA atomic types.
  */
 int MPIR_Compare_equal(const void *a, const void *b, MPI_Datatype type)
@@ -49,7 +47,8 @@ int MPIR_Compare_equal(const void *a, const void *b, MPI_Datatype type)
         case mpi_type_:                         \
             if (*(c_type_ *)a == *(c_type_ *)b) \
                 return TRUE;                    \
-                break;
+                                                \
+            break;
             MPIR_OP_TYPE_GROUP(C_INTEGER)
                 MPIR_OP_TYPE_GROUP(FORTRAN_INTEGER)
                 MPIR_OP_TYPE_GROUP(LOGICAL)
@@ -60,7 +59,6 @@ int MPIR_Compare_equal(const void *a, const void *b, MPI_Datatype type)
 #undef MPIR_OP_TYPE_MACRO
         default:
             return FALSE;
-            break;
     }
 
     return FALSE;

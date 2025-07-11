@@ -1,0 +1,26 @@
+/*D
+   MPI_T_pvar_get_index - Get the index of a performance variable
+
+Synopsis:
+.vb
+int MPI_T_pvar_get_index(const char *name, int var_class, int *pvar_index)
+.ve
+
+Input Parameters:
++ name - the name of the performance variable (string)
+- var_class - the class of the performance variable (integer)
+
+Output Parameters:
+. pvar_index - the index of the performance variable (integer)
+
+.N ThreadSafe
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_T_ERR_INVALID
+.N MPI_T_ERR_INVALID_NAME
+.N MPI_T_ERR_NOT_INITIALIZED
+.N MPI_ERR_OTHER
+
+D*/
+

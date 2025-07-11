@@ -1,0 +1,41 @@
+/*D
+   MPI_Compare_and_swap - Perform one-sided atomic compare-and-swap.
+
+Synopsis:
+.vb
+int MPI_Compare_and_swap(const void *origin_addr, const void *compare_addr,
+                         void *result_addr, MPI_Datatype datatype,
+                         int target_rank, MPI_Aint target_disp, MPI_Win win)
+.ve
+
+Input Parameters:
++ origin_addr - initial address of buffer (choice)
+. compare_addr - initial address of compare buffer (choice)
+. datatype - datatype of the element in all buffers (handle)
+. target_rank - rank of target (non-negative integer)
+. target_disp - displacement from start of window to beginning of target buffer (non-negative integer)
+- win - window object (handle)
+
+Output Parameters:
+. result_addr - initial address of result buffer (choice)
+
+Notes:
+This operation is atomic with respect to other "accumulate" operations.
+
+The parameter datatype must belong to one of the following categories of
+predefined datatypes: C integer, Fortran integer, Logical, Multi-language
+types, or Byte as specified in Section 5.9.2 on page 176. The origin and result
+buffers (origin_addr and result_addr) must be disjoint.
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_DISP
+.N MPI_ERR_RANK
+.N MPI_ERR_WIN
+.N MPI_ERR_OTHER
+
+D*/
+

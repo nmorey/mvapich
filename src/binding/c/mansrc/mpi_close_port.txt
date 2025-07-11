@@ -1,0 +1,22 @@
+/*D
+   MPI_Close_port - close port
+
+Synopsis:
+.vb
+int MPI_Close_port(const char *port_name)
+.ve
+
+Input Parameters:
+. port_name - a port (string)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_OTHER
+
+D*/
+

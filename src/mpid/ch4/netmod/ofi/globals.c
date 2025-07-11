@@ -5,12 +5,18 @@
 
 #include <mpidimpl.h>
 #include "ofi_impl.h"
-MPIDI_OFI_global_t MPIDI_OFI_global = { 0 };
+MPIDI_OFI_global_t MPIDI_OFI_global;
 
-MPIDI_OFI_huge_recv_t *MPIDI_unexp_huge_recv_head = NULL;
-MPIDI_OFI_huge_recv_t *MPIDI_unexp_huge_recv_tail = NULL;
-MPIDI_OFI_huge_recv_list_t *MPIDI_posted_huge_recv_head = NULL;
-MPIDI_OFI_huge_recv_list_t *MPIDI_posted_huge_recv_tail = NULL;
+unsigned long long PVAR_COUNTER_nic_sent_bytes_count[MPIDI_OFI_MAX_NICS] ATTRIBUTE((unused));
+unsigned long long PVAR_COUNTER_nic_recvd_bytes_count[MPIDI_OFI_MAX_NICS] ATTRIBUTE((unused));
+unsigned long long PVAR_COUNTER_striped_nic_sent_bytes_count[MPIDI_OFI_MAX_NICS]
+ATTRIBUTE((unused));
+unsigned long long PVAR_COUNTER_striped_nic_recvd_bytes_count[MPIDI_OFI_MAX_NICS]
+ATTRIBUTE((unused));
+unsigned long long PVAR_COUNTER_rma_pref_phy_nic_put_bytes_count[MPIDI_OFI_MAX_NICS]
+ATTRIBUTE((unused));
+unsigned long long PVAR_COUNTER_rma_pref_phy_nic_get_bytes_count[MPIDI_OFI_MAX_NICS]
+ATTRIBUTE((unused));
 
 MPIDI_OFI_capabilities_t MPIDI_OFI_caps_list[MPIDI_OFI_NUM_SETS] =
 /* Initialize a runtime version of all of the capability sets defined in
@@ -18,13 +24,14 @@ MPIDI_OFI_capabilities_t MPIDI_OFI_caps_list[MPIDI_OFI_NUM_SETS] =
  * capability set at runtime */
 {
     {   /* default required capability */
+     .enable_data = MPIDI_OFI_ENABLE_DATA_DEFAULT,
      .enable_av_table = MPIDI_OFI_ENABLE_AV_TABLE_DEFAULT,
      .enable_scalable_endpoints = MPIDI_OFI_ENABLE_SCALABLE_ENDPOINTS_DEFAULT,
      .enable_shared_contexts = MPIDI_OFI_ENABLE_SHARED_CONTEXTS_DEFAULT,
-     .enable_mr_scalable = MPIDI_OFI_ENABLE_MR_SCALABLE_DEFAULT,
      .enable_mr_virt_address = MPIDI_OFI_ENABLE_MR_VIRT_ADDRESS_DEFAULT,
      .enable_mr_allocated = MPIDI_OFI_ENABLE_MR_ALLOCATED_DEFAULT,
      .enable_mr_prov_key = MPIDI_OFI_ENABLE_MR_PROV_KEY_DEFAULT,
+     .enable_mr_register_null = MPIDI_OFI_ENABLE_MR_REGISTER_NULL_DEFAULT,
      .enable_tagged = MPIDI_OFI_ENABLE_TAGGED_DEFAULT,
      .enable_am = MPIDI_OFI_ENABLE_AM_DEFAULT,
      .enable_rma = MPIDI_OFI_ENABLE_RMA_DEFAULT,
@@ -32,7 +39,10 @@ MPIDI_OFI_capabilities_t MPIDI_OFI_caps_list[MPIDI_OFI_NUM_SETS] =
      .enable_data_auto_progress = MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS_DEFAULT,
      .enable_control_auto_progress = MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS_DEFAULT,
      .enable_pt2pt_nopack = MPIDI_OFI_ENABLE_PT2PT_NOPACK_DEFAULT,
+     .enable_hmem = MPIDI_OFI_ENABLE_HMEM_DEFAULT,
+     .enable_triggered = MPIDI_OFI_ENABLE_TRIGGERED_DEFAULT,
      .num_am_buffers = MPIDI_OFI_NUM_AM_BUFFERS_DEFAULT,
+     .num_optimized_memory_regions = MPIDI_OFI_NUM_OPTIMIZED_MEMORY_REGIONS_DEFAULT,
      .max_endpoints = MPIDI_OFI_MAX_ENDPOINTS_DEFAULT,
      .max_endpoints_bits = MPIDI_OFI_MAX_ENDPOINTS_BITS_DEFAULT,
      .fetch_atomic_iovecs = MPIDI_OFI_FETCH_ATOMIC_IOVECS_DEFAULT,
@@ -44,13 +54,14 @@ MPIDI_OFI_capabilities_t MPIDI_OFI_caps_list[MPIDI_OFI_NUM_SETS] =
      .minor_version = MPIDI_OFI_MINOR_VERSION_DEFAULT}
     ,
     {   /* minimal required capability */
+     .enable_data = MPIDI_OFI_ENABLE_DATA_MINIMAL,
      .enable_av_table = MPIDI_OFI_ENABLE_AV_TABLE_MINIMAL,
      .enable_scalable_endpoints = MPIDI_OFI_ENABLE_SCALABLE_ENDPOINTS_MINIMAL,
      .enable_shared_contexts = MPIDI_OFI_ENABLE_SHARED_CONTEXTS_MINIMAL,
-     .enable_mr_scalable = MPIDI_OFI_ENABLE_MR_SCALABLE_MINIMAL,
      .enable_mr_virt_address = MPIDI_OFI_ENABLE_MR_VIRT_ADDRESS_MINIMAL,
      .enable_mr_allocated = MPIDI_OFI_ENABLE_MR_ALLOCATED_MINIMAL,
      .enable_mr_prov_key = MPIDI_OFI_ENABLE_MR_PROV_KEY_MINIMAL,
+     .enable_mr_register_null = MPIDI_OFI_ENABLE_MR_REGISTER_NULL_MINIMAL,
      .enable_tagged = MPIDI_OFI_ENABLE_TAGGED_MINIMAL,
      .enable_am = MPIDI_OFI_ENABLE_AM_MINIMAL,
      .enable_rma = MPIDI_OFI_ENABLE_RMA_MINIMAL,
@@ -58,7 +69,10 @@ MPIDI_OFI_capabilities_t MPIDI_OFI_caps_list[MPIDI_OFI_NUM_SETS] =
      .enable_data_auto_progress = MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS_MINIMAL,
      .enable_control_auto_progress = MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS_MINIMAL,
      .enable_pt2pt_nopack = MPIDI_OFI_ENABLE_PT2PT_NOPACK_MINIMAL,
+     .enable_hmem = MPIDI_OFI_ENABLE_HMEM_MINIMAL,
+     .enable_triggered = MPIDI_OFI_ENABLE_TRIGGERED_MINIMAL,
      .num_am_buffers = MPIDI_OFI_NUM_AM_BUFFERS_MINIMAL,
+     .num_optimized_memory_regions = MPIDI_OFI_NUM_OPTIMIZED_MEMORY_REGIONS_MINIMAL,
      .max_endpoints = MPIDI_OFI_MAX_ENDPOINTS_MINIMAL,
      .max_endpoints_bits = MPIDI_OFI_MAX_ENDPOINTS_BITS_MINIMAL,
      .fetch_atomic_iovecs = MPIDI_OFI_FETCH_ATOMIC_IOVECS_MINIMAL,
@@ -69,39 +83,15 @@ MPIDI_OFI_capabilities_t MPIDI_OFI_caps_list[MPIDI_OFI_NUM_SETS] =
      .major_version = MPIDI_OFI_MAJOR_VERSION_MINIMAL,
      .minor_version = MPIDI_OFI_MINOR_VERSION_MINIMAL}
     ,
-    {   /* opx */
-     .enable_av_table = MPIDI_OFI_ENABLE_AV_TABLE_OPX,
-     .enable_scalable_endpoints = MPIDI_OFI_ENABLE_SCALABLE_ENDPOINTS_OPX,
-     .enable_shared_contexts = MPIDI_OFI_ENABLE_SHARED_CONTEXTS_OPX,
-     .enable_mr_scalable = MPIDI_OFI_ENABLE_MR_SCALABLE_OPX,
-     .enable_mr_virt_address = MPIDI_OFI_ENABLE_MR_VIRT_ADDRESS_OPX,
-     .enable_mr_allocated = MPIDI_OFI_ENABLE_MR_ALLOCATED_OPX,
-     .enable_mr_prov_key = MPIDI_OFI_ENABLE_MR_PROV_KEY_OPX,
-     .enable_tagged = MPIDI_OFI_ENABLE_TAGGED_OPX,
-     .enable_am = MPIDI_OFI_ENABLE_AM_OPX,
-     .enable_rma = MPIDI_OFI_ENABLE_RMA_OPX,
-     .enable_atomics = MPIDI_OFI_ENABLE_ATOMICS_OPX,
-     .enable_data_auto_progress = MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS_OPX,
-     .enable_control_auto_progress = MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS_OPX,
-     .enable_pt2pt_nopack = MPIDI_OFI_ENABLE_PT2PT_NOPACK_OPX,
-     .num_am_buffers = MPIDI_OFI_NUM_AM_BUFFERS_OPX,
-     .max_endpoints = MPIDI_OFI_MAX_ENDPOINTS_OPX,
-     .max_endpoints_bits = MPIDI_OFI_MAX_ENDPOINTS_BITS_OPX,
-     .fetch_atomic_iovecs = MPIDI_OFI_FETCH_ATOMIC_IOVECS_OPX,
-     .context_bits = MPIDI_OFI_CONTEXT_BITS_OPX,
-     .source_bits = MPIDI_OFI_SOURCE_BITS_OPX,
-     .tag_bits = MPIDI_OFI_TAG_BITS_OPX,
-     .major_version = MPIDI_OFI_MAJOR_VERSION_MINIMAL,
-     .minor_version = MPIDI_OFI_MINOR_VERSION_MINIMAL}
-    ,
     {   /* psm2 */
+     .enable_data = MPIDI_OFI_ENABLE_DATA_PSM2,
      .enable_av_table = MPIDI_OFI_ENABLE_AV_TABLE_PSM2,
      .enable_scalable_endpoints = MPIDI_OFI_ENABLE_SCALABLE_ENDPOINTS_PSM2,
      .enable_shared_contexts = MPIDI_OFI_ENABLE_SHARED_CONTEXTS_PSM2,
-     .enable_mr_scalable = MPIDI_OFI_ENABLE_MR_SCALABLE_PSM2,
      .enable_mr_virt_address = MPIDI_OFI_ENABLE_MR_VIRT_ADDRESS_PSM2,
      .enable_mr_allocated = MPIDI_OFI_ENABLE_MR_ALLOCATED_PSM2,
      .enable_mr_prov_key = MPIDI_OFI_ENABLE_MR_PROV_KEY_PSM2,
+     .enable_mr_register_null = MPIDI_OFI_ENABLE_MR_REGISTER_NULL_PSM2,
      .enable_tagged = MPIDI_OFI_ENABLE_TAGGED_PSM2,
      .enable_am = MPIDI_OFI_ENABLE_AM_PSM2,
      .enable_rma = MPIDI_OFI_ENABLE_RMA_PSM2,
@@ -109,7 +99,10 @@ MPIDI_OFI_capabilities_t MPIDI_OFI_caps_list[MPIDI_OFI_NUM_SETS] =
      .enable_data_auto_progress = MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS_PSM2,
      .enable_control_auto_progress = MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS_PSM2,
      .enable_pt2pt_nopack = MPIDI_OFI_ENABLE_PT2PT_NOPACK_PSM2,
+     .enable_hmem = MPIDI_OFI_ENABLE_HMEM_PSM2,
+     .enable_triggered = MPIDI_OFI_ENABLE_TRIGGERED_PSM2,
      .num_am_buffers = MPIDI_OFI_NUM_AM_BUFFERS_PSM2,
+     .num_optimized_memory_regions = MPIDI_OFI_NUM_OPTIMIZED_MEMORY_REGIONS_PSM2,
      .max_endpoints = MPIDI_OFI_MAX_ENDPOINTS_PSM2,
      .max_endpoints_bits = MPIDI_OFI_MAX_ENDPOINTS_BITS_PSM2,
      .fetch_atomic_iovecs = MPIDI_OFI_FETCH_ATOMIC_IOVECS_PSM2,
@@ -120,13 +113,15 @@ MPIDI_OFI_capabilities_t MPIDI_OFI_caps_list[MPIDI_OFI_NUM_SETS] =
      .major_version = MPIDI_OFI_MAJOR_VERSION_PSM2,
      .minor_version = MPIDI_OFI_MINOR_VERSION_PSM2}
     ,
-    {   /* psm2 */
+    {   /* psm3 */
+     .enable_data = MPIDI_OFI_ENABLE_DATA_PSM3,
      .enable_av_table = MPIDI_OFI_ENABLE_AV_TABLE_PSM3,
      .enable_scalable_endpoints = MPIDI_OFI_ENABLE_SCALABLE_ENDPOINTS_PSM3,
      .enable_shared_contexts = MPIDI_OFI_ENABLE_SHARED_CONTEXTS_PSM3,
      .enable_mr_virt_address = MPIDI_OFI_ENABLE_MR_VIRT_ADDRESS_PSM3,
      .enable_mr_allocated = MPIDI_OFI_ENABLE_MR_ALLOCATED_PSM3,
      .enable_mr_prov_key = MPIDI_OFI_ENABLE_MR_PROV_KEY_PSM3,
+     .enable_mr_register_null = MPIDI_OFI_ENABLE_MR_REGISTER_NULL_PSM3,
      .enable_tagged = MPIDI_OFI_ENABLE_TAGGED_PSM3,
      .enable_am = MPIDI_OFI_ENABLE_AM_PSM3,
      .enable_rma = MPIDI_OFI_ENABLE_RMA_PSM3,
@@ -134,7 +129,10 @@ MPIDI_OFI_capabilities_t MPIDI_OFI_caps_list[MPIDI_OFI_NUM_SETS] =
      .enable_data_auto_progress = MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS_PSM3,
      .enable_control_auto_progress = MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS_PSM3,
      .enable_pt2pt_nopack = MPIDI_OFI_ENABLE_PT2PT_NOPACK_PSM3,
+     .enable_hmem = MPIDI_OFI_ENABLE_HMEM_PSM3,
+     .enable_triggered = MPIDI_OFI_ENABLE_TRIGGERED_PSM3,
      .num_am_buffers = MPIDI_OFI_NUM_AM_BUFFERS_PSM3,
+     .num_optimized_memory_regions = MPIDI_OFI_NUM_OPTIMIZED_MEMORY_REGIONS_PSM3,
      .max_endpoints = MPIDI_OFI_MAX_ENDPOINTS_PSM3,
      .max_endpoints_bits = MPIDI_OFI_MAX_ENDPOINTS_BITS_PSM3,
      .fetch_atomic_iovecs = MPIDI_OFI_FETCH_ATOMIC_IOVECS_PSM3,
@@ -146,13 +144,14 @@ MPIDI_OFI_capabilities_t MPIDI_OFI_caps_list[MPIDI_OFI_NUM_SETS] =
      .minor_version = MPIDI_OFI_MINOR_VERSION_PSM3}
     ,
     {   /* sockets */
+     .enable_data = MPIDI_OFI_ENABLE_DATA_SOCKETS,
      .enable_av_table = MPIDI_OFI_ENABLE_AV_TABLE_SOCKETS,
      .enable_scalable_endpoints = MPIDI_OFI_ENABLE_SCALABLE_ENDPOINTS_SOCKETS,
      .enable_shared_contexts = MPIDI_OFI_ENABLE_SHARED_CONTEXTS_SOCKETS,
-     .enable_mr_scalable = MPIDI_OFI_ENABLE_MR_SCALABLE_SOCKETS,
      .enable_mr_virt_address = MPIDI_OFI_ENABLE_MR_VIRT_ADDRESS_SOCKETS,
      .enable_mr_allocated = MPIDI_OFI_ENABLE_MR_ALLOCATED_SOCKETS,
      .enable_mr_prov_key = MPIDI_OFI_ENABLE_MR_PROV_KEY_SOCKETS,
+     .enable_mr_register_null = MPIDI_OFI_ENABLE_MR_REGISTER_NULL_SOCKETS,
      .enable_tagged = MPIDI_OFI_ENABLE_TAGGED_SOCKETS,
      .enable_am = MPIDI_OFI_ENABLE_AM_SOCKETS,
      .enable_rma = MPIDI_OFI_ENABLE_RMA_SOCKETS,
@@ -160,7 +159,10 @@ MPIDI_OFI_capabilities_t MPIDI_OFI_caps_list[MPIDI_OFI_NUM_SETS] =
      .enable_data_auto_progress = MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS_SOCKETS,
      .enable_control_auto_progress = MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS_SOCKETS,
      .enable_pt2pt_nopack = MPIDI_OFI_ENABLE_PT2PT_NOPACK_SOCKETS,
+     .enable_hmem = MPIDI_OFI_ENABLE_HMEM_SOCKETS,
+     .enable_triggered = MPIDI_OFI_ENABLE_TRIGGERED_SOCKETS,
      .num_am_buffers = MPIDI_OFI_NUM_AM_BUFFERS_SOCKETS,
+     .num_optimized_memory_regions = MPIDI_OFI_NUM_OPTIMIZED_MEMORY_REGIONS_SOCKETS,
      .max_endpoints = MPIDI_OFI_MAX_ENDPOINTS_SOCKETS,
      .max_endpoints_bits = MPIDI_OFI_MAX_ENDPOINTS_BITS_SOCKETS,
      .fetch_atomic_iovecs = MPIDI_OFI_FETCH_ATOMIC_IOVECS_SOCKETS,
@@ -172,13 +174,14 @@ MPIDI_OFI_capabilities_t MPIDI_OFI_caps_list[MPIDI_OFI_NUM_SETS] =
      .minor_version = MPIDI_OFI_MINOR_VERSION_SOCKETS}
     ,
     {   /* bgq */
+     .enable_data = MPIDI_OFI_ENABLE_DATA_BGQ,
      .enable_av_table = MPIDI_OFI_ENABLE_AV_TABLE_BGQ,
      .enable_scalable_endpoints = MPIDI_OFI_ENABLE_SCALABLE_ENDPOINTS_BGQ,
      .enable_shared_contexts = MPIDI_OFI_ENABLE_SHARED_CONTEXTS_BGQ,
-     .enable_mr_scalable = MPIDI_OFI_ENABLE_MR_SCALABLE_BGQ,
      .enable_mr_virt_address = MPIDI_OFI_ENABLE_MR_VIRT_ADDRESS_BGQ,
      .enable_mr_allocated = MPIDI_OFI_ENABLE_MR_ALLOCATED_BGQ,
      .enable_mr_prov_key = MPIDI_OFI_ENABLE_MR_PROV_KEY_BGQ,
+     .enable_mr_register_null = MPIDI_OFI_ENABLE_MR_REGISTER_NULL_BGQ,
      .enable_tagged = MPIDI_OFI_ENABLE_TAGGED_BGQ,
      .enable_am = MPIDI_OFI_ENABLE_AM_BGQ,
      .enable_rma = MPIDI_OFI_ENABLE_RMA_BGQ,
@@ -186,7 +189,10 @@ MPIDI_OFI_capabilities_t MPIDI_OFI_caps_list[MPIDI_OFI_NUM_SETS] =
      .enable_data_auto_progress = MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS_BGQ,
      .enable_control_auto_progress = MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS_BGQ,
      .enable_pt2pt_nopack = MPIDI_OFI_ENABLE_PT2PT_NOPACK_BGQ,
+     .enable_hmem = MPIDI_OFI_ENABLE_HMEM_BGQ,
+     .enable_triggered = MPIDI_OFI_ENABLE_TRIGGERED_BGQ,
      .num_am_buffers = MPIDI_OFI_NUM_AM_BUFFERS_BGQ,
+     .num_optimized_memory_regions = MPIDI_OFI_NUM_OPTIMIZED_MEMORY_REGIONS_BGQ,
      .max_endpoints = MPIDI_OFI_MAX_ENDPOINTS_BGQ,
      .max_endpoints_bits = MPIDI_OFI_MAX_ENDPOINTS_BITS_BGQ,
      .fetch_atomic_iovecs = MPIDI_OFI_FETCH_ATOMIC_IOVECS_BGQ,
@@ -198,12 +204,14 @@ MPIDI_OFI_capabilities_t MPIDI_OFI_caps_list[MPIDI_OFI_NUM_SETS] =
      .minor_version = MPIDI_OFI_MINOR_VERSION_BGQ}
     ,
     {   /* cxi */
+     .enable_data = MPIDI_OFI_ENABLE_DATA_CXI,
      .enable_av_table = MPIDI_OFI_ENABLE_AV_TABLE_CXI,
      .enable_scalable_endpoints = MPIDI_OFI_ENABLE_SCALABLE_ENDPOINTS_CXI,
      .enable_shared_contexts = MPIDI_OFI_ENABLE_SHARED_CONTEXTS_CXI,
      .enable_mr_virt_address = MPIDI_OFI_ENABLE_MR_VIRT_ADDRESS_CXI,
      .enable_mr_allocated = MPIDI_OFI_ENABLE_MR_ALLOCATED_CXI,
      .enable_mr_prov_key = MPIDI_OFI_ENABLE_MR_PROV_KEY_CXI,
+     .enable_mr_register_null = MPIDI_OFI_ENABLE_MR_REGISTER_NULL_CXI,
      .enable_tagged = MPIDI_OFI_ENABLE_TAGGED_CXI,
      .enable_am = MPIDI_OFI_ENABLE_AM_CXI,
      .enable_rma = MPIDI_OFI_ENABLE_RMA_CXI,
@@ -211,7 +219,10 @@ MPIDI_OFI_capabilities_t MPIDI_OFI_caps_list[MPIDI_OFI_NUM_SETS] =
      .enable_data_auto_progress = MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS_CXI,
      .enable_control_auto_progress = MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS_CXI,
      .enable_pt2pt_nopack = MPIDI_OFI_ENABLE_PT2PT_NOPACK_CXI,
+     .enable_hmem = MPIDI_OFI_ENABLE_HMEM_CXI,
+     .enable_triggered = MPIDI_OFI_ENABLE_TRIGGERED_CXI,
      .num_am_buffers = MPIDI_OFI_NUM_AM_BUFFERS_CXI,
+     .num_optimized_memory_regions = MPIDI_OFI_NUM_OPTIMIZED_MEMORY_REGIONS_CXI,
      .max_endpoints = MPIDI_OFI_MAX_ENDPOINTS_CXI,
      .max_endpoints_bits = MPIDI_OFI_MAX_ENDPOINTS_BITS_CXI,
      .fetch_atomic_iovecs = MPIDI_OFI_FETCH_ATOMIC_IOVECS_CXI,
@@ -223,13 +234,14 @@ MPIDI_OFI_capabilities_t MPIDI_OFI_caps_list[MPIDI_OFI_NUM_SETS] =
      .minor_version = MPIDI_OFI_MINOR_VERSION_CXI}
     ,
     {   /* VERBS_RXM */
+     .enable_data = MPIDI_OFI_ENABLE_DATA_VERBS_RXM,
      .enable_av_table = MPIDI_OFI_ENABLE_AV_TABLE_VERBS_RXM,
      .enable_scalable_endpoints = MPIDI_OFI_ENABLE_SCALABLE_ENDPOINTS_VERBS_RXM,
      .enable_shared_contexts = MPIDI_OFI_ENABLE_SHARED_CONTEXTS_VERBS_RXM,
-     .enable_mr_scalable = MPIDI_OFI_ENABLE_MR_SCALABLE_VERBS_RXM,
      .enable_mr_virt_address = MPIDI_OFI_ENABLE_MR_VIRT_ADDRESS_VERBS_RXM,
      .enable_mr_allocated = MPIDI_OFI_ENABLE_MR_ALLOCATED_VERBS_RXM,
      .enable_mr_prov_key = MPIDI_OFI_ENABLE_MR_PROV_KEY_VERBS_RXM,
+     .enable_mr_register_null = MPIDI_OFI_ENABLE_MR_REGISTER_NULL_VERBS_RXM,
      .enable_tagged = MPIDI_OFI_ENABLE_TAGGED_VERBS_RXM,
      .enable_am = MPIDI_OFI_ENABLE_AM_VERBS_RXM,
      .enable_rma = MPIDI_OFI_ENABLE_RMA_VERBS_RXM,
@@ -237,7 +249,10 @@ MPIDI_OFI_capabilities_t MPIDI_OFI_caps_list[MPIDI_OFI_NUM_SETS] =
      .enable_data_auto_progress = MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS_VERBS_RXM,
      .enable_control_auto_progress = MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS_VERBS_RXM,
      .enable_pt2pt_nopack = MPIDI_OFI_ENABLE_PT2PT_NOPACK_VERBS_RXM,
+     .enable_hmem = MPIDI_OFI_ENABLE_HMEM_VERBS_RXM,
+     .enable_triggered = MPIDI_OFI_ENABLE_TRIGGERED_VERBS_RXM,
      .num_am_buffers = MPIDI_OFI_NUM_AM_BUFFERS_VERBS_RXM,
+     .num_optimized_memory_regions = MPIDI_OFI_NUM_OPTIMIZED_MEMORY_REGIONS_VERBS_RXM,
      .max_endpoints = MPIDI_OFI_MAX_ENDPOINTS_VERBS_RXM,
      .max_endpoints_bits = MPIDI_OFI_MAX_ENDPOINTS_BITS_VERBS_RXM,
      .fetch_atomic_iovecs = MPIDI_OFI_FETCH_ATOMIC_IOVECS_VERBS_RXM,
@@ -249,13 +264,14 @@ MPIDI_OFI_capabilities_t MPIDI_OFI_caps_list[MPIDI_OFI_NUM_SETS] =
      .minor_version = MPIDI_OFI_MINOR_VERSION_RXM}
     ,
     {   /* RxM */
+     .enable_data = MPIDI_OFI_ENABLE_DATA_RXM,
      .enable_av_table = MPIDI_OFI_ENABLE_AV_TABLE_RXM,
      .enable_scalable_endpoints = MPIDI_OFI_ENABLE_SCALABLE_ENDPOINTS_RXM,
      .enable_shared_contexts = MPIDI_OFI_ENABLE_SHARED_CONTEXTS_RXM,
-     .enable_mr_scalable = MPIDI_OFI_ENABLE_MR_SCALABLE_RXM,
      .enable_mr_virt_address = MPIDI_OFI_ENABLE_MR_VIRT_ADDRESS_RXM,
      .enable_mr_allocated = MPIDI_OFI_ENABLE_MR_ALLOCATED_RXM,
      .enable_mr_prov_key = MPIDI_OFI_ENABLE_MR_PROV_KEY_RXM,
+     .enable_mr_register_null = MPIDI_OFI_ENABLE_MR_REGISTER_NULL_RXM,
      .enable_tagged = MPIDI_OFI_ENABLE_TAGGED_RXM,
      .enable_am = MPIDI_OFI_ENABLE_AM_RXM,
      .enable_rma = MPIDI_OFI_ENABLE_RMA_RXM,
@@ -263,7 +279,10 @@ MPIDI_OFI_capabilities_t MPIDI_OFI_caps_list[MPIDI_OFI_NUM_SETS] =
      .enable_data_auto_progress = MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS_RXM,
      .enable_control_auto_progress = MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS_RXM,
      .enable_pt2pt_nopack = MPIDI_OFI_ENABLE_PT2PT_NOPACK_RXM,
+     .enable_hmem = MPIDI_OFI_ENABLE_HMEM_RXM,
+     .enable_triggered = MPIDI_OFI_ENABLE_TRIGGERED_RXM,
      .num_am_buffers = MPIDI_OFI_NUM_AM_BUFFERS_RXM,
+     .num_optimized_memory_regions = MPIDI_OFI_NUM_OPTIMIZED_MEMORY_REGIONS_RXM,
      .max_endpoints = MPIDI_OFI_MAX_ENDPOINTS_RXM,
      .max_endpoints_bits = MPIDI_OFI_MAX_ENDPOINTS_BITS_RXM,
      .fetch_atomic_iovecs = MPIDI_OFI_FETCH_ATOMIC_IOVECS_RXM,
@@ -275,13 +294,14 @@ MPIDI_OFI_capabilities_t MPIDI_OFI_caps_list[MPIDI_OFI_NUM_SETS] =
      .minor_version = MPIDI_OFI_MINOR_VERSION_RXM}
     ,
     {   /* GNI */
+     .enable_data = MPIDI_OFI_ENABLE_DATA_GNI,
      .enable_av_table = MPIDI_OFI_ENABLE_AV_TABLE_GNI,
      .enable_scalable_endpoints = MPIDI_OFI_ENABLE_SCALABLE_ENDPOINTS_GNI,
      .enable_shared_contexts = MPIDI_OFI_ENABLE_SHARED_CONTEXTS_GNI,
-     .enable_mr_scalable = MPIDI_OFI_ENABLE_MR_SCALABLE_GNI,
      .enable_mr_virt_address = MPIDI_OFI_ENABLE_MR_VIRT_ADDRESS_GNI,
      .enable_mr_allocated = MPIDI_OFI_ENABLE_MR_ALLOCATED_GNI,
      .enable_mr_prov_key = MPIDI_OFI_ENABLE_MR_PROV_KEY_GNI,
+     .enable_mr_register_null = MPIDI_OFI_ENABLE_MR_REGISTER_NULL_GNI,
      .enable_tagged = MPIDI_OFI_ENABLE_TAGGED_GNI,
      .enable_am = MPIDI_OFI_ENABLE_AM_GNI,
      .enable_rma = MPIDI_OFI_ENABLE_RMA_GNI,
@@ -289,6 +309,8 @@ MPIDI_OFI_capabilities_t MPIDI_OFI_caps_list[MPIDI_OFI_NUM_SETS] =
      .enable_data_auto_progress = MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS_GNI,
      .enable_control_auto_progress = MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS_GNI,
      .enable_pt2pt_nopack = MPIDI_OFI_ENABLE_PT2PT_NOPACK_GNI,
+     .enable_hmem = MPIDI_OFI_ENABLE_HMEM_GNI,
+     .enable_triggered = MPIDI_OFI_ENABLE_TRIGGERED_GNI,
      .num_am_buffers = MPIDI_OFI_NUM_AM_BUFFERS_GNI,
      .max_endpoints = MPIDI_OFI_MAX_ENDPOINTS_GNI,
      .max_endpoints_bits = MPIDI_OFI_MAX_ENDPOINTS_BITS_GNI,

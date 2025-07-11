@@ -1,0 +1,36 @@
+/*D
+   MPI_Bcast - Broadcasts a message from the process with rank "root" to all other processes of the communicator
+
+Synopsis:
+.vb
+int MPI_Bcast(void *buffer, int count, MPI_Datatype datatype, int root,
+              MPI_Comm comm)
+.ve
+.vb
+int MPI_Bcast_c(void *buffer, MPI_Count count, MPI_Datatype datatype, int root,
+                MPI_Comm comm)
+.ve
+
+Input Parameters:
++ count - number of entries in buffer (non-negative integer)
+. datatype - data type of buffer (handle)
+. root - rank of broadcast root (integer)
+- comm - communicator (handle)
+
+Input/Output Parameters:
+. buffer - starting address of buffer (choice)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_BUFFER
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_OTHER
+
+D*/
+

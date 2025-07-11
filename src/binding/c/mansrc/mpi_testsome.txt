@@ -1,0 +1,41 @@
+/*D
+   MPI_Testsome - Tests for some given requests to complete
+
+Synopsis:
+.vb
+int MPI_Testsome(int incount, MPI_Request array_of_requests[], int *outcount,
+                 int array_of_indices[], MPI_Status *array_of_statuses)
+.ve
+
+Input Parameters:
+. incount - length of array_of_requests (non-negative integer)
+
+Input/Output Parameters:
+. array_of_requests - array of requests (handle)
+
+Output Parameters:
++ outcount - number of completed requests (integer)
+. array_of_indices - array of indices of operations that completed (integer)
+- array_of_statuses - array of status objects for operations that completed (Status)
+
+Notes:
+
+While it is possible to list a request handle more than once in the
+'array_of_requests', such an action is considered erroneous and may cause the
+program to unexecpectedly terminate or produce incorrect results.
+
+.N waitstatus
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_COUNT
+.N MPI_ERR_REQUEST
+.N MPI_ERR_OTHER
+
+D*/
+

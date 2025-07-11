@@ -4,6 +4,8 @@
  */
 
 #include "mpioimpl.h"
+#include <limits.h>
+#include <assert.h>
 
 #ifdef HAVE_WEAK_SYMBOLS
 
@@ -17,6 +19,18 @@
 #elif defined(HAVE_WEAK_ATTRIBUTE)
 int MPI_File_iwrite(MPI_File fh, const void *buf, int count, MPI_Datatype datatype,
                     MPIO_Request * request) __attribute__ ((weak, alias("PMPI_File_iwrite")));
+#endif
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_File_iwrite_c = PMPI_File_iwrite_c
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_File_iwrite_c MPI_File_iwrite_c
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_File_iwrite_c as PMPI_File_iwrite_c
+/* end of weak pragmas */
+#elif defined(HAVE_WEAK_ATTRIBUTE)
+int MPI_File_iwrite_c(MPI_File fh, const void *buf, MPI_Count count, MPI_Datatype datatype,
+                      MPIO_Request * request) __attribute__ ((weak, alias("PMPI_File_iwrite_c")));
 #endif
 
 /* Include mapping from MPI->PMPI */
@@ -69,13 +83,61 @@ int MPI_File_iwrite(MPI_File fh, ROMIO_CONST void *buf, int count,
     return error_code;
 }
 
+/* large count function */
+
+
+/*@
+    MPI_File_iwrite_c - Nonblocking write using individual file pointer
+
+Input Parameters:
+. fh - file handle (handle)
+. buf - initial address of buffer (choice)
+. count - number of elements in buffer (nonnegative integer)
+. datatype - datatype of each buffer element (handle)
+
+Output Parameters:
+. request - request object (handle)
+
+.N fortran
+@*/
+#ifdef HAVE_MPI_GREQUEST
+#include "mpiu_greq.h"
+#endif
+
+int MPI_File_iwrite_c(MPI_File fh, ROMIO_CONST void *buf, MPI_Count count,
+                      MPI_Datatype datatype, MPI_Request * request)
+{
+    int error_code = MPI_SUCCESS;
+    static char myname[] = "MPI_FILE_IWRITE";
+#ifdef MPI_hpux
+    int fl_xmpi;
+
+    HPMP_IO_START(fl_xmpi, BLKMPIFILEIWRITE, TRDTSYSTEM, fh, datatype, count);
+#endif /* MPI_hpux */
+
+
+    error_code = MPIOI_File_iwrite(fh, (MPI_Offset) 0, ADIO_INDIVIDUAL,
+                                   buf, count, datatype, myname, request);
+
+    /* --BEGIN ERROR HANDLING-- */
+    if (error_code != MPI_SUCCESS)
+        error_code = MPIO_Err_return_file(fh, error_code);
+    /* --END ERROR HANDLING-- */
+
+#ifdef MPI_hpux
+    HPMP_IO_END(fl_xmpi, fh, datatype, count);
+#endif /* MPI_hpux */
+
+    return error_code;
+}
+
 /* prevent multiple definitions of this routine */
 #ifdef MPIO_BUILD_PROFILING
 int MPIOI_File_iwrite(MPI_File fh,
                       MPI_Offset offset,
                       int file_ptr_type,
                       const void *buf,
-                      int count, MPI_Datatype datatype, char *myname, MPI_Request * request)
+                      MPI_Aint count, MPI_Datatype datatype, char *myname, MPI_Request * request)
 {
     int error_code, buftype_is_contig, filetype_is_contig;
     MPI_Count datatype_size;
@@ -83,6 +145,9 @@ int MPIOI_File_iwrite(MPI_File fh,
     ADIO_Offset off, bufsize;
     ADIO_File adio_fh;
     MPI_Offset nbytes = 0;
+    void *e32buf = NULL;
+    const void *xbuf = NULL;
+    void *host_buf = NULL;
 
     ROMIO_THREAD_CS_ENTER();
     adio_fh = MPIO_File_resolve(fh);
@@ -114,6 +179,20 @@ int MPIOI_File_iwrite(MPI_File fh,
 
     ADIOI_TEST_DEFERRED(adio_fh, myname, &error_code);
 
+    xbuf = buf;
+    if (adio_fh->is_external32) {
+        error_code = MPIU_external32_buffer_setup(buf, count, datatype, &e32buf);
+        if (error_code != MPI_SUCCESS)
+            goto fn_exit;
+
+        xbuf = e32buf;
+    } else {
+        MPIO_GPU_HOST_SWAP(host_buf, buf, count, datatype);
+        if (host_buf != NULL) {
+            xbuf = host_buf;
+        }
+    }
+
     if (buftype_is_contig && filetype_is_contig) {
         /* convert sizes to bytes */
         bufsize = datatype_size * count;
@@ -124,7 +203,7 @@ int MPIOI_File_iwrite(MPI_File fh,
         }
 
         if (!(adio_fh->atomicity)) {
-            ADIO_IwriteContig(adio_fh, buf, count, datatype, file_ptr_type,
+            ADIO_IwriteContig(adio_fh, xbuf, count, datatype, file_ptr_type,
                               off, request, &error_code);
         } else {
             /* to maintain strict atomicity semantics with other concurrent
@@ -133,7 +212,7 @@ int MPIOI_File_iwrite(MPI_File fh,
                 ADIOI_WRITE_LOCK(adio_fh, off, SEEK_SET, bufsize);
             }
 
-            ADIO_WriteContig(adio_fh, buf, count, datatype, file_ptr_type, off,
+            ADIO_WriteContig(adio_fh, xbuf, count, datatype, file_ptr_type, off,
                              &status, &error_code);
 
             if (ADIO_Feature(adio_fh, ADIO_LOCKS)) {
@@ -146,10 +225,15 @@ int MPIOI_File_iwrite(MPI_File fh,
             MPIO_Completed_request_create(&adio_fh, nbytes, &error_code, request);
         }
     } else {
-        ADIO_IwriteStrided(adio_fh, buf, count, datatype, file_ptr_type,
+        ADIO_IwriteStrided(adio_fh, xbuf, count, datatype, file_ptr_type,
                            offset, request, &error_code);
     }
+
+    MPIO_GPU_HOST_FREE(host_buf, count, datatype);
+
   fn_exit:
+    if (e32buf != NULL)
+        ADIOI_Free(e32buf);
     ROMIO_THREAD_CS_EXIT();
     return error_code;
 }

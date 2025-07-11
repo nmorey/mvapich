@@ -1,0 +1,15 @@
+/*D
+   MPI_Type_c2f - converts MPI_Type to Fortran INTEGER
+
+Synopsis:
+.vb
+MPI_Fint MPI_Type_c2f(MPI_Datatype datatype)
+.ve
+
+Input Parameters:
+. datatype - datatype (handle)
+
+.N ThreadSafe
+
+D*/
+

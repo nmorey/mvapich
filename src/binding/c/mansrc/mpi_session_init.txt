@@ -1,0 +1,29 @@
+/*D
+   MPI_Session_init - Initialize an MPI session
+
+Synopsis:
+.vb
+int MPI_Session_init(MPI_Info info, MPI_Errhandler errhandler,
+                     MPI_Session *session)
+.ve
+
+Input Parameters:
++ info - info object to specify thread support level and MPI implementation specific resources (handle)
+- errhandler - error handler to invoke in the event that an error is encountered during this function call (handle)
+
+Output Parameters:
+. session - new session (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_ERRHANDLER
+.N MPI_ERR_INFO
+.N MPI_ERR_OTHER
+
+D*/
+

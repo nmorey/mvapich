@@ -1,0 +1,25 @@
+/*D
+   MPI_Status_set_cancelled - Sets the cancelled state associated with a request
+
+Synopsis:
+.vb
+int MPI_Status_set_cancelled(MPI_Status *status, int flag)
+.ve
+
+Input Parameters:
+. flag - if true, indicates request was cancelled (logical)
+
+Input/Output Parameters:
+. status - status with which to associate cancel flag (Status)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_OTHER
+
+D*/
+

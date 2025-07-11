@@ -38,9 +38,10 @@ bin_PROGRAMS = \
 	functional/fi_recv_cancel \
 	functional/fi_unexpected_msg \
 	functional/fi_unmap_mem \
-	functional/fi_msg_inject \
+	functional/fi_inject_test \
 	functional/fi_resmgmt_test \
 	functional/fi_rdm_atomic \
+	functional/fi_rdm_stress \
 	functional/fi_multi_recv \
 	functional/fi_bw \
 	functional/fi_rdm_multi_client \
@@ -61,13 +62,30 @@ bin_PROGRAMS = \
 	unit/fi_av_test \
 	unit/fi_dom_test \
 	unit/fi_getinfo_test \
+	unit/fi_setopt_test \
 	ubertest/fi_ubertest	\
 	multinode/fi_multinode	\
-	multinode/fi_multinode_coll
+	multinode/fi_multinode_coll \
+	component/sock_test \
+	regression/sighandler_test \
+	common/check_hmem
+
+if HAVE_ZE_DEVEL
+if HAVE_VERBS_DEVEL
+bin_PROGRAMS += \
+	component/dmabuf-rdma/xe_rdmabw \
+	component/dmabuf-rdma/xe_mr_reg
+endif HAVE_VERBS_DEVEL
+bin_PROGRAMS += \
+	component/dmabuf-rdma/fi_xe_rdmabw \
+	component/dmabuf-rdma/fi_xe_mr_reg \
+	component/dmabuf-rdma/xe_memcopy
+endif HAVE_ZE_DEVEL
 
 dist_bin_SCRIPTS = \
 	scripts/runfabtests.sh \
 	scripts/runfabtests.py \
+	scripts/runmultinode.sh \
 	scripts/rft_yaml_to_junit_xml
 
 dist_noinst_SCRIPTS = \
@@ -77,6 +95,9 @@ nobase_dist_config_DATA = \
 	test_configs/osx.exclude \
         test_configs/eq_cq.test \
         test_configs/lat_bw.test \
+	test_configs/tcp/all.test \
+	test_configs/tcp/tcp.exclude \
+	test_configs/tcp/io_uring.exclude \
         test_configs/sockets/all.test \
         test_configs/sockets/quick.test \
 	test_configs/sockets/complete.test \
@@ -87,14 +108,11 @@ nobase_dist_config_DATA = \
         test_configs/udp/quick.test \
         test_configs/udp/functional.test \
         test_configs/udp/udp.exclude \
-        test_configs/tcp/tcp.exclude \
-        test_configs/tcp/all.test \
         test_configs/verbs/all.test \
         test_configs/verbs/quick.test \
 	test_configs/verbs/verbs.exclude \
 	test_configs/usnic/all.test \
 	test_configs/usnic/quick.test \
-	test_configs/psm/all.test \
 	test_configs/psm2/all.test \
 	test_configs/psm2/verify.test \
 	test_configs/psm2/psm2.exclude \
@@ -109,10 +127,16 @@ nobase_dist_config_DATA = \
 	test_configs/ofi_rxd/ofi_rxd.exclude \
 	test_configs/shm/all.test \
 	test_configs/shm/shm.exclude \
+	test_configs/shm/cuda.exclude \
 	test_configs/shm/quick.test \
 	test_configs/shm/verify.test \
+	test_configs/sm2/quick.test \
+	test_configs/sm2/verify.test \
 	test_configs/efa/efa-neuron.exclude \
 	test_configs/efa/efa.exclude \
+	test_configs/ucx/all.test \
+	test_configs/ucx/quick.test \
+	test_configs/ucx/ucx.exclude \
 	pytest/pytest.ini \
 	pytest/options.yaml \
 	pytest/conftest.py \
@@ -126,7 +150,7 @@ nobase_dist_config_DATA = \
 	pytest/default/test_eq.py \
 	pytest/default/test_getinfo.py \
 	pytest/default/test_mr.py \
-	pytest/default/test_msg_inject.py \
+	pytest/default/test_inject_test.py \
 	pytest/default/test_msg.py \
 	pytest/default/test_multinode.py \
 	pytest/default/test_multi_recv.py \
@@ -138,15 +162,54 @@ nobase_dist_config_DATA = \
 	pytest/default/test_shared_ctx.py \
 	pytest/default/test_ubertest.py \
 	pytest/default/test_unexpected_msg.py \
+	pytest/default/test_sighandler.py \
 	pytest/efa/conftest.py \
+	pytest/efa/efa_common.py \
+	pytest/efa/test_flood_peer.py \
 	pytest/efa/test_from_default.py \
+	pytest/efa/test_av.py \
+	pytest/efa/test_cq.py \
+	pytest/efa/test_setopt.py \
 	pytest/efa/test_dgram.py \
 	pytest/efa/test_rdm.py \
 	pytest/efa/test_rma_bw.py \
 	pytest/efa/test_unexpected_msg.py \
 	pytest/efa/test_multi_recv.py \
 	pytest/efa/test_rnr.py \
-	pytest/efa/test_efa_info.py
+	pytest/efa/test_efa_info.py \
+	pytest/efa/test_efa_protocol_selection.py \
+	pytest/efa/test_efa_device_selection.py \
+	pytest/efa/test_runt.py \
+	pytest/efa/test_fork_support.py \
+	pytest/efa/test_mr.py \
+	pytest/efa/test_efa_shm_addr.py \
+	pytest/efa/test_env.py \
+	pytest/shm/conftest.py \
+	pytest/shm/shm_common.py \
+	pytest/shm/test_av.py \
+	pytest/shm/test_cntr.py \
+	pytest/shm/test_cq.py \
+	pytest/shm/test_dom.py \
+	pytest/shm/test_eq.py \
+	pytest/shm/test_getinfo.py \
+	pytest/shm/test_mr.py \
+	pytest/shm/test_multi_recv.py \
+	pytest/shm/test_rdm.py \
+	pytest/shm/test_rma_bw.py \
+	pytest/shm/test_ubertest.py \
+	pytest/shm/test_unexpected_msg.py \
+	pytest/shm/test_sighandler.py \
+	pytest/sm2/conftest.py \
+	pytest/sm2/sm2_common.py \
+	pytest/sm2/test_rdm.py \
+	pytest/sm2/test_av.py \
+	pytest/sm2/test_cntr.py \
+	pytest/sm2/test_cq.py \
+	pytest/sm2/test_dom.py \
+	pytest/sm2/test_eq.py \
+	pytest/sm2/test_mr.py \
+	pytest/sm2/test_sighandler.py \
+	pytest/sm2/test_ubertest.py
 
 noinst_LTLIBRARIES = libfabtests.la
 
@@ -278,9 +341,9 @@ functional_fi_recv_cancel_SOURCES = \
 	functional/recv_cancel.c
 functional_fi_recv_cancel_LDADD = libfabtests.la
 
-functional_fi_msg_inject_SOURCES = \
-	functional/msg_inject.c
-functional_fi_msg_inject_LDADD = libfabtests.la
+functional_fi_inject_test_SOURCES = \
+	functional/inject_test.c
+functional_fi_inject_test_LDADD = libfabtests.la
 
 functional_fi_resmgmt_test_SOURCES = \
 	functional/resmgmt_test.c
@@ -289,6 +352,10 @@ functional_fi_resmgmt_test_LDADD = libfabtests.la
 functional_fi_rdm_atomic_SOURCES = \
 	functional/rdm_atomic.c
 functional_fi_rdm_atomic_LDADD = libfabtests.la
+
+functional_fi_rdm_stress_SOURCES = \
+	functional/rdm_stress.c
+functional_fi_rdm_stress_LDADD = libfabtests.la
 
 functional_fi_multi_recv_SOURCES = \
 	functional/multi_recv.c
@@ -387,6 +454,11 @@ unit_fi_getinfo_test_SOURCES = \
 	$(unit_srcs)
 unit_fi_getinfo_test_LDADD = libfabtests.la
 
+unit_fi_setopt_test_SOURCES = \
+	unit/setopt_test.c \
+	$(unit_srcs)
+unit_fi_setopt_test_LDADD = libfabtests.la
+
 ubertest_fi_ubertest_SOURCES = \
 	ubertest/fabtest.h \
 	ubertest/ofi_atomic.h \
@@ -407,6 +479,8 @@ multinode_fi_multinode_SOURCES = \
 	multinode/src/pattern.c \
 	multinode/include/pattern.h \
 	multinode/src/core.c \
+	multinode/src/timing.c \
+	multinode/include/timing.h \
 	multinode/include/core.h
 
 multinode_fi_multinode_LDADD = 	libfabtests.la
@@ -421,11 +495,108 @@ multinode_fi_multinode_coll_SOURCES = \
 	multinode/include/coll_test.h \
 	multinode/include/core.h
 
-multinode_fi_multinode_coll_LDADD = 	libfabtests.la
+multinode_fi_multinode_coll_LDADD = libfabtests.la
 
 multinode_fi_multinode_coll_CFLAGS = \
 	$(AM_CFLAGS) \
 	-I$(srcdir)/multinode/include
+
+component_sock_test_SOURCES = \
+	component/sock_test.c
+
+component_sock_test_LDADD = libfabtests.la
+
+component_sock_test_CFLAGS = \
+	$(AM_CFLAGS)
+
+if HAVE_ZE_DEVEL
+if HAVE_VERBS_DEVEL
+component_dmabuf_rdma_xe_rdmabw_SOURCES = \
+	component/dmabuf-rdma/rdmabw-xe.c \
+	component/dmabuf-rdma/util.c \
+	component/dmabuf-rdma/util.h \
+	component/dmabuf-rdma/xe.c \
+	component/dmabuf-rdma/xe.h \
+	component/dmabuf-rdma/dmabuf_reg.c \
+	component/dmabuf-rdma/dmabuf_reg.h
+
+component_dmabuf_rdma_xe_rdmabw_LDADD = libfabtests.la
+
+component_dmabuf_rdma_xe_rdmabw_CFLAGS = \
+	$(AM_CFLAGS) \
+	-I$(srcdir)/component/dmabuf-rdma
+
+component_dmabuf_rdma_xe_mr_reg_SOURCES = \
+	component/dmabuf-rdma/mr-reg-xe.c \
+	component/dmabuf-rdma/util.h \
+	component/dmabuf-rdma/xe.c \
+	component/dmabuf-rdma/xe.h \
+	component/dmabuf-rdma/dmabuf_reg.c \
+	component/dmabuf-rdma/dmabuf_reg.h
+
+component_dmabuf_rdma_xe_mr_reg_LDADD = libfabtests.la
+
+component_dmabuf_rdma_xe_mr_reg_CFLAGS = \
+	$(AM_CFLAGS) \
+	-I$(srcdir)/component/dmabuf-rdma
+endif HAVE_VERBS_DEVEL
+
+component_dmabuf_rdma_fi_xe_rdmabw_SOURCES = \
+	component/dmabuf-rdma/fi-rdmabw-xe.c \
+	component/dmabuf-rdma/ofi_ctx_pool.h \
+	component/dmabuf-rdma/util.c \
+	component/dmabuf-rdma/util.h \
+	component/dmabuf-rdma/xe.c \
+	component/dmabuf-rdma/xe.h \
+	component/dmabuf-rdma/dmabuf_reg.c \
+	component/dmabuf-rdma/dmabuf_reg.h
+
+component_dmabuf_rdma_fi_xe_rdmabw_LDADD = libfabtests.la
+
+component_dmabuf_rdma_fi_xe_rdmabw_CFLAGS = \
+	$(AM_CFLAGS) \
+	-I$(srcdir)/component/dmabuf-rdma
+
+component_dmabuf_rdma_fi_xe_mr_reg_SOURCES = \
+	component/dmabuf-rdma/fi-mr-reg-xe.c \
+	component/dmabuf-rdma/util.h \
+	component/dmabuf-rdma/xe.c \
+	component/dmabuf-rdma/xe.h \
+	component/dmabuf-rdma/dmabuf_reg.c \
+	component/dmabuf-rdma/dmabuf_reg.h
+
+component_dmabuf_rdma_fi_xe_mr_reg_LDADD = libfabtests.la
+
+component_dmabuf_rdma_fi_xe_mr_reg_CFLAGS = \
+	$(AM_CFLAGS) \
+	-I$(srcdir)/component/dmabuf-rdma
+
+component_dmabuf_rdma_xe_memcopy_SOURCES = \
+	component/dmabuf-rdma/memcopy-xe.c \
+	component/dmabuf-rdma/util.c \
+	component/dmabuf-rdma/util.h
+
+component_dmabuf_rdma_xe_memcopy_LDADD = libfabtests.la
+
+component_dmabuf_rdma_xe_memcopy_CFLAGS = \
+	$(AM_CFLAGS)
+endif HAVE_ZE_DEVEL
+
+regression_sighandler_test_SOURCES = \
+	regression/sighandler_test.c
+
+regression_sighandler_test_LDADD = libfabtests.la
+
+regression_sighandler_test_CFLAGS = \
+	$(AM_CFLAGS)
+
+common_check_hmem_SOURCES = \
+	common/check_hmem.c
+
+common_check_hmem_LDADD = libfabtests.la
+
+common_checK_hmem_CFLAGS = \
+	$(AM_CFLAGS)
 
 real_man_pages = \
 	 man/man7/fabtests.7
@@ -453,6 +624,7 @@ dummy_man_pages = \
 	man/man1/fi_rdm_rma_trigger.1 \
 	man/man1/fi_rdm_shared_av.1 \
 	man/man1/fi_rdm_tagged_peek.1 \
+	man/man1/fi_rdm_stress.1 \
 	man/man1/fi_recv_cancel.1 \
 	man/man1/fi_resmgmt_test.1 \
 	man/man1/fi_scalable_ep.1 \
@@ -498,4 +670,3 @@ dist-hook: fabtests.spec
 test:
 	./scripts/runfabtests.sh -vvv -S $(os_excludes) -f ./test_configs/sockets/sockets.exclude sockets
 	./scripts/runfabtests.sh -vvv -S $(os_excludes) -f ./test_configs/udp/udp.exclude udp
-	./scripts/runfabtests.sh -vvv -S $(os_excludes) -f ./test_configs/tcp/tcp.exclude tcp

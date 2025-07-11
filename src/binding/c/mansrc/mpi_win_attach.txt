@@ -1,0 +1,27 @@
+/*D
+   MPI_Win_attach - Attach memory to a dynamic window
+
+Synopsis:
+.vb
+int MPI_Win_attach(MPI_Win win, void *base, MPI_Aint size)
+.ve
+
+Input Parameters:
++ win - window object (handle)
+. base - initial address of memory to be attached (choice)
+- size - size of memory to be attached in bytes (non-negative integer)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_SIZE
+.N MPI_ERR_WIN
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Win_create_dynamic MPI_Win_detach
+D*/
+

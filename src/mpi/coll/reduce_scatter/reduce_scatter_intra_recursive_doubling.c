@@ -18,16 +18,15 @@
  * Cost = lgp.alpha + n.(lgp-(p-1)/p).beta + n.(lgp-(p-1)/p).gamma
  */
 int MPIR_Reduce_scatter_intra_recursive_doubling(const void *sendbuf, void *recvbuf,
-                                                 const int recvcounts[], MPI_Datatype datatype,
+                                                 const MPI_Aint recvcounts[], MPI_Datatype datatype,
                                                  MPI_Op op, MPIR_Comm * comm_ptr,
-                                                 MPIR_Errflag_t * errflag)
+                                                 MPIR_Errflag_t errflag)
 {
     int rank, comm_size, i;
     MPI_Aint extent, true_extent, true_lb;
     int *disps;
     void *tmp_recvbuf, *tmp_results;
     int mpi_errno = MPI_SUCCESS;
-    int mpi_errno_ret = MPI_SUCCESS;
     int dis[2], blklens[2], total_count, dst;
     int mask, dst_tree_root, my_tree_root, j, k;
     int pof2, received;
@@ -56,9 +55,10 @@ int MPIR_Reduce_scatter_intra_recursive_doubling(const void *sendbuf, void *recv
     }
 
     /* slightly retask pof2 to mean pof2 equal or greater, not always greater as it is above */
-    pof2 = 1;
-    while (pof2 < comm_size)
+    pof2 = MPL_pof2(comm_size);
+    if (pof2 < comm_size) {
         pof2 <<= 1;
+    }
 
     /* need to allocate temporary buffer to receive incoming data */
     MPIR_CHKLMEM_MALLOC(tmp_recvbuf, void *, total_count * (MPL_MAX(true_extent, extent)),
@@ -151,14 +151,7 @@ int MPIR_Reduce_scatter_intra_recursive_doubling(const void *sendbuf, void *recv
                                       MPIR_REDUCE_SCATTER_TAG, comm_ptr,
                                       MPI_STATUS_IGNORE, errflag);
             received = 1;
-            if (mpi_errno) {
-                /* for communication errors, just record the error but continue */
-                *errflag =
-                    MPIX_ERR_PROC_FAILED ==
-                    MPIR_ERR_GET_CLASS(mpi_errno) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER;
-                MPIR_ERR_SET(mpi_errno, *errflag, "**fail");
-                MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-            }
+            MPIR_ERR_CHECK(mpi_errno);
         }
 
         /* if some processes in this process's subtree in this step
@@ -198,14 +191,7 @@ int MPIR_Reduce_scatter_intra_recursive_doubling(const void *sendbuf, void *recv
                     /* send the current result */
                     mpi_errno = MPIC_Send(tmp_recvbuf, 1, recvtype,
                                           dst, MPIR_REDUCE_SCATTER_TAG, comm_ptr, errflag);
-                    if (mpi_errno) {
-                        /* for communication errors, just record the error but continue */
-                        *errflag =
-                            MPIX_ERR_PROC_FAILED ==
-                            MPIR_ERR_GET_CLASS(mpi_errno) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER;
-                        MPIR_ERR_SET(mpi_errno, *errflag, "**fail");
-                        MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-                    }
+                    MPIR_ERR_CHECK(mpi_errno);
                 }
                 /* recv only if this proc. doesn't have data and sender
                  * has data */
@@ -213,17 +199,9 @@ int MPIR_Reduce_scatter_intra_recursive_doubling(const void *sendbuf, void *recv
                          (dst < tree_root + nprocs_completed) &&
                          (rank >= tree_root + nprocs_completed)) {
                     mpi_errno = MPIC_Recv(tmp_recvbuf, 1, recvtype, dst,
-                                          MPIR_REDUCE_SCATTER_TAG,
-                                          comm_ptr, MPI_STATUS_IGNORE, errflag);
+                                          MPIR_REDUCE_SCATTER_TAG, comm_ptr, MPI_STATUS_IGNORE);
                     received = 1;
-                    if (mpi_errno) {
-                        /* for communication errors, just record the error but continue */
-                        *errflag =
-                            MPIX_ERR_PROC_FAILED ==
-                            MPIR_ERR_GET_CLASS(mpi_errno) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER;
-                        MPIR_ERR_SET(mpi_errno, *errflag, "**fail");
-                        MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-                    }
+                    MPIR_ERR_CHECK(mpi_errno);
                 }
                 tmp_mask >>= 1;
                 k--;
@@ -281,11 +259,6 @@ int MPIR_Reduce_scatter_intra_recursive_doubling(const void *sendbuf, void *recv
 
   fn_exit:
     MPIR_CHKLMEM_FREEALL();
-
-    if (mpi_errno_ret)
-        mpi_errno = mpi_errno_ret;
-    else if (*errflag != MPIR_ERR_NONE)
-        MPIR_ERR_SET(mpi_errno, *errflag, "**coll_fail");
     return mpi_errno;
   fn_fail:
     goto fn_exit;

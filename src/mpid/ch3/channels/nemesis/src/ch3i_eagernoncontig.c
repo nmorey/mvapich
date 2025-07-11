@@ -19,13 +19,10 @@ int MPIDI_CH3I_SendNoncontig( MPIDI_VC_t *vc, MPIR_Request *sreq, void *header, 
     int mpi_errno = MPI_SUCCESS;
     int again = 0;
     intptr_t orig_msg_offset = sreq->dev.msg_offset;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH3I_SENDNONCONTIG);
 
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_SENDNONCONTIG);
+    MPIR_FUNC_ENTER;
 
     MPIDI_DBG_Print_packet((MPIDI_CH3_Pkt_t *)header);
-
-    MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
 
     if (n_hdr_iov > 0) {
         /* translate segments to iovs and combine with the extended header iov. */
@@ -42,10 +39,10 @@ int MPIDI_CH3I_SendNoncontig( MPIDI_VC_t *vc, MPIR_Request *sreq, void *header, 
 
         MPL_DBG_MSG(MPIDI_CH3_DBG_OTHER, TERSE, "enqueuing");
 
-        MPIR_Memcpy(&sreq->dev.pending_pkt, header, sizeof(MPIDI_CH3_Pkt_t));
+	sreq->dev.pending_pkt = *(MPIDI_CH3_Pkt_t *)header;
         sreq->ch.noncontig    = TRUE;
         sreq->ch.header_sz    = hdr_sz;
-        sreq->ch.vc           = vc;
+	sreq->ch.vc           = vc;
 
         MPIDI_CH3I_Sendq_enqueue(&MPIDI_CH3I_shm_sendq, sreq);
         mpi_errno = MPIDI_CH3I_Shm_send_progress();
@@ -68,7 +65,7 @@ int MPIDI_CH3I_SendNoncontig( MPIDI_VC_t *vc, MPIR_Request *sreq, void *header, 
         sreq->ch.vc = vc;
         if (sreq->dev.msg_offset == orig_msg_offset) /* nothing was sent, save header */
         {
-            MPIR_Memcpy(&sreq->dev.pending_pkt, header, sizeof(MPIDI_CH3_Pkt_t));
+            sreq->dev.pending_pkt = *(MPIDI_CH3_Pkt_t *)header;
             sreq->ch.header_sz    = hdr_sz;
         }
         else
@@ -100,8 +97,7 @@ int MPIDI_CH3I_SendNoncontig( MPIDI_VC_t *vc, MPIR_Request *sreq, void *header, 
     }
 
  fn_exit:
-    MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH3I_SENDNONCONTIG);
+    MPIR_FUNC_EXIT;
     return mpi_errno;
  fn_fail:
     goto fn_exit;

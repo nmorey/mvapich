@@ -2,17 +2,6 @@
  * Copyright (C) by Argonne National Laboratory
  *     See COPYRIGHT in top-level directory
  */
-/* Copyright (c) 2001-2023, The Ohio State University. All rights
- * reserved.
- *
- * This file is part of the MVAPICH software package developed by the
- * team members of The Ohio State University's Network-Based Computing
- * Laboratory (NBCL), headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * For detailed copyright and licensing information, please refer to the
- * copyright file COPYRIGHT in the top level MVAPICH directory.
- *
- */
 
 #ifndef MPID_NEM_IMPL_H_INCLUDED
 #define MPID_NEM_IMPL_H_INCLUDED
@@ -37,10 +26,6 @@ int MPID_nem_register_initcomp_cb(int (* callback)(void));
 int MPID_nem_choose_netmod(void);
 int MPIDI_CH3I_comm_create(MPIR_Comm *comm, void *param);
 int MPIDI_CH3I_comm_destroy(MPIR_Comm *comm, void *param);
-
-#ifdef ENABLE_CHECKPOINTING
-int MPIDI_nem_ckpt_pkthandler_init(MPIDI_CH3_PktHandler_Fcn *pktArray[], int arraySize);
-#endif
 
 /* rendezvous hooks */
 int MPID_nem_lmt_RndvSend(MPIR_Request **sreq_p, const void * buf, MPI_Aint count, MPI_Datatype datatype, int dt_contig,
@@ -81,7 +66,6 @@ typedef struct MPID_nem_pkt_lmt_done
 {
     MPIDI_CH3_Pkt_type_t type;
     MPI_Request req_id;
-    MPI_Request sreq_id;
 }
 MPID_nem_pkt_lmt_done_t;
 
@@ -271,7 +255,6 @@ fn_fail:
         MPL_DBG_MSG(MPIDI_CH3_DBG_OTHER,VERBOSE,"sending rndv DONE packet");                                             \
         MPIDI_Pkt_init(_done_pkt, MPIDI_NEM_PKT_LMT_DONE);                                                      \
         _done_pkt->req_id = (rreq)->ch.lmt_req_id;                                                              \
-        _done_pkt->sreq_id = (rreq)->handle;                                                                    \
                                                                                                                 \
         mpi_errno = MPIDI_CH3_iStartMsg((vc), _done_pkt, sizeof(*_done_pkt), &_done_req);                       \
         MPIR_ERR_CHKANDJUMP(mpi_errno, mpi_errno, MPI_ERR_OTHER, "**donepkt");                                  \

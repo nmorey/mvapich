@@ -15,6 +15,7 @@ noinst_PROGRAMS =     \
     dup               \
     dupic             \
     dup_with_info     \
+    idup_with_info    \
     ic1               \
     ic2               \
     commname          \
@@ -24,6 +25,7 @@ noinst_PROGRAMS =     \
     icsplit           \
     iccreate          \
     cmfree            \
+    cmfree2           \
     icm               \
     cmsplit           \
     cmsplit2          \
@@ -42,4 +44,5 @@ noinst_PROGRAMS =     \
     comm_idup_comm2   \
     comm_create_group_idup \
     comm_info \
-    comm_info2
+    comm_info2 \
+    inactive_reqs

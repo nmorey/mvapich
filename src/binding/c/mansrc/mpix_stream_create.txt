@@ -1,0 +1,26 @@
+/*D
+   MPIX_Stream_create - Create a new stream object
+
+Synopsis:
+.vb
+int MPIX_Stream_create(MPI_Info info, MPIX_Stream *stream)
+.ve
+
+Input Parameters:
+. info - info argument (handle)
+
+Output Parameters:
+. stream - stream object created (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_INFO
+.N MPI_ERR_OTHER
+
+D*/
+

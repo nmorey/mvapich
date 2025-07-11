@@ -1,0 +1,28 @@
+/*D
+   MPI_Group_from_session_pset - Get group from a session processes set
+
+Synopsis:
+.vb
+int MPI_Group_from_session_pset(MPI_Session session, const char *pset_name,
+                                MPI_Group *newgroup)
+.ve
+
+Input Parameters:
++ session - session (handle)
+- pset_name - name of process set to use to create the new group (string)
+
+Output Parameters:
+. newgroup - new group derived from supplied session and process set (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_SESSION
+.N MPI_ERR_OTHER
+
+D*/
+

@@ -79,25 +79,12 @@ extern MPID_Thread_mutex_t MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX;
 /* Other thread models, for performance-critical paths          */
 
 #if defined(MPICH_IS_THREADED)
-
-#if MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__POBJ
-extern MPID_Thread_mutex_t MPIR_THREAD_POBJ_HANDLE_MUTEX;
-extern MPID_Thread_mutex_t MPIR_THREAD_POBJ_MSGQ_MUTEX;
-extern MPID_Thread_mutex_t MPIR_THREAD_POBJ_COMPLETION_MUTEX;
-extern MPID_Thread_mutex_t MPIR_THREAD_POBJ_CTX_MUTEX;
-extern MPID_Thread_mutex_t MPIR_THREAD_POBJ_PMI_MUTEX;
-
-#define MPIR_THREAD_POBJ_COMM_MUTEX(_comm_ptr) _comm_ptr->mutex
-#define MPIR_THREAD_POBJ_WIN_MUTEX(_win_ptr)   _win_ptr->mutex
-
-#elif MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__VCI
+#if MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__VCI
 extern MPID_Thread_mutex_t MPIR_THREAD_VCI_HANDLE_MUTEX;
 extern MPID_Thread_mutex_t MPIR_THREAD_VCI_CTX_MUTEX;
 extern MPID_Thread_mutex_t MPIR_THREAD_VCI_PMI_MUTEX;
 extern MPID_Thread_mutex_t MPIR_THREAD_VCI_BSEND_MUTEX;
-
 #endif /* MPICH_THREAD_GRANULARITY */
-
 #endif /* MPICH_IS_THREADED */
 
 #endif /* MPIR_THREAD_H_INCLUDED */

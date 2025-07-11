@@ -1,0 +1,38 @@
+/*D
+   MPI_T_source_get_info - Returns additional information on the source identified by the source_index argument
+
+Synopsis:
+.vb
+int MPI_T_source_get_info(int source_index, char *name, int *name_len,
+                          char *desc, int *desc_len,
+                          MPI_T_source_order *ordering,
+                          MPI_Count *ticks_per_second, MPI_Count *max_ticks,
+                          MPI_Info *info)
+.ve
+
+Input Parameters:
+. source_index - index of the source to be queried between $0$ and $num_sources-1$ (integer)
+
+Input/Output Parameters:
++ name_len - length of the string and/or buffer for name (integer)
+- desc_len - length of the string and/or buffer for desc (integer)
+
+Output Parameters:
++ name - buffer to return the string containing the name of the source (string)
+. desc - buffer to return the string containing the description of the source (string)
+. ordering - flag indicating chronological ordering guarantees given by the source (integer)
+. ticks_per_second - the number of ticks per second for the timer of this source (integer)
+. max_ticks - the maximum count of ticks reported by this source before overflow occurs (integer)
+- info - info argument (handle)
+
+.N ThreadSafe
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_T_ERR_INVALID
+.N MPI_T_ERR_INVALID_INDEX
+.N MPI_T_ERR_NOT_INITIALIZED
+.N MPI_ERR_OTHER
+
+D*/
+

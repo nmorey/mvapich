@@ -1,0 +1,27 @@
+/*D
+   MPI_Remove_error_string - Remove the error string associated with an MPI error code or class
+
+Synopsis:
+.vb
+int MPI_Remove_error_string(int errorcode)
+.ve
+
+Input Parameters:
+. errorcode - value of the error code whose string is to be removed (integer)
+
+Notes:
+According to the MPI 4.1 standard, it is erroneous to call 'MPI_Remove_error_string'
+for an error code or class with a value less than or equal
+to 'MPI_ERR_LASTCODE'.  Thus, you cannot replace the predefined error messages
+with this routine.
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_OTHER
+
+D*/
+

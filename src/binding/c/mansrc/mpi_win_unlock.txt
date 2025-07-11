@@ -1,0 +1,25 @@
+/*D
+   MPI_Win_unlock - Completes an RMA access epoch at the target process
+
+Synopsis:
+.vb
+int MPI_Win_unlock(int rank, MPI_Win win)
+.ve
+
+Input Parameters:
++ rank - rank of window (non-negative integer)
+- win - window object (handle)
+
+.N ThreadSafe
+
+.N Fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_RANK
+.N MPI_ERR_WIN
+.N MPI_ERR_OTHER
+
+.seealso: MPI_Win_lock
+D*/
+

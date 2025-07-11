@@ -1,0 +1,29 @@
+/*D
+   MPI_T_event_register_callback - Associates a user-defined function with an allocated event-registration handle
+
+Synopsis:
+.vb
+int MPI_T_event_register_callback(MPI_T_event_registration event_registration,
+                                  MPI_T_cb_safety cb_safety, MPI_Info info,
+                                  void *user_data,
+                                  MPI_T_event_cb_function event_cb_function)
+.ve
+
+Input Parameters:
++ event_registration - event registration (handle)
+. cb_safety - maximum callback safety level (integer)
+. info - info object (handle)
+. user_data - pointer to a user-controlled buffer (None)
+- event_cb_function - pointer to user-defined callback function (function)
+
+.N ThreadSafe
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_INFO
+.N MPI_T_ERR_INVALID_HANDLE
+.N MPI_T_ERR_NOT_INITIALIZED
+.N MPI_ERR_OTHER
+
+D*/
+

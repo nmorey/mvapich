@@ -1,5 +1,5 @@
 #
-# Copyright (C) Mellanox Technologies Ltd. 2001-2011.  ALL RIGHTS RESERVED.
+# Copyright (c) NVIDIA CORPORATION & AFFILIATES, 2001-2011. ALL RIGHTS RESERVED.
 # Copyright (C) UT-Battelle, LLC. 2014-2015. ALL RIGHTS RESERVED.
 # Copyright (C) The University of Tennessee and The University
 #               of Tennessee Research Foundation. 2016. ALL RIGHTS RESERVED.
@@ -13,19 +13,28 @@
 EXTRA_DIST =
 ACLOCAL_AMFLAGS = -I config/m4
 
-noinst_HEADERS = src/uct/api/uct.h src/uct/api/uct_def.h src/uct/api/tl.h
+noinst_HEADERS = \
+	src/uct/api/uct.h \
+	src/uct/api/v2/uct_v2.h \
+	src/uct/api/uct_def.h \
+	src/uct/api/tl.h
+
 doxygen_doc_files = $(noinst_HEADERS)
 
 doc_dir = $(pkgdatadir)/doc
 
 if !DOCS_ONLY
 perftest_dir = $(pkgdatadir)/perftest
-dist_perftest__DATA = contrib/ucx_perftest_config/msg_pow2 \
-					  contrib/ucx_perftest_config/msg_pow2_large \
-					  contrib/ucx_perftest_config/README \
-					  contrib/ucx_perftest_config/test_types_uct \
-					  contrib/ucx_perftest_config/test_types_ucp \
-					  contrib/ucx_perftest_config/transports
+dist_perftest__DATA = \
+	contrib/ucx_perftest_config/msg_pow2 \
+	contrib/ucx_perftest_config/msg_pow2_large \
+	contrib/ucx_perftest_config/README \
+	contrib/ucx_perftest_config/test_types_uct \
+	contrib/ucx_perftest_config/test_types_ucp \
+	contrib/ucx_perftest_config/test_types_ucp_rma \
+	contrib/ucx_perftest_config/test_types_ucp_amo \
+	contrib/ucx_perftest_config/transports
+
 SUBDIRS = \
 	src/ucm \
 	src/ucs \
@@ -36,13 +45,17 @@ if HAVE_UCG
 SUBDIRS += $(UCG_SUBDIR)
 endif
 
+if !EMBEDDED
 SUBDIRS += \
+	src/tools/vfs \
 	src/tools/info \
 	src/tools/perf \
 	src/tools/profile \
+	bindings/go \
 	bindings/java \
 	test/apps \
-	examples
+	examples \
+	cmake
 
 if HAVE_GTEST
 SUBDIRS += test/gtest
@@ -52,8 +65,11 @@ if HAVE_MPICC
 SUBDIRS += test/mpi
 endif
 
+endif # EMBEDDED
+
 EXTRA_DIST += contrib/configure-devel
 EXTRA_DIST += contrib/configure-release
+EXTRA_DIST += contrib/configure-release-mt
 EXTRA_DIST += contrib/configure-prof
 EXTRA_DIST += contrib/buildrpm.sh
 EXTRA_DIST += contrib/ucx_perftest_config/msg_pow2
@@ -61,7 +77,14 @@ EXTRA_DIST += contrib/ucx_perftest_config/README
 EXTRA_DIST += contrib/ucx_perftest_config/test_types_uct
 EXTRA_DIST += contrib/ucx_perftest_config/test_types_ucp
 EXTRA_DIST += contrib/ucx_perftest_config/transports
-EXTRA_DIST += debian
+EXTRA_DIST += debian/changelog
+EXTRA_DIST += debian/compat
+EXTRA_DIST += debian/copyright
+EXTRA_DIST += debian/control
+EXTRA_DIST += debian/ucx.install
+EXTRA_DIST += debian/ucx-cuda.install
+EXTRA_DIST += debian/rules
+EXTRA_DIST += debian/source/format
 EXTRA_DIST += ucx.pc.in
 EXTRA_DIST += LICENSE
 endif #!DOCS_ONLY

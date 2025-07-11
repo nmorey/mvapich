@@ -25,6 +25,7 @@ mpi_core_sources +=                          \
     src/mpid/ch3/src/ch3u_eager.c                          \
     src/mpid/ch3/src/ch3u_eagersync.c                      \
     src/mpid/ch3/src/ch3u_win_fns.c                        \
+    src/mpid/ch3/src/ch3_stream_enqueue.c                  \
     src/mpid/ch3/src/mpid_abort.c                          \
     src/mpid/ch3/src/mpid_datatype.c                       \
     src/mpid/ch3/src/mpid_op.c                             \
@@ -55,6 +56,7 @@ mpi_core_sources +=                          \
     src/mpid/ch3/src/mpid_send.c                           \
     src/mpid/ch3/src/mpid_ssend.c                          \
     src/mpid/ch3/src/mpid_startall.c                       \
+    src/mpid/ch3/src/mpid_part.c                           \
     src/mpid/ch3/src/mpid_vc.c                             \
     src/mpid/ch3/src/mpid_rma.c                            \
     src/mpid/ch3/src/mpidi_rma.c                           \

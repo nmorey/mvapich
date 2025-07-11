@@ -33,7 +33,7 @@
 
 #include <stdio.h>
 
-#include <shared/ofi_str.h>
+#include <ofi_str.h>
 #include <ofi_util.h>
 
 #define OFI_MSG_DIRECTION_CAPS	(FI_SEND | FI_RECV)
@@ -192,7 +192,8 @@ static int ofi_info_to_core(uint32_t version, const struct fi_provider *prov,
 	if (!util_hints)
 		return 0;
 
-	if (ofi_dup_addr(util_hints, *core_hints))
+	ret = ofi_dup_addr(util_hints, *core_hints);
+	if (ret)
 		goto err;
 
 	if (util_hints->fabric_attr) {
@@ -202,6 +203,7 @@ static int ofi_info_to_core(uint32_t version, const struct fi_provider *prov,
 			if (!(*core_hints)->fabric_attr->name) {
 				FI_WARN(prov, FI_LOG_FABRIC,
 					"Unable to allocate fabric name\n");
+				ret = -FI_ENOMEM;
 				goto err;
 			}
 		}
@@ -218,6 +220,7 @@ static int ofi_info_to_core(uint32_t version, const struct fi_provider *prov,
 		if (!(*core_hints)->domain_attr->name) {
 			FI_WARN(prov, FI_LOG_FABRIC,
 				"Unable to allocate domain name\n");
+			ret = -FI_ENOMEM;
 			goto err;
 		}
 	}
@@ -540,7 +543,8 @@ int ofi_check_mr_mode(const struct fi_provider *prov, uint32_t api_version,
 				goto out;
 		} else {
 			prov_mode = ofi_cap_mr_mode(user_info->caps, prov_mode);
-			if ((user_mode & prov_mode) != prov_mode)
+			if (user_mode != FI_MR_UNSPEC &&
+			    (user_mode & prov_mode) != prov_mode)
 				goto out;
 		}
 	}
@@ -650,6 +654,29 @@ int ofi_check_domain_attr(const struct fi_provider *prov, uint32_t api_version,
 		return -FI_ENODATA;
 	}
 
+	if (user_attr->auth_key_size == FI_AV_AUTH_KEY &&
+	    FI_VERSION_GE(api_version, FI_VERSION(1, 20))) {
+		if (user_attr->auth_key) {
+			FI_INFO(prov, FI_LOG_CORE,
+				"Authentication key must be NULL with FI_AV_AUTH_KEY\n");;
+			return -FI_ENODATA;
+		}
+	} else {
+		if (user_attr->auth_key_size &&
+		    (user_attr->auth_key_size != prov_attr->auth_key_size)) {
+			OFI_INFO_CHECK_SIZE(prov, prov_attr, user_attr,
+					    auth_key_size);
+			return -FI_ENODATA;
+		}
+	}
+
+	if (FI_VERSION_GE(api_version, FI_VERSION(1, 20)) &&
+	    user_attr->max_ep_auth_key > prov_attr->max_ep_auth_key) {
+		OFI_INFO_CHECK_SIZE(prov, prov_attr, user_attr,
+				    max_ep_auth_key);
+		return -FI_ENODATA;
+	}
+
 	return 0;
 }
 
@@ -675,10 +702,16 @@ int ofi_check_ep_attr(const struct util_prov *util_prov, uint32_t api_version,
 	const struct fi_ep_attr *user_attr = user_info->ep_attr;
 	const struct fi_provider *prov = util_prov->prov;
 	int ret;
+	bool av_auth_key = false;
 
 	ret = ofi_check_ep_type(prov, prov_attr, user_attr);
 	if (ret)
 		return ret;
+
+	if (FI_VERSION_GE(api_version, FI_VERSION(1, 20)) &&
+	    user_info->domain_attr) {
+		av_auth_key = user_info->domain_attr->auth_key_size == FI_AV_AUTH_KEY;
+	}
 
 	if ((user_attr->protocol != FI_PROTO_UNSPEC) &&
 	    (user_attr->protocol != prov_attr->protocol)) {
@@ -772,11 +805,25 @@ int ofi_check_ep_attr(const struct util_prov *util_prov, uint32_t api_version,
 		}
 	}
 
-	if (user_attr->auth_key_size &&
-	    (user_attr->auth_key_size != prov_attr->auth_key_size)) {
-		FI_INFO(prov, FI_LOG_CORE, "Unsupported authentication size.");
-		OFI_INFO_CHECK_SIZE(prov, prov_attr, user_attr, auth_key_size);
-		return -FI_ENODATA;
+	if (av_auth_key) {
+		if (user_attr->auth_key) {
+			FI_INFO(prov, FI_LOG_CORE,
+				"Authentication key must be NULL with FI_AV_AUTH_KEY\n");;
+			return -FI_ENODATA;
+		}
+
+		if (user_attr->auth_key_size) {
+			FI_INFO(prov, FI_LOG_CORE,
+				"Authentication key must be 0 with FI_AV_AUTH_KEY\n");;
+			return -FI_ENODATA;
+		}
+	} else {
+		if (user_attr->auth_key_size &&
+		    (user_attr->auth_key_size != prov_attr->auth_key_size)) {
+			OFI_INFO_CHECK_SIZE(prov, prov_attr, user_attr,
+					    auth_key_size);
+			return -FI_ENODATA;
+		}
 	}
 
 	if ((user_info->caps & FI_TAGGED) && user_attr->mem_tag_format &&
@@ -1123,6 +1170,8 @@ static uint64_t ofi_get_caps(uint64_t info_caps, uint64_t hint_caps,
 	} else {
 		caps = (hint_caps & OFI_PRIMARY_CAPS) |
 		       (attr_caps & OFI_SECONDARY_CAPS);
+
+		caps = (caps & ~FI_SOURCE) | (hint_caps & FI_SOURCE);
 	}
 
 	if (caps & (FI_MSG | FI_TAGGED) && !(caps & OFI_MSG_DIRECTION_CAPS))
@@ -1167,6 +1216,10 @@ static void fi_alter_domain_attr(struct fi_domain_attr *attr,
 		attr->data_progress = hints->data_progress;
 	if (hints->av_type)
 		attr->av_type = hints->av_type;
+	if (hints->max_ep_auth_key)
+		attr->max_ep_auth_key = hints->max_ep_auth_key;
+	if (hints->auth_key_size == FI_AV_AUTH_KEY)
+		attr->auth_key_size = FI_AV_AUTH_KEY;
 }
 
 static void fi_alter_ep_attr(struct fi_ep_attr *attr,
