@@ -53,7 +53,7 @@ typedef struct avl_node {
 /* structure which holds information about an AVL tree */
 typedef struct avl_descriptor {
     AVLtree root;                /* pointer to the root node of the tree */
-    long (*compar)();            /* function used to compare keys */
-    unsigned long (*isize)();    /* function to return the size of an item */
+    long (*compar)(void*, void*, NODE);            /* function used to compare keys */
+    unsigned long (*isize)(void*);    /* function to return the size of an item */
     long count;                  /* number of nodes in the tree */
 } AVLdescriptor;

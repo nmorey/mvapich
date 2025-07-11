@@ -89,8 +89,7 @@ static AVLnode avl_free_list;
 
 /* ckalloc(size) -- allocate space; check for success */
 PRIVATE  char *
-ckalloc(size)
-   unsigned int size;
+ckalloc(unsigned int size)
 {
    char *ptr = MPIU_Malloc((size_t) size);
 
@@ -109,9 +108,8 @@ ckalloc(size)
 *               return the address of the new node
 */
 PRIVATE  AVLtree
-new_node(data, size)
-   void     *data;
-   unsigned int  size;
+new_node(void     *data,
+	 unsigned int  size)
 {
    AVLtree  root;
 
@@ -141,8 +139,7 @@ new_node(data, size)
 *                  reset the node pointer to NULL
 */
 PRIVATE  void
-free_node(rootp)
-   AVLtree  *rootp;
+free_node(AVLtree  *rootp)
 {
 #if !defined(DISABLE_PTMALLOC)
    if(g_is_dreg_finalize == 1) {
@@ -171,8 +168,7 @@ free_node(rootp)
 *                  IS_NULL     --  given tree is empty
 */
 PRIVATE  NODE
-node_type(tree)
-   AVLtree  tree;
+node_type(AVLtree  tree)
 {
    if (tree == NULL_TREE)
    {
@@ -226,9 +222,8 @@ node_type(tree)
 * avl_min() -- compare function used to find the minimal element in a tree
 */
 PRIVATE  long 
-avl_min(elt1, elt2, nd_typ)
-   void *elt1, *elt2;
-   NODE  nd_typ;
+avl_min(void *elt1, *elt2,
+	NODE  nd_typ)
 {
     return (nd_typ == IS_RBRANCH || nd_typ == IS_LEAF)
         ?  0   /* left subtree is empty -- this is the minimum */
@@ -240,9 +235,8 @@ avl_min(elt1, elt2, nd_typ)
 * avl_max() -- compare function used to find the maximal element in a tree
 */
 PRIVATE  long 
-avl_max(elt1, elt2, nd_typ)
-   void *elt1, *elt2;
-   NODE  nd_typ;
+avl_max(void *elt1, void *elt2,
+	NODE  nd_typ)
 {
     return (nd_typ == IS_LBRANCH || nd_typ == IS_LEAF)
         ?  0   /* right subtree is empty -- this is the maximum */
@@ -260,9 +254,8 @@ avl_max(elt1, elt2, nd_typ)
 *                    to restore the balance of a tree
 */
 PRIVATE  short
-rotate_once(rootp, dir)
-   AVLtree   *rootp;
-   DIRECTION  dir;
+rotate_once(AVLtree   *rootp,
+	    DIRECTION  dir)
 {
    DIRECTION   other_dir = OPPOSITE(dir);  /* opposite direction to "dir" */
    AVLtree     old_root  = *rootp;         /* copy of original root of tree */
@@ -290,9 +283,8 @@ rotate_once(rootp, dir)
 *                     to restore the balance of a tree
 */
 PRIVATE void
-rotate_twice(rootp, dir)
-   AVLtree   *rootp;
-   DIRECTION  dir;
+rotate_twice(AVLtree   *rootp,
+	     DIRECTION  dir)
 {
    DIRECTION  other_dir             = OPPOSITE(dir);
    AVLtree    old_root              = *rootp;
@@ -327,8 +319,7 @@ rotate_twice(rootp, dir)
 *     Returns 1 if tree height changed due to rotation; 0 otherwise
 */
 PRIVATE short
-balance(rootp)
-   AVLtree  *rootp;
+balance(AVLtree  *rootp)
 {
    short  special_case = FALSE;
 
@@ -378,10 +369,9 @@ balance(rootp)
 *                compar     --  name of a function to compare 2 data items
 */
 PRIVATE  void *
-avl_find(data, tree, compar)
-   void      *data;
-   AVLtree   tree;
-   long       (*compar)();
+avl_find(void      *data,
+	 AVLtree   tree,
+	 long       (*compar)(void*, void*, NODE))
 {
    NODE nd_typ = node_type(tree);
    long cmp;
@@ -407,11 +397,10 @@ avl_find(data, tree, compar)
 *                compar     --  name of the function to compare 2 data items
 */
 PRIVATE  short 
-avl_insert(data, size, rootp, compar)
-   void     **data;
-   unsigned long size;
-   AVLtree  *rootp;
-   long      (*compar)();
+avl_insert(void     **data,
+	   unsigned long size,
+	   AVLtree  *rootp,
+	   long      (*compar)(void*, void*, NODE))
 {
    short  increase;
    long   cmp;
@@ -466,9 +455,8 @@ avl_insert(data, size, rootp, compar)
  *              rootp      -- a pointer to AVL tree
  */
 PRIVATE AVLtree*
-avl_smallest(data, rootp)
-    void      **data;
-    AVLtree   *rootp;
+avl_smallest(void      **data,
+	     AVLtree   *rootp)
 {
     AVLtree *smallest = NULL;
     long ret;
@@ -499,10 +487,9 @@ avl_smallest(data, rootp)
 *                compar     --  name of function to compare 2 data items
 */
 PRIVATE  short
-avl_delete(data, rootp, compar)
-   void      **data;
-   AVLtree   *rootp;
-   long       (*compar)();
+avl_delete(void      **data,
+	   AVLtree   *rootp,
+	   long       (*compar)(void*, void*, NODE))
 {
    short      decrease = 0;
    long        cmp;
@@ -661,11 +648,10 @@ avl_delete(data, rootp, compar)
 *
 */
 PRIVATE  void
-avl_walk(tree, action, sibling_order, level)
-   AVLtree        tree;
-   void           (*action)();
-   SIBLING_ORDER  sibling_order;
-   long		  level; 
+avl_walk(AVLtree        tree,
+	 void           (*action)(void*, SIBLING_ORDER, long, short),
+	 SIBLING_ORDER  sibling_order,
+	 long		  level)
 {
    DIRECTION  dir1 = (sibling_order == LEFT_TO_RIGHT) ? LEFT : RIGHT;
    DIRECTION  dir2 = OPPOSITE(dir1);
@@ -706,11 +692,10 @@ avl_walk(tree, action, sibling_order, level)
 *       (only perform "action" if it is a non-null function)
 */
 PRIVATE  void
-avl_free(rootp, action, sibling_order, level)
-   AVLtree        *rootp;
-   void           (*action)();
-   SIBLING_ORDER  sibling_order;
-   long 	   level; 
+avl_free(AVLtree        *rootp,
+	 void           (*action)(void*, SIBLING_ORDER, long, short),
+	 SIBLING_ORDER  sibling_order,
+	 long 	          level)
 {
    DIRECTION  dir1 = (sibling_order == LEFT_TO_RIGHT) ? LEFT : RIGHT;
    DIRECTION  dir2 = OPPOSITE(dir1);
@@ -781,9 +766,8 @@ avl_free(rootp, action, sibling_order, level)
 *              structure and initialize its fields.
 */
 PUBLIC  AVL_TREE
-avlinit(compar, isize)
-   long       (*compar)();
-   unsigned long   (*isize)();
+avlinit(long       (*compar)(void*, void*, NODE),
+	unsigned long   (*isize)(void*))
 {
    AVLdescriptor  *avl_desc;
 
@@ -805,10 +789,9 @@ avlinit(compar, isize)
 * avldispose() -- free up all space associated with the given tree structure.
 */
 PUBLIC  void
-avldispose(treeptr, action, sibling_order)
-   AVL_TREE       *treeptr;
-   void           (*action)();
-   SIBLING_ORDER  sibling_order;
+avldispose(AVL_TREE       *treeptr,
+	   void           (*action)(void*, SIBLING_ORDER, long, short),
+	   SIBLING_ORDER  sibling_order)
 {
    AVLdescriptor  *avl_desc;
 
@@ -839,10 +822,9 @@ avldispose(treeptr, action, sibling_order)
 *              given action on each data item in the tree.
 */
 PUBLIC  void
-avlwalk(tree, action, sibling_order)
-   AVL_TREE       tree;
-   void           (*action)();
-   SIBLING_ORDER  sibling_order;
+avlwalk(AVL_TREE       tree,
+	void           (*action)(void*, SIBLING_ORDER, long, short),
+	SIBLING_ORDER  sibling_order)
 {
    AVLdescriptor *avl_desc;
 
@@ -856,8 +838,7 @@ avlwalk(tree, action, sibling_order)
 * avlcount() --  return the number of nodes in the given tree
 */
 PUBLIC  long 
-avlcount(tree)
-   AVL_TREE  tree;
+avlcount(AVL_TREE  tree)
 {
    AVLdescriptor *avl_desc;
 
@@ -871,9 +852,8 @@ avlcount(tree)
 * avlins() -- insert the given item into the tree structure
 */
 PUBLIC  void *
-avlins(data, tree)
-   void      *data;
-   AVL_TREE  tree;
+avlins(void      *data,
+       AVL_TREE  tree)
 {
    AVLdescriptor *avl_desc;
 
@@ -896,9 +876,8 @@ avlins(data, tree)
 * avldel() -- delete the given item from the given tree structure
 */
 PUBLIC  void *
-avldel(data, tree)
-   void      *data;
-   AVL_TREE  tree;
+avldel(void      *data,
+       AVL_TREE  tree)
 {
    AVLdescriptor *avl_desc;
 
@@ -919,9 +898,8 @@ avldel(data, tree)
 *              and return its address (NULL if not found).
 */
 PUBLIC  void *
-avlfind(data, tree)
-   void      *data;
-   AVL_TREE  tree;
+avlfind(void      *data,
+	AVL_TREE  tree)
 {
    AVLdescriptor *avl_desc;
 
@@ -935,10 +913,9 @@ avlfind(data, tree)
 *              and return its address (NULL if not found).
 */
 PUBLIC  void *
-avlfindex(compar, data, tree)
-   long (*compar)();
-   void      *data;
-   AVL_TREE  tree;
+avlfindex(long (*compar)(void*, void*, NODE),
+	  void      *data,
+	  AVL_TREE  tree)
 {
    AVLdescriptor *avl_desc;
 
@@ -951,8 +928,7 @@ avlfindex(compar, data, tree)
 * avldelmin() -- delete the minimal item from the given tree structure
 */
 PUBLIC  void *
-avldelmin(tree)
-   AVL_TREE  tree;
+avldelmin(AVL_TREE  tree)
 {
    void *data;
    AVLdescriptor *avl_desc;
@@ -974,8 +950,7 @@ avldelmin(tree)
 *              and return its address (NULL if not found).
 */
 PUBLIC  void *
-avlfindmin(tree)
-   AVL_TREE  tree;
+avlfindmin(AVL_TREE  tree)
 {
    AVLdescriptor *avl_desc;
 
@@ -989,8 +964,7 @@ avlfindmin(tree)
 * avldelmax() -- delete the maximal item from the given tree structure
 */
 PUBLIC  void *
-avldelmax(tree)
-   AVL_TREE  tree;
+avldelmax(AVL_TREE  tree)
 {
    void *data;
    AVLdescriptor *avl_desc;
@@ -1012,8 +986,7 @@ avldelmax(tree)
 *              and return its address (NULL if not found).
 */
 PUBLIC  void *
-avlfindmax (tree)
-   AVL_TREE  tree;
+avlfindmax (AVL_TREE  tree)
 {
    AVLdescriptor *avl_desc;
 
